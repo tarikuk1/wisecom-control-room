@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Room — Wisecom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;transition:background .3s,color .3s;}
+body.light{background:#f3f3f3;color:#111;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+body.light ::-webkit-scrollbar-thumb{background:#ccc;}
+
+/* Variables */
+.sticky{position:sticky;top:0;z-index:200;background:#111;border-bottom:1px solid #1e1e1e;box-shadow:0 4px 24px rgba(0,0,0,.6);}
+body.light .sticky{background:#fff;border-bottom-color:#e5e5e5;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+
+/* Topbar */
+.topbar{padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.logo{display:flex;align-items:center;gap:12px;}
+.dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 12px #E8006E,0 0 24px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 12px #E8006E;}50%{box-shadow:0 0 20px #E8006E,0 0 40px rgba(232,0,110,.4);}}
+.brand{font-weight:800;font-size:14px;letter-spacing:.08em;color:#fff;}
+body.light .brand{color:#111;}
+.brand-sub{font-size:9px;color:#555;margin-top:1px;letter-spacing:.04em;}
+.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.btn{border:none;border-radius:7px;padding:6px 14px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:5px;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3);}
+.btn-primary{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #2a2a2a;}
+body.light .btn-dark{background:#f0f0f0;color:#555;border-color:#ddd;}
+.btn-filter{background:#1a1a1a;color:#ccc;border:1px solid #2a2a2a;}
+.btn-filter.active{background:#1e0a14;color:#E8006E;border-color:#E8006E55;}
+body.light .btn-filter{background:#f0f0f0;color:#555;border-color:#ddd;}
+.sse-badge{font-size:10px;padding:4px 11px;border-radius:20px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.clock{font-size:11px;color:#555;font-variant-numeric:tabular-nums;}
+
+/* Filter panel */
+.filter-panel{background:#0a0a0a;border-top:1px solid #1a1a1a;padding:12px 20px;}
+body.light .filter-panel{background:#f8f8f8;border-top-color:#eee;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.filter-row:last-child{margin-bottom:0;}
+.filter-label{font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.07em;min-width:55px;flex-shrink:0;}
+input[type=date],input[type=time],select{background:#161616;color:#ccc;border:1px solid #2a2a2a;border-radius:6px;padding:5px 8px;font-size:11px;outline:none;transition:border .15s;}
+input[type=date]:focus,input[type=time]:focus,select:focus{border-color:#E8006E55;}
+body.light input[type=date],body.light input[type=time],body.light select{background:#fff;color:#333;border-color:#ddd;}
+
+/* Checkbox dropdown */
+.ck-wrap{position:relative;user-select:none;}
+.ck-btn{background:#161616;border:1px solid #2a2a2a;border-radius:7px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:115px;display:flex;justify-content:space-between;align-items:center;gap:4px;white-space:nowrap;transition:all .15s;}
+.ck-btn:hover{border-color:#444;}
+.ck-btn.open{border-color:#E8006E;background:#1a0a0f;}
+body.light .ck-btn{background:#f0f0f0;border-color:#ddd;color:#444;}
+.ck-dropdown{position:absolute;top:calc(100% + 5px);left:0;z-index:400;background:#1a1a1a;border:1px solid #333;border-radius:10px;min-width:200px;max-height:260px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,.7);}
+body.light .ck-dropdown{background:#fff;border-color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,.12);}
+.ck-header{padding:7px 12px 5px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #252525;}
+body.light .ck-header{border-bottom-color:#f0f0f0;}
+.ck-all{padding:7px 12px;font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;color:#E8006E;border-bottom:1px solid #222;font-weight:600;}
+body.light .ck-all{border-bottom-color:#f0f0f0;}
+.ck-item{padding:6px 12px;font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s;color:#ccc;}
+body.light .ck-item{color:#444;}
+.ck-item:hover{background:rgba(232,0,110,.08);}
+.ck-box{width:15px;height:15px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0;transition:all .15s;}
+
+/* Switch */
+.sw-label{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;user-select:none;padding:3px 0;}
+.sw-track{width:32px;height:17px;border-radius:9px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;}
+.sw-thumb{position:absolute;top:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+
+/* Smart alerts */
+.smart-zone{padding:0 20px;margin-bottom:0;}
+.smart-alert{background:linear-gradient(135deg,#140810,#1a0a12);border:1px solid #3a1025;border-radius:10px;padding:11px 16px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+.smart-badge{color:#E8006E;font-weight:800;font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:5px;}
+.smart-text{font-size:12px;color:#ddd;flex:1;line-height:1.5;}
+
+/* Red flag */
+.redflag-alert{background:linear-gradient(135deg,#1a0505,#200808);border:1px solid #5a1010;border-radius:10px;padding:11px 16px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;animation:slideIn .3s ease;}
+.redflag-badge{color:#ff3b30;font-weight:800;font-size:11px;flex-shrink:0;}
+
+/* Content */
+.content{padding:16px 20px;}
+
+/* KPI grid */
+.kpi-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.kpi-card{background:#141414;border:1px solid #222;border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all .2s;cursor:default;}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+body.light .kpi-card{background:#f8f8f8;border-color:#e8e8e8;}
+.kpi-card.alert{border-color:#E8006E;background:linear-gradient(135deg,#1a0810,#141414);}
+.kpi-card.good{border-color:#30d158;background:linear-gradient(135deg,#081a10,#141414);}
+.kpi-label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
+.kpi-value{font-size:22px;font-weight:800;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;}
+body.light .kpi-value{color:#111;}
+.kpi-card.alert .kpi-value{color:#E8006E;}
+.kpi-card.good .kpi-value{color:#30d158;}
+.kpi-sub{font-size:10px;color:#555;margin-top:2px;}
+.kpi-gauge{margin-top:6px;height:3px;background:#222;border-radius:2px;overflow:hidden;}
+body.light .kpi-gauge{background:#e0e0e0;}
+.kpi-gauge-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.kpi-tag{font-size:9px;margin-top:3px;font-weight:700;display:flex;align-items:center;gap:3px;}
+
+/* Tabs */
+.tabs-bar{display:flex;gap:0;border-bottom:1px solid #1e1e1e;margin-bottom:14px;background:#111;border-radius:10px 10px 0 0;overflow:hidden;}
+body.light .tabs-bar{background:#f8f8f8;border-bottom-color:#e5e5e5;}
+.tab{background:none;border:none;border-bottom:3px solid transparent;color:#555;padding:10px 16px;font-size:11px;cursor:pointer;font-weight:500;transition:all .2s;outline:none;white-space:nowrap;}
+.tab:hover{color:#ccc;background:rgba(255,255,255,.03);}
+.tab.active{border-bottom-color:#E8006E;color:#E8006E;font-weight:700;background:rgba(232,0,110,.05);}
+body.light .tab{color:#999;}
+body.light .tab.active{color:#E8006E;}
+.tab-count{font-size:10px;margin-left:auto;padding:10px 16px;color:#555;display:flex;align-items:center;}
+
+/* Panel */
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:11px;overflow:hidden;margin-bottom:14px;}
+body.light .panel{background:#fff;border-color:#e5e5e5;}
+.panel-header{padding:12px 16px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;}
+body.light .panel-header{border-bottom-color:#f0f0f0;}
+.panel-title{font-size:11px;color:#777;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{padding:8px 10px;color:#555;font-weight:600;text-align:left;border-bottom:1px solid #1a1a1a;background:#0f0f0f;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
+body.light .tbl th{background:#f5f5f5;border-bottom-color:#eee;color:#888;}
+.tbl th:hover,.tbl th.active{color:#E8006E;}
+.tbl td{padding:8px 10px;border-bottom:1px solid #141414;vertical-align:middle;transition:background .1s;}
+body.light .tbl td{border-bottom-color:#f5f5f5;}
+.tbl tr:hover td{background:#161616;}
+body.light .tbl tr:hover td{background:#fff8fc;}
+.tbl .total-row td{background:#1a0a0f!important;border-top:2px solid #E8006E;font-weight:700;}
+body.light .tbl .total-row td{background:#fff0f7!important;}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+.badge-camp{background:#1e0a14;color:#E8006E;}
+.badge-alert{background:rgba(232,0,110,.15);color:#E8006E;border:1px solid rgba(232,0,110,.3);}
+.badge-warn{background:rgba(255,155,0,.15);color:#ff9b00;}
+.badge-ok{color:#30d158;font-weight:700;}
+.badge-anom{color:#E8006E;font-weight:700;}
+.badge-redflag{background:rgba(255,59,48,.2);color:#ff3b30;border:1px solid rgba(255,59,48,.4);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* Mail input */
+.mail-input{background:#1a1a1a;color:#E8006E;border:1px solid #333;border-radius:5px;padding:4px 7px;font-size:12px;width:54px;text-align:center;font-weight:700;outline:none;transition:border .15s;}
+.mail-input:focus{border-color:#E8006E;background:#1e0a14;}
+body.light .mail-input{background:#fff5f9;border-color:#f0c0d8;}
+
+/* Progress */
+.prog-wrap{display:flex;align-items:center;gap:6px;}
+.prog-bg{flex:1;height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;}
+body.light .prog-bg{background:#eee;}
+.prog-fill{height:100%;border-radius:2px;transition:width .6s;}
+.prog-label{font-size:10px;font-weight:700;min-width:30px;text-align:right;}
+
+/* Chart */
+.chart-legend{display:flex;gap:14px;margin-top:8px;font-size:10px;color:#666;}
+.legend-dot{width:10px;height:10px;border-radius:2px;margin-right:4px;display:inline-block;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#111;border:1px solid #30d158;color:#30d158;padding:12px 18px;border-radius:10px;font-size:12px;font-weight:600;display:none;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:slideIn .3s ease;}
+body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
+
+/* Two col */
+.two-col{display:flex;gap:14px;flex-wrap:wrap;}
+.two-col>.panel{flex:1;min-width:280px;}
+
+/* Stat mini */
+.stat-mini{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#555;margin-left:6px;}
+.trend-up{color:#30d158;}
+.trend-down{color:#E8006E;}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="sticky">
+  <div class="topbar">
+    <div class="logo">
+      <div class="dot"></div>
+      <div>
+        <div class="brand">CONTROL ROOM</div>
+        <div class="brand-sub">WISECOM · SUPERVISION TEMPS RÉEL</div>
+      </div>
+      <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:#ff9f0a;">◌ Connexion…</span>
+      <span id="last-update" style="font-size:10px;color:#444;"></span>
+    </div>
+    <div class="actions">
+      <span class="clock" id="clock"></span>
+      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Clair</button>
+      <button class="btn btn-primary" onclick="simulate()">⚡ Simuler</button>
+      <button class="btn btn-dark" onclick="exportXlsx()">📊 Excel</button>
+      <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
+      <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
+      <button class="btn btn-filter" id="filter-btn" onclick="toggleFilters()">⚙ Filtres ▼</button>
+    </div>
+  </div>
+
+  <div class="filter-panel" id="filter-panel">
+    <div class="filter-row">
+      <span class="filter-label">Période</span>
+      <input type="date" id="f-date-deb" value="2025-01-01" min="2025-01-01">
+      <span style="font-size:10px;color:#444;">→</span>
+      <input type="date" id="f-date-fin">
+      <input type="time" id="f-h-deb" value="08:00">
+      <span style="font-size:10px;color:#444;">→</span>
+      <input type="time" id="f-h-fin" value="20:00">
+      <select id="f-pas">
+        <option>15 min</option><option selected>30 min</option>
+        <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
+      </select>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Filtres</span>
+      <div class="ck-wrap" id="ck-camps"></div>
+      <div class="ck-wrap" id="ck-queues"></div>
+      <div class="ck-wrap" id="ck-agents"></div>
+      <div class="ck-wrap" id="ck-skills"></div>
+      <div class="ck-wrap" id="ck-contrats"></div>
+      <div class="ck-wrap" id="ck-status"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Isoler</span>
+      <div id="sw-container" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SMART ALERTS -->
+<div style="padding:12px 20px 0;" id="alerts-zone"></div>
+
+<div class="content">
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- TABS -->
+  <div style="display:flex;align-items:center;border-bottom:1px solid #1e1e1e;margin-bottom:14px;">
+    <div style="display:flex;gap:0;">
+      <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
+      <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
+      <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+    </div>
+    <span id="agent-count" style="margin-left:auto;font-size:11px;color:#555;padding-right:4px;"></span>
+  </div>
+
+  <div id="tab-tableau">
+    <div class="panel">
+      <div class="tbl-wrap">
+        <table class="tbl" id="main-table">
+          <thead><tr id="thead-row"></tr></thead>
+          <tbody id="tbody-agents"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-graphiques" style="display:none;">
+    <div class="two-col">
+      <div class="panel" style="flex:2;min-width:300px;">
+        <div class="panel-header"><span class="panel-title">Volumes par tranche horaire</span></div>
+        <div style="padding:14px;">
+          <svg id="chart-svg" width="100%" viewBox="0 0 680 110" preserveAspectRatio="none"></svg>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#E8006E;"></span>Entrants</span>
+            <span><span class="legend-dot" style="background:#888;"></span>Sortants</span>
+            <span><span class="legend-dot" style="background:#ff3b30;"></span>Abandons</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-width:240px;">
+        <div class="panel-header"><span class="panel-title">Répartition Qualifications</span></div>
+        <div style="padding:14px;" id="qualif-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-skills" style="display:none;">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Matrice compétences × agents</span></div>
+      <div style="overflow-x:auto;padding:0;"><table class="tbl" id="skills-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const P="#E8006E";
+const CAMPS=["Voltalis","Omoda","Elvetis","Alcéane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
+const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
+const CONTRATS=["CDI","CDD","Alternance","Intérim"];
+const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
+const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
+const QUEUES_MAP={
+  Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant"],
+  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
+  Elvetis:["Elvetis_RQ","Elvetis_SAV"],
+  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence"],
+  Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard"],
+  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur"],
+  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information"],
+  Antargaz:["Antargaz_Client","Antargaz_Sortant"],
+};
+const AGENTS_BASE=[
+  {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
+  {id:2,nom:"Maetzu CRISTINA",login:"Maetzu-C",camp:"Omoda",skills:["Equisign","LMDW"],contrat:"CDI",obj:45},
+  {id:3,nom:"Fatima BENALI",login:"Fatima-B",camp:"Elvetis",skills:["Bilingue"],contrat:"CDD",obj:40},
+  {id:4,nom:"Karim OUALI",login:"Karim-O",camp:"Omoda",skills:["LMDW","Rappel Auto"],contrat:"CDI",obj:50},
+  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["Rétention","LMDW"],contrat:"CDI",obj:55},
+  {id:6,nom:"Thomas DUPONT",login:"Thomas-D",camp:"Vivest",skills:["Equisign"],contrat:"CDD",obj:40},
+  {id:7,nom:"Nadia CHERIF",login:"Nadia-C",camp:"Voltalis",skills:["LMDW","Backoffice"],contrat:"CDI",obj:50},
+  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"Alcéane",skills:["Visio"],contrat:"Alternance",obj:35},
+  {id:9,nom:"Inès ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","Rétention"],contrat:"CDI",obj:50},
+  {id:10,nom:"Yann PETIT",login:"Yann-P",camp:"ELECTROSUR",skills:["LMDW"],contrat:"CDI",obj:45},
+  {id:11,nom:"Lydie BARBIER",login:"Lydie-B",camp:"Antargaz",skills:["Bilingue","LMDW"],contrat:"CDI",obj:55},
+  {id:12,nom:"Romain GARCIA",login:"Romain-G",camp:"Evoriel",skills:["Equisign","Backoffice"],contrat:"CDD",obj:40},
+];
+
+function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
+function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
+function fmtTime(iso){if(!iso)return"–";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"–";}}
+function fmtH(h){return h>0?h.toFixed(1)+"h":"–";}
+
+let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true;
+let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Connecté","En Pause","Wrap-up"];
+let sw={horsOuv:false,reit:false,refus:false,inactif:false};
+let slots=[],allQueues=[];
+let redFlagTimers={};
+
+function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
+
+function genAgents(){
+  return AGENTS_BASE.map(a=>{
+    const st=STATUSES[rnd(0,a.id>10?4:2)];
+    const app=st==="Déconnecté"?0:rnd(12,60);
+    const hp=st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(2);
+    return{...a,status:st,appels:app,appelsIn:Math.floor(app*.7),appelsOut:Math.ceil(app*.3),
+      mails_auto:rnd(1,12),hprod:hp,presence:+(hp*1.15).toFixed(2),dmc:rnd(80,270),
+      transferts:rnd(0,5),inactifs:rnd(0,9),ko:rnd(0,15),refus:rnd(0,8),
+      realise:Math.min(100,rnd(35,105)),files_ok:Math.random()>0.2,
+      premiereAction:null,derniereAction:null,
+      lastVoixActivity: st==="Déconnecté"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
+    };
+  }).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
+    appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0}));
+}
+
+function genSlots(){
+  return Array.from({length:24},(_,i)=>{
+    const h=8+Math.floor(i/2),m=i%2===0?"00":"30";
+    const v=rnd(15,90);
+    return{lbl:`${String(h).padStart(2,"0")}:${m}`,vol:v,aband:rnd(2,Math.floor(v*.3)),out:rnd(5,40)};
+  });
+}
+
+// SSE
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  const es=new EventSource("http://localhost:3000/events");
+  es.onopen=()=>{badge.innerHTML="● INO connecté";badge.style.background="#081a10";badge.style.color="#30d158";};
+  es.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.cumul_journee_agent)loadAgentsFromAPI();}catch{}};
+  es.onerror=()=>{badge.innerHTML="✕ Hors ligne";badge.style.background="#1e0808";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,8000);};
+}
+
+async function loadAgentsFromAPI(){
+  try{
+    const d=document.getElementById("f-date-fin").value||new Date().toISOString().slice(0,10);
+    const res=await fetch(`http://localhost:3000/agents-day?date=${d}`);
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    if(data.agents&&data.agents.length>0){
+      agents=data.agents.map(a=>{
+        const total=a.appelsIn+a.appelsOut;
+        const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
+        const obj=50;
+        const realise=total>0&&hprod>0?Math.min(100,Math.round((total/obj)*100)):0;
+        const fq=(a.queues||"").split(", ");
+        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase())))||fq[0]?.split("_")[0]||"–";
+        const m=mailsEdit[a.id]||0;
+        const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
+        // Garder le timer red flag si déjà existant
+        const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
+        return{id:a.id,nom:a.nom,login:a.username,camp,skills:["LMDW"],contrat:"CDI",obj,
+          status:"Connecté",appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
+          mails_auto:m,hprod,presence:+(hprod*1.1).toFixed(2),dmc:a.dmt||0,
+          transferts:0,inactifs:0,ko:0,refus:0,realise,files_ok:true,
+          premiereAction:a.premiereAction,derniereAction:a.derniereAction,
+          queues:a.queues||"",
+          actesH:hprod>0?+((total+m)/hprod).toFixed(1):0,
+          appelsH:appelsDecH,
+          lastVoixActivity:lastVoix
+        };
+      });
+      selAgents=agents.map(a=>a.nom);
+      selStatus=["Connecté","En Pause","Wrap-up","Déconnecté"];
+      document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
+      buildAllDropdowns();
+      render();
+    }
+  }catch{}
+}
+
+// Dropdown checkbox
+function buildCkDrop(cid,label,options,selected,onChangeFn){
+  const wrap=document.getElementById(cid);
+  if(!wrap)return;
+  let open=false;
+  function rebuild(){
+    const all=selected.length===options.length&&options.length>0;
+    const disp=all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
+    wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span style="font-size:9px;color:#666;margin-left:4px">${open?"▲":"▼"}</span></div>
+    ${open?`<div class="ck-dropdown">
+      <div class="ck-header">${label}</div>
+      <div class="ck-all" id="${cid}-all"><span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"};border-radius:4px">${all?"✓":""}</span>${all?"Tout décocher":"Tout cocher"}</div>
+      ${options.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join("")}
+    </div>`:""}`;
+    document.getElementById(`${cid}-btn`).onclick=e=>{e.stopPropagation();open=!open;rebuild();};
+    if(open){
+      document.getElementById(`${cid}-all`).onclick=e=>{e.stopPropagation();onChangeFn(all?[]:options.slice());};
+      wrap.querySelectorAll(".ck-item").forEach(el=>{
+        el.onclick=e=>{e.stopPropagation();const v=el.dataset.val;onChangeFn(selected.includes(v)?selected.filter(x=>x!==v):[...selected,v]);};
+      });
+    }
+  }
+  rebuild();
+  document.addEventListener("click",()=>{if(open){open=false;rebuild();}},{once:true});
+}
+
+function buildAllDropdowns(){
+  allQueues=getAllQueues();
+  buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{selCamps=v;allQueues=getAllQueues();selQueues=getAllQueues();buildAllDropdowns();render();});
+  buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
+  buildCkDrop("ck-agents","Agents",agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
+  buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
+  buildCkDrop("ck-contrats","Contrats",CONTRATS,selContrats,v=>{selContrats=v;render();});
+  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
+}
+
+function buildSwitches(){
+  const cont=document.getElementById("sw-container");
+  const defs=[["horsOuv","Hors SVI"],["reit","Réitérants"],["refus","Refus"],["inactif","Inactifs"]];
+  cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
+    <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?15:2}px"></div></div>${l}
+  </label>`).join("");
+}
+
+function toggleSw(k){sw[k]=!sw[k];buildSwitches();render();}
+
+// Filtrage
+function getFiltered(){
+  return agents.filter(a=>{
+    if(!selCamps.includes(a.camp))return false;
+    if(!selAgents.includes(a.nom))return false;
+    if(!selStatus.includes(a.status))return false;
+    if(!selContrats.includes(a.contrat))return false;
+    if(selSkills.length<SKILLS.length&&!a.skills.some(s=>selSkills.includes(s)))return false;
+    if(sw.refus&&a.refus===0)return false;
+    if(sw.inactif&&a.inactifs<3)return false;
+    return true;
+  });
+}
+
+function getSorted(f){
+  return[...f].sort((a,b)=>{
+    const ma=mailsEdit[a.id]||a.mails_auto||0,mb=mailsEdit[b.id]||b.mails_auto||0;
+    if(sortCol==="actes")return sortDir*((a.appels+ma)-(b.appels+mb));
+    if(sortCol==="nom")return sortDir*a.nom.localeCompare(b.nom);
+    return sortDir*((a[sortCol]||0)-(b[sortCol]||0));
+  });
+}
+
+// KPIs
+function renderKPIs(f){
+  const totApp=f.reduce((s,a)=>s+a.appels,0);
+  const totM=f.reduce((s,a)=>s+(mailsEdit[a.id]||a.mails_auto||0),0);
+  const totActes=totApp+totM;
+  const totDuree=f.reduce((s,a)=>s+a.dmc*a.appels,0);
+  const avgDmc=totApp>0?Math.round(totDuree/totApp):0;
+  const totHP=f.reduce((s,a)=>s+a.hprod,0)||1;
+  const actesH=+(totActes/totHP).toFixed(1);
+  const appelsH=+(totApp/totHP).toFixed(1);
+  const totKo=f.reduce((s,a)=>s+a.ko,0);
+  const horsOuv=Math.floor(totApp*.07);
+  const reit=Math.floor(totApp*.04);
+  const backlog=rnd(8,45);
+  const totRecus=Math.max(1,Math.round(totApp*1.18));
+  const totManques=totRecus-totApp;
+  const qs=Math.round((totApp/totRecus)*100);
+  const pct=Math.min(100,Math.round((totActes/600)*100));
+
+  const kpis=[
+    {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
+    {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Flux reçus",v:totRecus.toLocaleString()},
+    {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
+    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
+    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
+    {l:"Appels décr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traités/h prod"},
+    {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"[App+Mails]/h prod"},
+    {l:"100 % KO",v:totKo,alert:totKo>40},
+    {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
+    {l:"Réitérants",v:reit,alert:reit>20},
+    {l:"Backlog Mails",v:backlog,alert:backlog>30},
+  ];
+
+  document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
+    <div class="kpi-card${k.alert?" alert":k.good?" good":""}">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-value">${k.v}</div>
+      ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
+      ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
+      <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
+    </div>`).join("");
+}
+
+// Smart routing + Red flags
+function renderAlerts(f){
+  const zone=document.getElementById("alerts-zone");
+  let html="";
+
+  // Red flags — agents déconnectés voix > 5 min
+  const now=Date.now();
+  const redFlags=f.filter(a=>{
+    const inactifMs=now-(a.lastVoixActivity||now);
+    return inactifMs>5*60000;
+  });
+  redFlags.forEach(a=>{
+    const mins=Math.floor((now-(a.lastVoixActivity||now))/60000);
+    html+=`<div class="redflag-alert">
+      <span class="redflag-badge">🚨 RED FLAG</span>
+      <span style="font-size:12px;color:#ff9999;flex:1"><b style="color:#ff3b30">${a.nom}</b> — Aucune activité voix depuis <b>${mins} min</b>. Agent potentiellement déconnecté du flux.</span>
+      <span class="badge badge-redflag">Vérifier</span>
+    </div>`;
+  });
+
+  // Smart routing par campagne
+  const campStats={};
+  f.forEach(a=>{
+    if(!campStats[a.camp])campStats[a.camp]={agents:[],appels:0,hprod:0};
+    campStats[a.camp].agents.push(a);
+    campStats[a.camp].appels+=a.appels;
+    campStats[a.camp].hprod+=a.hprod;
+  });
+
+  Object.entries(campStats).forEach(([camp,stat])=>{
+    const qs=stat.appels>0?Math.round((stat.appels/(stat.appels*1.2))*100):100;
+    const appH=stat.hprod>0?+(stat.appels/stat.hprod).toFixed(1):0;
+    const enTension=qs<80||appH<8;
+    if(enTension){
+      // Cherche candidats disponibles depuis autres files
+      const candidats=agents.filter(a=>
+        a.camp!==camp&&
+        (a.status==="Connecté"||a.status==="En Pause")&&
+        !f.find(x=>x.id===a.id&&x.camp===camp)
+      );
+      if(candidats.length>0){
+        const c=candidats[0];
+        const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
+        html+=`<div class="smart-alert">
+          <span class="smart-badge">⚠ attention</span>
+          <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).
+          Recommandation : Basculer <b style="color:${P}">${c.nom}</b> depuis <b>${c.camp}</b>
+          pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.</span>
+        </div>`;
+      }
+    }
+  });
+
+  // Agents sous-productifs
+  const sousP=f.filter(a=>a.hprod>1&&a.appelsH<5&&a.status==="Connecté");
+  if(sousP.length>0){
+    html+=`<div class="smart-alert">
+      <span class="smart-badge">📊 Organisation</span>
+      <span class="smart-text">${sousP.length} agent(s) avec moins de 5 appels/h en production :
+      <b style="color:${P}">${sousP.slice(0,3).map(a=>a.nom.split(" ")[0]).join(", ")}</b>.
+      Vérifier disponibilité et files actives.</span>
+    </div>`;
+  }
+
+  zone.innerHTML=html;
+}
+
+// Tableau
+function renderTable(sorted){
+  const cols=[
+    {k:"nom",l:"Agent"},{k:"status",l:"Statut"},{k:"camp",l:"File / Camp."},
+    {k:"hprod",l:"H. Prod"},{k:"presence",l:"Présence"},
+    {k:"appelsIn",l:"IN"},{k:"appelsOut",l:"OUT"},{k:"appels",l:"Total app."},
+    {k:"mails",l:`<span style="color:${P}">Mails ✏</span>`},
+    {k:"actes",l:"Actes total"},
+    {k:"appelsH",l:"App. décr./h",title:"Appels traités décrochés par heure de prod"},
+    {k:"actesH",l:"Actes/h",title:"[Appels+Mails] / H.prod"},
+    {k:"dmc",l:"DMC"},{k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},
+    {k:"inactifs",l:"Inactifs"},{k:"realise",l:"% réalisé"},{k:"files",l:"Files"}
+  ];
+
+  document.getElementById("thead-row").innerHTML=cols.map(c=>`
+    <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" title="${c.title||c.l}"
+      style="${c.k==="mails"?"background:#0f0f0f;":""}">
+      ${c.l}${sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"}
+    </th>`).join("");
+
+  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0;
+  const now=Date.now();
+
+  document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
+    const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
+    const actes=a.appels+m;
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
+    const inactifMs=now-(a.lastVoixActivity||now);
+    const isRedFlag=inactifMs>5*60000;
+    const rfMins=Math.floor(inactifMs/60000);
+    tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
+    return`<tr style="${isRedFlag?`background:rgba(255,59,48,.05)!important;`:""}">
+      <td style="font-weight:700;white-space:nowrap">
+        ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">🚨${rfMins}m</span>`:""}
+        ${a.nom}
+      </td>
+      <td><span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span></td>
+      <td><span class="badge badge-camp" style="font-size:10px">${a.camp}</span></td>
+      <td style="color:#666">${fmtH(a.hprod)}</td>
+      <td style="color:#555">${fmtH(a.presence)}</td>
+      <td>${a.appelsIn||0}</td>
+      <td>${a.appelsOut||0}</td>
+      <td style="font-weight:700">${a.appels}</td>
+      <td style="background:#0f0f0f">
+        <input class="mail-input" type="number" min="0" max="999" value="${m}"
+          onchange="updateMails(${a.id},this.value)">
+      </td>
+      <td style="color:${P};font-weight:800;font-size:13px">${actes}</td>
+      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décr./h">${aph}</td>
+      <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h">${ach}</td>
+      <td>${mmss(a.dmc)}</td>
+      <td style="color:${(a.ko||0)>10?P:"inherit"};font-weight:${(a.ko||0)>10?700:400}">${a.ko||0}</td>
+      <td>${(a.refus||0)>5?`<span class="badge badge-alert">⚠ ${a.refus}</span>`:(a.refus||0)}</td>
+      <td>${(a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0)}</td>
+      <td style="min-width:110px">
+        <div class="prog-wrap">
+          <div class="prog-bg"><div class="prog-fill" style="width:${a.realise}%;background:${a.realise>=80?P:a.realise<50?"#ff3b30":P}"></div></div>
+          <span class="prog-label" style="color:${a.realise>=80?"#30d158":a.realise<50?"#ff3b30":"#ccc"}">${a.realise}%</span>
+        </div>
+        <div style="font-size:8px;color:${a.realise>=80?"#30d158":a.realise<60?P:"#555"};margin-top:2px">${a.realise>=80?"bonne maitrise":a.realise<60?"attention":""}</div>
+      </td>
+      <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
+    </tr>`;
+  }).join("")+`<tr class="total-row">
+    <td colspan="7" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
+    <td style="padding:9px 10px">${tApp}</td>
+    <td style="padding:9px 10px;color:${P};background:#0f0f0f">${tM}</td>
+    <td style="padding:9px 10px;color:${P};font-size:14px">${tApp+tM}</td>
+    <td colspan="7" style="padding:9px 10px"></td>
+    <td style="padding:9px 10px;color:${P}">${tKo}</td>
+    <td style="padding:9px 10px;color:${P}">${tRef}</td>
+    <td colspan="3"></td>
+  </tr>`;
+}
+
+// Graphiques
+function renderChart(){
+  const maxV=Math.max(...slots.map(s=>s.vol+s.out),1);
+  let svg="";
+  slots.forEach((s,i)=>{
+    const x=i*(680/slots.length),bw=(680/slots.length)-2;
+    const hv=Math.round((s.vol/maxV)*100),ha=Math.round((s.aband/maxV)*100),ho=Math.round((s.out/maxV)*100);
+    svg+=`<rect x="${x}" y="${100-hv}" width="${bw*.52}" height="${hv}" fill="${P}" rx="1" opacity=".9"/>`;
+    svg+=`<rect x="${x+bw*.55}" y="${100-ho}" width="${bw*.35}" height="${ho}" fill="#666" rx="1" opacity=".8"/>`;
+    svg+=`<rect x="${x}" y="${100-ha}" width="${bw*.52}" height="${ha}" fill="#ff3b30" rx="1" opacity=".65"/>`;
+    if(i%4===0)svg+=`<text x="${x+bw/2}" y="110" text-anchor="middle" font-size="8" fill="#555">${s.lbl}</text>`;
+  });
+  svg+=`<line x1="0" y1="100" x2="680" y2="100" stroke="#1e1e1e" stroke-width="1"/>`;
+  document.getElementById("chart-svg").innerHTML=svg;
+
+  const tot=QUALIFS.reduce((s,_)=>s+rnd(5,80),0)||1;
+  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
+    const v=rnd(5,80),pct=Math.round((v/tot)*100);
+    return`<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">
+        <span style="color:${q==="100 % KO"?P:"#ccc"};font-weight:${q==="100 % KO"?700:400}">${q}</span>
+        <span style="color:#555">${pct}%</span>
+      </div>
+      <div style="height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${q==="100 % KO"?P:"#444"};border-radius:2px"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// Skills
+function renderSkills(){
+  const allA=agents.length?agents:AGENTS_BASE;
+  const thead=`<thead><tr>
+    <th style="min-width:170px;padding:8px 12px">Agent</th>
+    ${SKILLS.map(s=>`<th style="text-align:center;min-width:85px;padding:8px 12px">${s}</th>`).join("")}
+    <th style="text-align:center;min-width:80px;padding:8px 12px">Files OK</th>
+  </tr></thead>`;
+  const tbody=`<tbody>${allA.map((a,i)=>`<tr>
+    <td style="font-weight:600;padding:8px 12px">${a.nom}<br><span style="font-size:9px;color:#555">${a.contrat||"–"} · ${a.camp}</span></td>
+    ${SKILLS.map(s=>`<td style="text-align:center;padding:8px 12px">
+      ${(a.skills||[]).includes(s)?`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${P};line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">✓</span>`:
+      `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a"></span>`}
+    </td>`).join("")}
+    <td style="text-align:center;padding:8px 12px">${a.files_ok?'<span style="color:#30d158;font-weight:700">✓ OK</span>':'<span style="color:#E8006E;font-weight:700">⚠ Anomalie</span>'}</td>
+  </tr>`).join("")}</tbody>`;
+  document.getElementById("skills-table").innerHTML=thead+tbody;
+}
+
+function render(){
+  const f=getFiltered(),s=getSorted(f);
+  renderKPIs(f);
+  renderAlerts(f);
+  renderTable(s);
+  renderChart();
+  renderSkills();
+  document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
+}
+
+function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
+function updateMails(id,val){mailsEdit[id]=Math.max(0,parseInt(val)||0);render();}
+
+function simulate(){
+  agents=agents.map(a=>({...a,
+    appels:Math.max(0,a.appels+rnd(0,6)),
+    appelsIn:Math.max(0,(a.appelsIn||0)+rnd(0,4)),
+    appelsOut:Math.max(0,(a.appelsOut||0)+rnd(0,2)),
+    ko:(a.ko||0)+(Math.random()>.75?rnd(1,3):0),
+    refus:(a.refus||0)+(Math.random()>.85?1:0),
+    dmc:Math.max(60,a.dmc+rnd(-25,35)),
+    realise:Math.min(100,Math.max(5,a.realise+rnd(-10,10))),
+    inactifs:Math.max(0,(a.inactifs||0)+(Math.random()>.8?1:-1)),
+    lastVoixActivity:Math.random()>.3?Date.now():Date.now()-rnd(6,15)*60000
+  })).map(a=>({...a,
+    actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]||a.mails_auto||0))/a.hprod).toFixed(1):0,
+    appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0
+  }));
+  slots=slots.map(s=>({...s,vol:Math.max(5,s.vol+rnd(-5,12)),aband:Math.max(0,s.aband+rnd(-2,5))}));
+  render();
+}
+
+function toggleTheme(){
+  darkMode=!darkMode;
+  document.body.className=darkMode?"":"light";
+  document.getElementById("theme-btn").textContent=darkMode?"☀ Clair":"🌙 Sombre";
+  buildSwitches();render();
+}
+
+function toggleFilters(){
+  filterOpen=!filterOpen;
+  document.getElementById("filter-panel").style.display=filterOpen?"block":"none";
+  const btn=document.getElementById("filter-btn");
+  btn.textContent=`⚙ Filtres ${filterOpen?"▲":"▼"}`;
+  btn.classList.toggle("active",filterOpen);
+}
+
+function switchTab(id,btn){
+  ["tableau","graphiques","skills"].forEach(t=>{document.getElementById("tab-"+t).style.display=t===id?"block":"none";});
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function showToast(msg,color="#30d158"){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.style.borderColor=color;t.style.color=color;
+  t.style.display="block";setTimeout(()=>t.style.display="none",3500);
+}
+
+// Export Excel amélioré
+function exportXlsx(){
+  const msg=document.getElementById("export-msg");
+  msg.style.display="inline";msg.textContent="Export en cours…";
+  const f=getFiltered(),s=getSorted(f);
+  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
+  s.forEach(a=>{
+    const m=mailsEdit[a.id]||a.mails_auto||0;
+    const actes=a.appels+m;
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
+  });
+  // Ligne totaux
+  const tApp=s.reduce((x,a)=>x+a.appels,0),tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
+  rows.push(["TOTAL",s.length+" agents","","","","","",s.reduce((x,a)=>x+(a.appelsIn||0),0),s.reduce((x,a)=>x+(a.appelsOut||0),0),tApp,tM,tApp+tM,"","",mmss(Math.round(s.reduce((x,a)=>x+a.dmc,0)/(s.length||1))),s.reduce((x,a)=>x+(a.ko||0),0),s.reduce((x,a)=>x+(a.refus||0),0),"","","",""]);
+
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`Wisecom_ControlRoom_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  setTimeout(()=>{msg.textContent="✓ Export téléchargé !";},800);
+  setTimeout(()=>msg.style.display="none",4000);
+  showToast("✓ Export Excel téléchargé !");
+}
+
+// Export PDF amélioré
+function exportPDF(){
+  const f=getFiltered(),s=getSorted(f);
+  const tApp=s.reduce((x,a)=>x+a.appels,0);
+  const tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
+  const tActes=tApp+tM;
+  const totHP=s.reduce((x,a)=>x+a.hprod,0)||1;
+  const actesH=+(tActes/totHP).toFixed(1);
+  const avgDmc=tApp>0?Math.round(s.reduce((x,a)=>x+a.dmc*a.appels,0)/tApp):0;
+  const pct=Math.min(100,Math.round((tActes/600)*100));
+  const totRecus=Math.max(1,Math.round(tApp*1.18));
+  const qs=Math.round((tApp/totRecus)*100);
+
+  const rows=s.map((a,i)=>{
+    const m=mailsEdit[a.id]||a.mails_auto||0;
+    const actes=a.appels+m;
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    const bg=i%2===0?"#fff":"#fafafa";
+    const isAlert=a.realise<60||(a.ko||0)>10||(a.refus||0)>5;
+    return`<tr style="background:${isAlert?"#fff8f9":bg}">
+      <td>${a.nom}</td><td style="color:#888">${a.login||""}</td>
+      <td><span style="background:#fff0f6;color:#E8006E;padding:1px 6px;border-radius:3px;font-size:10px">${a.camp}</span></td>
+      <td style="color:#888">${a.contrat||"CDI"}</td>
+      <td>${a.hprod?a.hprod.toFixed(1)+"h":"–"}</td>
+      <td>${a.appelsIn||0}</td><td>${a.appelsOut||0}</td><td><b>${a.appels}</b></td>
+      <td style="color:#E8006E;font-weight:700">${m}</td>
+      <td style="font-weight:800;color:#E8006E;font-size:13px">${actes}</td>
+      <td style="color:${parseFloat(aph)>=12?"#27ae60":parseFloat(aph)<6?"#E8006E":"#333"};font-weight:700">${aph}</td>
+      <td style="color:${parseFloat(ach)>=15?"#27ae60":parseFloat(ach)<8?"#E8006E":"#333"};font-weight:700">${ach}</td>
+      <td>${mmss(a.dmc)}</td>
+      <td style="color:${(a.ko||0)>10?"#E8006E":"#333"}">${a.ko||0}</td>
+      <td style="color:${(a.refus||0)>5?"#E8006E":"#333"}">${a.refus||0}</td>
+      <td style="color:${a.realise>=80?"#27ae60":a.realise<60?"#E8006E":"#333"};font-weight:700">${a.realise}%</td>
+      <td style="color:#888;font-size:10px">${fmtTime(a.premiereAction)} → ${fmtTime(a.derniereAction)}</td>
+    </tr>`;
+  }).join("");
+
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Control Room — Rapport Wisecom ${new Date().toLocaleDateString("fr-FR")}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#222;background:#fff;}
+    .header{background:#0d0d0d;color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;}
+    .header-left h1{font-size:20px;font-weight:800;letter-spacing:.06em;margin-bottom:4px;}
+    .header-left .sub{font-size:10px;color:#888;letter-spacing:.04em;}
+    .header-right{text-align:right;}
+    .badge-main{background:#E8006E;color:#fff;padding:5px 14px;border-radius:5px;font-size:11px;font-weight:700;display:inline-block;margin-bottom:6px;}
+    .meta{font-size:10px;color:#888;}
+    .kpis{display:grid;grid-template-columns:repeat(8,1fr);border-bottom:3px solid #E8006E;background:#fafafa;}
+    .kpi{padding:12px 10px;border-right:1px solid #eee;text-align:center;}
+    .kpi:last-child{border-right:none;}
+    .kpi-l{font-size:8px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:600;}
+    .kpi-v{font-size:17px;font-weight:800;}
+    .kpi-v.pink{color:#E8006E;}
+    .kpi-v.green{color:#27ae60;}
+    .section{padding:14px 20px;}
+    .stitle{font-size:12px;font-weight:700;padding-bottom:6px;border-bottom:2px solid #E8006E;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .stitle::before{content:"";display:inline-block;width:4px;height:14px;background:#E8006E;border-radius:2px;}
+    table{width:100%;border-collapse:collapse;}
+    thead tr{background:#111;color:#fff;}
+    th{padding:7px 8px;text-align:left;font-size:9px;font-weight:700;white-space:nowrap;letter-spacing:.03em;}
+    td{padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:10px;}
+    .total-row td{background:#fff0f7!important;font-weight:700;border-top:2px solid #E8006E;}
+    .footer{background:#f5f5f5;padding:10px 20px;font-size:9px;color:#aaa;display:flex;justify-content:space-between;margin-top:16px;border-top:1px solid #eee;}
+    .print-btn{position:fixed;top:14px;right:14px;background:#E8006E;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;z-index:999;box-shadow:0 4px 12px rgba(232,0,110,.4);}
+    @media print{.print-btn{display:none;}body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}thead tr,.kpis,.header{-webkit-print-color-adjust:exact;}table{font-size:9px;}}
+  </style></head><body>
+  <button class="print-btn" onclick="window.print()">🖨 Imprimer / PDF</button>
+  <div class="header">
+    <div class="header-left">
+      <h1>CONTROL ROOM — RAPPORT SUPERVISION</h1>
+      <div class="sub">WISECOM · INO MAKER · DONNÉES TEMPS RÉEL</div>
+    </div>
+    <div class="header-right">
+      <div class="badge-main">Tarik_Ino_Multi_dashboard</div>
+      <div class="meta">Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}</div>
+      <div class="meta">Période : ${document.getElementById("f-date-deb").value} → ${document.getElementById("f-date-fin").value} · ${document.getElementById("f-h-deb").value}→${document.getElementById("f-h-fin").value}</div>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Agents actifs</div><div class="kpi-v pink">${s.length}</div></div>
+    <div class="kpi"><div class="kpi-l">QS</div><div class="kpi-v ${qs>=85?"green":"pink"}">${qs}%</div></div>
+    <div class="kpi"><div class="kpi-l">Appels traités</div><div class="kpi-v">${tApp}</div></div>
+    <div class="kpi"><div class="kpi-l">Mails hors INO</div><div class="kpi-v pink">${tM}</div></div>
+    <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${tActes}</div></div>
+    <div class="kpi"><div class="kpi-l">App. décr./h</div><div class="kpi-v">${+(tApp/totHP).toFixed(1)}</div></div>
+    <div class="kpi"><div class="kpi-l">Actes/h</div><div class="kpi-v ${actesH>=15?"green":"pink"}">${actesH}</div></div>
+    <div class="kpi"><div class="kpi-l">% de réalisé</div><div class="kpi-v ${pct>=80?"green":"pink"}">${pct}%</div></div>
+  </div>
+  <div class="section">
+    <div class="stitle">Détail individuel — ${s.length} agents · DMC moyenne : ${mmss(avgDmc)}</div>
+    <table><thead><tr>
+      <th>Agent</th><th>Login</th><th>Campagne</th><th>Contrat</th><th>H.Prod</th>
+      <th>IN</th><th>OUT</th><th>Total App.</th><th>Mails</th><th>Actes</th>
+      <th>App./h</th><th>Actes/h</th><th>DMC</th><th>KO</th><th>Refus</th><th>% Réalisé</th><th>Plage horaire</th>
+    </tr></thead>
+    <tbody>${rows}
+    <tr class="total-row">
+      <td colspan="5">TOTAL — ${s.length} agents</td>
+      <td>${s.reduce((x,a)=>x+(a.appelsIn||0),0)}</td>
+      <td>${s.reduce((x,a)=>x+(a.appelsOut||0),0)}</td>
+      <td><b>${tApp}</b></td>
+      <td style="color:#E8006E"><b>${tM}</b></td>
+      <td style="color:#E8006E;font-size:13px"><b>${tActes}</b></td>
+      <td>${+(tApp/totHP).toFixed(1)}</td>
+      <td>${actesH}</td>
+      <td>${mmss(avgDmc)}</td>
+      <td>${s.reduce((x,a)=>x+(a.ko||0),0)}</td>
+      <td>${s.reduce((x,a)=>x+(a.refus||0),0)}</td>
+      <td>${pct}%</td><td></td>
+    </tr></tbody></table>
+  </div>
+  <div class="footer">
+    <span>Wisecom · Control Room · Tarik_Ino_Multi_dashboard · © ${new Date().getFullYear()}</span>
+    <span>Export automatique · ${new Date().toLocaleString("fr-FR")}</span>
+  </div></body></html>`);
+  w.document.close();
+  showToast("✓ PDF prêt — cliquez Imprimer dans la nouvelle fenêtre");
+}
+
+// Init
+document.getElementById("f-date-fin").value=new Date().toISOString().slice(0,10);
+agents=genAgents();
+slots=genSlots();
+selQueues=getAllQueues();
+buildAllDropdowns();
+buildSwitches();
+render();
+connectSSE();
+loadAgentsFromAPI();
+setInterval(loadAgentsFromAPI,60000);
+// Horloge
+setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
+// Red flag check toutes les 30s
+setInterval(render,30000);
+</script>
+</body>
+</html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Room — Wisecom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
+:root{--p:#E8006E;--bg:#0c0c0c;--panel:#111;--bd:#1e1e1e;--tx:#f0f0f0;--mt:#555;}
+body.light{background:#f3f3f3;color:#111;}
+body.light{--bg:#f3f3f3;--panel:#fff;--bd:#e5e5e5;--tx:#111;--mt:#999;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+.sticky{position:sticky;top:0;z-index:200;background:var(--panel);border-bottom:1px solid var(--bd);box-shadow:0 2px 16px rgba(0,0,0,.5);}
+.topbar{padding:9px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.logo{display:flex;align-items:center;gap:12px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--p);box-shadow:0 0 10px var(--p);flex-shrink:0;}
+.title{font-weight:800;font-size:13px;letter-spacing:.07em;}
+.subtitle{font-size:9px;color:var(--mt);margin-top:1px;}
+.actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.btn{border:none;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:600;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--p);color:#fff;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #2a2a2a;}
+body.light .btn-dark{background:#eee;color:#555;border:1px solid #ddd;}
+.filter-panel{background:#0a0a0a;border-top:1px solid var(--bd);padding:10px 16px;}
+body.light .filter-panel{background:#f8f8f8;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.filter-label{font-size:9px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.07em;min-width:55px;}
+input[type=date],input[type=time],select{background:#1a1a1a;color:var(--tx);border:1px solid #333;border-radius:5px;padding:4px 7px;font-size:11px;outline:none;}
+body.light input[type=date],body.light input[type=time],body.light select{background:#fff;border-color:#ddd;}
+/* Dropdown checkbox */
+.ck-wrap{position:relative;user-select:none;}
+.ck-btn{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:110px;display:flex;justify-content:space-between;align-items:center;gap:4px;white-space:nowrap;transition:border .15s;}
+body.light .ck-btn{background:#f0f0f0;border-color:#ddd;color:#444;}
+.ck-btn.open{border-color:var(--p);}
+.ck-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#1e1e1e;border:1px solid #333;border-radius:8px;min-width:190px;max-height:240px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.6);}
+body.light .ck-dropdown{background:#fff;border-color:#ddd;box-shadow:0 8px 24px rgba(0,0,0,.15);}
+.ck-header{padding:6px 10px 4px;font-size:9px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #2a2a2a;}
+.ck-all{padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--p);border-bottom:1px solid #222;font-weight:700;}
+.ck-item{padding:6px 10px;font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s;}
+.ck-item:hover{background:rgba(232,0,110,.08);}
+.ck-box{width:14px;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0;transition:all .15s;}
+/* Switch */
+.sw-label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;user-select:none;}
+.sw-track{width:30px;height:16px;border-radius:8px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;}
+.sw-thumb{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+/* KPIs */
+.kpi-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.kpi-card{background:#161616;border:1px solid #252525;border-radius:10px;padding:11px 13px;flex:1;min-width:110px;transition:border .2s;}
+body.light .kpi-card{background:#f8f8f8;border-color:#e5e5e5;}
+.kpi-card.alert{border-color:var(--p);}
+.kpi-card.good{border-color:#30d158;}
+.kpi-label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-weight:600;}
+.kpi-value{font-size:20px;font-weight:700;color:var(--tx);line-height:1.1;}
+.kpi-card.alert .kpi-value{color:var(--p);}
+.kpi-card.good .kpi-value{color:#30d158;}
+.kpi-sub{font-size:10px;color:#555;margin-top:2px;}
+.kpi-gauge{margin-top:5px;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;}
+body.light .kpi-gauge{background:#e0e0e0;}
+.kpi-gauge-fill{height:100%;border-radius:2px;transition:width .6s;}
+.kpi-status{font-size:9px;margin-top:2px;font-weight:700;}
+/* Smart routing */
+.smart-alert{background:#140810;border:1px solid #3a1025;border-radius:9px;padding:10px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--bd);margin-bottom:14px;}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--mt);padding:8px 14px;font-size:11px;cursor:pointer;font-weight:400;transition:all .2s;outline:none;}
+.tab.active{border-bottom-color:var(--p);color:var(--p);font-weight:700;}
+/* Panel */
+.panel{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:14px;}
+.panel-title{font-size:11px;color:var(--mt);margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{padding:7px 9px;color:var(--mt);font-weight:500;text-align:left;border-bottom:1px solid #222;background:#111;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none;}
+body.light .tbl th{background:#f7f7f7;border-bottom-color:#eee;}
+.tbl th:hover{color:var(--p);}
+.tbl th.active{color:var(--p);font-weight:700;}
+.tbl td{padding:7px 9px;border-bottom:1px solid #141414;vertical-align:middle;}
+body.light .tbl td{border-bottom-color:#f0f0f0;}
+.tbl tr:nth-child(even) td{background:#0a0a0a;}
+body.light .tbl tr:nth-child(even) td{background:#f9f9f9;}
+.tbl tr:hover td{background:#141414;}
+body.light .tbl tr:hover td{background:#fff5f9;}
+.tbl .total-row td{background:#1a0a0f!important;border-top:2px solid var(--p);font-weight:700;}
+/* Badges */
+.badge-camp{background:#1e0a14;color:var(--p);padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;}
+.badge-alert{background:rgba(232,0,110,.15);color:var(--p);padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;}
+.badge-ok{color:#30d158;font-size:11px;font-weight:700;}
+.badge-anom{color:var(--p);font-size:11px;font-weight:700;}
+/* Mail input */
+.mail-input{background:#2a1020;color:var(--p);border:1px solid rgba(232,0,110,.4);border-radius:4px;padding:3px 6px;font-size:12px;width:52px;text-align:center;font-weight:700;outline:none;}
+body.light .mail-input{background:#ffe0ef;}
+/* Progress bar */
+.prog-wrap{display:flex;align-items:center;gap:6px;}
+.prog-bg{flex:1;height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden;}
+body.light .prog-bg{background:#eee;}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s;}
+/* SSE badge */
+.sse-badge{font-size:10px;padding:3px 10px;border-radius:20px;}
+/* Content */
+.content{padding:14px 16px;}
+/* Skill matrix */
+.skill-yes{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--p);line-height:20px;text-align:center;font-size:10px;font-weight:700;color:#fff;}
+.skill-no{display:inline-block;width:20px;height:20px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;}
+body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
+/* Two col */
+.two-col{display:flex;gap:14px;flex-wrap:wrap;}
+.two-col>.panel{flex:1;min-width:280px;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;}
+</style>
+</head>
+<body>
+
+<!-- SSE Toast -->
+<div class="success-toast" id="toast"></div>
+
+<!-- HEADER STICKY -->
+<div class="sticky" id="header">
+  <div class="topbar">
+    <div class="logo">
+      <div class="dot"></div>
+      <div>
+        <div class="title">CONTROL ROOM</div>
+        <div class="subtitle">WISECOM · SUPERVISION TEMPS RÉEL · <span id="today-date"></span></div>
+      </div>
+      <span class="sse-badge" id="sse-badge" style="background:#3d2e1a;color:#ff9f0a;">◌ Connexion INO…</span>
+      <span id="last-update" style="font-size:10px;color:var(--mt);"></span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Mode clair</button>
+      <button class="btn btn-primary" onclick="simulate()">⚡ Simuler flux</button>
+      <button class="btn btn-dark" onclick="exportXlsx()">📥 Excel</button>
+      <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
+      <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
+      <button class="btn btn-dark" onclick="toggleFilters()" id="filter-btn">⚙ Filtres ▼</button>
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="filter-panel" id="filter-panel">
+    <div class="filter-row">
+      <span class="filter-label">Période</span>
+      <input type="date" id="f-date-deb" value="2025-01-01" min="2025-01-01">
+      <span style="font-size:10px;color:var(--mt);">→</span>
+      <input type="date" id="f-date-fin">
+      <input type="time" id="f-h-deb" value="08:00">
+      <span style="font-size:10px;color:var(--mt);">→</span>
+      <input type="time" id="f-h-fin" value="20:00">
+      <select id="f-pas">
+        <option>15 min</option><option selected>30 min</option>
+        <option>1 heure</option><option>Journée</option>
+        <option>Semaine</option><option>Mois</option>
+      </select>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Filtres</span>
+      <div class="ck-wrap" id="ck-camps"></div>
+      <div class="ck-wrap" id="ck-queues"></div>
+      <div class="ck-wrap" id="ck-agents"></div>
+      <div class="ck-wrap" id="ck-skills"></div>
+      <div class="ck-wrap" id="ck-contrats"></div>
+      <div class="ck-wrap" id="ck-status"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Isoler</span>
+      <div id="sw-container" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- SMART ROUTING -->
+  <div class="smart-alert" id="smart-alert" style="display:none;">
+    <span style="color:var(--p);font-weight:800;font-size:12px;flex-shrink:0;">⚠ attention</span>
+    <span id="smart-text" style="font-size:12px;color:#e0e0e0;flex:1;"></span>
+    <button class="btn btn-primary" style="font-size:11px;flex-shrink:0;" onclick="document.getElementById('smart-alert').style.display='none'">Appliquer la bascule</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
+    <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
+    <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+    <div style="margin-left:auto;display:flex;align-items:center;padding-bottom:4px;font-size:11px;color:var(--mt);" id="agent-count"></div>
+  </div>
+
+  <!-- TABLEAU -->
+  <div id="tab-tableau">
+    <div class="panel" style="padding:0;overflow-x:auto;">
+      <table class="tbl" id="main-table">
+        <thead><tr id="thead-row"></tr></thead>
+        <tbody id="tbody-agents"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GRAPHIQUES -->
+  <div id="tab-graphiques" style="display:none;">
+    <div class="two-col">
+      <div class="panel" style="flex:2;min-width:300px;">
+        <div class="panel-title">Volumes par tranche</div>
+        <svg id="chart-svg" width="100%" viewBox="0 0 680 120" preserveAspectRatio="none"></svg>
+        <div style="display:flex;gap:14px;margin-top:6px;font-size:10px;color:var(--mt);">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--p);margin-right:4px;border-radius:2px;"></span>Entrants</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#666;margin-right:4px;border-radius:2px;"></span>Sortants</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#ff3b30;margin-right:4px;border-radius:2px;"></span>Abandons</span>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-width:240px;">
+        <div class="panel-title">Répartition Qualifications</div>
+        <div id="qualif-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SKILLS -->
+  <div id="tab-skills" style="display:none;">
+    <div class="panel" style="overflow-x:auto;">
+      <div class="panel-title">Matrice compétences × agents</div>
+      <table class="tbl" id="skills-table"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════ DONNÉES ═══════
+const P = "#E8006E";
+const CAMPS = ["Voltalis","Omoda","Elvetis","Alcéane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
+const SKILLS = ["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
+const CONTRATS = ["CDI","CDD","Alternance","Intérim"];
+const STATUSES = ["Connecté","En Pause","Wrap-up","Déconnecté"];
+const QUALIFS = ["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
+const QUEUES_MAP = {
+  Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant"],
+  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
+  Elvetis:["Elvetis_RQ","Elvetis_SAV"],
+  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence"],
+  Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard"],
+  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur"],
+  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information"],
+  Antargaz:["Antargaz_Client","Antargaz_Sortant"],
+};
+const AGENTS_BASE = [
+  {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
+  {id:2,nom:"Maetzu CRISTINA",login:"Maetzu-C",camp:"Omoda",skills:["Equisign","LMDW"],contrat:"CDI",obj:45},
+  {id:3,nom:"Fatima BENALI",login:"Fatima-B",camp:"Elvetis",skills:["Bilingue"],contrat:"CDD",obj:40},
+  {id:4,nom:"Karim OUALI",login:"Karim-O",camp:"Omoda",skills:["LMDW","Rappel Auto"],contrat:"CDI",obj:50},
+  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["Rétention","LMDW"],contrat:"CDI",obj:55},
+  {id:6,nom:"Thomas DUPONT",login:"Thomas-D",camp:"Vivest",skills:["Equisign"],contrat:"CDD",obj:40},
+  {id:7,nom:"Nadia CHERIF",login:"Nadia-C",camp:"Voltalis",skills:["LMDW","Backoffice"],contrat:"CDI",obj:50},
+  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"Alcéane",skills:["Visio"],contrat:"Alternance",obj:35},
+  {id:9,nom:"Inès ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","Rétention"],contrat:"CDI",obj:50},
+  {id:10,nom:"Yann PETIT",login:"Yann-P",camp:"ELECTROSUR",skills:["LMDW"],contrat:"CDI",obj:45},
+  {id:11,nom:"Lydie BARBIER",login:"Lydie-B",camp:"Antargaz",skills:["Bilingue","LMDW"],contrat:"CDI",obj:55},
+  {id:12,nom:"Romain GARCIA",login:"Romain-G",camp:"Evoriel",skills:["Equisign","Backoffice"],contrat:"CDD",obj:40},
+];
+
+function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
+function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
+function fmtTime(iso){if(!iso)return"–";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"–";}}
+
+// ═══════ STATE ═══════
+let darkMode = true;
+let agents = [];
+let mailsEdit = {};
+let sortCol = "appels";
+let sortDir = -1;
+let currentTab = "tableau";
+let filterOpen = true;
+let sseStat = "connecting";
+
+// Filtres sélectionnés
+let selCamps = [...CAMPS];
+let selQueues = [];
+let selAgents = AGENTS_BASE.map(a=>a.nom);
+let selSkills = [...SKILLS];
+let selContrats = [...CONTRATS];
+let selStatus = ["Connecté","En Pause","Wrap-up"];
+let sw = {horsOuv:false,reit:false,refus:false,inactif:false};
+
+let slots = [];
+let allQueues = [];
+
+function getAllQueues(){ return [...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))]; }
+
+// ═══════ INIT DONNÉES ═══════
+function genAgents(){
+  return AGENTS_BASE.map(a=>{
+    const st = STATUSES[rnd(0,a.id>10?4:2)];
+    const app = st==="Déconnecté"?0:rnd(12,60);
+    const hp = st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(1);
+    const dmc = rnd(80,270);
+    return {...a, status:st, appels:app, mails_auto:rnd(1,12), hprod:hp,
+      presence:+(hp*1.15).toFixed(1), dmc, transferts:rnd(0,5),
+      inactifs:rnd(0,9), ko:rnd(0,15), refus:rnd(0,8),
+      realise:Math.min(100,rnd(35,105)), files_ok:Math.random()>0.2,
+      premiereAction:null, derniereAction:null
+    };
+  }).map(a=>({...a, actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0}));
+}
+
+function genSlots(){
+  return Array.from({length:24},(_,i)=>{
+    const h=8+Math.floor(i/2),m=i%2===0?"00":"30";
+    const v=rnd(15,90);
+    return {lbl:`${String(h).padStart(2,"0")}:${m}`,vol:v,aband:rnd(2,Math.floor(v*.3)),out:rnd(5,40)};
+  });
+}
+
+// ═══════ SSE ═══════
+function connectSSE(){
+  const badge = document.getElementById("sse-badge");
+  badge.textContent = "◌ Connexion…";
+  badge.style.background = "#3d2e1a"; badge.style.color = "#ff9f0a";
+  const es = new EventSource("http://localhost:3000/events");
+  es.onopen = ()=>{ badge.textContent = "● INO connecté"; badge.style.background = "#0a1e12"; badge.style.color = "#30d158"; sseStat = "live"; };
+  es.onmessage = e=>{
+    try{
+      const p = JSON.parse(e.data);
+      if(p.cumul_journee_agent) applyInoPayload(p);
+    }catch{}
+  };
+  es.onerror = ()=>{
+    badge.textContent = "✕ Hors ligne"; badge.style.background = "#1e0a0a"; badge.style.color = P;
+    es.close(); setTimeout(connectSSE, 8000);
+  };
+}
+
+function applyInoPayload(p){
+  const c = p.cumul_journee_agent;
+  // Met à jour les données globales
+  const update = document.getElementById("last-update");
+  if(update) update.textContent = "MAJ " + new Date().toLocaleTimeString("fr-FR");
+  // Recharge depuis l'API
+  loadAgentsFromAPI();
+}
+
+async function loadAgentsFromAPI(){
+  try{
+    const d = document.getElementById("f-date-fin").value || new Date().toISOString().slice(0,10);
+    const res = await fetch(`http://localhost:3000/agents-day?date=${d}`);
+    if(!res.ok) throw new Error("API indisponible");
+    const data = await res.json();
+    if(data.agents && data.agents.length > 0){
+      // Construit les agents directement depuis les vraies données INO
+      agents = data.agents.map(a=>{
+        const total = a.appelsIn + a.appelsOut;
+        const hprod = a.duree > 0 ? +(a.duree/3600).toFixed(2) : 0;
+        const obj = 50; // objectif par défaut
+        const realise = total > 0 && hprod > 0 ? Math.min(100, Math.round((total/obj)*100)) : 0;
+        // Détermine la campagne depuis la première queue
+        const firstQueue = (a.queues||"").split(", ")[0]||"–";
+        const camp = CAMPS.find(c=>firstQueue.toLowerCase().includes(c.toLowerCase())) ||
+                     firstQueue.split("_")[0] || firstQueue.split(" ")[0] || "–";
+        return {
+          id: a.id,
+          nom: a.nom,
+          login: a.username,
+          camp,
+          skills: ["LMDW"], // par défaut
+          contrat: "CDI",   // par défaut
+          obj,
+          status: "Connecté",
+          appels: total,
+          appelsIn: a.appelsIn,
+          appelsOut: a.appelsOut,
+          mails_auto: mailsEdit[a.id] != null ? mailsEdit[a.id] : 0,
+          hprod,
+          presence: +(hprod * 1.1).toFixed(2),
+          dmc: a.dmt || 0,
+          transferts: 0,
+          inactifs: 0,
+          ko: 0,
+          refus: 0,
+          realise,
+          files_ok: true,
+          premiereAction: a.premiereAction,
+          derniereAction: a.derniereAction,
+          queues: a.queues || "",
+          actesH: hprod > 0 ? +((total + (mailsEdit[a.id]||0)) / hprod).toFixed(1) : 0
+        };
+      });
+
+      // Met à jour les dropdowns avec les vrais agents/campagnes
+      const realCamps = [...new Set(agents.map(a=>a.camp).filter(c=>c&&c!=="–"))];
+      if(realCamps.length > 0) {
+        // Ajoute les vraies campagnes si pas déjà présentes
+        realCamps.forEach(c=>{ if(!CAMPS.includes(c)) CAMPS.push(c); });
+      }
+      // Met à jour selAgents avec les vrais noms
+      selAgents = agents.map(a=>a.nom);
+      selStatus = ["Connecté","En Pause","Wrap-up","Déconnecté"];
+
+      const upd = document.getElementById("last-update");
+      if(upd) upd.textContent = "MAJ " + new Date().toLocaleTimeString("fr-FR") + ` · ${agents.length} agents`;
+
+      buildAllDropdowns();
+      render();
+    }
+  }catch(e){
+    console.warn("API:", e.message);
+    // Fallback données simulées déjà chargées
+  }
+}
+
+// ═══════ DROPDOWN CHECKBOX ═══════
+function buildCkDrop(containerId, label, options, selected, onChangeFn){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  let open = false;
+
+  function rebuild(){
+    const all = selected.length === options.length && options.length > 0;
+    const display = all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
+    wrap.innerHTML = `
+      <div class="ck-btn ${open?"open":""}" id="${containerId}-btn">${display} <span style="font-size:9px;color:#666">${open?"▲":"▼"}</span></div>
+      ${open?`<div class="ck-dropdown">
+        <div class="ck-header">${label}</div>
+        <div class="ck-all" id="${containerId}-all">
+          <span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"}">${all?"✓":""}</span>
+          ${all?"Tout décocher":"Tout cocher"}
+        </div>
+        ${options.map(o=>{
+          const chk = selected.includes(o);
+          return `<div class="ck-item" data-val="${o}">
+            <span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"}">${chk?"✓":""}</span>
+            ${o}
+          </div>`;
+        }).join("")}
+      </div>`:""}`;
+
+    document.getElementById(`${containerId}-btn`).onclick=e=>{e.stopPropagation();open=!open;rebuild();};
+    if(open){
+      document.getElementById(`${containerId}-all`).onclick=e=>{e.stopPropagation();onChangeFn(all?[]:options.slice());};
+      wrap.querySelectorAll(".ck-item").forEach(el=>{
+        el.onclick=e=>{
+          e.stopPropagation();
+          const v=el.dataset.val;
+          const s=selected.includes(v)?selected.filter(x=>x!==v):[...selected,v];
+          onChangeFn(s);
+        };
+      });
+    }
+  }
+  rebuild();
+  document.addEventListener("click",()=>{if(open){open=false;rebuild();}},{once:true});
+}
+
+function buildAllDropdowns(){
+  allQueues = getAllQueues();
+  buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{selCamps=v;allQueues=getAllQueues();selQueues=getAllQueues();buildAllDropdowns();render();});
+  buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
+  buildCkDrop("ck-agents","Agents",AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
+  buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
+  buildCkDrop("ck-contrats","Contrats",CONTRATS,selContrats,v=>{selContrats=v;render();});
+  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
+}
+
+function buildSwitches(){
+  const cont = document.getElementById("sw-container");
+  const defs = [["horsOuv","Hors ouverture SVI"],["reit","Réitérants (>2)"],["refus","Refus d'appels"],["inactif","Mises en Inactif"]];
+  cont.innerHTML = defs.map(([k,l])=>`
+    <label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"var(--mt)"}">
+      <div class="sw-track" style="background:${sw[k]?P:darkMode?"#333":"#ccc"}">
+        <div class="sw-thumb" style="left:${sw[k]?14:2}px"></div>
+      </div>${l}
+    </label>`).join("");
+}
+
+function toggleSw(k){ sw[k]=!sw[k]; buildSwitches(); render(); }
+
+// ═══════ FILTRAGE ═══════
+function getFiltered(){
+  return agents.filter(a=>{
+    if(!selCamps.includes(a.camp)) return false;
+    if(!selAgents.includes(a.nom)) return false;
+    if(!selStatus.includes(a.status)) return false;
+    if(!selContrats.includes(a.contrat)) return false;
+    if(selSkills.length<SKILLS.length && !a.skills.some(s=>selSkills.includes(s))) return false;
+    if(sw.refus && a.refus===0) return false;
+    if(sw.inactif && a.inactifs<3) return false;
+    return true;
+  });
+}
+
+function getSorted(filtered){
+  return [...filtered].sort((a,b)=>{
+    const ma=mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto;
+    const mb=mailsEdit[b.id]!=null?mailsEdit[b.id]:b.mails_auto;
+    if(sortCol==="actes") return sortDir*((a.appels+ma)-(b.appels+mb));
+    if(sortCol==="nom") return sortDir*a.nom.localeCompare(b.nom);
+    return sortDir*((a[sortCol]||0)-(b[sortCol]||0));
+  });
+}
+
+// ═══════ RENDER KPIs ═══════
+function renderKPIs(filtered){
+  const totApp=filtered.reduce((s,a)=>s+a.appels,0);
+  const totM=filtered.reduce((s,a)=>s+(mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto),0);
+  const totActes=totApp+totM;
+  const totDuree=filtered.reduce((s,a)=>s+a.dmc*a.appels,0);
+  const avgDmc=totApp>0?Math.round(totDuree/totApp):0;
+  const totHP=filtered.reduce((s,a)=>s+a.hprod,0)||1;
+  const actesH=+(totActes/totHP).toFixed(1);
+  const totKo=filtered.reduce((s,a)=>s+a.ko,0);
+  const horsOuv=Math.floor(totApp*.07);
+  const reit=Math.floor(totApp*.04);
+  const backlog=rnd(8,45);
+  const totRecus=Math.round(totApp*1.18)||1;
+  const totManques=totRecus-totApp;
+  const qs=Math.round((totApp/totRecus)*100);
+  const pct=Math.min(100,Math.round((totActes/600)*100));
+
+  const kpis=[
+    {l:"QS — Qualité de service",v:qs+"%",sub:`${totApp}/${totRecus}`,alert:qs<80,good:qs>=85,gauge:qs},
+    {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Flux reçus",v:totRecus},
+    {l:"Flux traités",v:totApp,good:totApp>300},
+    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:`${Math.round((totManques/totRecus)*100)}%`},
+    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
+    {l:"Actes / heure",v:actesH,alert:actesH<8,good:actesH>=15,sub:"Seuil 15"},
+    {l:"100 % KO",v:totKo,alert:totKo>40},
+    {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
+    {l:"Réitérants",v:reit,alert:reit>20},
+    {l:"Backlog Mails",v:backlog,alert:backlog>30},
+  ];
+
+  document.getElementById("kpi-grid").innerHTML = kpis.map(k=>`
+    <div class="kpi-card${k.alert?" alert":k.good?" good":""}">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-value">${k.v}</div>
+      ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
+      ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
+      <div class="kpi-status" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
+    </div>`).join("");
+}
+
+// ═══════ RENDER TABLE ═══════
+function renderTable(sorted){
+  const cols=[
+    {k:"nom",l:"Agent"},{k:"status",l:"Statut"},{k:"camp",l:"Campagne"},{k:"contrat",l:"Contrat"},
+    {k:"hprod",l:"H. Prod"},{k:"presence",l:"Présence"},{k:"appels",l:"Appels"},
+    {k:"mails",l:`<span style="color:${P}">Mails ✏</span>`},
+    {k:"actes",l:"Actes total"},{k:"actesH",l:"Actes/H"},{k:"dmc",l:"DMC"},
+    {k:"transferts",l:"Transferts"},{k:"inactifs",l:"Inactifs"},
+    {k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},{k:"realise",l:"% de réalisé"},{k:"files",l:"Files OK"}
+  ];
+
+  document.getElementById("thead-row").innerHTML = cols.map(c=>`
+    <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" style="${c.k==="mails"?`background:#1a0a0f;`:""}">${c.l}${sortCol===c.k?(sortDir>0?"↑":"↓"):"<span style='color:#2a2a2a'>↕</span>"}</th>`).join("");
+
+  let totApp=0,totM=0,totKo=0,totRef=0,totTrans=0;
+
+  document.getElementById("tbody-agents").innerHTML = sorted.map((a,i)=>{
+    const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto;
+    const actes=a.appels+m;
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
+    totApp+=a.appels; totM+=m; totKo+=a.ko; totRef+=a.refus; totTrans+=a.transferts;
+    return `<tr>
+      <td style="font-weight:700;white-space:nowrap">${a.nom}</td>
+      <td style="white-space:nowrap"><span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span></td>
+      <td><span class="badge-camp">${a.camp}</span></td>
+      <td style="color:var(--mt);font-size:10px">${a.contrat}</td>
+      <td style="color:var(--mt)">${a.hprod}h</td>
+      <td style="color:var(--mt)">${a.presence}h</td>
+      <td style="font-weight:600">${a.appels}</td>
+      <td style="background:#1a0a0f">
+        <input class="mail-input" type="number" min="0" max="999" value="${m}"
+          onchange="updateMails(${a.id},this.value)" title="Mails hors INO">
+      </td>
+      <td style="color:${P};font-weight:800;font-size:13px">${actes}</td>
+      <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"var(--tx)"};font-weight:700">${ach}</td>
+      <td>${mmss(a.dmc)}</td>
+      <td>${a.transferts}</td>
+      <td>${a.inactifs>6?`<span class="badge-alert">⚠ attention ${a.inactifs}</span>`:a.inactifs}</td>
+      <td style="color:${a.ko>10?P:"var(--tx)"};font-weight:${a.ko>10?700:400}">${a.ko}${a.ko>10?` <span style="font-size:9px;color:${P}">⚠</span>`:""}</td>
+      <td>${a.refus>5?`<span class="badge-alert">⚠ attention ${a.refus}</span>`:a.refus}</td>
+      <td style="min-width:120px">
+        <div class="prog-wrap">
+          <div class="prog-bg"><div class="prog-fill" style="width:${a.realise}%;background:${a.realise>=80?P:a.realise<50?"#ff3b30":P}"></div></div>
+          <span style="font-size:10px;color:${a.realise>=80?"#30d158":a.realise<50?"#ff3b30":"var(--tx)"};font-weight:700;min-width:28px">${a.realise}%</span>
+        </div>
+        <div style="font-size:8px;color:${a.realise>=80?"#30d158":a.realise<60?P:"var(--mt)"};margin-top:1px">${a.realise>=80?"bonne maitrise":a.realise<60?"attention":"en cours"}</div>
+      </td>
+      <td style="text-align:center">${a.files_ok?'<span class="badge-ok">✓ OK</span>':'<span class="badge-anom">⚠ Anomalie</span>'}</td>
+    </tr>`;
+  }).join("") + `<tr class="total-row">
+    <td colspan="6" style="color:${P};font-size:12px;padding:8px 9px">TOTAL — ${sorted.length} agents</td>
+    <td style="padding:8px 9px">${totApp}</td>
+    <td style="padding:8px 9px;color:${P};background:#1a0a0f">${totM}</td>
+    <td style="padding:8px 9px;color:${P};font-size:14px">${totApp+totM}</td>
+    <td style="padding:8px 9px"></td><td style="padding:8px 9px"></td>
+    <td style="padding:8px 9px">${totTrans}</td>
+    <td style="padding:8px 9px"></td>
+    <td style="padding:8px 9px;color:${P}">${totKo}</td>
+    <td style="padding:8px 9px;color:${P}">${totRef}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+// ═══════ RENDER GRAPHIQUES ═══════
+function renderChart(){
+  const maxV=Math.max(...slots.map(s=>s.vol+s.out),1);
+  let svg="";
+  slots.forEach((s,i)=>{
+    const x=i*(680/slots.length),bw=(680/slots.length)-2;
+    const hv=Math.round((s.vol/maxV)*100),ha=Math.round((s.aband/maxV)*100),ho=Math.round((s.out/maxV)*100);
+    svg+=`<rect x="${x}" y="${100-hv}" width="${bw*.5}" height="${hv}" fill="${P}" rx="1" opacity=".85"/>`;
+    svg+=`<rect x="${x+bw*.5}" y="${100-ho}" width="${bw*.3}" height="${ho}" fill="#666" rx="1"/>`;
+    svg+=`<rect x="${x}" y="${100-ha}" width="${bw*.5}" height="${ha}" fill="#ff3b30" rx="1" opacity=".7"/>`;
+    if(i%4===0) svg+=`<text x="${x+bw/2}" y="114" text-anchor="middle" font-size="7.5" fill="#555">${s.lbl}</text>`;
+  });
+  svg+=`<line x1="0" y1="100" x2="680" y2="100" stroke="#222" stroke-width=".5"/>`;
+  document.getElementById("chart-svg").innerHTML=svg;
+
+  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
+    const v=rnd(5,80),tot=600;
+    const pct=Math.round((v/tot)*100);
+    return `<div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">
+        <span style="color:${q==="100 % KO"?P:"var(--tx)"};font-weight:${q==="100 % KO"?700:400}">${q}</span>
+        <span style="color:var(--mt)">${pct}%</span>
+      </div>
+      <div style="height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${q==="100 % KO"?P:"#555"};border-radius:3px"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ═══════ RENDER SKILLS ═══════
+function renderSkills(){
+  const thead=`<thead><tr><th style="min-width:170px">Agent</th>${SKILLS.map(s=>`<th style="text-align:center;min-width:80px">${s}</th>`).join("")}<th style="text-align:center;min-width:80px">Files OK</th></tr></thead>`;
+  const tbody=`<tbody>${AGENTS_BASE.map((a,i)=>`<tr>
+    <td style="font-weight:600;padding:7px 12px">${a.nom}<br><span style="font-size:9px;color:var(--mt)">${a.contrat}</span></td>
+    ${SKILLS.map(s=>`<td style="text-align:center;padding:7px 12px">${a.skills.includes(s)?'<span class="skill-yes">✓</span>':'<span class="skill-no"></span>'}</td>`).join("")}
+    <td style="text-align:center;padding:7px 12px">${agents.find(ag=>ag.id===a.id)?.files_ok?'<span class="badge-ok">✓ OK</span>':'<span class="badge-anom">⚠ Anomalie</span>'}</td>
+  </tr>`).join("")}</tbody>`;
+  document.getElementById("skills-table").innerHTML=thead+tbody;
+}
+
+// ═══════ SMART ROUTING ═══════
+function renderSmart(filtered){
+  const tension=filtered.filter(a=>a.camp==="Voltalis"&&a.realise<70);
+  const candidat=agents.find(a=>!filtered.find(f=>f.id===a.id)&&a.skills.includes("LMDW")&&a.status==="Connecté");
+  const zone=document.getElementById("smart-alert");
+  if(tension.length>0){
+    zone.style.display="flex";
+    document.getElementById("smart-text").innerHTML=`Tension détectée sur la file <b style="color:${P}">Voltalis</b> — ${tension.length} agent(s) sous les objectifs.${candidat?` Recommandation : Basculer <b style="color:${P}">${candidat.nom}</b> (${candidat.camp}) pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.`:""}`;
+  } else zone.style.display="none";
+}
+
+// ═══════ RENDER GLOBAL ═══════
+function render(){
+  const filtered=getFiltered();
+  const sorted=getSorted(filtered);
+  renderKPIs(filtered);
+  renderSmart(filtered);
+  renderTable(sorted);
+  renderChart();
+  renderSkills();
+  document.getElementById("agent-count").textContent=`${filtered.length} agent${filtered.length>1?"s":""} affichés`;
+}
+
+// ═══════ ACTIONS ═══════
+function doSort(col){
+  if(sortCol===col) sortDir*=-1; else {sortCol=col;sortDir=-1;}
+  render();
+}
+
+function updateMails(id,val){
+  mailsEdit[id]=Math.max(0,parseInt(val)||0);
+  render();
+}
+
+function simulate(){
+  agents=agents.map(a=>({...a,
+    appels:Math.max(0,a.appels+rnd(0,6)),
+    ko:a.ko+(Math.random()>.75?rnd(1,3):0),
+    refus:a.refus+(Math.random()>.85?1:0),
+    dmc:Math.max(60,a.dmc+rnd(-25,35)),
+    realise:Math.min(100,Math.max(5,a.realise+rnd(-10,10))),
+    inactifs:Math.max(0,a.inactifs+(Math.random()>.8?1:-1)),
+  })).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0}));
+  slots=slots.map(s=>({...s,vol:Math.max(5,s.vol+rnd(-5,12)),aband:Math.max(0,s.aband+rnd(-2,5))}));
+  render();
+}
+
+function toggleTheme(){
+  darkMode=!darkMode;
+  document.body.className=darkMode?"":"light";
+  document.getElementById("theme-btn").textContent=darkMode?"☀ Mode clair":"🌙 Mode sombre";
+  buildSwitches();
+  render();
+}
+
+function toggleFilters(){
+  filterOpen=!filterOpen;
+  document.getElementById("filter-panel").style.display=filterOpen?"block":"none";
+  document.getElementById("filter-btn").textContent=`⚙ Filtres ${filterOpen?"▲":"▼"}`;
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.display="block";
+  setTimeout(()=>t.style.display="none",3500);
+}
+
+function exportXlsx(){
+  const msg=document.getElementById("export-msg");
+  msg.style.display="inline"; msg.textContent="Export en cours…";
+  setTimeout(()=>{msg.textContent="✓ Excel téléchargé !";},1200);
+  setTimeout(()=>msg.style.display="none",4000);
+}
+
+function exportPDF(){
+  const filtered=getFiltered();
+  const sorted=getSorted(filtered);
+  const w=window.open("","_blank");
+  const rows=sorted.map(a=>{
+    const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto;
+    const actes=a.appels+m;
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    return `<tr>
+      <td>${a.nom}</td><td>${a.login}</td><td>${a.contrat}</td><td>${a.camp}</td>
+      <td>${a.status}</td><td>${a.hprod}h</td><td>${a.presence}h</td>
+      <td>${a.appels}</td><td style="color:#E8006E;font-weight:700">${m}</td>
+      <td style="font-weight:700">${actes}</td><td>${ach}</td>
+      <td>${mmss(a.dmc)}</td><td>${a.transferts}</td><td>${a.inactifs}</td>
+      <td style="${a.ko>10?"color:#E8006E;font-weight:700":""}">${a.ko}</td>
+      <td style="${a.refus>5?"color:#E8006E;font-weight:700":""}">${a.refus}</td>
+      <td style="color:${a.realise>=80?"#27ae60":a.realise<60?"#E8006E":"#333"};font-weight:700">${a.realise}%</td>
+      <td>${a.files_ok?"✓ OK":"⚠ Anomalie"}</td>
+    </tr>`;
+  }).join("");
+  const totApp=sorted.reduce((s,a)=>s+a.appels,0);
+  const totM=sorted.reduce((s,a)=>s+(mailsEdit[a.id]??a.mails_auto),0);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Control Room — Rapport Wisecom</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;}
+    .header{background:#0d0d0d;color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:flex-start;}
+    .header h1{font-size:18px;font-weight:800;letter-spacing:.06em;}
+    .header .meta{font-size:10px;color:#888;margin-top:4px;}
+    .badge{background:#E8006E;color:#fff;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:700;display:inline-block;}
+    .kpis{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:2px solid #E8006E;}
+    .kpi{padding:12px 14px;border-right:1px solid #eee;text-align:center;}
+    .kpi:last-child{border:none;}
+    .kpi-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+    .kpi-v{font-size:18px;font-weight:700;}
+    .kpi-v.pink{color:#E8006E;}
+    .section{padding:14px 20px;}
+    .stitle{font-size:12px;font-weight:700;padding-bottom:6px;border-bottom:2px solid #E8006E;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}
+    thead tr{background:#111;color:#fff;}
+    th{padding:7px 8px;text-align:left;font-size:10px;font-weight:600;white-space:nowrap;}
+    td{padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:10px;}
+    tr:nth-child(even) td{background:#fafafa;}
+    .total-row td{background:#fff0f7!important;font-weight:700;border-top:2px solid #E8006E;}
+    .footer{background:#f5f5f5;padding:8px 20px;font-size:9px;color:#aaa;display:flex;justify-content:space-between;margin-top:16px;}
+    .print-btn{position:fixed;top:12px;right:12px;background:#E8006E;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;z-index:999;}
+    @media print{.print-btn{display:none;}body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}thead tr{-webkit-print-color-adjust:exact;}.header{-webkit-print-color-adjust:exact;}}
+  </style></head><body>
+  <button class="print-btn" onclick="window.print()">🖨 Imprimer / PDF</button>
+  <div class="header">
+    <div><h1>CONTROL ROOM — RAPPORT SUPERVISION</h1><div class="meta">Wisecom · INO Maker · Données temps réel</div></div>
+    <div style="text-align:right"><div class="badge">Tarik_Ino_Multi_dashboard</div><div style="font-size:10px;color:#888;margin-top:6px;">Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}</div></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Agents</div><div class="kpi-v pink">${sorted.length}</div></div>
+    <div class="kpi"><div class="kpi-l">Appels</div><div class="kpi-v">${totApp}</div></div>
+    <div class="kpi"><div class="kpi-l">Mails hors INO</div><div class="kpi-v pink">${totM}</div></div>
+    <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${totApp+totM}</div></div>
+    <div class="kpi"><div class="kpi-l">DMC moy.</div><div class="kpi-v">${mmss(Math.round(sorted.reduce((s,a)=>s+a.dmc,0)/(sorted.length||1)))}</div></div>
+    <div class="kpi"><div class="kpi-l">% de réalisé</div><div class="kpi-v pink">${Math.min(100,Math.round(((totApp+totM)/600)*100))}%</div></div>
+  </div>
+  <div class="section">
+    <div class="stitle">Détail individuel — ${sorted.length} agents</div>
+    <table><thead><tr>
+      <th>Agent</th><th>Login</th><th>Contrat</th><th>Campagne</th><th>Statut</th>
+      <th>H.Prod</th><th>Présence</th><th>Appels</th><th>Mails</th><th>Actes</th>
+      <th>Actes/H</th><th>DMC</th><th>Transferts</th><th>Inactifs</th>
+      <th>100% KO</th><th>Refus</th><th>% Réalisé</th><th>Files</th>
+    </tr></thead><tbody>${rows}
+    <tr class="total-row"><td colspan="7">TOTAL — ${sorted.length} agents</td>
+      <td>${totApp}</td><td style="color:#E8006E">${totM}</td>
+      <td style="color:#E8006E;font-size:13px">${totApp+totM}</td>
+      <td colspan="8"></td></tr>
+    </tbody></table>
+  </div>
+  <div class="footer"><span>Wisecom · Control Room · Tarik_Ino_Multi_dashboard</span><span>${new Date().toLocaleString("fr-FR")}</span></div>
+  </body></html>`);
+  w.document.close();
+  showToast("✓ PDF prêt — cliquez Imprimer dans la nouvelle fenêtre");
+}
+
+function switchTab(id,btn){
+  ["tableau","graphiques","skills"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display=t===id?"block":"none";
+  });
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  currentTab=id;
+}
+
+// ═══════ INIT ═══════
+document.getElementById("today-date").textContent = new Date().toLocaleDateString("fr-FR");
+document.getElementById("f-date-fin").value = new Date().toISOString().slice(0,10);
+agents = genAgents();
+slots = genSlots();
+selQueues = getAllQueues();
+buildAllDropdowns();
+buildSwitches();
+render();
+connectSSE();
+// Tente de charger les vraies données INO
+loadAgentsFromAPI();
+// Polling toutes les 60s
+setInterval(loadAgentsFromAPI, 60000);
+// Horloge
+setInterval(()=>{
+  document.getElementById("today-date").textContent = new Date().toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+},1000);
+</script>
+</body>
+</html>
