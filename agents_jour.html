@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Agents Journée — Wisecom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
+.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
+.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+input[type=text]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;width:200px;}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
+.btn-pink{background:#E8006E;color:#fff;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.btn-green{background:#1a3a22;color:#30d158;border:1px solid #1e5c30;}
+.btn-sm{padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;font-weight:600;}
+.content{padding:16px 20px;}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.card{background:#161616;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;flex:1;min-width:120px;}
+.card-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.card-value{font-size:24px;font-weight:700;color:#fff;}
+.card-sub{font-size:11px;color:#444;margin-top:2px;}
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
+.tbl td{padding:7px 10px;border-bottom:1px solid #1a1a1a;vertical-align:middle;}
+.tbl tr:hover td{background:#141414;}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;}
+.badge-pink{background:#1e0a14;color:#E8006E;}
+.badge-green{background:#0a1e12;color:#30d158;}
+.badge-gray{background:#1a1a1a;color:#666;}
+.mail-input{background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:4px;padding:4px 8px;font-size:12px;width:60px;text-align:center;}
+.mail-input:focus{outline:none;border-color:#E8006E;}
+.actes-total{font-weight:700;color:#E8006E;}
+.sort-btn{background:none;border:none;color:#444;cursor:pointer;font-size:11px;margin-left:4px;}
+.sort-btn:hover{color:#fff;}
+.status-indicator{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+.tag{display:inline-block;background:#1a0e0e;color:#888;border:1px solid #2a2a2a;border-radius:3px;padding:1px 5px;font-size:10px;margin:1px;}
+.loading{text-align:center;padding:40px;color:#444;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;}
+.note-cell{font-size:11px;color:#555;font-style:italic;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div><span class="dot"></span><span class="title">TABLEAU AGENTS JOURNÉE</span></div>
+    <div class="subtitle">Wisecom · INO · Statistiques & Actes manuels hors INO</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
+    <button class="btn btn-dark" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn btn-pink" onclick="loadData()">🔄 Actualiser</button>
+  </div>
+</div>
+
+<div class="controls">
+  <label style="font-size:11px;color:#555;">Date</label>
+  <input type="date" id="date-picker">
+  <label style="font-size:11px;color:#555;">Recherche agent</label>
+  <input type="text" id="search" placeholder="Nom, prénom…" oninput="filterTable()">
+  <label style="font-size:11px;color:#555;">File</label>
+  <select id="f-queue" onchange="filterTable()" style="background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;">
+    <option value="">Toutes</option>
+  </select>
+  <button class="btn btn-dark" onclick="saveAllMails()">💾 Sauvegarder les mails</button>
+  <span id="save-msg" style="font-size:11px;color:#30d158;display:none;">✓ Sauvegardé</span>
+</div>
+
+<div class="content">
+  <div class="summary" id="summary"></div>
+  <div class="panel">
+    <div class="panel-title">
+      <span>Agents actifs sur la journée · <span id="agent-count" style="color:#E8006E;">–</span> agents · <span id="date-display" style="color:#888;"></span></span>
+      <span style="font-size:11px;color:#444;">⚡ Mails hors INO saisissables — cliquer dans la colonne</span>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="tbl" id="main-table">
+      <thead>
+        <tr>
+          <th>Agent <button class="sort-btn" onclick="sortBy('nom')">↕</button></th>
+          <th>Username</th>
+          <th>1ère action <button class="sort-btn" onclick="sortBy('premiere')">↕</button></th>
+          <th>Dernière action</th>
+          <th>Appels IN <button class="sort-btn" onclick="sortBy('appelsIn')">↕</button></th>
+          <th>Appels OUT <button class="sort-btn" onclick="sortBy('appelsOut')">↕</button></th>
+          <th>Total appels <button class="sort-btn" onclick="sortBy('total')">↕</button></th>
+          <th>DMT moy.</th>
+          <th style="color:#E8006E;">Mails hors INO ✏</th>
+          <th style="color:#E8006E;">Note</th>
+          <th style="color:#E8006E;">Actes total <button class="sort-btn" onclick="sortBy('actes')">↕</button></th>
+          <th>Actes/h</th>
+          <th>Files actives</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-agents">
+        <tr><td colspan="13" class="loading">Chargement des données INO…</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+const INO_BASE = "http://localhost:3000";
+let allAgents = [];
+let sortKey = "total";
+let sortDir = -1;
+let mailOverrides = {};
+let noteOverrides = {};
+
+// Date picker — aujourd'hui par défaut
+const dp = document.getElementById("date-picker");
+dp.value = new Date().toISOString().slice(0,10);
+dp.addEventListener("change", loadData);
+
+function fmtMMSS(s){const m=Math.floor(s/60);return`${String(m).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
+function fmtTime(iso){if(!iso)return"–";const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
+function fmtHProd(s){return(s/3600).toFixed(1)+"h";}
+
+async function loadData(){
+  const date = dp.value;
+  document.getElementById("date-display").textContent = new Date(date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  document.getElementById("tbody-agents").innerHTML = '<tr><td colspan="13" class="loading">Chargement depuis INO…</td></tr>';
+
+  try {
+    // Récupère via le serveur local qui a déjà le token
+    const res = await fetch(`${INO_BASE}/agents-day?date=${date}`);
+    if(!res.ok) throw new Error("Serveur non disponible");
+    const data = await res.json();
+    allAgents = data.agents || [];
+    buildQueueFilter();
+    renderTable();
+    renderSummary();
+  } catch(e) {
+    // Fallback : charge depuis SSE lastPayload
+    document.getElementById("tbody-agents").innerHTML = `<tr><td colspan="13" style="text-align:center;color:#ff3b30;padding:20px;">⚠ Serveur indisponible — lance node server.js<br><small style="color:#444">${e.message}</small></td></tr>`;
+  }
+}
+
+function buildQueueFilter(){
+  const queues = new Set();
+  allAgents.forEach(a=>(a.queues||"").split(", ").filter(Boolean).forEach(q=>queues.add(q)));
+  const sel = document.getElementById("f-queue");
+  sel.innerHTML = '<option value="">Toutes</option>' + [...queues].sort().map(q=>`<option value="${q}">${q}</option>`).join("");
+}
+
+function getFiltered(){
+  const search = document.getElementById("search").value.toLowerCase();
+  const queue = document.getElementById("f-queue").value;
+  return allAgents.filter(a=>{
+    if(search && !a.nom.toLowerCase().includes(search) && !a.username.toLowerCase().includes(search)) return false;
+    if(queue && !(a.queues||"").includes(queue)) return false;
+    return true;
+  }).sort((a,b)=>{
+    let va,vb;
+    if(sortKey==="nom"){va=a.nom;vb=b.nom;}
+    else if(sortKey==="premiere"){va=a.premiereAction||"";vb=b.premiereAction||"";}
+    else if(sortKey==="appelsIn"){va=a.appelsIn;vb=b.appelsIn;}
+    else if(sortKey==="appelsOut"){va=a.appelsOut;vb=b.appelsOut;}
+    else if(sortKey==="total"){va=a.total;vb=b.total;}
+    else if(sortKey==="actes"){va=(a.total+(mailOverrides[a.id]||0));vb=(b.total+(mailOverrides[b.id]||0));}
+    else{va=a[sortKey]||0;vb=b[sortKey]||0;}
+    return sortDir*(va>vb?1:va<vb?-1:0);
+  });
+}
+
+function renderTable(){
+  const agents = getFiltered();
+  document.getElementById("agent-count").textContent = agents.length;
+  if(!agents.length){
+    document.getElementById("tbody-agents").innerHTML='<tr><td colspan="13" class="loading">Aucun agent trouvé</td></tr>';
+    return;
+  }
+  document.getElementById("tbody-agents").innerHTML = agents.map(a=>{
+    const mails = mailOverrides[a.id] || 0;
+    const note = noteOverrides[a.id] || "";
+    const actes = a.total + mails;
+    const hProd = a.duree > 0 ? a.duree / 3600 : 1;
+    const actesH = (actes / hProd).toFixed(1);
+    const tags = (a.queues||"").split(", ").filter(Boolean).slice(0,3).map(q=>`<span class="tag">${q}</span>`).join("");
+    return `<tr>
+      <td><b>${a.nom}</b></td>
+      <td style="color:#555;">${a.username}</td>
+      <td style="color:#888;">${fmtTime(a.premiereAction)}</td>
+      <td style="color:#666;">${fmtTime(a.derniereAction)}</td>
+      <td>${a.appelsIn}</td>
+      <td>${a.appelsOut}</td>
+      <td><b>${a.total}</b></td>
+      <td>${fmtMMSS(a.dmt)}</td>
+      <td style="background:#1a0a0f;">
+        <input class="mail-input" type="number" min="0" max="999" value="${mails}"
+          onchange="updateMails(${a.id}, this.value)"
+          title="Saisir les mails traités hors INO">
+      </td>
+      <td style="background:#1a0a0f;">
+        <input type="text" value="${note}" placeholder="note…"
+          style="background:#1a1a1a;color:#888;border:1px solid #222;border-radius:4px;padding:3px 6px;font-size:11px;width:110px;"
+          onchange="updateNote(${a.id}, this.value)">
+      </td>
+      <td class="actes-total">${actes}</td>
+      <td style="color:${actesH>=15?"#30d158":actesH<10?"#ff3b30":"#fff"};font-weight:600;">${actesH}</td>
+      <td>${tags}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderSummary(){
+  const agents = getFiltered();
+  const totIn = agents.reduce((s,a)=>s+a.appelsIn,0);
+  const totOut = agents.reduce((s,a)=>s+a.appelsOut,0);
+  const totMails = agents.reduce((s,a)=>s+(mailOverrides[a.id]||0),0);
+  const totActes = agents.reduce((s,a)=>s+a.total+(mailOverrides[a.id]||0),0);
+  const avgDmt = agents.length>0?Math.round(agents.reduce((s,a)=>s+a.dmt,0)/agents.length):0;
+  document.getElementById("summary").innerHTML = `
+    <div class="card"><div class="card-label">Agents actifs</div><div class="card-value" style="color:#E8006E;">${agents.length}</div><div class="card-sub">sur la journée</div></div>
+    <div class="card"><div class="card-label">Appels IN</div><div class="card-value">${totIn}</div><div class="card-sub">entrants traités</div></div>
+    <div class="card"><div class="card-label">Appels OUT</div><div class="card-value">${totOut}</div><div class="card-sub">sortants traités</div></div>
+    <div class="card"><div class="card-label">Mails hors INO</div><div class="card-value" style="color:#E8006E;">${totMails}</div><div class="card-sub">saisis manuellement</div></div>
+    <div class="card"><div class="card-label">Total actes</div><div class="card-value">${totActes}</div><div class="card-sub">appels + mails</div></div>
+    <div class="card"><div class="card-label">DMT moyenne</div><div class="card-value">${fmtMMSS(avgDmt)}</div><div class="card-sub">tous agents</div></div>
+  `;
+}
+
+function updateMails(id, val){
+  mailOverrides[id] = Math.max(0, parseInt(val)||0);
+  renderTable();
+  renderSummary();
+}
+
+function updateNote(id, val){ noteOverrides[id] = val; }
+
+function filterTable(){ renderTable(); renderSummary(); }
+
+function sortBy(key){
+  if(sortKey===key) sortDir*=-1; else {sortKey=key;sortDir=-1;}
+  renderTable();
+}
+
+function saveAllMails(){
+  localStorage.setItem("wisecom_mails_"+dp.value, JSON.stringify(mailOverrides));
+  localStorage.setItem("wisecom_notes_"+dp.value, JSON.stringify(noteOverrides));
+  const msg=document.getElementById("save-msg");
+  msg.style.display="inline";
+  setTimeout(()=>msg.style.display="none",2000);
+}
+
+function loadSaved(){
+  const m=localStorage.getItem("wisecom_mails_"+dp.value);
+  const n=localStorage.getItem("wisecom_notes_"+dp.value);
+  if(m) mailOverrides=JSON.parse(m);
+  if(n) noteOverrides=JSON.parse(n);
+}
+
+function exportCSV(){
+  const agents=getFiltered();
+  const rows=[["Nom","Username","1ère action","Dernière action","Appels IN","Appels OUT","Total appels","DMT","Mails hors INO","Note","Actes total","Actes/h","Files"]];
+  agents.forEach(a=>{
+    const mails=mailOverrides[a.id]||0;
+    const actes=a.total+mails;
+    const hProd=a.duree>0?a.duree/3600:1;
+    rows.push([a.nom,a.username,fmtTime(a.premiereAction),fmtTime(a.derniereAction),a.appelsIn,a.appelsOut,a.total,fmtMMSS(a.dmt),mails,noteOverrides[a.id]||"",actes,(actes/hProd).toFixed(1),(a.queues||"")]);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(";")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`agents_${dp.value}.csv`;a.click();
+  showToast("✓ Export CSV téléchargé !");
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.style.display="block";
+  setTimeout(()=>t.style.display="none",3000);
+}
+
+// SSE pour mise à jour auto
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  const es=new EventSource("http://localhost:3000/events");
+  es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
+  es.onmessage=()=>{ loadData(); };
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+}
+
+// Init
+dp.addEventListener("change",()=>{mailOverrides={};noteOverrides={};loadSaved();loadData();});
+loadSaved();
+loadData();
+connectSSE();
+</script>
+</body>
+</html>
