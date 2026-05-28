@@ -62,7 +62,7 @@ async function fetchDayStats(){
     const dmc=tr.length>0?dur/tr.length:0;
     const lc=[...all].reverse().find(c=>(c.call?.agentDuration||0)>0)||{};
     statsCache={totalAppels:tr.length,totalDuree:dur,dmc,lastCall:lc,date:d,updatedAt:new Date().toISOString()};
-    const payload={id_evenement:`poll_${Date.now()}`,horodatage:new Date().toISOString(),agent:{id_ino:"MULTI",nom:"Tous agents",competences_actives:[]},session:{statut_actuel:"disponible"},action_venant_de_se_terminer:{type_acte:lc.call?.type==="OUTCALL"?"sortant":"entrant",campagne:lc.queue?.queueName||"–",qualification:lc.status||"–",duree_acte_secondes:lc.call?.agentDuration||0},cumul_journee_agent:{total_appels_traites:tr.length,total_mails_traites:0,temps_total_communication_secondes:dur,heures_de_prod_secondes:32400}};
+    const payload={id_evenement:`poll_${Date.now()}`,horodatage:new Date().toISOString(),agent:{id_ino:"MULTI",nom:"Tous agents",competences_actives:[]},session:{statut_actuel:"disponible"},action_venant_de_se_terminer:{type_acte:lc.call?.type==="OUTCALL"?"sortant":"entrant",campagne:lc.queue?.queueName||"â",qualification:lc.status||"â",duree_acte_secondes:lc.call?.agentDuration||0},cumul_journee_agent:{total_appels_traites:tr.length,total_mails_traites:0,temps_total_communication_secondes:dur,heures_de_prod_secondes:32400}};
     lastPayload=payload;
     const msg=`data: ${JSON.stringify(payload)}\n\n`;
     sseClients.forEach(c=>{try{c.write(msg);}catch{}});
@@ -94,11 +94,11 @@ async function fetchAgentsDay(date){
   return Object.values(agents).map(a=>({id:a.id,nom:a.nom,username:a.username,appelsIn:a.appelsIn,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,premiereAction:a.premiereAction,derniereAction:a.derniereAction,queues:[...a.queues].join(", ")})).sort((a,b)=>b.total-a.total);
 }
 
-// ── HTML Pages ──
+// ââ HTML Pages ââ
 const P="#E8006E";
 const makeLogin=(err=false,rl=false)=>`<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Control Room — Connexion · Wisecom</title>
+<title>Control Room â Connexion Â· Wisecom</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#080808;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(ellipse at 20% 50%,rgba(232,0,110,.07) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(232,0,110,.05) 0%,transparent 50%);}
@@ -127,27 +127,27 @@ const makeLogin=(err=false,rl=false)=>`<!DOCTYPE html>
 <div class="wrap">
   <div class="logo">
     <div><span class="logo-dot"></span><span class="logo-title">CONTROL ROOM</span></div>
-    <div class="logo-sub">Wisecom · Supervision temps réel</div>
+    <div class="logo-sub">Wisecom Â· Supervision temps rÃ©el</div>
   </div>
   <div class="card">
-    <div class="card-title">Connexion sécurisée</div>
-    <div class="card-sub">Accès réservé aux collaborateurs Wisecom</div>
-    ${rl?'<div class="alert alert-rl">⏳ Trop de tentatives. Réessayez dans 15 minutes.</div>':''}
-    ${err&&!rl?'<div class="alert alert-err">✕ Identifiants incorrects.</div>':''}
+    <div class="card-title">Connexion sÃ©curisÃ©e</div>
+    <div class="card-sub">AccÃ¨s rÃ©servÃ© aux collaborateurs Wisecom</div>
+    ${rl?'<div class="alert alert-rl">â³ Trop de tentatives. RÃ©essayez dans 15 minutes.</div>':''}
+    ${err&&!rl?'<div class="alert alert-err">â Identifiants incorrects.</div>':''}
     <form method="POST" action="/login" autocomplete="on">
       <div class="field"><label>Identifiant</label><input type="text" name="login" placeholder="Votre login" autocomplete="username" required></div>
-      <div class="field"><label>Mot de passe</label><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required></div>
-      <button type="submit" class="btn">Se connecter →</button>
+      <div class="field"><label>Mot de passe</label><input type="password" name="password" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" autocomplete="current-password" required></div>
+      <button type="submit" class="btn">Se connecter â</button>
     </form>
     <div class="divider"></div>
-    <div style="font-size:11px;color:#444;text-align:center;">🔒 Connexion chiffrée · Session 8h</div>
+    <div style="font-size:11px;color:#444;text-align:center;">ð Connexion chiffrÃ©e Â· Session 8h</div>
   </div>
-  <div class="footer">Wisecom © ${new Date().getFullYear()} · Tous droits réservés</div>
+  <div class="footer">Wisecom Â© ${new Date().getFullYear()} Â· Tous droits rÃ©servÃ©s</div>
 </div></body></html>`;
 
 const makeCode=(err=false)=>`<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Control Room — Code de sécurité · Wisecom</title>
+<title>Control Room â Code de sÃ©curitÃ© Â· Wisecom</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#080808;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(ellipse at 50% 50%,rgba(232,0,110,.06) 0%,transparent 60%);}
@@ -173,13 +173,13 @@ const makeCode=(err=false)=>`<!DOCTYPE html>
   .footer{text-align:center;font-size:10px;color:#333;margin-top:20px;}
 </style></head><body>
 <div class="wrap">
-  <div class="logo"><span class="logo-dot"></span><span class="logo-title">VÉRIFICATION</span></div>
+  <div class="logo"><span class="logo-dot"></span><span class="logo-title">VÃRIFICATION</span></div>
   <div class="card">
-    <div class="shield">🔐</div>
-    <div class="card-title">Code de sécurité requis</div>
-    <div class="card-sub">Saisissez votre code à 6 chiffres<br>pour accéder au Control Room.</div>
-    <div class="success-bar">✓ Identifiants validés avec succès</div>
-    ${err?'<div class="alert-err">✕ Code incorrect. Veuillez réessayer.</div>':''}
+    <div class="shield">ð</div>
+    <div class="card-title">Code de sÃ©curitÃ© requis</div>
+    <div class="card-sub">Saisissez votre code Ã  6 chiffres<br>pour accÃ©der au Control Room.</div>
+    <div class="success-bar">â Identifiants validÃ©s avec succÃ¨s</div>
+    ${err?'<div class="alert-err">â Code incorrect. Veuillez rÃ©essayer.</div>':''}
     <form method="POST" action="/verify-code" id="codeForm">
       <div class="code-inputs" id="codeBoxes">
         <input class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="c0" autofocus>
@@ -190,11 +190,11 @@ const makeCode=(err=false)=>`<!DOCTYPE html>
         <input class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="c5">
       </div>
       <input type="hidden" name="code" id="hiddenCode">
-      <button type="submit" class="btn" id="submitBtn">Accéder au Control Room →</button>
+      <button type="submit" class="btn" id="submitBtn">AccÃ©der au Control Room â</button>
     </form>
-    <div class="back"><a href="/login">← Retour à la connexion</a></div>
+    <div class="back"><a href="/login">â Retour Ã  la connexion</a></div>
   </div>
-  <div class="footer">Wisecom © ${new Date().getFullYear()} · Session sécurisée</div>
+  <div class="footer">Wisecom Â© ${new Date().getFullYear()} Â· Session sÃ©curisÃ©e</div>
 </div>
 <script>
   const inputs=[...document.querySelectorAll('.code-input')];
@@ -225,14 +225,14 @@ const makeCode=(err=false)=>`<!DOCTYPE html>
 </body></html>`;
 
 const make404=()=>`<!DOCTYPE html>
-<html lang="fr"><head><meta charset="UTF-8"><title>404 — Wisecom</title>
+<html lang="fr"><head><meta charset="UTF-8"><title>404 â Wisecom</title>
 <style>body{background:#080808;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;}
 h1{font-size:80px;font-weight:800;color:#E8006E;margin-bottom:10px;}p{color:#555;margin-bottom:20px;}a{color:#E8006E;}</style>
-</head><body><div><h1>404</h1><p>Cette page n'existe pas.</p><a href="/">← Retour</a></div></body></html>`;
+</head><body><div><h1>404</h1><p>Cette page n'existe pas.</p><a href="/">â Retour</a></div></body></html>`;
 
 const makeAdmin=(session)=>`<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin — Control Room Wisecom</title>
+<title>Admin â Control Room Wisecom</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}body{background:#080808;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
 .header{background:#0f0f0f;border-bottom:1px solid #1a1a1a;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
@@ -280,11 +280,11 @@ select.field{background:#161616;color:#ccc;border:1px solid #2a2a2a;border-radiu
 </style></head>
 <body>
 <div class="header">
-  <div class="header-left"><div class="dot"></div><span class="title">CONTROL ROOM · ADMINISTRATION</span></div>
+  <div class="header-left"><div class="dot"></div><span class="title">CONTROL ROOM Â· ADMINISTRATION</span></div>
   <div style="display:flex;gap:8px;align-items:center;">
-    <span style="font-size:11px;color:#444;">Connecté : <b style="color:#ccc">${session.login}</b></span>
-    <a href="/dashboard" style="color:#E8006E;font-size:11px;text-decoration:none;">← Dashboard</a>
-    <a href="/logout" class="btn btn-dark" style="font-size:11px;">Déconnexion</a>
+    <span style="font-size:11px;color:#444;">ConnectÃ© : <b style="color:#ccc">${session.login}</b></span>
+    <a href="/dashboard" style="color:#E8006E;font-size:11px;text-decoration:none;">â Dashboard</a>
+    <a href="/logout" class="btn btn-dark" style="font-size:11px;">DÃ©connexion</a>
   </div>
 </div>
 <div class="nav">
@@ -292,25 +292,25 @@ select.field{background:#161616;color:#ccc;border:1px solid #2a2a2a;border-radiu
   <a href="/admin/users">Utilisateurs</a>
   <a href="/admin/webhook">Webhook INO</a>
   <a href="/admin/sessions">Sessions actives</a>
-  <a href="/admin/logs">Logs d'accès</a>
+  <a href="/admin/logs">Logs d'accÃ¨s</a>
 </div>
 <div class="content">
   <div class="grid">
-    <div class="card"><div class="card-label">Sessions actives</div><div class="card-value green" id="a-sessions">–</div><div class="card-sub">Utilisateurs connectés</div></div>
-    <div class="card"><div class="card-label">Clients SSE</div><div class="card-value" id="a-sse">–</div><div class="card-sub">Dashboards ouverts</div></div>
-    <div class="card"><div class="card-label">Utilisateurs configurés</div><div class="card-value pink" id="a-users">–</div><div class="card-sub">Comptes actifs</div></div>
-    <div class="card"><div class="card-label">Dernier appel INO</div><div class="card-value" id="a-last">–</div><div class="card-sub" id="a-last-sub">–</div></div>
+    <div class="card"><div class="card-label">Sessions actives</div><div class="card-value green" id="a-sessions">â</div><div class="card-sub">Utilisateurs connectÃ©s</div></div>
+    <div class="card"><div class="card-label">Clients SSE</div><div class="card-value" id="a-sse">â</div><div class="card-sub">Dashboards ouverts</div></div>
+    <div class="card"><div class="card-label">Utilisateurs configurÃ©s</div><div class="card-value pink" id="a-users">â</div><div class="card-sub">Comptes actifs</div></div>
+    <div class="card"><div class="card-label">Dernier appel INO</div><div class="card-value" id="a-last">â</div><div class="card-sub" id="a-last-sub">â</div></div>
   </div>
 
   <div class="panel">
     <div class="panel-header"><span class="panel-title">Statut des services</span></div>
     <div class="panel-body">
-      <table><thead><tr><th>Service</th><th>Statut</th><th>Détail</th></tr></thead>
+      <table><thead><tr><th>Service</th><th>Statut</th><th>DÃ©tail</th></tr></thead>
       <tbody id="services-table">
-        <tr><td>Serveur Node.js</td><td><span class="badge badge-green">● En ligne</span></td><td style="color:#555">PORT ${PORT}</td></tr>
-        <tr><td>API INO</td><td id="ino-status"><span class="badge badge-gray">Vérification…</span></td><td id="ino-detail" style="color:#555">–</td></tr>
-        <tr><td>SSE (temps réel)</td><td><span class="badge badge-green">● Actif</span></td><td id="sse-detail" style="color:#555">–</td></tr>
-        <tr><td>Webhook INO</td><td><span class="badge badge-green">● Configuré</span></td><td style="color:#555">https://control-room-production-a320.up.railway.app/webhook</td></tr>
+        <tr><td>Serveur Node.js</td><td><span class="badge badge-green">â En ligne</span></td><td style="color:#555">PORT ${PORT}</td></tr>
+        <tr><td>API INO</td><td id="ino-status"><span class="badge badge-gray">VÃ©rificationâ¦</span></td><td id="ino-detail" style="color:#555">â</td></tr>
+        <tr><td>SSE (temps rÃ©el)</td><td><span class="badge badge-green">â Actif</span></td><td id="sse-detail" style="color:#555">â</td></tr>
+        <tr><td>Webhook INO</td><td><span class="badge badge-green">â ConfigurÃ©</span></td><td style="color:#555">https://control-room-production-a320.up.railway.app/webhook</td></tr>
       </tbody></table>
     </div>
   </div>
@@ -319,7 +319,7 @@ select.field{background:#161616;color:#ccc;border:1px solid #2a2a2a;border-radiu
     <div class="panel-header"><span class="panel-title">Statistiques INO du jour</span></div>
     <div class="panel-body">
       <table><thead><tr><th>Indicateur</th><th>Valeur</th></tr></thead>
-      <tbody id="stats-table"><tr><td colspan="2" style="color:#444;text-align:center">Chargement…</td></tr></tbody>
+      <tbody id="stats-table"><tr><td colspan="2" style="color:#444;text-align:center">Chargementâ¦</td></tr></tbody>
     </div>
   </div>
 </div>
@@ -333,19 +333,19 @@ async function loadAdmin(){
     document.getElementById('a-sse').textContent=d.sseClients||0;
     document.getElementById('a-users').textContent=d.usersCount||0;
     if(d.lastEvent){
-      document.getElementById('a-last').textContent=d.stats?.totalAppels||'–';
+      document.getElementById('a-last').textContent=d.stats?.totalAppels||'â';
       document.getElementById('a-last-sub').textContent='MAJ '+new Date(d.lastEvent).toLocaleTimeString('fr-FR');
     }
-    document.getElementById('ino-status').innerHTML=d.inoOk?'<span class="badge badge-green">● Connecté</span>':'<span class="badge badge-pink">✕ Erreur</span>';
+    document.getElementById('ino-status').innerHTML=d.inoOk?'<span class="badge badge-green">â ConnectÃ©</span>':'<span class="badge badge-pink">â Erreur</span>';
     document.getElementById('ino-detail').textContent=d.inoToken?'Token actif':'Pas de token';
-    document.getElementById('sse-detail').textContent=d.sseClients+' client(s) connecté(s)';
+    document.getElementById('sse-detail').textContent=d.sseClients+' client(s) connectÃ©(s)';
     if(d.stats){
       const mm=s=>{const m=Math.floor(s/60);return String(m).padStart(2,'0')+':'+String(Math.round(s%60)).padStart(2,'0');};
       document.getElementById('stats-table').innerHTML=`
-        <tr><td>Appels traités</td><td style="font-weight:700;color:#E8006E">${d.stats.totalAppels}</td></tr>
-        <tr><td>Durée totale</td><td>${mm(d.stats.totalDuree)}</td></tr>
+        <tr><td>Appels traitÃ©s</td><td style="font-weight:700;color:#E8006E">${d.stats.totalAppels}</td></tr>
+        <tr><td>DurÃ©e totale</td><td>${mm(d.stats.totalDuree)}</td></tr>
         <tr><td>DMC moyenne</td><td>${mm(d.stats.dmc||0)}</td></tr>
-        <tr><td>Dernière MAJ</td><td style="color:#555">${d.stats.updatedAt?new Date(d.stats.updatedAt).toLocaleString('fr-FR'):'–'}</td></tr>
+        <tr><td>DerniÃ¨re MAJ</td><td style="color:#555">${d.stats.updatedAt?new Date(d.stats.updatedAt).toLocaleString('fr-FR'):'â'}</td></tr>
       `;
     }
   }catch(e){console.error(e);}
@@ -358,6 +358,7 @@ setInterval(loadAdmin,30000);
 const server=http.createServer(async(req,res)=>{
   secHeaders(res);
   res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Access-Control-Allow-Credentials","true");
   res.setHeader("Access-Control-Allow-Headers","Content-Type");
   res.setHeader("Access-Control-Allow-Methods","GET,POST,OPTIONS");
   if(req.method==="OPTIONS"){res.writeHead(204);return res.end();}
@@ -366,7 +367,7 @@ const server=http.createServer(async(req,res)=>{
   const url=req.url.split("?")[0];
   const ip=req.headers["x-forwarded-for"]||req.socket.remoteAddress||"unknown";
 
-  // ── Login ──
+  // ââ Login ââ
   if(url==="/login"&&req.method==="GET"){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(makeLogin());}
   if(url==="/login"&&req.method==="POST"){
     let body="";req.on("data",c=>body+=c);
@@ -384,7 +385,7 @@ const server=http.createServer(async(req,res)=>{
         recordAttempt(ip);
         res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});
         res.end(makeLogin(true));
-        console.log(`[AUTH] Échec: ${login} (${ip})`);
+        console.log(`[AUTH] Ãchec: ${login} (${ip})`);
       }
       res.end();
     });return;
@@ -403,7 +404,7 @@ const server=http.createServer(async(req,res)=>{
         const st=createSession(ps.login,ps.login==="admin"?"admin":"user");
         setCookie(res,"session",st);
         res.writeHead(302,{Location:"/"});
-        console.log(`[AUTH] Accès: ${ps.login} (${ip})`);
+        console.log(`[AUTH] AccÃ¨s: ${ps.login} (${ip})`);
       }else{
         res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});
         res.end(makeCode(true));
@@ -418,10 +419,19 @@ const server=http.createServer(async(req,res)=>{
     req.on("end",()=>{try{const p=JSON.parse(body);lastPayload=p;const m=`data: ${JSON.stringify(p)}\n\n`;sseClients.forEach(c=>{try{c.write(m);}catch{}});sseClients=sseClients.filter(c=>!c.destroyed);res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true}));}catch(e){res.writeHead(400);res.end(JSON.stringify({error:"JSON invalide"}));}});return;
   }
 
-  // ── Session requise ──
+  // ââ Session requise ââ
+  // Routes publiques qui ne nécessitent pas d'auth
+  if(url==="/health"&&req.method==="GET"){
+    res.writeHead(200,{"Content-Type":"application/json"});
+    return res.end(JSON.stringify({status:"ok",sseClients:sseClients.length,inoToken:!!bearerToken,lastEvent:lastPayload?.horodatage||null,uptime:Math.round(process.uptime()),version:"2.1"}));
+  }
+  if(url==="/api/status"){
+    res.writeHead(200,{"Content-Type":"application/json"});
+    return res.end(JSON.stringify({ok:true,sseClients:sseClients.length,inoConnected:!!bearerToken,lastUpdate:lastPayload?.horodatage||null,stats:{appels:statsCache?.totalAppels||0,dmc:Math.round(statsCache?.dmc||0)}}));
+  }
   if(!session){res.writeHead(302,{Location:"/login"});return res.end();}
 
-  // ── API ──
+  // ââ API ââ
   if(url==="/api/admin/stats"){
     res.writeHead(200,{"Content-Type":"application/json"});
     return res.end(JSON.stringify({
@@ -439,19 +449,19 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({...statsCache,sseClients:sseClients.length}));}
   if(url==="/events"){res.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-cache","Connection":"keep-alive"});res.write(": connected\n\n");if(lastPayload)res.write(`data: ${JSON.stringify(lastPayload)}\n\n`);sseClients.push(res);req.on("close",()=>{sseClients=sseClients.filter(c=>c!==res);});return;}
   if(url==="/agents-day"){const u=new URL(req.url,`http://localhost`);const date=u.searchParams.get("date")||new Date().toISOString().slice(0,10);fetchAgentsDay(date).then(agents=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({agents,date,count:agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;}
-  if(url==="/health"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({status:"ok",user:session.login,role:session.role,sseClients:sseClients.length,inoToken:!!bearerToken,lastEvent:lastPayload?.horodatage||null,uptime:Math.round(process.uptime())}));}
+  if(url==="/health"){ /* handled above */ return; }
   
-  // ── Admin panel ──
+  // ââ Admin panel ââ
   if(url==="/admin"||url.startsWith("/admin/")){
-    if(session.login!=="admin"&&session.login!=="tarik"){res.writeHead(403,{"Content-Type":"text/html;charset=utf-8"});return res.end('<html><body style="background:#080808;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center"><div><h1 style="color:#E8006E;font-size:60px">403</h1><p style="color:#555">Accès refusé.</p><a href="/" style="color:#E8006E">← Retour</a></div></body></html>');}
+    if(session.login!=="admin"&&session.login!=="tarik"){res.writeHead(403,{"Content-Type":"text/html;charset=utf-8"});return res.end('<html><body style="background:#080808;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center"><div><h1 style="color:#E8006E;font-size:60px">403</h1><p style="color:#555">AccÃ¨s refusÃ©.</p><a href="/" style="color:#E8006E">â Retour</a></div></body></html>');}
     res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(makeAdmin(session));
   }
   
-  // ── Fichiers statiques ──
+  // ââ Fichiers statiques ââ
   if(url==="/"||url==="/dashboard"){const p=path.join(__dirname,"dashboard.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/agents-jour"){const p=path.join(__dirname,"agents_jour.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   
-  // ── 404 ──
+  // ââ 404 ââ
   res.writeHead(404,{"Content-Type":"text/html;charset=utf-8"});res.end(make404());
 });
 
@@ -460,11 +470,11 @@ setInterval(fetchDayStats,30000);
 setInterval(()=>{const now=Date.now();Object.keys(sessions).forEach(k=>{if(now>sessions[k].expires)delete sessions[k];});Object.keys(pending).forEach(k=>{if(now>pending[k].expires)delete pending[k];});},60000);
 
 server.listen(PORT,()=>{
-  console.log("══════════════════════════════════════");
-  console.log(`  Wisecom Control Room v2.0 — SaaS`);
+  console.log("ââââââââââââââââââââââââââââââââââââââ");
+  console.log(`  Wisecom Control Room v2.0 â SaaS`);
   console.log(`  Port    : ${PORT}`);
   console.log(`  Users   : ${Object.keys(USERS).join(", ")}`);
   console.log(`  Admin   : /admin (tarik, admin)`);
-  console.log(`  2FA     : activé (${SECURITY_CODE})`);
-  console.log("══════════════════════════════════════");
+  console.log(`  2FA     : activÃ© (${SECURITY_CODE})`);
+  console.log("ââââââââââââââââââââââââââââââââââââââ");
 });
