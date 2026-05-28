@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Control Room — Wisecom</title>
+<title>Control Room â Wisecom</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;transition:background .3s,color .3s;}
@@ -181,34 +181,35 @@ body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
       <div class="dot"></div>
       <div>
         <div class="brand">CONTROL ROOM</div>
-        <div class="brand-sub">WISECOM · SUPERVISION TEMPS RÉEL</div>
+        <div class="brand-sub">WISECOM Â· SUPERVISION TEMPS RÃEL</div>
       </div>
-      <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:#ff9f0a;">◌ Connexion…</span>
+      <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:#ff9f0a;">â Connexionâ¦</span>
       <span id="last-update" style="font-size:10px;color:#444;"></span>
     </div>
     <div class="actions">
       <span class="clock" id="clock"></span>
-      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Clair</button>
-      <button class="btn btn-primary" onclick="simulate()">⚡ Simuler</button>
-      <button class="btn btn-dark" onclick="exportXlsx()">📊 Excel</button>
-      <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
+<a href="/admin" target="_blank" style="font-size:10px;color:#555;text-decoration:none;padding:4px 8px;border-radius:4px;border:1px solid #222;">⚙ Admin</a>
+      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">â Clair</button>
+      <button class="btn btn-primary" onclick="simulate()">â¡ Simuler</button>
+      <button class="btn btn-dark" onclick="exportXlsx()">ð Excel</button>
+      <button class="btn btn-dark" onclick="exportPDF()">ð PDF</button>
       <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
-      <button class="btn btn-filter" id="filter-btn" onclick="toggleFilters()">⚙ Filtres ▼</button>
+      <button class="btn btn-filter" id="filter-btn" onclick="toggleFilters()">â Filtres â¼</button>
     </div>
   </div>
 
   <div class="filter-panel" id="filter-panel">
     <div class="filter-row">
-      <span class="filter-label">Période</span>
+      <span class="filter-label">PÃ©riode</span>
       <input type="date" id="f-date-deb" value="2025-01-01" min="2025-01-01">
-      <span style="font-size:10px;color:#444;">→</span>
+      <span style="font-size:10px;color:#444;">â</span>
       <input type="date" id="f-date-fin">
       <input type="time" id="f-h-deb" value="08:00">
-      <span style="font-size:10px;color:#444;">→</span>
+      <span style="font-size:10px;color:#444;">â</span>
       <input type="time" id="f-h-fin" value="20:00">
       <select id="f-pas">
         <option>15 min</option><option selected>30 min</option>
-        <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
+        <option>1 heure</option><option>JournÃ©e</option><option>Semaine</option><option>Mois</option>
       </select>
     </div>
     <div class="filter-row">
@@ -239,7 +240,7 @@ body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
     <div style="display:flex;gap:0;">
       <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
       <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
-      <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+      <button class="tab" onclick="switchTab('skills',this)">Matrice compÃ©tences</button>
     </div>
     <span id="agent-count" style="margin-left:auto;font-size:11px;color:#555;padding-right:4px;"></span>
   </div>
@@ -269,7 +270,7 @@ body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
         </div>
       </div>
       <div class="panel" style="flex:1;min-width:240px;">
-        <div class="panel-header"><span class="panel-title">Répartition Qualifications</span></div>
+        <div class="panel-header"><span class="panel-title">RÃ©partition Qualifications</span></div>
         <div style="padding:14px;" id="qualif-chart"></div>
       </div>
     </div>
@@ -277,7 +278,7 @@ body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
 
   <div id="tab-skills" style="display:none;">
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Matrice compétences × agents</span></div>
+      <div class="panel-header"><span class="panel-title">Matrice compÃ©tences Ã agents</span></div>
       <div style="overflow-x:auto;padding:0;"><table class="tbl" id="skills-table"></table></div>
     </div>
   </div>
@@ -285,31 +286,31 @@ body.light .toast{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);}
 
 <script>
 const P="#E8006E";
-const CAMPS=["Voltalis","Omoda","Elvetis","Alcéane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
-const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
-const CONTRATS=["CDI","CDD","Alternance","Intérim"];
-const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
-const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
+const CAMPS=["Voltalis","Omoda","Elvetis","AlcÃ©ane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
+const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","RÃ©tention","Backoffice"];
+const CONTRATS=["CDI","CDD","Alternance","IntÃ©rim"];
+const STATUSES=["ConnectÃ©","En Pause","Wrap-up","DÃ©connectÃ©"];
+const QUALIFS=["100 % KO","RDV pris","IntÃ©ressÃ©","Sans suite","Rappel","Transfert","RÃ©itÃ©rant","Hors SVI"];
 const QUEUES_MAP={
   Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant"],
   Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
   Elvetis:["Elvetis_RQ","Elvetis_SAV"],
-  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence"],
+  "AlcÃ©ane":["AlcÃ©ane_Locataires","AlcÃ©ane_Urgence"],
   Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur"],
+  Evoriel:["Evoriel_CopropriÃ©taire","Evoriel_Locataire","Evoriel_Bailleur"],
   ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information"],
   Antargaz:["Antargaz_Client","Antargaz_Sortant"],
 };
 const AGENTS_BASE=[
-  {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
+  {id:1,nom:"CÃ©line DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
   {id:2,nom:"Maetzu CRISTINA",login:"Maetzu-C",camp:"Omoda",skills:["Equisign","LMDW"],contrat:"CDI",obj:45},
   {id:3,nom:"Fatima BENALI",login:"Fatima-B",camp:"Elvetis",skills:["Bilingue"],contrat:"CDD",obj:40},
   {id:4,nom:"Karim OUALI",login:"Karim-O",camp:"Omoda",skills:["LMDW","Rappel Auto"],contrat:"CDI",obj:50},
-  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["Rétention","LMDW"],contrat:"CDI",obj:55},
+  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["RÃ©tention","LMDW"],contrat:"CDI",obj:55},
   {id:6,nom:"Thomas DUPONT",login:"Thomas-D",camp:"Vivest",skills:["Equisign"],contrat:"CDD",obj:40},
   {id:7,nom:"Nadia CHERIF",login:"Nadia-C",camp:"Voltalis",skills:["LMDW","Backoffice"],contrat:"CDI",obj:50},
-  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"Alcéane",skills:["Visio"],contrat:"Alternance",obj:35},
-  {id:9,nom:"Inès ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","Rétention"],contrat:"CDI",obj:50},
+  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"AlcÃ©ane",skills:["Visio"],contrat:"Alternance",obj:35},
+  {id:9,nom:"InÃ¨s ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","RÃ©tention"],contrat:"CDI",obj:50},
   {id:10,nom:"Yann PETIT",login:"Yann-P",camp:"ELECTROSUR",skills:["LMDW"],contrat:"CDI",obj:45},
   {id:11,nom:"Lydie BARBIER",login:"Lydie-B",camp:"Antargaz",skills:["Bilingue","LMDW"],contrat:"CDI",obj:55},
   {id:12,nom:"Romain GARCIA",login:"Romain-G",camp:"Evoriel",skills:["Equisign","Backoffice"],contrat:"CDD",obj:40},
@@ -317,11 +318,11 @@ const AGENTS_BASE=[
 
 function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
 function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
-function fmtTime(iso){if(!iso)return"–";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"–";}}
-function fmtH(h){return h>0?h.toFixed(1)+"h":"–";}
+function fmtTime(iso){if(!iso)return"â";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"â";}}
+function fmtH(h){return h>0?h.toFixed(1)+"h":"â";}
 
 let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true;
-let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Connecté","En Pause","Wrap-up"];
+let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["ConnectÃ©","En Pause","Wrap-up"];
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 let slots=[],allQueues=[];
 let redFlagTimers={};
@@ -331,14 +332,14 @@ function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[])
 function genAgents(){
   return AGENTS_BASE.map(a=>{
     const st=STATUSES[rnd(0,a.id>10?4:2)];
-    const app=st==="Déconnecté"?0:rnd(12,60);
-    const hp=st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(2);
+    const app=st==="DÃ©connectÃ©"?0:rnd(12,60);
+    const hp=st==="DÃ©connectÃ©"?0:+(2.5+Math.random()*5).toFixed(2);
     return{...a,status:st,appels:app,appelsIn:Math.floor(app*.7),appelsOut:Math.ceil(app*.3),
       mails_auto:rnd(1,12),hprod:hp,presence:+(hp*1.15).toFixed(2),dmc:rnd(80,270),
       transferts:rnd(0,5),inactifs:rnd(0,9),ko:rnd(0,15),refus:rnd(0,8),
       realise:Math.min(100,rnd(35,105)),files_ok:Math.random()>0.2,
       premiereAction:null,derniereAction:null,
-      lastVoixActivity: st==="Déconnecté"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
+      lastVoixActivity: st==="DÃ©connectÃ©"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
     };
   }).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
     appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0}));
@@ -353,12 +354,34 @@ function genSlots(){
 }
 
 // SSE
+function updateSSEProgress(status, pct) {
+  const badge = document.getElementById("sse-badge");
+  if(!badge) return;
+  if(status === "connecting") {
+    badge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">◌ Connexion INO… <span style="display:inline-block;width:60px;height:3px;background:#2a2a2a;border-radius:2px;overflow:hidden;"><span id="sse-prog" style="display:block;height:100%;background:#ff9f0a;border-radius:2px;width:0%;transition:width .5s;"></span></span></span>';
+    badge.style.background="#2a1e0a"; badge.style.color="#ff9f0a";
+    let p=0; const iv=setInterval(()=>{p=Math.min(p+5,90);const el=document.getElementById("sse-prog");if(el)el.style.width=p+"%";},300);
+    badge._iv = iv;
+  } else if(status === "live") {
+    if(badge._iv) clearInterval(badge._iv);
+    badge.innerHTML = "● INO connecté";
+    badge.style.background="#081a10"; badge.style.color="#30d158";
+    document.getElementById("last-update") && (document.getElementById("last-update").textContent = "Connecté " + new Date().toLocaleTimeString("fr-FR"));
+  } else {
+    if(badge._iv) clearInterval(badge._iv);
+    badge.innerHTML = "✕ Hors ligne — reconnexion…";
+    badge.style.background="#1e0808"; badge.style.color="#E8006E";
+  }
+}
 function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("http://localhost:3000/events");
-  es.onopen=()=>{badge.innerHTML="● INO connecté";badge.style.background="#081a10";badge.style.color="#30d158";};
-  es.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.cumul_journee_agent)loadAgentsFromAPI();}catch{}};
-  es.onerror=()=>{badge.innerHTML="✕ Hors ligne";badge.style.background="#1e0808";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,8000);};
+  es.onopen=()=>{badge.innerHTML="â INO connectÃ©";badge.style.background="#081a10";badge.style.color="#30d158";};
+  es.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.cumul_journee_agent)loadAgentsFromAPI().then(()=>{
+  // Affiche indicateur de chargement initial
+  document.getElementById("agent-count").textContent = "Chargement…";
+});}catch{}};
+  es.onerror=()=>{badge.innerHTML="â Hors ligne";badge.style.background="#1e0808";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,8000);};
 }
 
 async function loadAgentsFromAPI(){
@@ -374,13 +397,13 @@ async function loadAgentsFromAPI(){
         const obj=50;
         const realise=total>0&&hprod>0?Math.min(100,Math.round((total/obj)*100)):0;
         const fq=(a.queues||"").split(", ");
-        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase())))||fq[0]?.split("_")[0]||"–";
+        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase())))||fq[0]?.split("_")[0]||"â";
         const m=mailsEdit[a.id]||0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
-        // Garder le timer red flag si déjà existant
+        // Garder le timer red flag si dÃ©jÃ  existant
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
         return{id:a.id,nom:a.nom,login:a.username,camp,skills:["LMDW"],contrat:"CDI",obj,
-          status:"Connecté",appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
+          status:"ConnectÃ©",appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
           mails_auto:m,hprod,presence:+(hprod*1.1).toFixed(2),dmc:a.dmt||0,
           transferts:0,inactifs:0,ko:0,refus:0,realise,files_ok:true,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
@@ -391,8 +414,8 @@ async function loadAgentsFromAPI(){
         };
       });
       selAgents=agents.map(a=>a.nom);
-      selStatus=["Connecté","En Pause","Wrap-up","Déconnecté"];
-      document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
+      selStatus=["ConnectÃ©","En Pause","Wrap-up","DÃ©connectÃ©"];
+      document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} Â· ${agents.length} agents`;
       buildAllDropdowns();
       render();
     }
@@ -406,12 +429,12 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
   let open=false;
   function rebuild(){
     const all=selected.length===options.length&&options.length>0;
-    const disp=all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
-    wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span style="font-size:9px;color:#666;margin-left:4px">${open?"▲":"▼"}</span></div>
+    const disp=all?"Tout â":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
+    wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span style="font-size:9px;color:#666;margin-left:4px">${open?"â²":"â¼"}</span></div>
     ${open?`<div class="ck-dropdown">
       <div class="ck-header">${label}</div>
-      <div class="ck-all" id="${cid}-all"><span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"};border-radius:4px">${all?"✓":""}</span>${all?"Tout décocher":"Tout cocher"}</div>
-      ${options.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join("")}
+      <div class="ck-all" id="${cid}-all"><span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"};border-radius:4px">${all?"â":""}</span>${all?"Tout dÃ©cocher":"Tout cocher"}</div>
+      ${options.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"â":""}</span>${o}</div>`;}).join("")}
     </div>`:""}`;
     document.getElementById(`${cid}-btn`).onclick=e=>{e.stopPropagation();open=!open;rebuild();};
     if(open){
@@ -422,7 +445,9 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
     }
   }
   rebuild();
-  document.addEventListener("click",()=>{if(open){open=false;rebuild();}},{once:true});
+  document.addEventListener("click",(e)=>{
+      if(open && wrap && !wrap.contains(e.target)){open=false;rebuild();}
+    });
 }
 
 function buildAllDropdowns(){
@@ -430,14 +455,14 @@ function buildAllDropdowns(){
   buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{selCamps=v;allQueues=getAllQueues();selQueues=getAllQueues();buildAllDropdowns();render();});
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
   buildCkDrop("ck-agents","Agents",agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
-  buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
+  buildCkDrop("ck-skills","CompÃ©tences",SKILLS,selSkills,v=>{selSkills=v;render();});
   buildCkDrop("ck-contrats","Contrats",CONTRATS,selContrats,v=>{selContrats=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
 }
 
 function buildSwitches(){
   const cont=document.getElementById("sw-container");
-  const defs=[["horsOuv","Hors SVI"],["reit","Réitérants"],["refus","Refus"],["inactif","Inactifs"]];
+  const defs=[["horsOuv","Hors SVI"],["reit","RÃ©itÃ©rants"],["refus","Refus"],["inactif","Inactifs"]];
   cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
     <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?15:2}px"></div></div>${l}
   </label>`).join("");
@@ -482,23 +507,24 @@ function renderKPIs(f){
   const horsOuv=Math.floor(totApp*.07);
   const reit=Math.floor(totApp*.04);
   const backlog=rnd(8,45);
-  const totRecus=Math.max(1,Math.round(totApp*1.18));
+  // Appels reçus = approximation (entrants + abandons estimés)
+const totRecus=Math.max(1,Math.round(totApp*1.15));
   const totManques=totRecus-totApp;
   const qs=Math.round((totApp/totRecus)*100);
   const pct=Math.min(100,Math.round((totActes/600)*100));
 
   const kpis=[
     {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
-    {l:"Flux reçus",v:totRecus.toLocaleString()},
-    {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
-    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
+    {l:"% de rÃ©alisÃ©",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Flux reÃ§us",v:totRecus.toLocaleString()},
+    {l:"Flux traitÃ©s",v:totApp.toLocaleString(),good:totApp>300},
+    {l:"Flux manquÃ©s",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
-    {l:"Appels décr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traités/h prod"},
+    {l:"Appels dÃ©cr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traitÃ©s/h prod"},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"[App+Mails]/h prod"},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
-    {l:"Réitérants",v:reit,alert:reit>20},
+    {l:"RÃ©itÃ©rants",v:reit,alert:reit>20},
     {l:"Backlog Mails",v:backlog,alert:backlog>30},
   ];
 
@@ -508,7 +534,7 @@ function renderKPIs(f){
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
       ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
-      <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
+      <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"â  attention":k.good?"â bonne maitrise":""}</div>
     </div>`).join("");
 }
 
@@ -517,7 +543,7 @@ function renderAlerts(f){
   const zone=document.getElementById("alerts-zone");
   let html="";
 
-  // Red flags — agents déconnectés voix > 5 min
+  // Red flags â agents dÃ©connectÃ©s voix > 5 min
   const now=Date.now();
   const redFlags=f.filter(a=>{
     const inactifMs=now-(a.lastVoixActivity||now);
@@ -526,9 +552,9 @@ function renderAlerts(f){
   redFlags.forEach(a=>{
     const mins=Math.floor((now-(a.lastVoixActivity||now))/60000);
     html+=`<div class="redflag-alert">
-      <span class="redflag-badge">🚨 RED FLAG</span>
-      <span style="font-size:12px;color:#ff9999;flex:1"><b style="color:#ff3b30">${a.nom}</b> — Aucune activité voix depuis <b>${mins} min</b>. Agent potentiellement déconnecté du flux.</span>
-      <span class="badge badge-redflag">Vérifier</span>
+      <span class="redflag-badge">ð¨ RED FLAG</span>
+      <span style="font-size:12px;color:#ff9999;flex:1"><b style="color:#ff3b30">${a.nom}</b> â Aucune activitÃ© voix depuis <b>${mins} min</b>. Agent potentiellement dÃ©connectÃ© du flux.</span>
+      <span class="badge badge-redflag">VÃ©rifier</span>
     </div>`;
   });
 
@@ -549,15 +575,15 @@ function renderAlerts(f){
       // Cherche candidats disponibles depuis autres files
       const candidats=agents.filter(a=>
         a.camp!==camp&&
-        (a.status==="Connecté"||a.status==="En Pause")&&
+        (a.status==="ConnectÃ©"||a.status==="En Pause")&&
         !f.find(x=>x.id===a.id&&x.camp===camp)
       );
       if(candidats.length>0){
         const c=candidats[0];
-        const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
+        const tendance=appH<8?"ð volume faible":"ð pic d'appels";
         html+=`<div class="smart-alert">
-          <span class="smart-badge">⚠ attention</span>
-          <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).
+          <span class="smart-badge">â  attention</span>
+          <span class="smart-text">Tension dÃ©tectÃ©e sur <b style="color:${P}">${camp}</b> (${tendance} Â· QS ${qs}% Â· ${appH} app/h).
           Recommandation : Basculer <b style="color:${P}">${c.nom}</b> depuis <b>${c.camp}</b>
           pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.</span>
         </div>`;
@@ -566,13 +592,13 @@ function renderAlerts(f){
   });
 
   // Agents sous-productifs
-  const sousP=f.filter(a=>a.hprod>1&&a.appelsH<5&&a.status==="Connecté");
+  const sousP=f.filter(a=>a.hprod>1&&a.appelsH<5&&a.status==="ConnectÃ©");
   if(sousP.length>0){
     html+=`<div class="smart-alert">
-      <span class="smart-badge">📊 Organisation</span>
+      <span class="smart-badge">ð Organisation</span>
       <span class="smart-text">${sousP.length} agent(s) avec moins de 5 appels/h en production :
       <b style="color:${P}">${sousP.slice(0,3).map(a=>a.nom.split(" ")[0]).join(", ")}</b>.
-      Vérifier disponibilité et files actives.</span>
+      VÃ©rifier disponibilitÃ© et files actives.</span>
     </div>`;
   }
 
@@ -583,20 +609,20 @@ function renderAlerts(f){
 function renderTable(sorted){
   const cols=[
     {k:"nom",l:"Agent"},{k:"status",l:"Statut"},{k:"camp",l:"File / Camp."},
-    {k:"hprod",l:"H. Prod"},{k:"presence",l:"Présence"},
-    {k:"appelsIn",l:"IN"},{k:"appelsOut",l:"OUT"},{k:"appels",l:"Total app."},
-    {k:"mails",l:`<span style="color:${P}">Mails ✏</span>`},
+    {k:"hprod",l:"H. Prod"},{k:"presence",l:"PrÃ©sence"},
+    {k:"appelsIn",l:"IN reçus"},{k:"appelsOut",l:"OUT traités"},{k:"appels",l:"Total traités"},
+    {k:"mails",l:`<span style="color:${P}">Mails â</span>`},
     {k:"actes",l:"Actes total"},
-    {k:"appelsH",l:"App. décr./h",title:"Appels traités décrochés par heure de prod"},
+    {k:"appelsH",l:"App. dÃ©cr./h",title:"Appels traitÃ©s dÃ©crochÃ©s par heure de prod"},
     {k:"actesH",l:"Actes/h",title:"[Appels+Mails] / H.prod"},
     {k:"dmc",l:"DMC"},{k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},
-    {k:"inactifs",l:"Inactifs"},{k:"realise",l:"% réalisé"},{k:"files",l:"Files"}
+    {k:"inactifs",l:"Inactifs"},{k:"realise",l:"% rÃ©alisÃ©"},{k:"files",l:"Files"}
   ];
 
   document.getElementById("thead-row").innerHTML=cols.map(c=>`
     <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" title="${c.title||c.l}"
       style="${c.k==="mails"?"background:#0f0f0f;":""}">
-      ${c.l}${sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"}
+      ${c.l}${sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>â</span>"}
     </th>`).join("");
 
   let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0;
@@ -605,19 +631,19 @@ function renderTable(sorted){
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
     const actes=a.appels+m;
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
-    const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"â";
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"â";
+    const sc=a.status==="ConnectÃ©"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
     const rfMins=Math.floor(inactifMs/60000);
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
     return`<tr style="${isRedFlag?`background:rgba(255,59,48,.05)!important;`:""}">
       <td style="font-weight:700;white-space:nowrap">
-        ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">🚨${rfMins}m</span>`:""}
+        ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">ð¨${rfMins}m</span>`:""}
         ${a.nom}
       </td>
-      <td><span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span></td>
+      <td><span style="color:${sc};font-size:10px;font-weight:600">â ${a.status}</span></td>
       <td><span class="badge badge-camp" style="font-size:10px">${a.camp}</span></td>
       <td style="color:#666">${fmtH(a.hprod)}</td>
       <td style="color:#555">${fmtH(a.presence)}</td>
@@ -629,12 +655,12 @@ function renderTable(sorted){
           onchange="updateMails(${a.id},this.value)">
       </td>
       <td style="color:${P};font-weight:800;font-size:13px">${actes}</td>
-      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décr./h">${aph}</td>
+      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels dÃ©cr./h">${aph}</td>
       <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h">${ach}</td>
       <td>${mmss(a.dmc)}</td>
       <td style="color:${(a.ko||0)>10?P:"inherit"};font-weight:${(a.ko||0)>10?700:400}">${a.ko||0}</td>
-      <td>${(a.refus||0)>5?`<span class="badge badge-alert">⚠ ${a.refus}</span>`:(a.refus||0)}</td>
-      <td>${(a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0)}</td>
+      <td>${(a.refus||0)>5?`<span class="badge badge-alert">â  ${a.refus}</span>`:(a.refus||0)}</td>
+      <td>${(a.inactifs||0)>6?`<span class="badge badge-alert">â  ${a.inactifs}</span>`:(a.inactifs||0)}</td>
       <td style="min-width:110px">
         <div class="prog-wrap">
           <div class="prog-bg"><div class="prog-fill" style="width:${a.realise}%;background:${a.realise>=80?P:a.realise<50?"#ff3b30":P}"></div></div>
@@ -642,10 +668,10 @@ function renderTable(sorted){
         </div>
         <div style="font-size:8px;color:${a.realise>=80?"#30d158":a.realise<60?P:"#555"};margin-top:2px">${a.realise>=80?"bonne maitrise":a.realise<60?"attention":""}</div>
       </td>
-      <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
+      <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">â</span>':'<span class="badge-anom" style="font-size:11px">â </span>'}</td>
     </tr>`;
   }).join("")+`<tr class="total-row">
-    <td colspan="7" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
+    <td colspan="7" style="padding:9px 10px;color:${P};font-size:12px">TOTAL â ${sorted.length} agents</td>
     <td style="padding:9px 10px">${tApp}</td>
     <td style="padding:9px 10px;color:${P};background:#0f0f0f">${tM}</td>
     <td style="padding:9px 10px;color:${P};font-size:14px">${tApp+tM}</td>
@@ -695,12 +721,12 @@ function renderSkills(){
     <th style="text-align:center;min-width:80px;padding:8px 12px">Files OK</th>
   </tr></thead>`;
   const tbody=`<tbody>${allA.map((a,i)=>`<tr>
-    <td style="font-weight:600;padding:8px 12px">${a.nom}<br><span style="font-size:9px;color:#555">${a.contrat||"–"} · ${a.camp}</span></td>
+    <td style="font-weight:600;padding:8px 12px">${a.nom}<br><span style="font-size:9px;color:#555">${a.contrat||"â"} Â· ${a.camp}</span></td>
     ${SKILLS.map(s=>`<td style="text-align:center;padding:8px 12px">
-      ${(a.skills||[]).includes(s)?`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${P};line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">✓</span>`:
+      ${(a.skills||[]).includes(s)?`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${P};line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">â</span>`:
       `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a"></span>`}
     </td>`).join("")}
-    <td style="text-align:center;padding:8px 12px">${a.files_ok?'<span style="color:#30d158;font-weight:700">✓ OK</span>':'<span style="color:#E8006E;font-weight:700">⚠ Anomalie</span>'}</td>
+    <td style="text-align:center;padding:8px 12px">${a.files_ok?'<span style="color:#30d158;font-weight:700">â OK</span>':'<span style="color:#E8006E;font-weight:700">â  Anomalie</span>'}</td>
   </tr>`).join("")}</tbody>`;
   document.getElementById("skills-table").innerHTML=thead+tbody;
 }
@@ -712,7 +738,7 @@ function render(){
   renderTable(s);
   renderChart();
   renderSkills();
-  document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
+  document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} Â· ${f.reduce((x,a)=>x+a.appels,0)} appels`;
 }
 
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
@@ -740,7 +766,7 @@ function simulate(){
 function toggleTheme(){
   darkMode=!darkMode;
   document.body.className=darkMode?"":"light";
-  document.getElementById("theme-btn").textContent=darkMode?"☀ Clair":"🌙 Sombre";
+  document.getElementById("theme-btn").textContent=darkMode?"â Clair":"ð Sombre";
   buildSwitches();render();
 }
 
@@ -748,7 +774,7 @@ function toggleFilters(){
   filterOpen=!filterOpen;
   document.getElementById("filter-panel").style.display=filterOpen?"block":"none";
   const btn=document.getElementById("filter-btn");
-  btn.textContent=`⚙ Filtres ${filterOpen?"▲":"▼"}`;
+  btn.textContent=`â Filtres ${filterOpen?"â²":"â¼"}`;
   btn.classList.toggle("active",filterOpen);
 }
 
@@ -764,18 +790,18 @@ function showToast(msg,color="#30d158"){
   t.style.display="block";setTimeout(()=>t.style.display="none",3500);
 }
 
-// Export Excel amélioré
+// Export Excel amÃ©liorÃ©
 function exportXlsx(){
   const msg=document.getElementById("export-msg");
-  msg.style.display="inline";msg.textContent="Export en cours…";
+  msg.style.display="inline";msg.textContent="Export en coursâ¦";
   const f=getFiltered(),s=getSorted(f);
-  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
+  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","PrÃ©sence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. dÃ©crochÃ©s/h","Actes/h","DMC","100% KO","Refus","Inactifs","% RÃ©alisÃ©","Files OK","1Ã¨re action","DerniÃ¨re action","Files actives"]];
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"â";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"â";
+    rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"â",a.presence?a.presence.toFixed(1)+"h":"â",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
   });
   // Ligne totaux
   const tApp=s.reduce((x,a)=>x+a.appels,0),tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
@@ -785,12 +811,12 @@ function exportXlsx(){
   const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`Wisecom_ControlRoom_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-  setTimeout(()=>{msg.textContent="✓ Export téléchargé !";},800);
+  setTimeout(()=>{msg.textContent="â Export tÃ©lÃ©chargÃ© !";},800);
   setTimeout(()=>msg.style.display="none",4000);
-  showToast("✓ Export Excel téléchargé !");
+  showToast("â Export Excel tÃ©lÃ©chargÃ© !");
 }
 
-// Export PDF amélioré
+// Export PDF amÃ©liorÃ©
 function exportPDF(){
   const f=getFiltered(),s=getSorted(f);
   const tApp=s.reduce((x,a)=>x+a.appels,0);
@@ -806,15 +832,15 @@ function exportPDF(){
   const rows=s.map((a,i)=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"â";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"â";
     const bg=i%2===0?"#fff":"#fafafa";
     const isAlert=a.realise<60||(a.ko||0)>10||(a.refus||0)>5;
     return`<tr style="background:${isAlert?"#fff8f9":bg}">
       <td>${a.nom}</td><td style="color:#888">${a.login||""}</td>
       <td><span style="background:#fff0f6;color:#E8006E;padding:1px 6px;border-radius:3px;font-size:10px">${a.camp}</span></td>
       <td style="color:#888">${a.contrat||"CDI"}</td>
-      <td>${a.hprod?a.hprod.toFixed(1)+"h":"–"}</td>
+      <td>${a.hprod?a.hprod.toFixed(1)+"h":"â"}</td>
       <td>${a.appelsIn||0}</td><td>${a.appelsOut||0}</td><td><b>${a.appels}</b></td>
       <td style="color:#E8006E;font-weight:700">${m}</td>
       <td style="font-weight:800;color:#E8006E;font-size:13px">${actes}</td>
@@ -824,13 +850,13 @@ function exportPDF(){
       <td style="color:${(a.ko||0)>10?"#E8006E":"#333"}">${a.ko||0}</td>
       <td style="color:${(a.refus||0)>5?"#E8006E":"#333"}">${a.refus||0}</td>
       <td style="color:${a.realise>=80?"#27ae60":a.realise<60?"#E8006E":"#333"};font-weight:700">${a.realise}%</td>
-      <td style="color:#888;font-size:10px">${fmtTime(a.premiereAction)} → ${fmtTime(a.derniereAction)}</td>
+      <td style="color:#888;font-size:10px">${fmtTime(a.premiereAction)} â ${fmtTime(a.derniereAction)}</td>
     </tr>`;
   }).join("");
 
   const w=window.open("","_blank");
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Control Room — Rapport Wisecom ${new Date().toLocaleDateString("fr-FR")}</title>
+  <title>Control Room â Rapport Wisecom ${new Date().toLocaleDateString("fr-FR")}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#222;background:#fff;}
@@ -859,38 +885,38 @@ function exportPDF(){
     .print-btn{position:fixed;top:14px;right:14px;background:#E8006E;color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;z-index:999;box-shadow:0 4px 12px rgba(232,0,110,.4);}
     @media print{.print-btn{display:none;}body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}thead tr,.kpis,.header{-webkit-print-color-adjust:exact;}table{font-size:9px;}}
   </style></head><body>
-  <button class="print-btn" onclick="window.print()">🖨 Imprimer / PDF</button>
+  <button class="print-btn" onclick="window.print()">ð¨ Imprimer / PDF</button>
   <div class="header">
     <div class="header-left">
-      <h1>CONTROL ROOM — RAPPORT SUPERVISION</h1>
-      <div class="sub">WISECOM · INO MAKER · DONNÉES TEMPS RÉEL</div>
+      <h1>CONTROL ROOM â RAPPORT SUPERVISION</h1>
+      <div class="sub">WISECOM Â· INO MAKER Â· DONNÃES TEMPS RÃEL</div>
     </div>
     <div class="header-right">
       <div class="badge-main">Tarik_Ino_Multi_dashboard</div>
-      <div class="meta">Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}</div>
-      <div class="meta">Période : ${document.getElementById("f-date-deb").value} → ${document.getElementById("f-date-fin").value} · ${document.getElementById("f-h-deb").value}→${document.getElementById("f-h-fin").value}</div>
+      <div class="meta">GÃ©nÃ©rÃ© le ${new Date().toLocaleDateString("fr-FR")} Ã  ${new Date().toLocaleTimeString("fr-FR")}</div>
+      <div class="meta">PÃ©riode : ${document.getElementById("f-date-deb").value} â ${document.getElementById("f-date-fin").value} Â· ${document.getElementById("f-h-deb").value}â${document.getElementById("f-h-fin").value}</div>
     </div>
   </div>
   <div class="kpis">
     <div class="kpi"><div class="kpi-l">Agents actifs</div><div class="kpi-v pink">${s.length}</div></div>
     <div class="kpi"><div class="kpi-l">QS</div><div class="kpi-v ${qs>=85?"green":"pink"}">${qs}%</div></div>
-    <div class="kpi"><div class="kpi-l">Appels traités</div><div class="kpi-v">${tApp}</div></div>
+    <div class="kpi"><div class="kpi-l">Appels traitÃ©s</div><div class="kpi-v">${tApp}</div></div>
     <div class="kpi"><div class="kpi-l">Mails hors INO</div><div class="kpi-v pink">${tM}</div></div>
     <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${tActes}</div></div>
-    <div class="kpi"><div class="kpi-l">App. décr./h</div><div class="kpi-v">${+(tApp/totHP).toFixed(1)}</div></div>
+    <div class="kpi"><div class="kpi-l">App. dÃ©cr./h</div><div class="kpi-v">${+(tApp/totHP).toFixed(1)}</div></div>
     <div class="kpi"><div class="kpi-l">Actes/h</div><div class="kpi-v ${actesH>=15?"green":"pink"}">${actesH}</div></div>
-    <div class="kpi"><div class="kpi-l">% de réalisé</div><div class="kpi-v ${pct>=80?"green":"pink"}">${pct}%</div></div>
+    <div class="kpi"><div class="kpi-l">% de rÃ©alisÃ©</div><div class="kpi-v ${pct>=80?"green":"pink"}">${pct}%</div></div>
   </div>
   <div class="section">
-    <div class="stitle">Détail individuel — ${s.length} agents · DMC moyenne : ${mmss(avgDmc)}</div>
+    <div class="stitle">DÃ©tail individuel â ${s.length} agents Â· DMC moyenne : ${mmss(avgDmc)}</div>
     <table><thead><tr>
       <th>Agent</th><th>Login</th><th>Campagne</th><th>Contrat</th><th>H.Prod</th>
       <th>IN</th><th>OUT</th><th>Total App.</th><th>Mails</th><th>Actes</th>
-      <th>App./h</th><th>Actes/h</th><th>DMC</th><th>KO</th><th>Refus</th><th>% Réalisé</th><th>Plage horaire</th>
+      <th>App./h</th><th>Actes/h</th><th>DMC</th><th>KO</th><th>Refus</th><th>% RÃ©alisÃ©</th><th>Plage horaire</th>
     </tr></thead>
     <tbody>${rows}
     <tr class="total-row">
-      <td colspan="5">TOTAL — ${s.length} agents</td>
+      <td colspan="5">TOTAL â ${s.length} agents</td>
       <td>${s.reduce((x,a)=>x+(a.appelsIn||0),0)}</td>
       <td>${s.reduce((x,a)=>x+(a.appelsOut||0),0)}</td>
       <td><b>${tApp}</b></td>
@@ -905,15 +931,17 @@ function exportPDF(){
     </tr></tbody></table>
   </div>
   <div class="footer">
-    <span>Wisecom · Control Room · Tarik_Ino_Multi_dashboard · © ${new Date().getFullYear()}</span>
-    <span>Export automatique · ${new Date().toLocaleString("fr-FR")}</span>
+    <span>Wisecom Â· Control Room Â· Tarik_Ino_Multi_dashboard Â· Â© ${new Date().getFullYear()}</span>
+    <span>Export automatique Â· ${new Date().toLocaleString("fr-FR")}</span>
   </div></body></html>`);
   w.document.close();
-  showToast("✓ PDF prêt — cliquez Imprimer dans la nouvelle fenêtre");
+  showToast("â PDF prÃªt â cliquez Imprimer dans la nouvelle fenÃªtre");
 }
 
 // Init
-document.getElementById("f-date-fin").value=new Date().toISOString().slice(0,10);
+const todayStr=new Date().toISOString().slice(0,10);
+document.getElementById("f-date-fin").value=todayStr;
+document.getElementById("f-date-deb").value=todayStr;
 agents=genAgents();
 slots=genSlots();
 selQueues=getAllQueues();
@@ -933,7 +961,7 @@ setInterval(render,30000);
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Control Room — Wisecom</title>
+<title>Control Room â Wisecom</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
@@ -1052,34 +1080,34 @@ body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
       <div class="dot"></div>
       <div>
         <div class="title">CONTROL ROOM</div>
-        <div class="subtitle">WISECOM · SUPERVISION TEMPS RÉEL · <span id="today-date"></span></div>
+        <div class="subtitle">WISECOM Â· SUPERVISION TEMPS RÃEL Â· <span id="today-date"></span></div>
       </div>
-      <span class="sse-badge" id="sse-badge" style="background:#3d2e1a;color:#ff9f0a;">◌ Connexion INO…</span>
+      <span class="sse-badge" id="sse-badge" style="background:#3d2e1a;color:#ff9f0a;">â Connexion INOâ¦</span>
       <span id="last-update" style="font-size:10px;color:var(--mt);"></span>
     </div>
     <div class="actions">
-      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Mode clair</button>
-      <button class="btn btn-primary" onclick="simulate()">⚡ Simuler flux</button>
-      <button class="btn btn-dark" onclick="exportXlsx()">📥 Excel</button>
-      <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
+      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">â Mode clair</button>
+      <button class="btn btn-primary" onclick="simulate()">â¡ Simuler flux</button>
+      <button class="btn btn-dark" onclick="exportXlsx()">ð¥ Excel</button>
+      <button class="btn btn-dark" onclick="exportPDF()">ð PDF</button>
       <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
-      <button class="btn btn-dark" onclick="toggleFilters()" id="filter-btn">⚙ Filtres ▼</button>
+      <button class="btn btn-dark" onclick="toggleFilters()" id="filter-btn">â Filtres â¼</button>
     </div>
   </div>
 
   <!-- FILTRES -->
   <div class="filter-panel" id="filter-panel">
     <div class="filter-row">
-      <span class="filter-label">Période</span>
+      <span class="filter-label">PÃ©riode</span>
       <input type="date" id="f-date-deb" value="2025-01-01" min="2025-01-01">
-      <span style="font-size:10px;color:var(--mt);">→</span>
+      <span style="font-size:10px;color:var(--mt);">â</span>
       <input type="date" id="f-date-fin">
       <input type="time" id="f-h-deb" value="08:00">
-      <span style="font-size:10px;color:var(--mt);">→</span>
+      <span style="font-size:10px;color:var(--mt);">â</span>
       <input type="time" id="f-h-fin" value="20:00">
       <select id="f-pas">
         <option>15 min</option><option selected>30 min</option>
-        <option>1 heure</option><option>Journée</option>
+        <option>1 heure</option><option>JournÃ©e</option>
         <option>Semaine</option><option>Mois</option>
       </select>
     </div>
@@ -1102,7 +1130,7 @@ body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
 <div class="content">
   <!-- SMART ROUTING -->
   <div class="smart-alert" id="smart-alert" style="display:none;">
-    <span style="color:var(--p);font-weight:800;font-size:12px;flex-shrink:0;">⚠ attention</span>
+    <span style="color:var(--p);font-weight:800;font-size:12px;flex-shrink:0;">â  attention</span>
     <span id="smart-text" style="font-size:12px;color:#e0e0e0;flex:1;"></span>
     <button class="btn btn-primary" style="font-size:11px;flex-shrink:0;" onclick="document.getElementById('smart-alert').style.display='none'">Appliquer la bascule</button>
   </div>
@@ -1114,7 +1142,7 @@ body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
   <div class="tabs">
     <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
     <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
-    <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+    <button class="tab" onclick="switchTab('skills',this)">Matrice compÃ©tences</button>
     <div style="margin-left:auto;display:flex;align-items:center;padding-bottom:4px;font-size:11px;color:var(--mt);" id="agent-count"></div>
   </div>
 
@@ -1141,7 +1169,7 @@ body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
         </div>
       </div>
       <div class="panel" style="flex:1;min-width:240px;">
-        <div class="panel-title">Répartition Qualifications</div>
+        <div class="panel-title">RÃ©partition Qualifications</div>
         <div id="qualif-chart"></div>
       </div>
     </div>
@@ -1150,40 +1178,40 @@ body.light .skill-no{background:#f0f0f0;border-color:#ddd;}
   <!-- SKILLS -->
   <div id="tab-skills" style="display:none;">
     <div class="panel" style="overflow-x:auto;">
-      <div class="panel-title">Matrice compétences × agents</div>
+      <div class="panel-title">Matrice compÃ©tences Ã agents</div>
       <table class="tbl" id="skills-table"></table>
     </div>
   </div>
 </div>
 
 <script>
-// ═══════ DONNÉES ═══════
+// âââââââ DONNÃES âââââââ
 const P = "#E8006E";
-const CAMPS = ["Voltalis","Omoda","Elvetis","Alcéane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
-const SKILLS = ["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
-const CONTRATS = ["CDI","CDD","Alternance","Intérim"];
-const STATUSES = ["Connecté","En Pause","Wrap-up","Déconnecté"];
-const QUALIFS = ["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
+const CAMPS = ["Voltalis","Omoda","Elvetis","AlcÃ©ane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
+const SKILLS = ["LMDW","Equisign","Visio","Bilingue","Rappel Auto","RÃ©tention","Backoffice"];
+const CONTRATS = ["CDI","CDD","Alternance","IntÃ©rim"];
+const STATUSES = ["ConnectÃ©","En Pause","Wrap-up","DÃ©connectÃ©"];
+const QUALIFS = ["100 % KO","RDV pris","IntÃ©ressÃ©","Sans suite","Rappel","Transfert","RÃ©itÃ©rant","Hors SVI"];
 const QUEUES_MAP = {
   Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant"],
   Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
   Elvetis:["Elvetis_RQ","Elvetis_SAV"],
-  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence"],
+  "AlcÃ©ane":["AlcÃ©ane_Locataires","AlcÃ©ane_Urgence"],
   Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur"],
+  Evoriel:["Evoriel_CopropriÃ©taire","Evoriel_Locataire","Evoriel_Bailleur"],
   ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information"],
   Antargaz:["Antargaz_Client","Antargaz_Sortant"],
 };
 const AGENTS_BASE = [
-  {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
+  {id:1,nom:"CÃ©line DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
   {id:2,nom:"Maetzu CRISTINA",login:"Maetzu-C",camp:"Omoda",skills:["Equisign","LMDW"],contrat:"CDI",obj:45},
   {id:3,nom:"Fatima BENALI",login:"Fatima-B",camp:"Elvetis",skills:["Bilingue"],contrat:"CDD",obj:40},
   {id:4,nom:"Karim OUALI",login:"Karim-O",camp:"Omoda",skills:["LMDW","Rappel Auto"],contrat:"CDI",obj:50},
-  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["Rétention","LMDW"],contrat:"CDI",obj:55},
+  {id:5,nom:"Sophie MARTIN",login:"Sophie-M",camp:"Voltalis",skills:["RÃ©tention","LMDW"],contrat:"CDI",obj:55},
   {id:6,nom:"Thomas DUPONT",login:"Thomas-D",camp:"Vivest",skills:["Equisign"],contrat:"CDD",obj:40},
   {id:7,nom:"Nadia CHERIF",login:"Nadia-C",camp:"Voltalis",skills:["LMDW","Backoffice"],contrat:"CDI",obj:50},
-  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"Alcéane",skills:["Visio"],contrat:"Alternance",obj:35},
-  {id:9,nom:"Inès ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","Rétention"],contrat:"CDI",obj:50},
+  {id:8,nom:"Marc LEROY",login:"Marc-L",camp:"AlcÃ©ane",skills:["Visio"],contrat:"Alternance",obj:35},
+  {id:9,nom:"InÃ¨s ROBERT",login:"Ines-R",camp:"Evoriel",skills:["Rappel Auto","RÃ©tention"],contrat:"CDI",obj:50},
   {id:10,nom:"Yann PETIT",login:"Yann-P",camp:"ELECTROSUR",skills:["LMDW"],contrat:"CDI",obj:45},
   {id:11,nom:"Lydie BARBIER",login:"Lydie-B",camp:"Antargaz",skills:["Bilingue","LMDW"],contrat:"CDI",obj:55},
   {id:12,nom:"Romain GARCIA",login:"Romain-G",camp:"Evoriel",skills:["Equisign","Backoffice"],contrat:"CDD",obj:40},
@@ -1191,9 +1219,9 @@ const AGENTS_BASE = [
 
 function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
 function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
-function fmtTime(iso){if(!iso)return"–";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"–";}}
+function fmtTime(iso){if(!iso)return"â";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"â";}}
 
-// ═══════ STATE ═══════
+// âââââââ STATE âââââââ
 let darkMode = true;
 let agents = [];
 let mailsEdit = {};
@@ -1203,13 +1231,13 @@ let currentTab = "tableau";
 let filterOpen = true;
 let sseStat = "connecting";
 
-// Filtres sélectionnés
+// Filtres sÃ©lectionnÃ©s
 let selCamps = [...CAMPS];
 let selQueues = [];
 let selAgents = AGENTS_BASE.map(a=>a.nom);
 let selSkills = [...SKILLS];
 let selContrats = [...CONTRATS];
-let selStatus = ["Connecté","En Pause","Wrap-up"];
+let selStatus = ["ConnectÃ©","En Pause","Wrap-up"];
 let sw = {horsOuv:false,reit:false,refus:false,inactif:false};
 
 let slots = [];
@@ -1217,12 +1245,12 @@ let allQueues = [];
 
 function getAllQueues(){ return [...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))]; }
 
-// ═══════ INIT DONNÉES ═══════
+// âââââââ INIT DONNÃES âââââââ
 function genAgents(){
   return AGENTS_BASE.map(a=>{
     const st = STATUSES[rnd(0,a.id>10?4:2)];
-    const app = st==="Déconnecté"?0:rnd(12,60);
-    const hp = st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(1);
+    const app = st==="DÃ©connectÃ©"?0:rnd(12,60);
+    const hp = st==="DÃ©connectÃ©"?0:+(2.5+Math.random()*5).toFixed(1);
     const dmc = rnd(80,270);
     return {...a, status:st, appels:app, mails_auto:rnd(1,12), hprod:hp,
       presence:+(hp*1.15).toFixed(1), dmc, transferts:rnd(0,5),
@@ -1241,13 +1269,13 @@ function genSlots(){
   });
 }
 
-// ═══════ SSE ═══════
+// âââââââ SSE âââââââ
 function connectSSE(){
   const badge = document.getElementById("sse-badge");
-  badge.textContent = "◌ Connexion…";
+  badge.textContent = "â Connexionâ¦";
   badge.style.background = "#3d2e1a"; badge.style.color = "#ff9f0a";
   const es = new EventSource("http://localhost:3000/events");
-  es.onopen = ()=>{ badge.textContent = "● INO connecté"; badge.style.background = "#0a1e12"; badge.style.color = "#30d158"; sseStat = "live"; };
+  es.onopen = ()=>{ badge.textContent = "â INO connectÃ©"; badge.style.background = "#0a1e12"; badge.style.color = "#30d158"; sseStat = "live"; };
   es.onmessage = e=>{
     try{
       const p = JSON.parse(e.data);
@@ -1255,14 +1283,14 @@ function connectSSE(){
     }catch{}
   };
   es.onerror = ()=>{
-    badge.textContent = "✕ Hors ligne"; badge.style.background = "#1e0a0a"; badge.style.color = P;
+    badge.textContent = "â Hors ligne"; badge.style.background = "#1e0a0a"; badge.style.color = P;
     es.close(); setTimeout(connectSSE, 8000);
   };
 }
 
 function applyInoPayload(p){
   const c = p.cumul_journee_agent;
-  // Met à jour les données globales
+  // Met Ã  jour les donnÃ©es globales
   const update = document.getElementById("last-update");
   if(update) update.textContent = "MAJ " + new Date().toLocaleTimeString("fr-FR");
   // Recharge depuis l'API
@@ -1276,25 +1304,25 @@ async function loadAgentsFromAPI(){
     if(!res.ok) throw new Error("API indisponible");
     const data = await res.json();
     if(data.agents && data.agents.length > 0){
-      // Construit les agents directement depuis les vraies données INO
+      // Construit les agents directement depuis les vraies donnÃ©es INO
       agents = data.agents.map(a=>{
         const total = a.appelsIn + a.appelsOut;
         const hprod = a.duree > 0 ? +(a.duree/3600).toFixed(2) : 0;
-        const obj = 50; // objectif par défaut
+        const obj = 50; // objectif par dÃ©faut
         const realise = total > 0 && hprod > 0 ? Math.min(100, Math.round((total/obj)*100)) : 0;
-        // Détermine la campagne depuis la première queue
-        const firstQueue = (a.queues||"").split(", ")[0]||"–";
+        // DÃ©termine la campagne depuis la premiÃ¨re queue
+        const firstQueue = (a.queues||"").split(", ")[0]||"â";
         const camp = CAMPS.find(c=>firstQueue.toLowerCase().includes(c.toLowerCase())) ||
-                     firstQueue.split("_")[0] || firstQueue.split(" ")[0] || "–";
+                     firstQueue.split("_")[0] || firstQueue.split(" ")[0] || "â";
         return {
           id: a.id,
           nom: a.nom,
           login: a.username,
           camp,
-          skills: ["LMDW"], // par défaut
-          contrat: "CDI",   // par défaut
+          skills: ["LMDW"], // par dÃ©faut
+          contrat: "CDI",   // par dÃ©faut
           obj,
-          status: "Connecté",
+          status: "ConnectÃ©",
           appels: total,
           appelsIn: a.appelsIn,
           appelsOut: a.appelsOut,
@@ -1315,29 +1343,29 @@ async function loadAgentsFromAPI(){
         };
       });
 
-      // Met à jour les dropdowns avec les vrais agents/campagnes
-      const realCamps = [...new Set(agents.map(a=>a.camp).filter(c=>c&&c!=="–"))];
+      // Met Ã  jour les dropdowns avec les vrais agents/campagnes
+      const realCamps = [...new Set(agents.map(a=>a.camp).filter(c=>c&&c!=="â"))];
       if(realCamps.length > 0) {
-        // Ajoute les vraies campagnes si pas déjà présentes
+        // Ajoute les vraies campagnes si pas dÃ©jÃ  prÃ©sentes
         realCamps.forEach(c=>{ if(!CAMPS.includes(c)) CAMPS.push(c); });
       }
-      // Met à jour selAgents avec les vrais noms
+      // Met Ã  jour selAgents avec les vrais noms
       selAgents = agents.map(a=>a.nom);
-      selStatus = ["Connecté","En Pause","Wrap-up","Déconnecté"];
+      selStatus = ["ConnectÃ©","En Pause","Wrap-up","DÃ©connectÃ©"];
 
       const upd = document.getElementById("last-update");
-      if(upd) upd.textContent = "MAJ " + new Date().toLocaleTimeString("fr-FR") + ` · ${agents.length} agents`;
+      if(upd) upd.textContent = "MAJ " + new Date().toLocaleTimeString("fr-FR") + ` Â· ${agents.length} agents`;
 
       buildAllDropdowns();
       render();
     }
   }catch(e){
     console.warn("API:", e.message);
-    // Fallback données simulées déjà chargées
+    // Fallback donnÃ©es simulÃ©es dÃ©jÃ  chargÃ©es
   }
 }
 
-// ═══════ DROPDOWN CHECKBOX ═══════
+// âââââââ DROPDOWN CHECKBOX âââââââ
 function buildCkDrop(containerId, label, options, selected, onChangeFn){
   const wrap = document.getElementById(containerId);
   if(!wrap) return;
@@ -1345,19 +1373,19 @@ function buildCkDrop(containerId, label, options, selected, onChangeFn){
 
   function rebuild(){
     const all = selected.length === options.length && options.length > 0;
-    const display = all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
+    const display = all?"Tout â":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
     wrap.innerHTML = `
-      <div class="ck-btn ${open?"open":""}" id="${containerId}-btn">${display} <span style="font-size:9px;color:#666">${open?"▲":"▼"}</span></div>
+      <div class="ck-btn ${open?"open":""}" id="${containerId}-btn">${display} <span style="font-size:9px;color:#666">${open?"â²":"â¼"}</span></div>
       ${open?`<div class="ck-dropdown">
         <div class="ck-header">${label}</div>
         <div class="ck-all" id="${containerId}-all">
-          <span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"}">${all?"✓":""}</span>
-          ${all?"Tout décocher":"Tout cocher"}
+          <span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"}">${all?"â":""}</span>
+          ${all?"Tout dÃ©cocher":"Tout cocher"}
         </div>
         ${options.map(o=>{
           const chk = selected.includes(o);
           return `<div class="ck-item" data-val="${o}">
-            <span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"}">${chk?"✓":""}</span>
+            <span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"}">${chk?"â":""}</span>
             ${o}
           </div>`;
         }).join("")}
@@ -1385,14 +1413,14 @@ function buildAllDropdowns(){
   buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{selCamps=v;allQueues=getAllQueues();selQueues=getAllQueues();buildAllDropdowns();render();});
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
   buildCkDrop("ck-agents","Agents",AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
-  buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
+  buildCkDrop("ck-skills","CompÃ©tences",SKILLS,selSkills,v=>{selSkills=v;render();});
   buildCkDrop("ck-contrats","Contrats",CONTRATS,selContrats,v=>{selContrats=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
 }
 
 function buildSwitches(){
   const cont = document.getElementById("sw-container");
-  const defs = [["horsOuv","Hors ouverture SVI"],["reit","Réitérants (>2)"],["refus","Refus d'appels"],["inactif","Mises en Inactif"]];
+  const defs = [["horsOuv","Hors ouverture SVI"],["reit","RÃ©itÃ©rants (>2)"],["refus","Refus d'appels"],["inactif","Mises en Inactif"]];
   cont.innerHTML = defs.map(([k,l])=>`
     <label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"var(--mt)"}">
       <div class="sw-track" style="background:${sw[k]?P:darkMode?"#333":"#ccc"}">
@@ -1403,7 +1431,7 @@ function buildSwitches(){
 
 function toggleSw(k){ sw[k]=!sw[k]; buildSwitches(); render(); }
 
-// ═══════ FILTRAGE ═══════
+// âââââââ FILTRAGE âââââââ
 function getFiltered(){
   return agents.filter(a=>{
     if(!selCamps.includes(a.camp)) return false;
@@ -1427,7 +1455,7 @@ function getSorted(filtered){
   });
 }
 
-// ═══════ RENDER KPIs ═══════
+// âââââââ RENDER KPIs âââââââ
 function renderKPIs(filtered){
   const totApp=filtered.reduce((s,a)=>s+a.appels,0);
   const totM=filtered.reduce((s,a)=>s+(mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto),0);
@@ -1446,16 +1474,16 @@ function renderKPIs(filtered){
   const pct=Math.min(100,Math.round((totActes/600)*100));
 
   const kpis=[
-    {l:"QS — Qualité de service",v:qs+"%",sub:`${totApp}/${totRecus}`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
-    {l:"Flux reçus",v:totRecus},
-    {l:"Flux traités",v:totApp,good:totApp>300},
-    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:`${Math.round((totManques/totRecus)*100)}%`},
+    {l:"QS â QualitÃ© de service",v:qs+"%",sub:`${totApp}/${totRecus}`,alert:qs<80,good:qs>=85,gauge:qs},
+    {l:"% de rÃ©alisÃ©",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Flux reÃ§us",v:totRecus},
+    {l:"Flux traitÃ©s",v:totApp,good:totApp>300},
+    {l:"Flux manquÃ©s",v:totManques,alert:totManques>80,sub:`${Math.round((totManques/totRecus)*100)}%`},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
     {l:"Actes / heure",v:actesH,alert:actesH<8,good:actesH>=15,sub:"Seuil 15"},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
-    {l:"Réitérants",v:reit,alert:reit>20},
+    {l:"RÃ©itÃ©rants",v:reit,alert:reit>20},
     {l:"Backlog Mails",v:backlog,alert:backlog>30},
   ];
 
@@ -1465,35 +1493,35 @@ function renderKPIs(filtered){
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
       ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
-      <div class="kpi-status" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
+      <div class="kpi-status" style="color:${k.alert?P:"#30d158"}">${k.alert?"â  attention":k.good?"â bonne maitrise":""}</div>
     </div>`).join("");
 }
 
-// ═══════ RENDER TABLE ═══════
+// âââââââ RENDER TABLE âââââââ
 function renderTable(sorted){
   const cols=[
     {k:"nom",l:"Agent"},{k:"status",l:"Statut"},{k:"camp",l:"Campagne"},{k:"contrat",l:"Contrat"},
-    {k:"hprod",l:"H. Prod"},{k:"presence",l:"Présence"},{k:"appels",l:"Appels"},
-    {k:"mails",l:`<span style="color:${P}">Mails ✏</span>`},
+    {k:"hprod",l:"H. Prod"},{k:"presence",l:"PrÃ©sence"},{k:"appels",l:"Appels"},
+    {k:"mails",l:`<span style="color:${P}">Mails â</span>`},
     {k:"actes",l:"Actes total"},{k:"actesH",l:"Actes/H"},{k:"dmc",l:"DMC"},
     {k:"transferts",l:"Transferts"},{k:"inactifs",l:"Inactifs"},
-    {k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},{k:"realise",l:"% de réalisé"},{k:"files",l:"Files OK"}
+    {k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},{k:"realise",l:"% de rÃ©alisÃ©"},{k:"files",l:"Files OK"}
   ];
 
   document.getElementById("thead-row").innerHTML = cols.map(c=>`
-    <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" style="${c.k==="mails"?`background:#1a0a0f;`:""}">${c.l}${sortCol===c.k?(sortDir>0?"↑":"↓"):"<span style='color:#2a2a2a'>↕</span>"}</th>`).join("");
+    <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" style="${c.k==="mails"?`background:#1a0a0f;`:""}">${c.l}${sortCol===c.k?(sortDir>0?"â":"â"):"<span style='color:#2a2a2a'>â</span>"}</th>`).join("");
 
   let totApp=0,totM=0,totKo=0,totRef=0,totTrans=0;
 
   document.getElementById("tbody-agents").innerHTML = sorted.map((a,i)=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto;
     const actes=a.appels+m;
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"â";
+    const sc=a.status==="ConnectÃ©"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
     totApp+=a.appels; totM+=m; totKo+=a.ko; totRef+=a.refus; totTrans+=a.transferts;
     return `<tr>
       <td style="font-weight:700;white-space:nowrap">${a.nom}</td>
-      <td style="white-space:nowrap"><span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span></td>
+      <td style="white-space:nowrap"><span style="color:${sc};font-size:10px;font-weight:600">â ${a.status}</span></td>
       <td><span class="badge-camp">${a.camp}</span></td>
       <td style="color:var(--mt);font-size:10px">${a.contrat}</td>
       <td style="color:var(--mt)">${a.hprod}h</td>
@@ -1507,9 +1535,9 @@ function renderTable(sorted){
       <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"var(--tx)"};font-weight:700">${ach}</td>
       <td>${mmss(a.dmc)}</td>
       <td>${a.transferts}</td>
-      <td>${a.inactifs>6?`<span class="badge-alert">⚠ attention ${a.inactifs}</span>`:a.inactifs}</td>
-      <td style="color:${a.ko>10?P:"var(--tx)"};font-weight:${a.ko>10?700:400}">${a.ko}${a.ko>10?` <span style="font-size:9px;color:${P}">⚠</span>`:""}</td>
-      <td>${a.refus>5?`<span class="badge-alert">⚠ attention ${a.refus}</span>`:a.refus}</td>
+      <td>${a.inactifs>6?`<span class="badge-alert">â  attention ${a.inactifs}</span>`:a.inactifs}</td>
+      <td style="color:${a.ko>10?P:"var(--tx)"};font-weight:${a.ko>10?700:400}">${a.ko}${a.ko>10?` <span style="font-size:9px;color:${P}">â </span>`:""}</td>
+      <td>${a.refus>5?`<span class="badge-alert">â  attention ${a.refus}</span>`:a.refus}</td>
       <td style="min-width:120px">
         <div class="prog-wrap">
           <div class="prog-bg"><div class="prog-fill" style="width:${a.realise}%;background:${a.realise>=80?P:a.realise<50?"#ff3b30":P}"></div></div>
@@ -1517,10 +1545,10 @@ function renderTable(sorted){
         </div>
         <div style="font-size:8px;color:${a.realise>=80?"#30d158":a.realise<60?P:"var(--mt)"};margin-top:1px">${a.realise>=80?"bonne maitrise":a.realise<60?"attention":"en cours"}</div>
       </td>
-      <td style="text-align:center">${a.files_ok?'<span class="badge-ok">✓ OK</span>':'<span class="badge-anom">⚠ Anomalie</span>'}</td>
+      <td style="text-align:center">${a.files_ok?'<span class="badge-ok">â OK</span>':'<span class="badge-anom">â  Anomalie</span>'}</td>
     </tr>`;
   }).join("") + `<tr class="total-row">
-    <td colspan="6" style="color:${P};font-size:12px;padding:8px 9px">TOTAL — ${sorted.length} agents</td>
+    <td colspan="6" style="color:${P};font-size:12px;padding:8px 9px">TOTAL â ${sorted.length} agents</td>
     <td style="padding:8px 9px">${totApp}</td>
     <td style="padding:8px 9px;color:${P};background:#1a0a0f">${totM}</td>
     <td style="padding:8px 9px;color:${P};font-size:14px">${totApp+totM}</td>
@@ -1533,7 +1561,7 @@ function renderTable(sorted){
   </tr>`;
 }
 
-// ═══════ RENDER GRAPHIQUES ═══════
+// âââââââ RENDER GRAPHIQUES âââââââ
 function renderChart(){
   const maxV=Math.max(...slots.map(s=>s.vol+s.out),1);
   let svg="";
@@ -1563,29 +1591,29 @@ function renderChart(){
   }).join("");
 }
 
-// ═══════ RENDER SKILLS ═══════
+// âââââââ RENDER SKILLS âââââââ
 function renderSkills(){
   const thead=`<thead><tr><th style="min-width:170px">Agent</th>${SKILLS.map(s=>`<th style="text-align:center;min-width:80px">${s}</th>`).join("")}<th style="text-align:center;min-width:80px">Files OK</th></tr></thead>`;
   const tbody=`<tbody>${AGENTS_BASE.map((a,i)=>`<tr>
     <td style="font-weight:600;padding:7px 12px">${a.nom}<br><span style="font-size:9px;color:var(--mt)">${a.contrat}</span></td>
-    ${SKILLS.map(s=>`<td style="text-align:center;padding:7px 12px">${a.skills.includes(s)?'<span class="skill-yes">✓</span>':'<span class="skill-no"></span>'}</td>`).join("")}
-    <td style="text-align:center;padding:7px 12px">${agents.find(ag=>ag.id===a.id)?.files_ok?'<span class="badge-ok">✓ OK</span>':'<span class="badge-anom">⚠ Anomalie</span>'}</td>
+    ${SKILLS.map(s=>`<td style="text-align:center;padding:7px 12px">${a.skills.includes(s)?'<span class="skill-yes">â</span>':'<span class="skill-no"></span>'}</td>`).join("")}
+    <td style="text-align:center;padding:7px 12px">${agents.find(ag=>ag.id===a.id)?.files_ok?'<span class="badge-ok">â OK</span>':'<span class="badge-anom">â  Anomalie</span>'}</td>
   </tr>`).join("")}</tbody>`;
   document.getElementById("skills-table").innerHTML=thead+tbody;
 }
 
-// ═══════ SMART ROUTING ═══════
+// âââââââ SMART ROUTING âââââââ
 function renderSmart(filtered){
   const tension=filtered.filter(a=>a.camp==="Voltalis"&&a.realise<70);
-  const candidat=agents.find(a=>!filtered.find(f=>f.id===a.id)&&a.skills.includes("LMDW")&&a.status==="Connecté");
+  const candidat=agents.find(a=>!filtered.find(f=>f.id===a.id)&&a.skills.includes("LMDW")&&a.status==="ConnectÃ©");
   const zone=document.getElementById("smart-alert");
   if(tension.length>0){
     zone.style.display="flex";
-    document.getElementById("smart-text").innerHTML=`Tension détectée sur la file <b style="color:${P}">Voltalis</b> — ${tension.length} agent(s) sous les objectifs.${candidat?` Recommandation : Basculer <b style="color:${P}">${candidat.nom}</b> (${candidat.camp}) pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.`:""}`;
+    document.getElementById("smart-text").innerHTML=`Tension dÃ©tectÃ©e sur la file <b style="color:${P}">Voltalis</b> â ${tension.length} agent(s) sous les objectifs.${candidat?` Recommandation : Basculer <b style="color:${P}">${candidat.nom}</b> (${candidat.camp}) pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.`:""}`;
   } else zone.style.display="none";
 }
 
-// ═══════ RENDER GLOBAL ═══════
+// âââââââ RENDER GLOBAL âââââââ
 function render(){
   const filtered=getFiltered();
   const sorted=getSorted(filtered);
@@ -1594,10 +1622,10 @@ function render(){
   renderTable(sorted);
   renderChart();
   renderSkills();
-  document.getElementById("agent-count").textContent=`${filtered.length} agent${filtered.length>1?"s":""} affichés`;
+  document.getElementById("agent-count").textContent=`${filtered.length} agent${filtered.length>1?"s":""} affichÃ©s`;
 }
 
-// ═══════ ACTIONS ═══════
+// âââââââ ACTIONS âââââââ
 function doSort(col){
   if(sortCol===col) sortDir*=-1; else {sortCol=col;sortDir=-1;}
   render();
@@ -1624,7 +1652,7 @@ function simulate(){
 function toggleTheme(){
   darkMode=!darkMode;
   document.body.className=darkMode?"":"light";
-  document.getElementById("theme-btn").textContent=darkMode?"☀ Mode clair":"🌙 Mode sombre";
+  document.getElementById("theme-btn").textContent=darkMode?"â Mode clair":"ð Mode sombre";
   buildSwitches();
   render();
 }
@@ -1632,7 +1660,7 @@ function toggleTheme(){
 function toggleFilters(){
   filterOpen=!filterOpen;
   document.getElementById("filter-panel").style.display=filterOpen?"block":"none";
-  document.getElementById("filter-btn").textContent=`⚙ Filtres ${filterOpen?"▲":"▼"}`;
+  document.getElementById("filter-btn").textContent=`â Filtres ${filterOpen?"â²":"â¼"}`;
 }
 
 function showToast(msg){
@@ -1643,8 +1671,8 @@ function showToast(msg){
 
 function exportXlsx(){
   const msg=document.getElementById("export-msg");
-  msg.style.display="inline"; msg.textContent="Export en cours…";
-  setTimeout(()=>{msg.textContent="✓ Excel téléchargé !";},1200);
+  msg.style.display="inline"; msg.textContent="Export en coursâ¦";
+  setTimeout(()=>{msg.textContent="â Excel tÃ©lÃ©chargÃ© !";},1200);
   setTimeout(()=>msg.style.display="none",4000);
 }
 
@@ -1655,7 +1683,7 @@ function exportPDF(){
   const rows=sorted.map(a=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:a.mails_auto;
     const actes=a.appels+m;
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
+    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"â";
     return `<tr>
       <td>${a.nom}</td><td>${a.login}</td><td>${a.contrat}</td><td>${a.camp}</td>
       <td>${a.status}</td><td>${a.hprod}h</td><td>${a.presence}h</td>
@@ -1665,13 +1693,13 @@ function exportPDF(){
       <td style="${a.ko>10?"color:#E8006E;font-weight:700":""}">${a.ko}</td>
       <td style="${a.refus>5?"color:#E8006E;font-weight:700":""}">${a.refus}</td>
       <td style="color:${a.realise>=80?"#27ae60":a.realise<60?"#E8006E":"#333"};font-weight:700">${a.realise}%</td>
-      <td>${a.files_ok?"✓ OK":"⚠ Anomalie"}</td>
+      <td>${a.files_ok?"â OK":"â  Anomalie"}</td>
     </tr>`;
   }).join("");
   const totApp=sorted.reduce((s,a)=>s+a.appels,0);
   const totM=sorted.reduce((s,a)=>s+(mailsEdit[a.id]??a.mails_auto),0);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Control Room — Rapport Wisecom</title>
+  <title>Control Room â Rapport Wisecom</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;}
@@ -1697,10 +1725,10 @@ function exportPDF(){
     .print-btn{position:fixed;top:12px;right:12px;background:#E8006E;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;z-index:999;}
     @media print{.print-btn{display:none;}body{print-color-adjust:exact;-webkit-print-color-adjust:exact;}thead tr{-webkit-print-color-adjust:exact;}.header{-webkit-print-color-adjust:exact;}}
   </style></head><body>
-  <button class="print-btn" onclick="window.print()">🖨 Imprimer / PDF</button>
+  <button class="print-btn" onclick="window.print()">ð¨ Imprimer / PDF</button>
   <div class="header">
-    <div><h1>CONTROL ROOM — RAPPORT SUPERVISION</h1><div class="meta">Wisecom · INO Maker · Données temps réel</div></div>
-    <div style="text-align:right"><div class="badge">Tarik_Ino_Multi_dashboard</div><div style="font-size:10px;color:#888;margin-top:6px;">Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}</div></div>
+    <div><h1>CONTROL ROOM â RAPPORT SUPERVISION</h1><div class="meta">Wisecom Â· INO Maker Â· DonnÃ©es temps rÃ©el</div></div>
+    <div style="text-align:right"><div class="badge">Tarik_Ino_Multi_dashboard</div><div style="font-size:10px;color:#888;margin-top:6px;">GÃ©nÃ©rÃ© le ${new Date().toLocaleDateString("fr-FR")} Ã  ${new Date().toLocaleTimeString("fr-FR")}</div></div>
   </div>
   <div class="kpis">
     <div class="kpi"><div class="kpi-l">Agents</div><div class="kpi-v pink">${sorted.length}</div></div>
@@ -1708,26 +1736,26 @@ function exportPDF(){
     <div class="kpi"><div class="kpi-l">Mails hors INO</div><div class="kpi-v pink">${totM}</div></div>
     <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${totApp+totM}</div></div>
     <div class="kpi"><div class="kpi-l">DMC moy.</div><div class="kpi-v">${mmss(Math.round(sorted.reduce((s,a)=>s+a.dmc,0)/(sorted.length||1)))}</div></div>
-    <div class="kpi"><div class="kpi-l">% de réalisé</div><div class="kpi-v pink">${Math.min(100,Math.round(((totApp+totM)/600)*100))}%</div></div>
+    <div class="kpi"><div class="kpi-l">% de rÃ©alisÃ©</div><div class="kpi-v pink">${Math.min(100,Math.round(((totApp+totM)/600)*100))}%</div></div>
   </div>
   <div class="section">
-    <div class="stitle">Détail individuel — ${sorted.length} agents</div>
+    <div class="stitle">DÃ©tail individuel â ${sorted.length} agents</div>
     <table><thead><tr>
       <th>Agent</th><th>Login</th><th>Contrat</th><th>Campagne</th><th>Statut</th>
-      <th>H.Prod</th><th>Présence</th><th>Appels</th><th>Mails</th><th>Actes</th>
+      <th>H.Prod</th><th>PrÃ©sence</th><th>Appels</th><th>Mails</th><th>Actes</th>
       <th>Actes/H</th><th>DMC</th><th>Transferts</th><th>Inactifs</th>
-      <th>100% KO</th><th>Refus</th><th>% Réalisé</th><th>Files</th>
+      <th>100% KO</th><th>Refus</th><th>% RÃ©alisÃ©</th><th>Files</th>
     </tr></thead><tbody>${rows}
-    <tr class="total-row"><td colspan="7">TOTAL — ${sorted.length} agents</td>
+    <tr class="total-row"><td colspan="7">TOTAL â ${sorted.length} agents</td>
       <td>${totApp}</td><td style="color:#E8006E">${totM}</td>
       <td style="color:#E8006E;font-size:13px">${totApp+totM}</td>
       <td colspan="8"></td></tr>
     </tbody></table>
   </div>
-  <div class="footer"><span>Wisecom · Control Room · Tarik_Ino_Multi_dashboard</span><span>${new Date().toLocaleString("fr-FR")}</span></div>
+  <div class="footer"><span>Wisecom Â· Control Room Â· Tarik_Ino_Multi_dashboard</span><span>${new Date().toLocaleString("fr-FR")}</span></div>
   </body></html>`);
   w.document.close();
-  showToast("✓ PDF prêt — cliquez Imprimer dans la nouvelle fenêtre");
+  showToast("â PDF prÃªt â cliquez Imprimer dans la nouvelle fenÃªtre");
 }
 
 function switchTab(id,btn){
@@ -1739,7 +1767,7 @@ function switchTab(id,btn){
   currentTab=id;
 }
 
-// ═══════ INIT ═══════
+// âââââââ INIT âââââââ
 document.getElementById("today-date").textContent = new Date().toLocaleDateString("fr-FR");
 document.getElementById("f-date-fin").value = new Date().toISOString().slice(0,10);
 agents = genAgents();
@@ -1749,7 +1777,7 @@ buildAllDropdowns();
 buildSwitches();
 render();
 connectSSE();
-// Tente de charger les vraies données INO
+// Tente de charger les vraies donnÃ©es INO
 loadAgentsFromAPI();
 // Polling toutes les 60s
 setInterval(loadAgentsFromAPI, 60000);
