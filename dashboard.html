@@ -1288,7 +1288,7 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="max-width:160px">${Array.isArray(a.skills)&&a.skills.length>0?a.skills.map(s=>`<span style="display:inline-block;background:#1a0812;border:1px solid #E8006E33;color:#E8006E;border-radius:4px;padding:1px 6px;font-size:9px;margin:1px;font-weight:600">${s}</span>`).join(''):'<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>'}</td>
+      <td style="max-width:200px">${Array.isArray(a.skills)&&a.skills.length>0?a.skills.map(s=>'<span style="display:inline-block;background:#1a0812;border:1px solid #E8006E33;color:#E8006E;border-radius:4px;padding:1px 6px;font-size:9px;margin:1px 2px;font-weight:600;white-space:nowrap">'+s+'</span>').join(''):'<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>'}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
