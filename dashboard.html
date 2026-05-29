@@ -180,6 +180,9 @@ body.light .panel-header{border-bottom-color:#f0f0f0;}
 
 /* Table */
 .tbl-wrap{overflow-x:auto;}
+.agent-row{height:36px;max-height:36px;}
+.agent-row td{height:36px;max-height:36px;overflow:hidden;vertical-align:middle;line-height:1.2;}
+.agent-row td:last-child{max-height:none;overflow:visible;}
 .tbl{width:100%;border-collapse:collapse;font-size:11px;}
 .tbl th{padding:8px 10px;color:#555;font-weight:600;text-align:left;border-bottom:1px solid #1a1a1a;background:#0f0f0f;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
 body.light .tbl th{background:#f5f5f5;border-bottom-color:#eee;color:#888;}
@@ -1288,7 +1291,15 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="max-width:200px">${Array.isArray(a.skills)&&a.skills.length>0?a.skills.map(s=>'<span style="display:inline-block;background:#1a0812;border:1px solid #E8006E33;color:#E8006E;border-radius:4px;padding:1px 6px;font-size:9px;margin:1px 2px;font-weight:600;white-space:nowrap">'+s+'</span>').join(''):'<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>'}</td>
+      <td style="max-width:180px;vertical-align:middle">${(()=>{
+  if(!Array.isArray(a.skills)||a.skills.length===0)return '<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>';
+  const shown=a.skills.slice(0,3);
+  const rest=a.skills.slice(3);
+  const all=a.skills.join(', ');
+  let html=shown.map(s=>'<span style="display:inline-block;background:#1a0812;border:1px solid #E8006E33;color:#E8006E;border-radius:4px;padding:1px 5px;font-size:9px;margin:1px;font-weight:600;white-space:nowrap">'+s+'</span>').join('');
+  if(rest.length>0)html+='<span title="'+all+'" style="display:inline-block;background:#1e1e1e;border:1px solid #333;color:#888;border-radius:4px;padding:1px 5px;font-size:9px;margin:1px;cursor:default">+'+rest.length+'</span>';
+  return html;
+})()}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
