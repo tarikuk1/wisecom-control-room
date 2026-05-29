@@ -1937,7 +1937,6 @@ function closeCriteres(){
 function renderCriteres(){
   const saved=loadCriteres();
   const body=document.getElementById('criteres-body');if(!body)return;
-  // Calculer les stats actuelles par campagne pour afficher contexte
   const campStats={};
   agents.forEach(a=>{
     if(!campStats[a.camp])campStats[a.camp]={agents:0,connectes:0,app:0,hp:0};
@@ -1946,79 +1945,52 @@ function renderCriteres(){
     campStats[a.camp].app+=a.appels;
     campStats[a.camp].hp+=a.hprod;
   });
-  body.innerHTML=`
-    <div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:700;color:#ccc;margin-bottom:4px">Paramétrage des garde-fous par campagne</div>
-      <div style="font-size:11px;color:#555">Ces critères déclenchent les alertes dans le dashboard. Lecture seule INO — aucune modification n'est envoyée à INO.</div>
-    </div>
-    ${CAMPS.map(c=>{
-      const s=saved[c]||{qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50};
-      const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
-      const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
-      const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
-      const no_agent_alert=s.alert_no_agent&&cs.connectes===0&&cs.agents>0;
-      return \`<div class="camp-card">
-        <div class="camp-card-header">
-          <div style="display:flex;align-items:center;gap:12px">
-            <span class="camp-badge">\${c}</span>
-            <span style="font-size:11px;color:#555">\${cs.agents} agent(s) · \${cs.connectes} connecté(s) · \${cs.app} appels aujourd'hui</span>
-            \${qs_alert?\`<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS \${qs}%</span>":''} 
-            \${no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">🚨 Aucun agent connecté</span>':''}
-          </div>
-          <span style="font-size:10px;color:#444">QS actuel : \${qs>0?qs+'%':'–'}</span>
-        </div>
-        <div class="kpi-param-grid">
-          <div class="param-group">
-            <div class="param-title">📞 Qualité de Service (QS)</div>
-            <div class="param-row">
-              <span class="param-label">QS minimum (seuil basse)</span>
-              <input class="param-input" id="qs-min-\${c}" type="number" min="0" max="100" value="\${s.qs_min}">
-              <span class="param-unit">%</span>
-            </div>
-            <div class="param-row">
-              <span class="param-label">QS maximum (seuil haute)</span>
-              <input class="param-input" id="qs-max-\${c}" type="number" min="0" max="100" value="\${s.qs_max}">
-              <span class="param-unit">%</span>
-            </div>
-            <div style="font-size:9px;color:#555;margin-top:4px">Alerte si QS &lt; min ou &gt; max</div>
-          </div>
-          <div class="param-group">
-            <div class="param-title">📧 Backlog Mails</div>
-            <div class="param-row">
-              <span class="param-label">Backlog actuel (saisie)</span>
-              <input class="param-input" id="backlog-val-\${c}" type="number" min="0" value="\${s.backlog_val}">
-              <span class="param-unit">mails</span>
-            </div>
-            <div class="param-row">
-              <span class="param-label">Seuil minimum</span>
-              <input class="param-input" id="backlog-min-\${c}" type="number" min="0" value="\${s.backlog_min}">
-              <span class="param-unit">mails</span>
-            </div>
-            <div class="param-row">
-              <span class="param-label">Seuil maximum</span>
-              <input class="param-input" id="backlog-max-\${c}" type="number" min="0" value="\${s.backlog_max}">
-              <span class="param-unit">mails</span>
-            </div>
-          </div>
-          <div class="param-group">
-            <div class="param-title">🎯 Objectifs & Alertes</div>
-            <div class="param-row">
-              <span class="param-label">Objectif appels/agent/jour</span>
-              <input class="param-input" id="obj-appels-\${c}" type="number" min="1" value="\${s.obj_appels}">
-              <span class="param-unit">app.</span>
-            </div>
-            <div class="alert-trigger">
-              <input type="checkbox" id="alert-no-agent-\${c}" \${s.alert_no_agent?'checked':''}>
-              <label for="alert-no-agent-\${c}" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence \${c} est connecté</label>
-            </div>
-          </div>
-        </div>
-        \${(qs_alert||no_agent_alert)?'<div class="criteres-alert">'+
-          (no_agent_alert?'🚨 Aucun agent avec la compétence '+c+' n\'est connecté — risque de non-couverture.':'⚠ attention : QS hors des garde-fous définis ('+s.qs_min+'% – '+s.qs_max+'%).')
-        +'</div>':''}
-      </div>\`;
-    }).join('')}
-  `;
+  let html='<div style="margin-bottom:20px">'
+    +'<div style="font-size:13px;font-weight:700;color:#ccc;margin-bottom:4px">Paramétrage des garde-fous par campagne</div>'
+    +'<div style="font-size:11px;color:#555">Ces critères déclenchent les alertes dans le dashboard. Lecture seule INO — aucune modification n\'est envoyée à INO.</div>'
+    +'</div>';
+  CAMPS.forEach(function(c){
+    const s=saved[c]||{qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50};
+    const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
+    const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
+    const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
+    const no_agent_alert=s.alert_no_agent&&cs.connectes===0&&cs.agents>0;
+    html+='<div class="camp-card">'
+      +'<div class="camp-card-header">'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+          +'<span class="camp-badge">'+c+'</span>'
+          +'<span style="font-size:11px;color:#555">'+cs.agents+' agent(s) · '+cs.connectes+' connecté(s) · '+cs.app+' appels</span>'
+          +(qs_alert?'<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS '+qs+'%</span>':'')
+          +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">🚨 Aucun agent connecté</span>':'')
+        +'</div>'
+        +'<span style="font-size:10px;color:#444">QS actuel : '+(qs>0?qs+'%':'–')+'</span>'
+      +'</div>'
+      +'<div class="kpi-param-grid">'
+        +'<div class="param-group">'
+          +'<div class="param-title">📞 Qualité de Service (QS)</div>'
+          +'<div class="param-row"><span class="param-label">QS minimum (seuil bas)</span><input class="param-input" id="qs-min-'+c+'" type="number" min="0" max="100" value="'+s.qs_min+'"><span class="param-unit">%</span></div>'
+          +'<div class="param-row"><span class="param-label">QS maximum (seuil haut)</span><input class="param-input" id="qs-max-'+c+'" type="number" min="0" max="100" value="'+s.qs_max+'"><span class="param-unit">%</span></div>'
+          +'<div style="font-size:9px;color:#555;margin-top:4px">Alerte si QS &lt; min ou &gt; max</div>'
+        +'</div>'
+        +'<div class="param-group">'
+          +'<div class="param-title">📧 Backlog Mails</div>'
+          +'<div class="param-row"><span class="param-label">Backlog actuel (saisie)</span><input class="param-input" id="backlog-val-'+c+'" type="number" min="0" value="'+s.backlog_val+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-row"><span class="param-label">Seuil minimum</span><input class="param-input" id="backlog-min-'+c+'" type="number" min="0" value="'+s.backlog_min+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-row"><span class="param-label">Seuil maximum</span><input class="param-input" id="backlog-max-'+c+'" type="number" min="0" value="'+s.backlog_max+'"><span class="param-unit">mails</span></div>'
+        +'</div>'
+        +'<div class="param-group">'
+          +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
+          +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
+          +'<div class="alert-trigger"><input type="checkbox" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
+          +'<label for="alert-no-agent-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence '+c+' est connecté</label></div>'
+        +'</div>'
+      +'</div>'
+      +((qs_alert||no_agent_alert)?('<div class="criteres-alert">'
+        +(no_agent_alert?'🚨 Aucun agent avec la compétence '+c+' n\'est connecté.':'⚠ attention : QS hors garde-fous ('+s.qs_min+'% – '+s.qs_max+'%).')
+        +'</div>'):'')
+    +'</div>';
+  });
+  body.innerHTML=html;
 }
 
 // ============================================================
