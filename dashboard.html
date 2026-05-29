@@ -13,18 +13,18 @@ body.light{background:#f3f3f3;color:#111;}
 body.light ::-webkit-scrollbar-thumb{background:#ccc;}
 
 /* Variables */
-.sticky{position:sticky;top:0;z-index:200;background:#111;border-bottom:1px solid #1e1e1e;box-shadow:0 4px 24px rgba(0,0,0,.6);}
+.sticky{position:sticky;top:0;z-index:200;overflow:visible;background:#111;border-bottom:1px solid #1e1e1e;box-shadow:0 4px 24px rgba(0,0,0,.6);}
 body.light .sticky{background:#fff;border-bottom-color:#e5e5e5;box-shadow:0 2px 12px rgba(0,0,0,.08);}
 
 /* Topbar */
-.topbar{padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.topbar{padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:relative;z-index:201;}
 .logo{display:flex;align-items:center;gap:12px;}
 .dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 12px #E8006E,0 0 24px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{box-shadow:0 0 12px #E8006E;}50%{box-shadow:0 0 20px #E8006E,0 0 40px rgba(232,0,110,.4);}}
 .brand{font-weight:800;font-size:14px;letter-spacing:.08em;color:#fff;}
 body.light .brand{color:#111;}
 .brand-sub{font-size:9px;color:#555;margin-top:1px;letter-spacing:.04em;}
-.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;position:relative;z-index:202;}
 .btn{border:none;border-radius:7px;padding:6px 14px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:5px;}
 .btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3);}
 .btn-primary{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
@@ -544,14 +544,14 @@ const CONTRATS=["CDI","CDD","Alternance","Intérim"];
 const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
 const QUEUES_MAP={
-  Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant"],
-  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
-  Elvetis:["Elvetis_RQ","Elvetis_SAV"],
-  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence"],
-  Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur"],
-  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information"],
-  Antargaz:["Antargaz_Client","Antargaz_Sortant"],
+  Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant","VOLTALIS","VOLTALIS_ENT","VOLTALIS_SOR"],
+  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV","OMODA","OMODA_ENT"],
+  Elvetis:["Elvetis_RQ","Elvetis_SAV","ELVETIS","ELVETIS_ENT"],
+  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence","ALCEANE","ALCÉANE","ALCEANE_ENT"],
+  Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard","VIVEST","VIVEST_ENT","VIVEST_SOR"],
+  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur","EVORIEL","EVORIEL_ENT"],
+  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR","ELECTROSUR_ENT"],
+  Antargaz:["Antargaz_Client","Antargaz_Sortant","ANTARGAZ","ANTARGAZ_ENT"],
 };
 const AGENTS_BASE=[
   {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
@@ -722,8 +722,8 @@ async function refreshFromINO(){
   try{
     await Promise.all([loadAgentsFromAPI(),minDelay]);
     ok=true;
-    // Enrichir les compétences depuis l'API INO (async, non bloquant)
-    loadSkillsFromINO().catch(()=>{});
+    // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
+    // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
   }catch(e){ok=false;}
   finally{
     document.body.classList.remove("skeleton-on");
@@ -749,16 +749,23 @@ async function loadAgentsFromAPI(){
         const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
         const obj=50;
         const realise=total>0&&hprod>0?Math.min(100,Math.round((total/obj)*100)):0;
-        const fq=(a.queues||"").split(", ");
-        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase())))||fq[0]?.split("_")[0]||"–";
+        const fq=(a.queues||"").split(", ").filter(Boolean);
+        // Chercher la campagne en matchant le nom de queue (insensible à la casse)
+        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase().replace(/é/g,"e").replace(/è/g,"e"))))||
+          (fq[0]?fq[0].split("_")[0]:"–")||"–";
         const m=mailsEdit[a.id]||0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
         // Occupation : calculée à partir des données INO disponibles (duree de communication / présence estimée)
         const occupation=hprod>0?Math.min(100,Math.round((a.duree/3600/(hprod*1.1))*100)):null;
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
+        // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
+        const rawQueues=(a.queues||"").split(", ").filter(Boolean);
+        // Skills = noms de queues (seule source disponible dans l'API INO histories)
+        // On affiche le queueName brut : c'est le nom réel de la file/compétence dans INO
+        const derivedSkills=rawQueues.length>0?rawQueues.filter((v,i,arr)=>v&&arr.indexOf(v)===i):null;
         return{id:a.id,nom:a.nom,login:a.username,camp,
-          skills:Array.isArray(a.skills)?a.skills:null,
+          skills:derivedSkills,
           contrat:a.contrat||null,obj,
           status:a.status||null,
           appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
