@@ -52,7 +52,7 @@ body.light input[type=date],body.light input[type=time],body.light select{backgr
 .ck-btn:hover{border-color:#444;}
 .ck-btn.open{border-color:#E8006E;background:#1a0a0f;}
 body.light .ck-btn{background:#f0f0f0;border-color:#ddd;color:#444;}
-.ck-dropdown{position:absolute;top:calc(100% + 5px);left:0;z-index:400;background:#1a1a1a;border:1px solid #333;border-radius:10px;min-width:200px;max-height:260px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,.7);}
+.ck-dropdown{position:absolute;top:calc(100% + 5px);left:0;z-index:400;background:#1a1a1a;border:1px solid #333;border-radius:10px;min-width:220px;max-height:320px;overflow:visible;box-shadow:0 16px 40px rgba(0,0,0,.7);}
 body.light .ck-dropdown{background:#fff;border-color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,.12);}
 .ck-header{padding:7px 12px 5px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #252525;}
 body.light .ck-header{border-bottom-color:#f0f0f0;}
@@ -69,7 +69,7 @@ body.light .ck-search-wrap{border-bottom-color:#f0f0f0;}
 body.light .ck-search{background:#fff;border-color:#ddd;color:#222;}
 body.light .ck-search:focus{background:#fff0f6;border-color:#E8006E;}
 .ck-search::placeholder{color:#555;}
-.ck-list{max-height:180px;overflow-y:auto;}
+.ck-list{max-height:220px;overflow-y:auto;scroll-behavior:smooth;}
 .ck-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 4px;font-size:9px;font-weight:700;background:#E8006E;color:#fff;border-radius:7px;}
 .preset-select{background:#161616;border:1px solid #2a2a2a;border-radius:7px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:200px;outline:none;font-family:inherit;}
 .preset-select:focus,.preset-select:hover{border-color:#E8006E;}
@@ -89,6 +89,48 @@ body.light .preset-select{background:#f0f0f0;border-color:#ddd;color:#444;}
 
 /* Smart alerts */
 .smart-zone{padding:0 20px;margin-bottom:0;}
+
+/* Panneau sélection colonnes */
+.col-panel{position:fixed;top:0;right:0;width:280px;height:100vh;background:#111;border-left:1px solid #1e1e1e;z-index:500;padding:20px;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,.6);transform:translateX(100%);transition:transform .25s ease;}
+.col-panel.open{transform:translateX(0);}
+.col-panel-title{font-size:13px;font-weight:700;color:#E8006E;margin-bottom:4px;}
+.col-panel-sub{font-size:10px;color:#555;margin-bottom:16px;}
+.col-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #161616;cursor:pointer;user-select:none;}
+.col-item:last-child{border-bottom:none;}
+.col-item:hover{background:#161616;border-radius:5px;padding-left:4px;}
+.col-checkbox{width:16px;height:16px;border-radius:4px;border:2px solid #333;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all .15s;}
+.col-checkbox.on{background:#E8006E;border-color:#E8006E;color:#fff;}
+.col-name{font-size:11px;color:#ccc;}
+.col-panel-overlay{position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.3);display:none;}
+.col-panel-overlay.open{display:block;}
+
+/* Page Critères Campagne */
+.criteres-page{display:none;position:fixed;inset:0;background:#0a0a0a;z-index:600;overflow-y:auto;}
+.criteres-page.open{display:block;}
+.criteres-header{background:#111;border-bottom:1px solid #1e1e1e;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.criteres-body{max-width:1100px;margin:0 auto;padding:24px 20px;}
+.camp-card{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:20px;margin-bottom:16px;}
+.camp-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.camp-badge{font-size:12px;font-weight:700;padding:4px 14px;border-radius:6px;background:#E8006E22;color:#E8006E;border:1px solid #E8006E44;}
+.kpi-param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+.param-group{background:#161616;border:1px solid #1e1e1e;border-radius:8px;padding:14px;}
+.param-title{font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+.param-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.param-label{font-size:11px;color:#888;flex:1;}
+.param-input{width:70px;background:#111;color:#E8006E;border:1px solid #2a2a2a;border-radius:5px;padding:5px 8px;font-size:11px;font-weight:700;outline:none;text-align:center;}
+.param-input:focus{border-color:#E8006E55;}
+.param-unit{font-size:10px;color:#555;}
+.alert-trigger{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.alert-trigger input[type=checkbox]{accent-color:#E8006E;width:14px;height:14px;}
+.btn-save-criteres{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-save-criteres:hover{box-shadow:0 4px 12px rgba(232,0,110,.4);}
+.criteres-alert{background:linear-gradient(135deg,#140810,#1a0a12);border:1px solid #E8006E44;border-radius:8px;padding:9px 14px;font-size:11px;color:#E8006E;display:flex;align-items:center;gap:8px;margin-top:8px;}
+body.light .col-panel{background:#fff;border-left-color:#eee;}
+body.light .col-item{border-bottom-color:#f5f5f5;}
+body.light .col-name{color:#333;}
+body.light .camp-card{background:#fff;border-color:#e5e5e5;}
+body.light .param-group{background:#f8f8f8;border-color:#e5e5e5;}
+body.light .param-input{background:#fff;color:#E8006E;border-color:#ddd;}
 .smart-alert{background:linear-gradient(135deg,#140810,#1a0a12);border:1px solid #3a1025;border-radius:10px;padding:11px 16px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;animation:slideIn .3s ease;}
 @keyframes slideIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
 .smart-badge{color:#E8006E;font-weight:800;font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:5px;}
@@ -301,6 +343,44 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
 <body>
 
 <!-- Modal générique (remplace prompt/confirm bloquants) -->
+<!-- Overlay colonnes -->
+<div class="col-panel-overlay" id="col-overlay" onclick="toggleColPanel()"></div>
+<!-- Panneau sélection colonnes -->
+<div class="col-panel" id="col-panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div class="col-panel-title">⊞ Colonnes affichées</div>
+      <div class="col-panel-sub">Cochez les colonnes à afficher dans le tableau</div>
+    </div>
+    <button onclick="toggleColPanel()" style="background:none;border:none;color:#555;font-size:18px;cursor:pointer;line-height:1">×</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:12px">
+    <button onclick="setAllCols(true)" style="flex:1;background:#161616;border:1px solid #E8006E44;border-radius:5px;padding:5px;font-size:10px;color:#E8006E;cursor:pointer;font-weight:600">Tout afficher</button>
+    <button onclick="setAllCols(false)" style="flex:1;background:#161616;border:1px solid #2a2a2a;border-radius:5px;padding:5px;font-size:10px;color:#888;cursor:pointer">Tout masquer</button>
+  </div>
+  <div id="col-list"></div>
+</div>
+
+<!-- Page Critères / KPI Campagne -->
+<div class="criteres-page" id="criteres-page">
+  <div class="criteres-header">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E"></div>
+        <span style="font-weight:800;font-size:14px;letter-spacing:.06em">CRITÈRES / KPI CAMPAGNE</span>
+      </div>
+      <span style="font-size:10px;color:#555">Paramétrage des garde-fous et alertes par campagne · Lecture seule INO</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-save-criteres" onclick="saveCriteres()">💾 Enregistrer les critères</button>
+      <button onclick="closeCriteres()" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#888;border-radius:7px;padding:8px 14px;font-size:12px;cursor:pointer">✕ Fermer</button>
+    </div>
+  </div>
+  <div class="criteres-body" id="criteres-body">
+    <!-- Généré dynamiquement par renderCriteres() -->
+  </div>
+</div>
+
 <div id="modal-overlay" class="modal-overlay" style="display:none">
   <div class="modal-box" role="dialog" aria-modal="true">
     <div class="modal-title" id="modal-title">Action</div>
@@ -339,10 +419,12 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
     </div>
     <div class="actions">
       <span class="clock" id="clock"></span>
-<a href="/admin" target="_blank" style="font-size:10px;color:#555;text-decoration:none;padding:4px 9px;border-radius:4px;border:1px solid #222;transition:all .15s;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">⚙ Admin</a>
+<button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Personnaliser les colonnes affichées">⊞ Colonnes</button>
+      <a href="/admin" target="_blank" style="font-size:10px;color:#555;text-decoration:none;padding:4px 9px;border-radius:4px;border:1px solid #222;transition:all .15s;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">⚙ Admin</a>
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Interroge l'API INO en lecture seule et met à jour les données">🔄 RAFRAÎCHIR (Fetch API INO)</button>
       <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Clair</button>
       <button class="btn btn-primary" onclick="simulate()">⚡ Simuler</button>
+      <button class="btn" onclick="openCriteres()" style="background:linear-gradient(135deg,#2a0a1a,#1a0812);color:#E8006E;border:1px solid #E8006E44;font-weight:700;font-size:11px;padding:6px 14px;" title="Paramétrage des critères et KPI par campagne">⚙ Critères KPI</button>
       <button class="btn btn-dark" onclick="exportXlsx()">📊 Excel</button>
       <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
       <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
@@ -518,6 +600,24 @@ function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-
 let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false;
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Connecté","En Pause","Wrap-up"];
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
+// Colonnes visibles dans le tableau individuel (personnalisation UI)
+const COL_DEFS=[
+  {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
+  {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Dernière déco",on:true},
+  {k:"hprod",l:"H. Prod",on:true},{k:"presence",l:"Présence",on:false},
+  {k:"appelsIn",l:"Appels reçus",on:true},{k:"appels",l:"Décrochés",on:true},
+  {k:"appelsOut",l:"Sortants",on:true},{k:"mails",l:"Mails saisis",on:true},
+  {k:"actes",l:"Actes total",on:true},{k:"actesH",l:"Actes/h",on:true},
+  {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},
+  {k:"acw",l:"Post-appel (ACW)",on:false},{k:"occupation",l:"Occupation",on:true},
+  {k:"transfo",l:"Transformation",on:false},{k:"adherence",l:"Adhérence",on:false},
+  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Refus prise appel",on:true},
+  {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% de réalisé",on:true},
+  {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
+  {k:"skills",l:"Compétences",on:true}
+];
+let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
+let colPanelOpen=false;
 let slots=[],allQueues=[];
 let redFlagTimers={};
 
@@ -622,6 +722,8 @@ async function refreshFromINO(){
   try{
     await Promise.all([loadAgentsFromAPI(),minDelay]);
     ok=true;
+    // Enrichir les compétences depuis l'API INO (async, non bloquant)
+    loadSkillsFromINO().catch(()=>{});
   }catch(e){ok=false;}
   finally{
     document.body.classList.remove("skeleton-on");
@@ -780,7 +882,7 @@ function buildAllDropdowns(){
 
 function buildSwitches(){
   const cont=document.getElementById("sw-container");
-  const defs=[["horsOuv","Hors SVI"],["reit","Réitérants"],["refus","Refus"],["inactif","Inactifs"]];
+  const defs=[["horsOuv","Hors SVI"],["reit","Réitérants"],["refus","Refus prise appel"],["inactif","Inactifs"]];
   cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
     <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?15:2}px"></div></div>${l}
   </label>`).join("");
@@ -976,6 +1078,7 @@ const totRecus=Math.max(1,Math.round(totApp*1.15));
 // Smart routing + Red flags
 function renderAlerts(f){
   const zone=document.getElementById("alerts-zone");
+  const crit=loadCriteres();
   let html="";
 
   // Red flags — agents déconnectés voix > 5 min
@@ -1005,7 +1108,24 @@ function renderAlerts(f){
   Object.entries(campStats).forEach(([camp,stat])=>{
     const qs=stat.appels>0?Math.round((stat.appels/(stat.appels*1.2))*100):100;
     const appH=stat.hprod>0?+(stat.appels/stat.hprod).toFixed(1):0;
-    const enTension=qs<80||appH<8;
+    const cc=crit[camp]||{qs_min:80,qs_max:95,alert_no_agent:false,backlog_min:10,backlog_max:90,backlog_val:0};
+    const enTension=qs<(cc.qs_min||80)||appH<8;
+    // Alerte backlog
+    const backlog=cc.backlog_val||0;
+    const backlogAlert=backlog>(cc.backlog_max||90);
+    if(backlogAlert){
+      html+=`<div class="smart-alert">
+        <span class="smart-badge">📧 Backlog</span>
+        <span class="smart-text">Backlog mails <b style="color:${P}">${camp}</b> : <b style="color:${P}">${backlog} mails</b> — seuil maximum fixé à ${cc.backlog_max}. <b>attention</b> — action requise.</span>
+      </div>`;
+    }
+    // Alerte 0 agent connecté
+    if(cc.alert_no_agent&&stat.agents.filter(a=>a.status==='Connecté'||a.status==='En Pause').length===0&&stat.agents.length>0){
+      html+=`<div class="redflag-alert">
+        <span class="redflag-badge">🚨 ALERTE COUVERTURE</span>
+        <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent avec la compétence <b style="color:#ff3b30">${camp}</b> n'est actuellement connecté. Risque de non-couverture.</span>
+      </div>`;
+    }
     if(enTension){
       // Cherche candidats disponibles depuis autres files
       const candidats=agents.filter(a=>
@@ -1051,7 +1171,8 @@ function renderAlerts(f){
 
 // Tableau
 function renderTable(sorted){
-  const cols=[
+  // Filtrer les colonnes selon la sélection utilisateur
+  const ALL_COLS=[
     {k:"expand",l:""},
     {k:"nom",l:"Agent"},
     {k:"status",l:"Statut"},
@@ -1073,12 +1194,15 @@ function renderTable(sorted){
     {k:"transfo",l:"Transformation",title:"Taux de transformation"},
     {k:"adherence",l:"Adhérence",title:"Adhérence au planning"},
     {k:"ko",l:"100 % KO"},
-    {k:"refus",l:"Refus"},
+    {k:"refus",l:"Refus prise appel",title:"Refus de prise de l'appel par l'agent"},
     {k:"inactifs",l:"Inactifs"},
     {k:"realise",l:"% de réalisé"},
     {k:"spark",l:"Activité du jour",title:"Évolution des actes sur la journée"},
-    {k:"files",l:"Files"}
+    {k:"files",l:"Files"},
+    {k:"skills",l:"Compétences",title:"Compétences actives de l'agent"}
   ];
+  // Appliquer la sélection utilisateur (toujours garder expand + nom)
+  const cols=ALL_COLS.filter(c=>c.k==='expand'||c.k==='nom'||visibleCols.has(c.k));
 
   document.getElementById("thead-row").innerHTML=cols.map(c=>{
     const sortable=!["expand","spark","files","mails","premiere","derniere"].includes(c.k);
@@ -1157,6 +1281,7 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
+      <td style="max-width:160px">${Array.isArray(a.skills)&&a.skills.length>0?a.skills.map(s=>`<span style="display:inline-block;background:#1a0812;border:1px solid #E8006E33;color:#E8006E;border-radius:4px;padding:1px 6px;font-size:9px;margin:1px;font-weight:600">${s}</span>`).join(''):'<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>'}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
@@ -1392,6 +1517,8 @@ function render(){
   renderSkills();
   renderBacklog();
   document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
+  // Mettre à jour la page critères si elle est ouverte
+  if(document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
 }
 
 // Bandeau de transparence — recense ce qui est branché à INO vs non disponible
@@ -1432,7 +1559,18 @@ function renderInoCoverage(){
 }
 
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
-function updateMails(id,val){mailsEdit[id]=Math.max(0,parseInt(val)||0);render();}
+function updateMails(id,val){
+  mailsEdit[id]=Math.max(0,parseInt(val)||0);
+  // Recalcul immédiat de l'agent concerné
+  const a=agents.find(x=>x.id===id);
+  if(a){
+    const m=mailsEdit[id];
+    a.mails_auto=m;
+    a.actesH=a.hprod>0?+((a.appels+m)/a.hprod).toFixed(1):0;
+    a.realise=a.appels+m>0&&a.hprod>0?Math.min(100,Math.round(((a.appels+m)/a.obj)*100)):a.realise;
+  }
+  render();
+}
 
 function simulate(){
   agents=agents.map(a=>({...a,
@@ -1485,7 +1623,7 @@ function exportXlsx(){
   const msg=document.getElementById("export-msg");
   msg.style.display="inline";msg.textContent="Export en cours…";
   const f=getFiltered(),s=getSorted(f);
-  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
+  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=a.appels+m;
@@ -1678,7 +1816,7 @@ function exportPDF(){
     <table><thead><tr>
       <th>Agent</th><th>Login</th><th>Campagne</th><th>Contrat</th><th>H.Prod</th>
       <th>IN</th><th>OUT</th><th>Total App.</th><th>Mails</th><th>Actes</th>
-      <th>App./h</th><th>Actes/h</th><th>DMC</th><th>KO</th><th>Refus</th><th>% Réalisé</th><th>Plage horaire</th>
+      <th>App./h</th><th>Actes/h</th><th>DMC</th><th>KO</th><th>Refus prise appel</th><th>% Réalisé</th><th>Plage horaire</th>
     </tr></thead>
     <tbody>${rows}
     <tr class="total-row">
@@ -1728,9 +1866,191 @@ refreshPresetSelect();
     });
   });
 })();
+
+// ============================================================
+// PANNEAU COLONNES
+// ============================================================
+function toggleColPanel(){
+  colPanelOpen=!colPanelOpen;
+  document.getElementById('col-panel').classList.toggle('open',colPanelOpen);
+  document.getElementById('col-overlay').classList.toggle('open',colPanelOpen);
+  if(colPanelOpen)buildColPanel();
+}
+function buildColPanel(){
+  const list=document.getElementById('col-list');if(!list)return;
+  list.innerHTML=COL_DEFS.map(c=>`
+    <div class="col-item" onclick="toggleCol('${c.k}')">
+      <div class="col-checkbox ${visibleCols.has(c.k)?'on':''}">${visibleCols.has(c.k)?'✓':''}</div>
+      <div class="col-name">${c.l}</div>
+    </div>`).join('');
+}
+function toggleCol(k){
+  if(visibleCols.has(k))visibleCols.delete(k);else visibleCols.add(k);
+  buildColPanel();render();
+}
+function setAllCols(v){
+  if(v)COL_DEFS.forEach(c=>visibleCols.add(c.k));
+  else{visibleCols.clear();visibleCols.add('nom');visibleCols.add('appels');visibleCols.add('actes');}
+  buildColPanel();render();
+}
+
+// ============================================================
+// PAGE CRITÈRES / KPI CAMPAGNE
+// ============================================================
+const CRITERES_KEY='wisecom_criteres_v1';
+function loadCriteres(){
+  try{return JSON.parse(localStorage.getItem(CRITERES_KEY))||{};}catch{return{};}
+}
+function saveCriteres(){
+  const data={};
+  CAMPS.forEach(c=>{
+    data[c]={
+      qs_min:parseInt(document.getElementById('qs-min-'+c)?.value||80),
+      qs_max:parseInt(document.getElementById('qs-max-'+c)?.value||95),
+      backlog_val:parseInt(document.getElementById('backlog-val-'+c)?.value||0),
+      backlog_min:parseInt(document.getElementById('backlog-min-'+c)?.value||10),
+      backlog_max:parseInt(document.getElementById('backlog-max-'+c)?.value||90),
+      alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
+      obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50)
+    };
+  });
+  try{
+    localStorage.setItem(CRITERES_KEY,JSON.stringify(data));
+    showToast('Critères enregistrés avec succès','#30d158');
+    // Mettre à jour les objectifs agents
+    const crit=data;
+    agents=agents.map(a=>{
+      const cc=crit[a.camp];
+      if(cc)a.obj=cc.obj_appels||a.obj;
+      return a;
+    });
+    render();
+  }catch(e){showToast('Erreur sauvegarde','#E8006E');}
+}
+function openCriteres(){
+  renderCriteres();
+  document.getElementById('criteres-page').classList.add('open');
+}
+function closeCriteres(){
+  document.getElementById('criteres-page').classList.remove('open');
+}
+function renderCriteres(){
+  const saved=loadCriteres();
+  const body=document.getElementById('criteres-body');if(!body)return;
+  // Calculer les stats actuelles par campagne pour afficher contexte
+  const campStats={};
+  agents.forEach(a=>{
+    if(!campStats[a.camp])campStats[a.camp]={agents:0,connectes:0,app:0,hp:0};
+    campStats[a.camp].agents++;
+    if(a.status==='Connecté'||a.status==='En Pause')campStats[a.camp].connectes++;
+    campStats[a.camp].app+=a.appels;
+    campStats[a.camp].hp+=a.hprod;
+  });
+  body.innerHTML=`
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:#ccc;margin-bottom:4px">Paramétrage des garde-fous par campagne</div>
+      <div style="font-size:11px;color:#555">Ces critères déclenchent les alertes dans le dashboard. Lecture seule INO — aucune modification n'est envoyée à INO.</div>
+    </div>
+    ${CAMPS.map(c=>{
+      const s=saved[c]||{qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50};
+      const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
+      const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
+      const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
+      const no_agent_alert=s.alert_no_agent&&cs.connectes===0&&cs.agents>0;
+      return \`<div class="camp-card">
+        <div class="camp-card-header">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="camp-badge">\${c}</span>
+            <span style="font-size:11px;color:#555">\${cs.agents} agent(s) · \${cs.connectes} connecté(s) · \${cs.app} appels aujourd'hui</span>
+            \${qs_alert?\`<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS \${qs}%</span>":''} 
+            \${no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">🚨 Aucun agent connecté</span>':''}
+          </div>
+          <span style="font-size:10px;color:#444">QS actuel : \${qs>0?qs+'%':'–'}</span>
+        </div>
+        <div class="kpi-param-grid">
+          <div class="param-group">
+            <div class="param-title">📞 Qualité de Service (QS)</div>
+            <div class="param-row">
+              <span class="param-label">QS minimum (seuil basse)</span>
+              <input class="param-input" id="qs-min-\${c}" type="number" min="0" max="100" value="\${s.qs_min}">
+              <span class="param-unit">%</span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">QS maximum (seuil haute)</span>
+              <input class="param-input" id="qs-max-\${c}" type="number" min="0" max="100" value="\${s.qs_max}">
+              <span class="param-unit">%</span>
+            </div>
+            <div style="font-size:9px;color:#555;margin-top:4px">Alerte si QS &lt; min ou &gt; max</div>
+          </div>
+          <div class="param-group">
+            <div class="param-title">📧 Backlog Mails</div>
+            <div class="param-row">
+              <span class="param-label">Backlog actuel (saisie)</span>
+              <input class="param-input" id="backlog-val-\${c}" type="number" min="0" value="\${s.backlog_val}">
+              <span class="param-unit">mails</span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Seuil minimum</span>
+              <input class="param-input" id="backlog-min-\${c}" type="number" min="0" value="\${s.backlog_min}">
+              <span class="param-unit">mails</span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Seuil maximum</span>
+              <input class="param-input" id="backlog-max-\${c}" type="number" min="0" value="\${s.backlog_max}">
+              <span class="param-unit">mails</span>
+            </div>
+          </div>
+          <div class="param-group">
+            <div class="param-title">🎯 Objectifs & Alertes</div>
+            <div class="param-row">
+              <span class="param-label">Objectif appels/agent/jour</span>
+              <input class="param-input" id="obj-appels-\${c}" type="number" min="1" value="\${s.obj_appels}">
+              <span class="param-unit">app.</span>
+            </div>
+            <div class="alert-trigger">
+              <input type="checkbox" id="alert-no-agent-\${c}" \${s.alert_no_agent?'checked':''}>
+              <label for="alert-no-agent-\${c}" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence \${c} est connecté</label>
+            </div>
+          </div>
+        </div>
+        \${(qs_alert||no_agent_alert)?'<div class="criteres-alert">'+
+          (no_agent_alert?'🚨 Aucun agent avec la compétence '+c+' n\'est connecté — risque de non-couverture.':'⚠ attention : QS hors des garde-fous définis ('+s.qs_min+'% – '+s.qs_max+'%).')
+        +'</div>':''}
+      </div>\`;
+    }).join('')}
+  `;
+}
+
+// ============================================================
+// COMPÉTENCES : chargement depuis /api/skills puis fallback
+// ============================================================
+async function loadSkillsFromINO(){
+  try{
+    const r=await fetch('/api/skills');
+    if(!r.ok)return;
+    const data=await r.json();
+    if(!data.ok||!data.agents)return;
+    // Mettre à jour les compétences sur les agents en mémoire
+    let updated=0;
+    agents=agents.map(a=>{
+      const sk=data.agents[a.id];
+      if(sk&&Array.isArray(sk.skills)&&sk.skills.length>0){
+        a.skills=sk.skills;
+        updated++;
+      }
+      return a;
+    });
+    if(updated>0){
+      console.log('[SKILLS] Mise à jour: '+updated+' agents enrichis');
+      render();
+    }
+  }catch(e){console.log('[SKILLS] Non disponible, fallback data_base');}
+}
+
 // Pas de rafraîchissement automatique : l'API INO n'est interrogée que sur action du bouton RAFRAÎCHIR.
 // Chargement initial unique pour ne pas afficher un écran vide à l'ouverture.
 refreshFromINO();
+buildColPanel();
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
 </script>

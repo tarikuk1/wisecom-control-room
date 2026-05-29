@@ -46,6 +46,35 @@ async function getToken(){
   return bToken;
 }
 
+// Récupère les compétences actives par agent depuis INO /agent/list
+let skillsCache={};let skillsCacheDate='';
+async function fetchAgentSkills(){
+  const today=new Date().toISOString().slice(0,10);
+  if(skillsCacheDate===today&&Object.keys(skillsCache).length>0)return skillsCache;
+  const token=await getToken();if(!token)return {};
+  try{
+    const res=await apiReq('GET','/agent/list',null,token);
+    const list=Array.isArray(res)?res:(res.agents||res.data||[]);
+    const map={};
+    list.forEach(a=>{
+      const id=a.id||a.agentId||a.agent_id;
+      const name=(a.firstname||a.firstName||'')+' '+(a.lastname||a.lastName||'');
+      const skills=[];
+      // INO expose les skills dans competences, skills, queues selon version
+      const raw=a.competences||a.skills||a.queues||[];
+      (Array.isArray(raw)?raw:[]).forEach(s=>{
+        const n=s.name||s.queueName||s.skill||s;
+        if(n&&typeof n==='string')skills.push(n);
+      });
+      if(id)map[id]={nom:name.trim(),skills,login:a.username||a.login||''};
+    });
+    skillsCache=map;skillsCacheDate=today;
+    console.log('[SKILLS] '+Object.keys(map).length+' agents chargés');
+    return map;
+  }catch(e){console.error('[SKILLS] Erreur:',e.message);return {};}
+}
+
+
 async function fetchDayStats(){
   const token=await getToken();if(!token)return;
   const d=new Date().toISOString().slice(0,10);
@@ -122,17 +151,158 @@ async function fetchAgentsDay(date){
   // Slots ordonnés 08:00 → 19:30
   const slots=[];
   for(let h=8;h<=19;h++){for(const m of["00","30"]){const k=String(h).padStart(2,"0")+":"+m;slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});}}
-  const list=Object.values(agents).map(a=>({
-    id:a.id,nom:a.nom,username:a.username,
-    appelsIn:a.appelsIn,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
-    duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,
-    premiereAction:a.premiereAction,derniereAction:a.derniereAction,
-    queues:Array.from(a.queues).join(", "),
-    ko:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
-    transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
-    spark:a.spark
-  })).sort((a,b)=>b.total-a.total);
+  // Enrichir avec les compétences INO
+  let agentSkillsMap={};
+  try{agentSkillsMap=await fetchAgentSkills();}catch(e){console.error('[SKILLS]',e.message);}
+  const list=Object.values(agents).map(a=>{
+    const sk=agentSkillsMap[a.id]||{};
+    return {
+      id:a.id,nom:a.nom,username:a.username,
+      appelsIn:a.appelsIn,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
+      duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,
+      premiereAction:a.premiereAction,derniereAction:a.derniereAction,
+      queues:Array.from(a.queues).join(", "),
+      ko:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
+      transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
+      spark:a.spark,
+      skills:Array.isArray(sk.skills)?sk.skills:[]
+    };
+  }).sort((a,b)=>b.total-a.total);
   return {agents:list,slots,total:list.length,date};
+}
+
+function makeAdmin(login){
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administration — Wisecom Control Room</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;}
+.topbar{background:#111;border-bottom:1px solid #1e1e1e;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.08em;}
+.dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 12px #E8006E;}
+.nav{display:flex;gap:10px;align-items:center;}
+.nav a{color:#888;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;transition:all .15s;}
+.nav a:hover,.nav a.active{color:#E8006E;border-color:#E8006E55;}
+.wrap{max-width:900px;margin:0 auto;padding:28px 20px;}
+.section{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:22px;margin-bottom:18px;}
+.section-title{font-size:13px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:8px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.field input{width:100%;background:#161616;color:#f0f0f0;border:1px solid #2a2a2a;border-radius:7px;padding:9px 12px;font-size:12px;outline:none;transition:border .15s;}
+.field input:focus{border-color:#E8006E55;}
+.row{display:flex;gap:10px;}
+.row .field{flex:1;}
+.btn{border:none;border-radius:7px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-pink{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
+.btn-pink:hover{box-shadow:0 4px 12px rgba(232,0,110,.4);}
+.btn-danger{background:#2a0808;color:#ff3b30;border:1px solid #3a1010;}
+.btn-danger:hover{background:#3a1010;}
+.btn-ghost{background:#1a1a1a;color:#888;border:1px solid #2a2a2a;}
+.users-table{width:100%;border-collapse:collapse;}
+.users-table th{text-align:left;font-size:10px;color:#555;font-weight:600;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid #1e1e1e;}
+.users-table td{padding:10px;border-bottom:1px solid #141414;font-size:12px;}
+.badge-role{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.badge-admin{background:#1a0810;color:#E8006E;border:1px solid #E8006E44;}
+.badge-user{background:#161616;color:#666;border:1px solid #2a2a2a;}
+.alert{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:12px;display:none;}
+.alert-ok{background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);color:#30d158;}
+.alert-err{background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);color:#ff6b6b;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:0;}
+.stat-card{background:#161616;border:1px solid #1e1e1e;border-radius:9px;padding:14px;}
+.stat-label{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px;}
+.stat-value{font-size:22px;font-weight:800;color:#E8006E;}
+.stat-sub{font-size:10px;color:#555;margin-top:3px;}
+</style></head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#555;font-weight:400;font-size:11px">/ Administration</span></div>
+  <div class="nav">
+    <span style="font-size:11px;color:#555">Connecté : <b style="color:#E8006E">${login}</b></span>
+    <a href="/">← Dashboard</a>
+    <a href="/logout" style="color:#ff3b30;border-color:#3a1010">Déconnexion</a>
+  </div>
+</div>
+<div class="wrap">
+  <div id="stats-section" class="section">
+    <div class="section-title">📊 Statistiques système</div>
+    <div class="stat-grid" id="stat-grid"><div style="color:#555;font-size:11px">Chargement…</div></div>
+  </div>
+  <div class="section">
+    <div class="section-title">👥 Gestion des utilisateurs</div>
+    <div id="alert-box" class="alert"></div>
+    <div class="row">
+      <div class="field"><label>Identifiant (login)</label><input type="text" id="new-login" placeholder="ex : sophie.martin" autocomplete="off"></div>
+      <div class="field"><label>Mot de passe</label><input type="password" id="new-pwd" placeholder="Min. 6 caractères" autocomplete="off"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button class="btn btn-pink" onclick="addUser()">+ Créer l'utilisateur</button>
+    </div>
+    <table class="users-table" id="users-table">
+      <thead><tr><th>#</th><th>Login</th><th>Rôle</th><th>Actions</th></tr></thead>
+      <tbody id="users-tbody"><tr><td colspan="4" style="color:#555;padding:14px 10px;font-size:11px">Chargement…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="section">
+    <div class="section-title">🔑 Réinitialiser un mot de passe</div>
+    <div class="row">
+      <div class="field"><label>Login existant</label><input type="text" id="reset-login" placeholder="Login à réinitialiser" autocomplete="off"></div>
+      <div class="field"><label>Nouveau mot de passe</label><input type="password" id="reset-pwd" placeholder="Nouveau mot de passe" autocomplete="off"></div>
+    </div>
+    <button class="btn btn-pink" onclick="resetPwd()">Réinitialiser</button>
+  </div>
+</div>
+<script>
+async function loadStats(){
+  try{
+    const r=await fetch('/api/admin/stats');const d=await r.json();
+    document.getElementById('stat-grid').innerHTML=`
+      <div class="stat-card"><div class="stat-label">Sessions actives</div><div class="stat-value">\${d.sessions||0}</div><div class="stat-sub">Sessions ouvertes</div></div>
+      <div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:\${d.inoOk?'#30d158':'#ff3b30'}">\${d.inoOk?'✓ OUI':'✕ NON'}</div><div class="stat-sub">Token bearer</div></div>
+      <div class="stat-card"><div class="stat-label">Appels du jour</div><div class="stat-value">\${d.stats&&d.stats.totalAppels||0}</div><div class="stat-sub">Via API INO</div></div>
+      <div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">\${Math.floor(d.uptime/3600)}h\${Math.floor((d.uptime%3600)/60)}m</div><div class="stat-sub">Depuis le démarrage</div></div>
+      <div class="stat-card"><div class="stat-label">Dernière MAJ</div><div class="stat-value" style="font-size:12px">\${d.lastEvent?new Date(d.lastEvent).toLocaleTimeString('fr-FR'):'–'}</div><div class="stat-sub">Webhook INO</div></div>
+    `;
+  }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#ff3b30;font-size:11px">Erreur chargement stats</div>';}
+}
+async function loadUsers(){
+  try{
+    const r=await fetch('/api/admin/users');const d=await r.json();
+    const rows=d.users.map((u,i)=>`<tr>
+      <td style="color:#555">\${i+1}</td>
+      <td style="font-weight:600">\${u.login}</td>
+      <td><span class="badge-role \${u.role==='admin'?'badge-admin':'badge-user'}">\${u.role}</span></td>
+      <td>\${u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':`<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser('\${u.login}')">Supprimer</button>`}</td>
+    </tr>`).join('');
+    document.getElementById('users-tbody').innerHTML=rows||'<tr><td colspan="4" style="color:#555;font-size:11px">Aucun utilisateur</td></tr>';
+  }catch(e){}
+}
+function showAlert(msg,ok){const b=document.getElementById('alert-box');b.textContent=msg;b.className='alert '+(ok?'alert-ok':'alert-err');b.style.display='block';setTimeout(()=>b.style.display='none',4000);}
+async function addUser(){
+  const login=document.getElementById('new-login').value.trim();
+  const pwd=document.getElementById('new-pwd').value;
+  if(!login||!pwd){showAlert('Remplis les deux champs.',false);return;}
+  const r=await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',login,password:pwd})});
+  const d=await r.json();
+  if(d.ok){showAlert(d.message,true);document.getElementById('new-login').value='';document.getElementById('new-pwd').value='';loadUsers();}
+  else showAlert(d.error||'Erreur',false);
+}
+async function deleteUser(login){
+  if(!confirm('Supprimer l\\'utilisateur '+login+' ?'))return;
+  const r=await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',login})});
+  const d=await r.json();
+  if(d.ok){showAlert(d.message,true);loadUsers();}else showAlert(d.error||'Erreur',false);
+}
+async function resetPwd(){
+  const login=document.getElementById('reset-login').value.trim();
+  const pwd=document.getElementById('reset-pwd').value;
+  if(!login||!pwd){showAlert('Remplis les deux champs.',false);return;}
+  const r=await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reset',login,password:pwd})});
+  const d=await r.json();
+  if(d.ok){showAlert(d.message,true);document.getElementById('reset-login').value='';document.getElementById('reset-pwd').value='';}
+  else showAlert(d.error||'Erreur',false);
+}
+loadStats();loadUsers();setInterval(loadStats,15000);
+</script></body></html>`;
 }
 
 function makeLogin(err,rl){return '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Control Room — Wisecom</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080808;font-family:Segoe UI,system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(ellipse at 20% 50%,rgba(232,0,110,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(232,0,110,.05) 0%,transparent 50%)}.wrap{width:420px;padding:20px}.logo{text-align:center;margin-bottom:36px}.logo-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#E8006E;box-shadow:0 0 20px #E8006E;animation:pulse 2s infinite;margin-right:8px;vertical-align:middle}@keyframes pulse{0%,100%{box-shadow:0 0 20px #E8006E}50%{box-shadow:0 0 30px #E8006E,0 0 60px rgba(232,0,110,.5)}}.logo-title{font-size:22px;font-weight:800;letter-spacing:.1em;color:#fff;vertical-align:middle}.logo-sub{font-size:11px;color:#444;margin-top:6px;letter-spacing:.1em;text-transform:uppercase}.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:40px;backdrop-filter:blur(20px)}.card-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}.card-sub{font-size:12px;color:#555;margin-bottom:24px}.field{margin-bottom:18px}label{display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}input{width:100%;background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:13px 16px;font-size:14px;outline:0;transition:all .2s}input:focus{border-color:#E8006E;background:rgba(232,0,110,.05);box-shadow:0 0 0 3px rgba(232,0,110,.1)}.btn{width:100%;background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px}.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,0,110,.4)}.alert{border-radius:8px;padding:11px 14px;font-size:12px;margin-bottom:18px;display:flex;align-items:center;gap:8px}.alert-err{background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);color:#ff6b6b}.alert-rl{background:rgba(255,155,0,.1);border:1px solid rgba(255,155,0,.3);color:#ff9b00}.divider{height:1px;background:rgba(255,255,255,.06);margin:18px 0}.footer{text-align:center;font-size:10px;color:#333;margin-top:18px}</style></head><body><div class="wrap"><div class="logo"><span class="logo-dot"></span><span class="logo-title">CONTROL ROOM</span><div class="logo-sub">Wisecom · Supervision temps réel</div></div><div class="card"><div class="card-title">Connexion sécurisée</div><div class="card-sub">Accès réservé aux collaborateurs Wisecom</div>'+(rl?'<div class="alert alert-rl">⏳ Trop de tentatives. Réessayez dans 15 min.</div>':err?'<div class="alert alert-err">✕ Identifiants incorrects.</div>':'')+'<form method="POST" action="/login"><div class="field"><label>Identifiant</label><input type="text" name="login" placeholder="Votre login" autocomplete="username" required></div><div class="field"><label>Mot de passe</label><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required></div><button type="submit" class="btn">Se connecter →</button></form><div class="divider"></div><div style="font-size:11px;color:#444;text-align:center">🔒 Connexion chiffrée · Session 8h</div></div><div class="footer">Wisecom © '+new Date().getFullYear()+' · Tous droits réservés</div></div></body></html>';}
@@ -227,9 +397,58 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
+  if(url==="/api/skills"){
+    fetchAgentSkills().then(m=>{
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({ok:true,count:Object.keys(m).length,agents:m}));
+    }).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});
+    return;
+  }
+  if(url==="/api/admin/users"&&req.method==="GET"){
+    const list=Object.keys(USERS).map(u=>({login:u,role:u==="tarik"||u==="admin"?"admin":"user"}));
+    res.writeHead(200,{"Content-Type":"application/json"});
+    return res.end(JSON.stringify({users:list,count:list.length}));
+  }
+  if(url==="/api/admin/users"&&req.method==="POST"){
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",()=>{
+      try{
+        const{login,password,action}=JSON.parse(body);
+        if(action==="add"){
+          if(!login||!password||login.length<3||password.length<6){
+            res.writeHead(400);return res.end(JSON.stringify({error:"Login min 3 chars, mot de passe min 6 chars"}));
+          }
+          const l=login.toLowerCase().trim();
+          if(USERS[l]){res.writeHead(409);return res.end(JSON.stringify({error:"Utilisateur déjà existant"}));}
+          USERS[l]=password;
+          res.writeHead(200,{"Content-Type":"application/json"});
+          res.end(JSON.stringify({ok:true,message:"Utilisateur "+l+" créé (session courante uniquement — persiste via variable env USERS)"}));
+          console.log("[ADMIN] Nouvel utilisateur: "+l);
+        } else if(action==="delete"){
+          const l=(login||"").toLowerCase().trim();
+          if(l==="tarik"||l==="admin"){res.writeHead(403);return res.end(JSON.stringify({error:"Impossible de supprimer les comptes systèmes"}));}
+          if(!USERS[l]){res.writeHead(404);return res.end(JSON.stringify({error:"Utilisateur introuvable"}));}
+          delete USERS[l];
+          // Invalider les sessions de cet utilisateur
+          Object.keys(sessions).forEach(t=>{if(sessions[t].login===l)delete sessions[t];});
+          res.writeHead(200,{"Content-Type":"application/json"});
+          res.end(JSON.stringify({ok:true,message:"Utilisateur "+l+" supprimé"}));
+          console.log("[ADMIN] Suppression: "+l);
+        } else if(action==="reset"){
+          const l=(login||"").toLowerCase().trim();
+          if(!USERS[l]){res.writeHead(404);return res.end(JSON.stringify({error:"Utilisateur introuvable"}));}
+          USERS[l]=password;
+          res.writeHead(200,{"Content-Type":"application/json"});
+          res.end(JSON.stringify({ok:true,message:"Mot de passe réinitialisé pour "+l}));
+        } else {
+          res.writeHead(400);res.end(JSON.stringify({error:"Action inconnue"}));
+        }
+      }catch(e){res.writeHead(400);res.end(JSON.stringify({error:"JSON invalide"}));}
+    });return;
+  }
   if(url==="/admin"||url.startsWith("/admin/")){
     if(session.login!=="admin"&&session.login!=="tarik"){res.writeHead(403,{"Content-Type":"text/html"});return res.end('<html><body style="background:#080808;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center"><div><h1 style="color:#E8006E;font-size:60px">403</h1><p style="color:#555">Accès refusé.</p><a href="/" style="color:#E8006E">← Retour</a></div></body></html>');}
-    const adminHtml=require("fs").existsSync(require("path").join(__dirname,"admin.html"))?require("fs").readFileSync(require("path").join(__dirname,"admin.html"),"utf8"):"<html><body style=\"background:#080808;color:#fff;font-family:sans-serif;padding:40px\"><h1 style=\"color:#E8006E\">Admin Panel</h1><p style=\"color:#555\">Connecté: "+session.login+"</p><a href=\"/\" style=\"color:#E8006E\">← Dashboard</a></body></html>";
+    const adminHtml=makeAdmin(session.login);
     res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(adminHtml);
   }
   if(url==="/"||url==="/dashboard"){const p=path.join(__dirname,"dashboard.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
