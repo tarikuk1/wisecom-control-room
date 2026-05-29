@@ -76,20 +76,63 @@ async function fetchAgentsDay(date){
     apiReq("POST","/call/out/histories",{startDate:date+" 00:01:00",endDate:date+" 23:59:59",limit:1000},token)
   ]);
   const agents={};
+  // Slots horaires (créneaux de 30 min de 08h à 20h) pour le graphique flux par tranche
+  const slotsMap={};
+  function slotKey(dt){
+    if(!dt)return null;
+    const d=new Date(dt);if(isNaN(d))return null;
+    const h=d.getHours(),m=d.getMinutes()<30?"00":"30";
+    return `${String(h).padStart(2,"0")}:${m}`;
+  }
+  // Qualifications agrégées par agent (h.status contient le résultat : KO, Refus, Réitérant, etc.)
+  function tagQualif(a,status){
+    if(!status)return;
+    const s=String(status).toLowerCase();
+    if(s.includes("ko")||s.includes("hors svi"))a.ko++;
+    if(s.includes("refus"))a.refus++;
+    if(s.includes("réitéra")||s.includes("reitera"))a.reiterants++;
+    if(s.includes("transfert"))a.transferts++;
+    if(s.includes("rdv")||s.includes("intéress")||s.includes("interess"))a.transfo_yes++;
+    a.qualifs_total++;
+  }
   function proc(h,type){
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
-    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set()};
+    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,spark:Array(12).fill(0)};
     if(type==="in")agents[k].appelsIn++;else agents[k].appelsOut++;
     agents[k].duree+=(h.call&&h.call.agentDuration)||0;
     const dt=h.callDate||h.acdDate;
     if(dt<agents[k].premiereAction)agents[k].premiereAction=dt;
     if(dt>agents[k].derniereAction)agents[k].derniereAction=dt;
     if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
+    // Qualification
+    tagQualif(agents[k],h.status);
+    // Sparkline horaire (12 buckets de 1h, 08h → 19h)
+    if(dt){const hh=new Date(dt).getHours();const idx=hh-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
+    // Slot global flux par tranche horaire
+    const sk=slotKey(dt);
+    if(sk){
+      if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0};
+      if(type==="in")slotsMap[sk].vol++;else slotsMap[sk].out++;
+      if(h.status&&String(h.status).toLowerCase().includes("aband"))slotsMap[sk].aband++;
+    }
   }
   (ri&&ri.histories?ri.histories:[]).forEach(h=>proc(h,"in"));
   (ro&&ro.histories?ro.histories:[]).forEach(h=>proc(h,"out"));
-  return Object.values(agents).map(a=>({id:a.id,nom:a.nom,username:a.username,appelsIn:a.appelsIn,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,premiereAction:a.premiereAction,derniereAction:a.derniereAction,queues:Array.from(a.queues).join(", ")})).sort((a,b)=>b.total-a.total);
+  // Slots ordonnés 08:00 → 19:30
+  const slots=[];
+  for(let h=8;h<=19;h++){for(const m of["00","30"]){const k=String(h).padStart(2,"0")+":"+m;slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});}}
+  const list=Object.values(agents).map(a=>({
+    id:a.id,nom:a.nom,username:a.username,
+    appelsIn:a.appelsIn,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
+    duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,
+    premiereAction:a.premiereAction,derniereAction:a.derniereAction,
+    queues:Array.from(a.queues).join(", "),
+    ko:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
+    transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
+    spark:a.spark
+  })).sort((a,b)=>b.total-a.total);
+  return {agents:list,slots,total:list.length,date};
 }
 
 function makeLogin(err,rl){return '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Control Room — Wisecom</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#080808;font-family:Segoe UI,system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:radial-gradient(ellipse at 20% 50%,rgba(232,0,110,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(232,0,110,.05) 0%,transparent 50%)}.wrap{width:420px;padding:20px}.logo{text-align:center;margin-bottom:36px}.logo-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#E8006E;box-shadow:0 0 20px #E8006E;animation:pulse 2s infinite;margin-right:8px;vertical-align:middle}@keyframes pulse{0%,100%{box-shadow:0 0 20px #E8006E}50%{box-shadow:0 0 30px #E8006E,0 0 60px rgba(232,0,110,.5)}}.logo-title{font-size:22px;font-weight:800;letter-spacing:.1em;color:#fff;vertical-align:middle}.logo-sub{font-size:11px;color:#444;margin-top:6px;letter-spacing:.1em;text-transform:uppercase}.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:40px;backdrop-filter:blur(20px)}.card-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:6px}.card-sub{font-size:12px;color:#555;margin-bottom:24px}.field{margin-bottom:18px}label{display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}input{width:100%;background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:13px 16px;font-size:14px;outline:0;transition:all .2s}input:focus{border-color:#E8006E;background:rgba(232,0,110,.05);box-shadow:0 0 0 3px rgba(232,0,110,.1)}.btn{width:100%;background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px}.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,0,110,.4)}.alert{border-radius:8px;padding:11px 14px;font-size:12px;margin-bottom:18px;display:flex;align-items:center;gap:8px}.alert-err{background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);color:#ff6b6b}.alert-rl{background:rgba(255,155,0,.1);border:1px solid rgba(255,155,0,.3);color:#ff9b00}.divider{height:1px;background:rgba(255,255,255,.06);margin:18px 0}.footer{text-align:center;font-size:10px;color:#333;margin-top:18px}</style></head><body><div class="wrap"><div class="logo"><span class="logo-dot"></span><span class="logo-title">CONTROL ROOM</span><div class="logo-sub">Wisecom · Supervision temps réel</div></div><div class="card"><div class="card-title">Connexion sécurisée</div><div class="card-sub">Accès réservé aux collaborateurs Wisecom</div>'+(rl?'<div class="alert alert-rl">⏳ Trop de tentatives. Réessayez dans 15 min.</div>':err?'<div class="alert alert-err">✕ Identifiants incorrects.</div>':'')+'<form method="POST" action="/login"><div class="field"><label>Identifiant</label><input type="text" name="login" placeholder="Votre login" autocomplete="username" required></div><div class="field"><label>Mot de passe</label><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required></div><button type="submit" class="btn">Se connecter →</button></form><div class="divider"></div><div style="font-size:11px;color:#444;text-align:center">🔒 Connexion chiffrée · Session 8h</div></div><div class="footer">Wisecom © '+new Date().getFullYear()+' · Tous droits réservés</div></div></body></html>';}
@@ -180,7 +223,7 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/agents-day"){
     const u=new URL(req.url,"http://localhost");
     const date=u.searchParams.get("date")||new Date().toISOString().slice(0,10);
-    fetchAgentsDay(date).then(agents=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({agents,date,count:agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
+    fetchAgentsDay(date).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}

@@ -62,6 +62,25 @@ body.light .ck-all{border-bottom-color:#f0f0f0;}
 body.light .ck-item{color:#444;}
 .ck-item:hover{background:rgba(232,0,110,.08);}
 .ck-box{width:15px;height:15px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0;transition:all .15s;}
+.ck-search-wrap{padding:6px 10px;border-bottom:1px solid #252525;}
+body.light .ck-search-wrap{border-bottom-color:#f0f0f0;}
+.ck-search{width:100%;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:5px;padding:5px 8px;font-size:11px;color:#ccc;outline:none;font-family:inherit;}
+.ck-search:focus{border-color:#E8006E;background:#180a0f;}
+body.light .ck-search{background:#fff;border-color:#ddd;color:#222;}
+body.light .ck-search:focus{background:#fff0f6;border-color:#E8006E;}
+.ck-search::placeholder{color:#555;}
+.ck-list{max-height:180px;overflow-y:auto;}
+.ck-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:14px;padding:0 4px;font-size:9px;font-weight:700;background:#E8006E;color:#fff;border-radius:7px;}
+.preset-select{background:#161616;border:1px solid #2a2a2a;border-radius:7px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:200px;outline:none;font-family:inherit;}
+.preset-select:focus,.preset-select:hover{border-color:#E8006E;}
+body.light .preset-select{background:#f0f0f0;border-color:#ddd;color:#444;}
+.btn-preset{font-size:10px;padding:5px 9px;}
+.smart-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;width:100%;}
+.btn-validate{background:linear-gradient(135deg,#FF005C,#c0005a);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-validate:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(255,0,92,.35);}
+.btn-dismiss{background:#1a1a1a;color:#888;border:1px solid #2a2a2a;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;}
+.btn-dismiss:hover{border-color:#444;color:#ccc;}
+.smart-alert.acknowledged{opacity:.55;border-color:#1f1f1f;}
 
 /* Switch */
 .sw-label{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;user-select:none;padding:3px 0;}
@@ -198,9 +217,111 @@ body.light.skeleton-on .kpi-card .kpi-value{
   background-image:linear-gradient(90deg,#e4e4e4 25%,#f0f0f0 37%,#e4e4e4 63%);
 }
 @keyframes skelShimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
+
+/* === MODALS (input/confirm + agrandissement chart) === */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn .15s ease;}
+.modal-box{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:22px 26px;min-width:380px;max-width:540px;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+body.light .modal-box{background:#fff;border-color:#e0e0e0;box-shadow:0 16px 48px rgba(0,0,0,.18);}
+.modal-title{font-size:14px;font-weight:700;color:#E8006E;margin-bottom:8px;letter-spacing:.02em;}
+.modal-msg{font-size:12px;color:#ccc;margin-bottom:16px;line-height:1.5;}
+body.light .modal-msg{color:#444;}
+.modal-input{width:100%;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:7px;padding:10px 12px;font-size:13px;color:#fff;outline:none;font-family:inherit;margin-bottom:18px;}
+.modal-input:focus{border-color:#E8006E;background:#1a0a0f;}
+body.light .modal-input{background:#fff;color:#222;border-color:#ddd;}
+body.light .modal-input:focus{background:#fff0f6;border-color:#E8006E;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+/* Chart agrandi : prend toute la viewport */
+.chart-box{background:#0c0c0c;border:1px solid #2a2a2a;border-radius:14px;width:96vw;height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.7);}
+body.light .chart-box{background:#fff;border-color:#e0e0e0;}
+.chart-box-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #1a1a1a;}
+body.light .chart-box-header{border-bottom-color:#eee;}
+.chart-box-title{font-size:13px;font-weight:700;color:#E8006E;letter-spacing:.04em;text-transform:uppercase;}
+.btn-zoom{background:#1a1a1a;color:#ccc;border:1px solid #2a2a2a;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;}
+.btn-zoom:hover{border-color:#E8006E;color:#fff;background:#1a0a0f;}
+body.light .btn-zoom{background:#f5f5f5;color:#555;border-color:#ddd;}
+body.light .btn-zoom:hover{background:#fff0f6;color:#E8006E;border-color:#E8006E;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* Backlog mails par campagne (saisie manuelle superviseur) */
+.backlog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:14px 16px;}
+.backlog-card{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+body.light .backlog-card{background:#fff;border-color:#e8e8e8;}
+.backlog-camp{font-size:11px;color:#ccc;font-weight:600;}
+body.light .backlog-camp{color:#333;}
+.backlog-input{width:60px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:5px;padding:4px 6px;font-size:12px;color:#E8006E;font-weight:700;text-align:right;font-family:inherit;outline:none;}
+.backlog-input:focus{border-color:#E8006E;background:#1a0a0f;}
+body.light .backlog-input{background:#fff5f9;color:#c0005a;border-color:#f0c0d8;}
+body.light .backlog-input:focus{background:#fff0f6;border-color:#E8006E;}
+
+/* === MODE CLAIR — corrections de lisibilité === */
+body.light .header{background:#fff;color:#111;border-bottom:1px solid #eee;}
+body.light .header *{color:#222;}
+body.light .header .brand,body.light .header h1{color:#111;}
+body.light .ck-btn.open{background:#fff0f6;border-color:#E8006E;color:#111;}
+body.light .ck-item:hover{background:#fff5f9;}
+body.light .tab.active{background:#fff0f6;}
+body.light .smart-alert{background:linear-gradient(135deg,#fff5f9,#fff);border-color:#f0c0d8;}
+body.light .smart-text{color:#333;}
+body.light .smart-badge{background:#fff0f6;color:#E8006E;border-color:#f0c0d8;}
+body.light .redflag-alert{background:linear-gradient(135deg,#fff0f0,#fff);border-color:#f0a0a0;}
+body.light .redflag-alert *{color:#7a1010;}
+body.light .redflag-badge{background:#ff3b30;color:#fff;}
+body.light .kpi-card.alert{background:linear-gradient(135deg,#fff0f7,#fff);border-color:#E8006E;}
+body.light .kpi-card.good{background:linear-gradient(135deg,#f0fff5,#fff);border-color:#30d158;}
+body.light .badge-camp{background:#fff0f6;color:#E8006E;border:1px solid #f0c0d8;}
+body.light .badge-redflag{background:#ff3b30;color:#fff;}
+body.light .badge-alert{background:#fff0f6;color:#c0005a;border:1px solid #f0c0d8;}
+body.light .badge-ok{background:#e8f8ed;color:#0a7a30;}
+body.light .badge-anom{background:#fff0f6;color:#c0005a;}
+body.light .btn-dismiss{background:#fff;color:#666;border-color:#ddd;}
+body.light .btn-dismiss:hover{background:#f5f5f5;color:#333;border-color:#bbb;}
+body.light .btn-refresh{color:#fff;}
+body.light .filter-label{color:#666;}
+body.light .sw-track{background:#ddd!important;}
+body.light .sw-track > .sw-thumb{background:#fff;}
+body.light .total-row{background:#fff0f7;}
+body.light .agent-row td{color:#222;}
+body.light .agent-row td span,body.light .agent-row td b{color:inherit;}
+/* Cellule Mails éditable + lignes de détail dépliable (utilisent var() pour s'adapter au thème) */
+:root{--bg-mail-cell:#0f0f0f;--bg-detail:#0d0d0d;--bg-thead-mail:#0f0f0f;--axis:#333;--grid:#1e1e1e;--tick:#888;--qual-label:#ddd;--qual-val:#888;--qual-bg:#1e1e1e;}
+body.light{--bg-mail-cell:#fff5f9;--bg-detail:#fafafa;--bg-thead-mail:#fff5f9;--axis:#bbb;--grid:#e8e8e8;--tick:#666;--qual-label:#222;--qual-val:#555;--qual-bg:#eee;}
+.cell-mail,.tbl th.col-mail{background:var(--bg-thead-mail)!important;}
+.detail-cell{background:var(--bg-detail)!important;}
+body.light .detail-cell{color:#222;}
+body.light .detail-cell b{color:#111;}
+body.light .ck-list{background:#fff;}
+body.light .preset-select option{background:#fff;color:#222;}
+body.light input[type=number]{background:#fff;color:#222;border-color:#ddd;}
+/* Inputs date/time : forcer texte lisible en mode clair */
+body.light input[type=date]::-webkit-calendar-picker-indicator,
+body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opacity:.6;}
 </style>
 </head>
 <body>
+
+<!-- Modal générique (remplace prompt/confirm bloquants) -->
+<div id="modal-overlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <div class="modal-title" id="modal-title">Action</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <input id="modal-input" class="modal-input" type="text" style="display:none">
+    <div class="modal-actions">
+      <button class="btn-dismiss" id="modal-cancel">Annuler</button>
+      <button class="btn-validate" id="modal-ok">Valider</button>
+    </div>
+  </div>
+</div>
+<!-- Modal d'agrandissement du graphique -->
+<div id="chart-overlay" class="modal-overlay" style="display:none">
+  <div class="chart-box">
+    <div class="chart-box-header">
+      <span class="chart-box-title">Volumes par tranche horaire — vue agrandie</span>
+      <button class="btn-dismiss" onclick="closeChartZoom()">✕ Fermer</button>
+    </div>
+    <div id="chart-zoom-content" style="flex:1;display:flex;align-items:center;justify-content:center;padding:14px 20px;overflow:auto"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -244,6 +365,15 @@ body.light.skeleton-on .kpi-card .kpi-value{
       </select>
     </div>
     <div class="filter-row">
+      <span class="filter-label">Vues sauvegardées</span>
+      <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)">
+        <option value="">— Sélectionner une vue —</option>
+      </select>
+      <button class="btn btn-dark btn-preset" onclick="savePreset()" title="Enregistre la sélection actuelle de campagnes, files, agents, compétences et statuts">💾 Enregistrer la vue actuelle</button>
+      <button class="btn btn-dark btn-preset" onclick="deletePreset()" title="Supprime la vue sauvegardée sélectionnée">🗑 Supprimer</button>
+      <span id="preset-status" style="font-size:10px;color:#666;margin-left:8px"></span>
+    </div>
+    <div class="filter-row">
       <span class="filter-label">Filtres</span>
       <div class="ck-wrap" id="ck-camps"></div>
       <div class="ck-wrap" id="ck-queues"></div>
@@ -260,6 +390,7 @@ body.light.skeleton-on .kpi-card .kpi-value{
 </div>
 
 <!-- SMART ALERTS -->
+<div style="padding:12px 20px 0;" id="ino-coverage"></div>
 <div style="padding:12px 20px 0;" id="alerts-zone"></div>
 
 <div class="content">
@@ -290,14 +421,12 @@ body.light.skeleton-on .kpi-card .kpi-value{
   <div id="tab-graphiques" style="display:none;">
     <div class="two-col">
       <div class="panel" style="flex:2;min-width:300px;">
-        <div class="panel-header"><span class="panel-title">Volumes par tranche horaire</span></div>
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span class="panel-title">Volumes par tranche horaire</span>
+          <button class="btn-zoom" onclick="openChartZoom()" title="Ouvrir le graphique en grand pour une meilleure lecture">🔍 Agrandir</button>
+        </div>
         <div style="padding:14px;">
-          <svg id="chart-svg" width="100%" viewBox="0 0 680 110" preserveAspectRatio="none"></svg>
-          <div class="chart-legend">
-            <span><span class="legend-dot" style="background:#E8006E;"></span>Entrants</span>
-            <span><span class="legend-dot" style="background:#888;"></span>Sortants</span>
-            <span><span class="legend-dot" style="background:#ff3b30;"></span>Abandons</span>
-          </div>
+          <div id="chart-host"></div>
         </div>
       </div>
       <div class="panel" style="flex:1;min-width:240px;">
@@ -305,11 +434,21 @@ body.light.skeleton-on .kpi-card .kpi-value{
         <div style="padding:14px;" id="qualif-chart"></div>
       </div>
     </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span class="panel-title">Backlog mails par campagne — saisie manuelle superviseur</span>
+        <span style="font-size:10px;color:#666">Valeurs persistées localement, alimentent le KPI <b style="color:#E8006E">Backlog Mails</b> global</span>
+      </div>
+      <div id="backlog-grid" class="backlog-grid"></div>
+    </div>
   </div>
 
   <div id="tab-skills" style="display:none;">
     <div class="panel">
-      <div class="panel-header"><span class="panel-title">Matrice compétences × agents</span></div>
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <span class="panel-title">Matrice compétences × agents</span>
+        <button class="btn btn-refresh" style="font-size:11px;padding:6px 14px" onclick="exportSkillsPDF()" title="Téléchargement PDF de la matrice de compétences">📄 Télécharger la matrice (PDF)</button>
+      </div>
       <div style="overflow-x:auto;padding:0;"><table class="tbl" id="skills-table"></table></div>
     </div>
   </div>
@@ -349,10 +488,34 @@ const AGENTS_BASE=[
 
 function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
 function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
-function fmtTime(iso){if(!iso)return"–";try{const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}catch{return"–";}}
-function fmtH(h){return h>0?h.toFixed(1)+"h":"–";}
+// Arrondi à 5 minutes supérieur (17h42 → 17h45 ; 8h31 → 8h35 ; 9h57 → 10h00)
+function roundTo5(h,m){m=Math.ceil(m/5)*5;if(m>=60){m=0;h++;}if(h>=24)h=h%24;return[h,m];}
+function fmtTime(iso){
+  if(!iso)return"–";
+  try{
+    const d=new Date(iso);
+    const [h,m]=roundTo5(d.getHours(),d.getMinutes());
+    return`${String(h).padStart(2,"0")}h${String(m).padStart(2,"0")}`;
+  }catch{return"–";}
+}
+// Format heures+minutes pour durées : 4.1h → 4h10 (arrondi 5 min sup)
+function fmtH(h){
+  if(!h||h<=0)return"–";
+  const totMin=Math.ceil(h*60/5)*5;
+  const hh=Math.floor(totMin/60), mm=totMin%60;
+  return`${hh}h${String(mm).padStart(2,"0")}`;
+}
 
-let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true;
+// === Helpers "mode honnête" : affiche n.d. quand la donnée n'est pas fournie par INO ===
+function nd(v,suffix){
+  if(v===null||v===undefined)return'<span style="color:#666;font-style:italic;font-size:10px" title="Non disponible via l\'API INO actuelle">n.d.</span>';
+  return suffix?v+suffix:v;
+}
+function ndInt(v){return (v===null||v===undefined)?nd(null):v;}
+function ndPct(v){return (v===null||v===undefined)?nd(null):v+"%";}
+function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
+
+let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false;
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Connecté","En Pause","Wrap-up"];
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 let slots=[],allQueues=[];
@@ -365,15 +528,27 @@ function genAgents(){
     const st=STATUSES[rnd(0,a.id>10?4:2)];
     const app=st==="Déconnecté"?0:rnd(12,60);
     const hp=st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(2);
+    const occ=st==="Déconnecté"?0:rnd(55,95);
     return{...a,status:st,appels:app,appelsIn:Math.floor(app*.7),appelsOut:Math.ceil(app*.3),
       mails_auto:rnd(1,12),hprod:hp,presence:+(hp*1.15).toFixed(2),dmc:rnd(80,270),
       transferts:rnd(0,5),inactifs:rnd(0,9),ko:rnd(0,15),refus:rnd(0,8),
       realise:Math.min(100,rnd(35,105)),files_ok:Math.random()>0.2,
-      premiereAction:null,derniereAction:null,
+      acw:st==="Déconnecté"?0:rnd(15,75),occupation:occ,
+      adherence:st==="Déconnecté"?0:rnd(72,99),transfo:rnd(8,45),
+      spark:genSpark(st,app),
+      premiereAction:st==="Déconnecté"&&Math.random()<0.3?null:`2026-05-28T${String(rnd(8,11)).padStart(2,"0")}:${String(rnd(0,59)).padStart(2,"0")}:00Z`,
+      derniereAction:st==="Déconnecté"?`2026-05-28T${String(rnd(15,18)).padStart(2,"0")}:${String(rnd(0,59)).padStart(2,"0")}:00Z`:null,
       lastVoixActivity: st==="Déconnecté"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
     };
   }).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
     appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0}));
+}
+
+// Génère 12 points horaires (08h→19h) pour la sparkline d'un agent
+function genSpark(st,app){
+  if(st==="Déconnecté")return Array.from({length:12},()=>0);
+  const base=Math.max(1,Math.round(app/12));
+  return Array.from({length:12},()=>Math.max(0,base+rnd(-base,base+1)));
 }
 
 function genSlots(){
@@ -463,6 +638,10 @@ async function loadAgentsFromAPI(){
     if(!res.ok)throw new Error();
     const data=await res.json();
     if(data.agents&&data.agents.length>0){
+      // MODE INO RÉEL : on bascule en mode honnête, plus rien de simulé
+      inoLive=true;
+      // Le serveur ne renvoie PAS de slots par tranche horaire → on vide pour ne pas afficher de random
+      slots=Array.isArray(data.slots)?data.slots:[];
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
@@ -472,12 +651,27 @@ async function loadAgentsFromAPI(){
         const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase())))||fq[0]?.split("_")[0]||"–";
         const m=mailsEdit[a.id]||0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
-        // Garder le timer red flag si déjà existant
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
-        return{id:a.id,nom:a.nom,login:a.username,camp,skills:["LMDW"],contrat:"CDI",obj,
-          status:"Connecté",appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
-          mails_auto:m,hprod,presence:+(hprod*1.1).toFixed(2),dmc:a.dmt||0,
-          transferts:0,inactifs:0,ko:0,refus:0,realise,files_ok:true,
+        // Occupation : calculée à partir des données INO disponibles (duree de communication / présence estimée)
+        const occupation=hprod>0?Math.min(100,Math.round((a.duree/3600/(hprod*1.1))*100)):null;
+        // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
+        return{id:a.id,nom:a.nom,login:a.username,camp,
+          skills:Array.isArray(a.skills)?a.skills:null,
+          contrat:a.contrat||null,obj,
+          status:a.status||null,
+          appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
+          mails_auto:m,hprod,
+          presence:a.presence!=null?a.presence:null,
+          dmc:a.dmt||0,
+          transferts:a.transferts!=null?a.transferts:null,
+          inactifs:a.inactifs!=null?a.inactifs:null,
+          ko:a.ko!=null?a.ko:null,
+          refus:a.refus!=null?a.refus:null,
+          reiterants:a.reiterants!=null?a.reiterants:null,
+          realise,files_ok:true,
+          acw:a.acw||null,occupation,adherence:a.adherence!=null?a.adherence:null,
+          transfo:a.transfo!=null?a.transfo:null,
+          spark:Array.isArray(a.spark)?a.spark:null,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
           queues:a.queues||"",
           actesH:hprod>0?+((total+m)/hprod).toFixed(1):0,
@@ -486,7 +680,7 @@ async function loadAgentsFromAPI(){
         };
       });
       selAgents=agents.map(a=>a.nom);
-      selStatus=["Connecté","En Pause","Wrap-up","Déconnecté"];
+      selStatus=["Connecté","En Pause","Wrap-up","Déconnecté","n.d."];
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
       render();
@@ -505,22 +699,52 @@ async function loadAgentsFromAPI(){
   }
 }
 
-// Dropdown checkbox
+// État persistant des dropdowns (ouvert/fermé + query de recherche)
+// Indispensable pour que le menu reste ouvert quand l'utilisateur fait plusieurs sélections
+const ckState={};
+function ckGetOpen(cid){return !!ckState[cid+":open"];}
+function ckSetOpen(cid,v){ckState[cid+":open"]=!!v;}
+function ckGetQuery(cid){return ckState[cid+":query"]||"";}
+function ckSetQuery(cid,v){ckState[cid+":query"]=v||"";}
+function ckCloseAll(except){
+  Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).forEach(k=>{
+    const id=k.split(":")[0]; if(id!==except)ckState[k]=false;
+  });
+}
+
+// Dropdown checkbox avec recherche intégrée
 function buildCkDrop(cid,label,options,selected,onChangeFn){
   const wrap=document.getElementById(cid);
   if(!wrap)return;
-  let open=false;
-  function rebuild(){
+  // open et query persistés entre rebuilds (sinon le menu se ferme après chaque clic d'option)
+  let open=ckGetOpen(cid), query=ckGetQuery(cid);
+  function rebuild(keepFocus){
     const all=selected.length===options.length&&options.length>0;
     const disp=all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
-    wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span style="font-size:9px;color:#666;margin-left:4px">${open?"▲":"▼"}</span></div>
+    const filtered=options.filter(o=>o.toLowerCase().includes(query.toLowerCase()));
+    wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span class="ck-count" style="margin-left:5px">${selected.length}</span><span style="font-size:9px;color:#666;margin-left:4px">${open?"▲":"▼"}</span></div>
     ${open?`<div class="ck-dropdown">
       <div class="ck-header">${label}</div>
+      <div class="ck-search-wrap"><input class="ck-search" id="${cid}-search" type="text" placeholder="Rechercher…" value="${query.replace(/"/g,'&quot;')}"></div>
       <div class="ck-all" id="${cid}-all"><span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"};border-radius:4px">${all?"✓":""}</span>${all?"Tout décocher":"Tout cocher"}</div>
-      ${options.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join("")}
+      <div class="ck-list">
+      ${filtered.length?filtered.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o.replace(/"/g,'&quot;')}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join(""):`<div style="padding:8px 12px;color:#555;font-size:11px">Aucun résultat</div>`}
+      </div>
     </div>`:""}`;
-    document.getElementById(`${cid}-btn`).onclick=e=>{e.stopPropagation();open=!open;rebuild();};
+    document.getElementById(`${cid}-btn`).onclick=e=>{
+      e.stopPropagation();
+      if(!open){ckCloseAll(cid);}     // ferme tout autre dropdown ouvert
+      open=!open;query="";
+      ckSetOpen(cid,open);ckSetQuery(cid,query);
+      if(!open)rebuild(); else buildAllDropdowns(); // si on ouvre, rebuild global pour fermer les autres
+    };
     if(open){
+      const si=document.getElementById(`${cid}-search`);
+      if(si){
+        si.onclick=e=>e.stopPropagation();
+        si.oninput=e=>{query=e.target.value;ckSetQuery(cid,query);rebuild(true);};
+        if(keepFocus){si.focus();si.setSelectionRange(si.value.length,si.value.length);}
+      }
       document.getElementById(`${cid}-all`).onclick=e=>{e.stopPropagation();onChangeFn(all?[]:options.slice());};
       wrap.querySelectorAll(".ck-item").forEach(el=>{
         el.onclick=e=>{e.stopPropagation();const v=el.dataset.val;onChangeFn(selected.includes(v)?selected.filter(x=>x!==v):[...selected,v]);};
@@ -528,9 +752,20 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
     }
   }
   rebuild();
-  // Ferme uniquement si clic HORS du dropdown
-    const closeHandler=(e)=>{if(open&&wrap&&!wrap.contains(e.target)){open=false;rebuild();document.removeEventListener("click",closeHandler);}};
-    setTimeout(()=>document.addEventListener("click",closeHandler),0);
+}
+
+// Fermeture globale : clic hors d'un dropdown ouvert
+if(!window._ckGlobalClose){
+  window._ckGlobalClose=true;
+  document.addEventListener("click",e=>{
+    const openIds=Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).map(k=>k.split(":")[0]);
+    let changed=false;
+    openIds.forEach(id=>{
+      const w=document.getElementById(id);
+      if(w&&!w.contains(e.target)){ckSetOpen(id,false);changed=true;}
+    });
+    if(changed)buildAllDropdowns();
+  });
 }
 
 function buildAllDropdowns(){
@@ -553,14 +788,117 @@ function buildSwitches(){
 
 function toggleSw(k){sw[k]=!sw[k];buildSwitches();render();}
 
+// Vues sauvegardées (presets) — stockage local navigateur, aucune écriture INO
+const PRESET_KEY="wisecom_control_room_presets_v1";
+function loadPresets(){try{return JSON.parse(localStorage.getItem(PRESET_KEY))||{};}catch{return{};}}
+function savePresets(p){try{localStorage.setItem(PRESET_KEY,JSON.stringify(p));return true;}catch(e){return false;}}
+
+// Modal générique (remplace prompt/confirm qui peuvent être bloqués/annulés silencieusement)
+function showModal({title,message,inputDefault,inputPlaceholder,withInput,okLabel,cancelLabel}){
+  return new Promise(resolve=>{
+    const ov=document.getElementById("modal-overlay");
+    const inp=document.getElementById("modal-input");
+    document.getElementById("modal-title").textContent=title||"Action";
+    document.getElementById("modal-msg").textContent=message||"";
+    document.getElementById("modal-ok").textContent=okLabel||"Valider";
+    document.getElementById("modal-cancel").textContent=cancelLabel||"Annuler";
+    if(withInput){inp.style.display="";inp.value=inputDefault||"";inp.placeholder=inputPlaceholder||"";}
+    else{inp.style.display="none";inp.value="";}
+    ov.style.display="flex";
+    setTimeout(()=>{if(withInput)inp.focus();else document.getElementById("modal-ok").focus();},30);
+    function close(val){ov.style.display="none";document.removeEventListener("keydown",keyH);resolve(val);}
+    document.getElementById("modal-ok").onclick=()=>close(withInput?inp.value.trim():true);
+    document.getElementById("modal-cancel").onclick=()=>close(null);
+    ov.onclick=e=>{if(e.target===ov)close(null);};
+    const keyH=e=>{if(e.key==="Escape")close(null);else if(e.key==="Enter"&&withInput)close(inp.value.trim());};
+    document.addEventListener("keydown",keyH);
+  });
+}
+
+function refreshPresetSelect(){
+  const sel=document.getElementById("preset-select");if(!sel)return;
+  const p=loadPresets();
+  const names=Object.keys(p).sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">— Sélectionner une vue —</option>'+names.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join("");
+}
+function presetStatus(msg,col){
+  const s=document.getElementById("preset-status");if(!s)return;
+  s.textContent=msg||"";s.style.color=col||"#666";
+  if(msg)setTimeout(()=>{if(s.textContent===msg)s.textContent="";},4000);
+}
+async function savePreset(){
+  const name=await showModal({
+    title:"Enregistrer la vue actuelle",
+    message:"Donne un nom à cette vue (ex. : Evolia + Elyos, ou Lucas + Kelian). Tu pourras la rappeler instantanément depuis le menu déroulant.",
+    withInput:true,inputPlaceholder:"Nom de la vue",okLabel:"Enregistrer"
+  });
+  if(!name){presetStatus("");return;}
+  const p=loadPresets();
+  if(p[name]){
+    const ok=await showModal({title:"Vue existante",message:`Une vue nommée « ${name} » existe déjà. La remplacer ?`,okLabel:"Remplacer"});
+    if(!ok){presetStatus("Enregistrement annulé","#888");return;}
+  }
+  p[name]={camps:[...selCamps],queues:[...selQueues],agents:[...selAgents],
+    skills:[...selSkills],contrats:[...selContrats],status:[...selStatus],
+    sw:{...sw},savedAt:new Date().toISOString()};
+  const ok=savePresets(p);
+  if(!ok){presetStatus("Impossible d'enregistrer (stockage indisponible)","#ff3b30");return;}
+  refreshPresetSelect();
+  const sel=document.getElementById("preset-select");if(sel)sel.value=name;
+  presetStatus(`Vue « ${name} » enregistrée`,"#30d158");
+}
+function applyPreset(name){
+  if(!name)return;
+  const p=loadPresets()[name];if(!p){presetStatus("Vue introuvable","#ff3b30");return;}
+  selCamps=Array.isArray(p.camps)?p.camps:[...CAMPS];
+  selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
+  selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
+  selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
+  selContrats=Array.isArray(p.contrats)?p.contrats:[...CONTRATS];
+  selStatus=Array.isArray(p.status)?p.status:["Connecté","En Pause","Wrap-up"];
+  if(p.sw&&typeof p.sw==="object")sw={...sw,...p.sw};
+  buildAllDropdowns();buildSwitches();render();
+  presetStatus(`Vue « ${name} » appliquée`,"#30d158");
+}
+async function deletePreset(){
+  const sel=document.getElementById("preset-select");
+  if(!sel||!sel.value){presetStatus("Sélectionne d'abord une vue à supprimer","#ff9f0a");return;}
+  const name=sel.value;
+  const ok=await showModal({title:"Supprimer la vue",message:`Supprimer définitivement la vue « ${name} » ?`,okLabel:"Supprimer"});
+  if(!ok)return;
+  const p=loadPresets();delete p[name];savePresets(p);refreshPresetSelect();
+  presetStatus(`Vue « ${name} » supprimée`,"#ccc");
+}
+
+// Acquittement visuel d'une recommandation de smart routing (aucune écriture API)
+let acknowledgedAlerts={};
+function acknowledgeAlert(key){
+  acknowledgedAlerts[key]=Date.now();
+  const el=document.querySelector(`[data-alert-key="${key}"]`);
+  if(el){
+    el.classList.add("acknowledged");
+    const actions=el.querySelector(".smart-actions");
+    if(actions)actions.innerHTML=`<span style="font-size:10px;color:#30d158;font-weight:600">✓ Recommandation acquittée — ${new Date().toLocaleTimeString("fr-FR")}</span>`;
+  }
+}
+function dismissAlert(key){
+  const el=document.querySelector(`[data-alert-key="${key}"]`);
+  if(el)el.remove();
+}
+
 // Filtrage
 function getFiltered(){
   return agents.filter(a=>{
     if(!selCamps.includes(a.camp))return false;
     if(!selAgents.includes(a.nom))return false;
-    if(!selStatus.includes(a.status))return false;
-    if(!selContrats.includes(a.contrat))return false;
-    if(selSkills.length<SKILLS.length&&!a.skills.some(s=>selSkills.includes(s)))return false;
+    if(a.status==null){if(!selStatus.includes("n.d."))return false;}
+    else if(!selStatus.includes(a.status))return false;
+    if(a.contrat==null){/* n.d. : ne pas exclure */}
+    else if(!selContrats.includes(a.contrat))return false;
+    if(selSkills.length<SKILLS.length){
+      if(!Array.isArray(a.skills)||a.skills.length===0){/* skills n.d. : on n'exclut pas */}
+      else if(!a.skills.some(s=>selSkills.includes(s)))return false;
+    }
     if(sw.refus&&a.refus===0)return false;
     if(sw.inactif&&a.inactifs<3)return false;
     return true;
@@ -589,26 +927,40 @@ function renderKPIs(f){
   const totKo=f.reduce((s,a)=>s+a.ko,0);
   const horsOuv=Math.floor(totApp*.07);
   const reit=Math.floor(totApp*.04);
-  const backlog=rnd(8,45);
+  const backlog=totalBacklog();
   // Appels reçus = approximation (entrants + abandons estimés)
 const totRecus=Math.max(1,Math.round(totApp*1.15));
   const totManques=totRecus-totApp;
   const qs=Math.round((totApp/totRecus)*100);
   const pct=Math.min(100,Math.round((totActes/600)*100));
+  // Taux d'occupation global (moyenne pondérée par heures de prod)
+  const occVals=f.filter(a=>a.occupation>0);
+  const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
+  // Taux de transformation global
+  const transfoVals=f.filter(a=>a.transfo!=null);
+  const transfoGlobal=transfoVals.length>0?Math.round(transfoVals.reduce((s,a)=>s+a.transfo,0)/transfoVals.length):null;
+  // FCR (First Call Resolution) : appels résolus au 1er contact = traités hors réitérants
+  const fcr=totApp>0?Math.round(((totApp-reit)/totApp)*100):0;
+  // Indice d'Excellence Premium : composite QS / occupation / FCR / réalisé
+  const premium=Math.round((qs*0.35)+(occGlobal*0.25)+(fcr*0.25)+(pct*0.15));
 
   const kpis=[
     {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
+    {l:"Indice d'Excellence Premium",v:premium+"%",sub:"QS · Occupation · FCR · Réalisé",alert:premium<75,good:premium>=88,gauge:premium},
     {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Communication / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
     {l:"Flux reçus",v:totRecus.toLocaleString()},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
+    {l:"FCR",v:fcr+"%",sub:"Résolution au 1er contact",alert:fcr<70,good:fcr>=85,gauge:fcr},
+    {l:"Taux de transformation global",v:(transfoGlobal!=null?transfoGlobal+"%":"n.d."),sub:transfoGlobal!=null?"Moyenne agents":"Non fourni par INO",good:transfoGlobal!=null&&transfoGlobal>=25},
     {l:"Appels décr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traités/h prod"},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"[App+Mails]/h prod"},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
     {l:"Réitérants",v:reit,alert:reit>20},
-    {l:"Backlog Mails",v:backlog,alert:backlog>30},
+    {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Aucune saisie"},
   ];
 
   document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
@@ -664,11 +1016,20 @@ function renderAlerts(f){
       if(candidats.length>0){
         const c=candidats[0];
         const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
-        html+=`<div class="smart-alert">
+        const key=`smart:${camp}:${c.id}`;
+        const ack=acknowledgedAlerts[key];
+        html+=`<div class="smart-alert${ack?" acknowledged":""}" data-alert-key="${key}">
           <span class="smart-badge">⚠ attention</span>
           <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).
           Recommandation : Basculer <b style="color:${P}">${c.nom}</b> depuis <b>${c.camp}</b>
-          pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.</span>
+          (compétence ${(c.skills||[]).join(", ")||"–"} validée) pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.</span>
+          <div class="smart-actions">
+            ${ack
+              ?`<span style="font-size:10px;color:#30d158;font-weight:600">✓ Recommandation acquittée — ${new Date(ack).toLocaleTimeString("fr-FR")}</span>`
+              :`<button class="btn-validate" onclick="acknowledgeAlert('${key}')">✓ Valider la recommandation</button>
+                <button class="btn-dismiss" onclick="dismissAlert('${key}')">Ignorer</button>
+                <span style="font-size:9px;color:#666;align-self:center">Action visuelle uniquement — aucune écriture INO</span>`}
+          </div>
         </div>`;
       }
     }
@@ -691,24 +1052,49 @@ function renderAlerts(f){
 // Tableau
 function renderTable(sorted){
   const cols=[
-    {k:"nom",l:"Agent"},{k:"status",l:"Statut"},{k:"camp",l:"File / Camp."},
-    {k:"hprod",l:"H. Prod"},{k:"presence",l:"Présence"},
-    {k:"appelsIn",l:"IN reçus"},{k:"appelsOut",l:"OUT traités"},{k:"appels",l:"Total traités"},
-    {k:"mails",l:`<span style="color:${P}">Mails ✏</span>`},
-    {k:"actes",l:"Actes total"},
-    {k:"appelsH",l:"App. décr./h",title:"Appels traités décrochés par heure de prod"},
-    {k:"actesH",l:"Actes/h",title:"[Appels+Mails] / H.prod"},
-    {k:"dmc",l:"DMC"},{k:"ko",l:"100 % KO"},{k:"refus",l:"Refus"},
-    {k:"inactifs",l:"Inactifs"},{k:"realise",l:"% réalisé"},{k:"files",l:"Files"}
+    {k:"expand",l:""},
+    {k:"nom",l:"Agent"},
+    {k:"status",l:"Statut"},
+    {k:"camp",l:"File / Campagne"},
+    {k:"premiere",l:"1ère connexion",title:"Heure de première connexion de l'agent dans la journée"},
+    {k:"derniere",l:"Dernière déco",title:"Heure de dernière déconnexion de l'agent"},
+    {k:"hprod",l:"H. Prod"},
+    {k:"presence",l:"Présence"},
+    {k:"appelsIn",l:"Appels reçus",title:"Appels entrants présentés à l'agent (file)"},
+    {k:"appels",l:"Décrochés",title:"Appels entrants effectivement décrochés / traités"},
+    {k:"appelsOut",l:"Sortants",title:"Appels sortants réalisés"},
+    {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle — alimente le calcul des actes/h"},
+    {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails"},
+    {k:"actesH",l:"Actes/h",title:"Actes total / Heures de production"},
+    {k:"appelsH",l:"App./h",title:"Appels décrochés / Heures de production"},
+    {k:"dmc",l:"DMC"},
+    {k:"acw",l:"Post-appel (ACW)",title:"Temps de post-appel moyen — alerte si dérive >20% vs groupe"},
+    {k:"occupation",l:"Occupation",title:"Taux d'occupation (communication / présence)"},
+    {k:"transfo",l:"Transformation",title:"Taux de transformation"},
+    {k:"adherence",l:"Adhérence",title:"Adhérence au planning"},
+    {k:"ko",l:"100 % KO"},
+    {k:"refus",l:"Refus"},
+    {k:"inactifs",l:"Inactifs"},
+    {k:"realise",l:"% de réalisé"},
+    {k:"spark",l:"Activité du jour",title:"Évolution des actes sur la journée"},
+    {k:"files",l:"Files"}
   ];
 
-  document.getElementById("thead-row").innerHTML=cols.map(c=>`
-    <th class="${sortCol===c.k?"active":""}" onclick="doSort('${c.k}')" title="${c.title||c.l}"
-      style="${c.k==="mails"?"background:#0f0f0f;":""}">
-      ${c.l}${sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"}
-    </th>`).join("");
+  document.getElementById("thead-row").innerHTML=cols.map(c=>{
+    const sortable=!["expand","spark","files","mails","premiere","derniere"].includes(c.k);
+    const cls=[sortCol===c.k?"active":"",c.k==="mails"?"col-mail":""].filter(Boolean).join(" ");
+    return `<th class="${cls}" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${c.title||c.l}"
+      style="${c.k==="expand"?"width:22px;":""}">
+      ${c.l}${sortable?(sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"):""}
+    </th>`;}).join("");
 
-  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0;
+  // Moyenne ACW par groupe (campagne) pour détecter les dérives >20%
+  const acwByCamp={};
+  sorted.forEach(a=>{if(a.acw){(acwByCamp[a.camp]=acwByCamp[a.camp]||[]).push(a.acw);}});
+  const acwAvgCamp={};
+  Object.entries(acwByCamp).forEach(([c,arr])=>{acwAvgCamp[c]=arr.reduce((s,v)=>s+v,0)/arr.length;});
+
+  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0;
   const now=Date.now();
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
@@ -721,29 +1107,47 @@ function renderTable(sorted){
     const isRedFlag=inactifMs>5*60000;
     const rfMins=Math.floor(inactifMs/60000);
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
-    return`<tr style="${isRedFlag?`background:rgba(255,59,48,.05)!important;`:""}">
+    tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
+    // Dérive ACW : >20% au-dessus de la moyenne du groupe (campagne)
+    const grpAcw=acwAvgCamp[a.camp];
+    const acwDrift=a.acw&&grpAcw&&a.acw>grpAcw*1.2;
+    const acwTxt=a.acw?mmss(a.acw):"–";
+    const occTxt=a.occupation?a.occupation+"%":"–";
+    const transfoTxt=a.transfo!=null?a.transfo+"%":"n.d.";
+    const adhTxt=a.adherence!=null?a.adherence+"%":"n.d.";
+    const adhColor=a.adherence==null?"#555":a.adherence>=90?"#30d158":a.adherence<80?P:"#ccc";
+    return`<tr class="agent-row" data-aid="${a.id}" style="${isRedFlag?`background:rgba(255,59,48,.05)!important;`:""}">
+      <td style="text-align:center;cursor:pointer;color:#666" onclick="toggleRow(${a.id})" title="Détail par tranche horaire"><span id="caret-${a.id}">▸</span></td>
       <td style="font-weight:700;white-space:nowrap">
         ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">🚨${rfMins}m</span>`:""}
         ${a.nom}
       </td>
-      <td><span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span></td>
+      <td>${a.status?`<span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span>`:ndStatus(null)}</td>
       <td><span class="badge badge-camp" style="font-size:10px">${a.camp}</span></td>
+      <td style="color:#888;font-size:10px;white-space:nowrap" title="Première connexion">${fmtTime(a.premiereAction)}</td>
+      <td style="color:#888;font-size:10px;white-space:nowrap" title="Dernière déconnexion">${fmtTime(a.derniereAction)}</td>
       <td style="color:#666">${fmtH(a.hprod)}</td>
-      <td style="color:#555">${fmtH(a.presence)}</td>
-      <td>${a.appelsIn||0}</td>
-      <td>${a.appelsOut||0}</td>
-      <td style="font-weight:700">${a.appels}</td>
-      <td style="background:#0f0f0f">
+      <td style="color:#555">${a.presence!=null?fmtH(a.presence):nd(null)}</td>
+      <td title="Appels présentés à l'agent">${a.appelsIn||0}</td>
+      <td style="font-weight:700" title="Appels décrochés / traités">${a.appels}</td>
+      <td title="Appels sortants">${a.appelsOut||0}</td>
+      <td class="cell-mail">
         <input class="mail-input" type="number" min="0" max="999" value="${m}"
-          onchange="updateMails(${a.id},this.value)">
+          onchange="updateMails(${a.id},this.value)" title="Saisie manuelle des mails — recalcule les actes/h">
       </td>
-      <td style="color:${P};font-weight:800;font-size:13px">${actes}</td>
-      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décr./h">${aph}</td>
-      <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h">${ach}</td>
+      <td style="color:${P};font-weight:800;font-size:13px" title="Décrochés + Sortants + Mails">${actes}</td>
+      <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h = Actes total / H. Prod">${ach}</td>
+      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décrochés par heure de prod">${aph}</td>
       <td>${mmss(a.dmc)}</td>
-      <td style="color:${(a.ko||0)>10?P:"inherit"};font-weight:${(a.ko||0)>10?700:400}">${a.ko||0}</td>
-      <td>${(a.refus||0)>5?`<span class="badge badge-alert">⚠ ${a.refus}</span>`:(a.refus||0)}</td>
-      <td>${(a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0)}</td>
+      <td title="${acwDrift?`Dérive >20% vs moyenne ${a.camp} (${mmss(Math.round(grpAcw))})`:"Temps de post-appel"}">
+        ${a.acw==null?nd(null):(acwDrift?`<span class="badge badge-alert">⚠ ${acwTxt}</span><div style="font-size:8px;color:${P}">attention</div>`:acwTxt)}
+      </td>
+      <td style="color:${a.occupation==null?"#666":(a.occupation>=85?"#30d158":a.occupation<70?P:"#ccc")};font-weight:600">${a.occupation==null?nd(null):occTxt}</td>
+      <td style="color:#ccc">${a.transfo==null?nd(null):transfoTxt}</td>
+      <td style="color:${adhColor};font-weight:600">${a.adherence==null?nd(null):adhTxt}</td>
+      <td style="color:${(a.ko||0)>10?P:"inherit"};font-weight:${(a.ko||0)>10?700:400}">${a.ko==null?nd(null):(a.ko||0)}</td>
+      <td>${a.refus==null?nd(null):((a.refus||0)>5?`<span class="badge badge-alert">⚠ ${a.refus}</span>`:(a.refus||0))}</td>
+      <td>${a.inactifs==null?nd(null):((a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0))}</td>
       <td style="min-width:110px">
         <div class="prog-wrap">
           <div class="prog-bg"><div class="prog-fill" style="width:${a.realise}%;background:${a.realise>=80?P:a.realise<50?"#ff3b30":P}"></div></div>
@@ -751,51 +1155,215 @@ function renderTable(sorted){
         </div>
         <div style="font-size:8px;color:${a.realise>=80?"#30d158":a.realise<60?P:"#555"};margin-top:2px">${a.realise>=80?"bonne maitrise":a.realise<60?"attention":""}</div>
       </td>
+      <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
+    </tr>
+    <tr class="detail-row" id="detail-${a.id}" style="display:none">
+      <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
     </tr>`;
   }).join("")+`<tr class="total-row">
-    <td colspan="7" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
-    <td style="padding:9px 10px">${tApp}</td>
-    <td style="padding:9px 10px;color:${P};background:#0f0f0f">${tM}</td>
-    <td style="padding:9px 10px;color:${P};font-size:14px">${tApp+tM}</td>
+    <td colspan="8" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
+    <td style="padding:9px 10px;color:${P}" title="Total reçus">${tIn}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés">${tApp}</td>
+    <td style="padding:9px 10px;color:${P}" title="Total sortants">${tOut}</td>
+    <td class="cell-mail" style="padding:9px 10px;color:${P}" title="Total mails">${tM}</td>
+    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes">${tApp+tM}</td>
     <td colspan="7" style="padding:9px 10px"></td>
     <td style="padding:9px 10px;color:${P}">${tKo}</td>
     <td style="padding:9px 10px;color:${P}">${tRef}</td>
-    <td colspan="3"></td>
+    <td colspan="4"></td>
   </tr>`;
+}
+
+// Sparkline SVG (mini-courbe de la journée) pour un agent
+function sparkSVG(data){
+  if(!Array.isArray(data)||data.length===0)return'<span style="color:#444;font-size:10px">n.d.</span>';
+  const w=72,h=20,max=Math.max(...data,1),n=data.length;
+  // Cas n=1 : afficher un point au centre plutôt qu'une polyline (sinon i/(n-1)=NaN)
+  if(n===1){
+    const y=(h-(data[0]/max)*h).toFixed(1);
+    return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle"><circle cx="${w/2}" cy="${y}" r="2" fill="#E8006E"/></svg>`;
+  }
+  const pts=data.map((v,i)=>`${(i/(n-1)*w).toFixed(1)},${(h-(v/max)*h).toFixed(1)}`).join(" ");
+  const last=data[n-1],prev=data[n-2]||last;
+  const col=last>=prev?"#30d158":"#E8006E";
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Détail par tranche horaire (ligne dépliable)
+function detailRowHTML(a){
+  const spark=Array.isArray(a.spark)?a.spark:[];
+  const labels=Array.from({length:12},(_,i)=>`${String(8+i).padStart(2,"0")}h`);
+  const max=Math.max(...spark,1);
+  const bars=spark.map((v,i)=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+      <div style="font-size:9px;color:#ccc">${v}</div>
+      <div style="width:100%;max-width:26px;height:${Math.max(2,(v/max)*54)}px;background:linear-gradient(180deg,#FF005C,#c0005a);border-radius:2px 2px 0 0"></div>
+      <div style="font-size:8px;color:#555">${labels[i]||""}</div>
+    </div>`).join("");
+  return`<div style="padding:14px 18px">
+    <div style="font-size:11px;color:${P};font-weight:700;margin-bottom:10px">Détail par tranche horaire — ${a.nom} <span style="color:#555;font-weight:400">· File : ${a.camp} · Compétences : ${(a.skills||[]).join(", ")||"–"}</span></div>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:80px">${bars||'<span style="color:#555;font-size:11px">Aucune donnée horaire disponible</span>'}</div>
+    <div style="display:flex;gap:24px;margin-top:12px;font-size:10px;color:#888">
+      <span>Post-appel (ACW) : <b style="color:#ccc">${a.acw?mmss(a.acw):"–"}</b></span>
+      <span>Occupation : <b style="color:#ccc">${a.occupation?a.occupation+"%":"–"}</b></span>
+      <span>Adhérence : <b style="color:#ccc">${a.adherence!=null?a.adherence+"%":"n.d."}</b></span>
+      <span>Transformation : <b style="color:#ccc">${a.transfo!=null?a.transfo+"%":"n.d."}</b></span>
+      <span>DMC : <b style="color:#ccc">${mmss(a.dmc)}</b></span>
+    </div>
+  </div>`;
+}
+
+// Déplie / replie la ligne de détail d'un agent
+function toggleRow(id){
+  const row=document.getElementById("detail-"+id);
+  const caret=document.getElementById("caret-"+id);
+  if(!row)return;
+  const open=row.style.display!=="none";
+  row.style.display=open?"none":"table-row";
+  if(caret)caret.textContent=open?"▸":"▾";
 }
 
 // Graphiques
 function renderChart(){
+  const host=document.getElementById("chart-host");if(!host)return;
+  if(!slots.length){
+    const msg=inoLive
+      ?`<div style="padding:30px;color:#888;font-size:13px;text-align:center;line-height:1.6">
+          <div style="font-size:30px;margin-bottom:8px">📊</div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:6px">Flux par tranche horaire — non encore connecté</div>
+          <div>L'endpoint <code style="color:#E8006E;background:#0f0f0f;padding:2px 6px;border-radius:4px">/agents-day</code> ne renvoie pas (encore) de découpage demi-horaire.</div>
+          <div style="margin-top:6px;color:#666;font-size:11px">À ajouter côté serveur : agrégation des histories INO par demi-heure (entrants/sortants/abandons).</div>
+        </div>`
+      :'<div style="padding:24px;color:#888;font-size:12px;text-align:center">Aucune donnée à afficher</div>';
+    host.innerHTML=msg;
+    return;
+  }
+  // Dimensions agrandies + marges pour axes
+  const W=970,H=240,PAD={t:18,r:14,b:48,l:42};
+  const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
   const maxV=Math.max(...slots.map(s=>s.vol+s.out),1);
-  let svg="";
+  // Échelle Y "ronde" : prochaine dizaine au-dessus
+  const yMax=Math.ceil(maxV/10)*10;
+  const bw=cw/slots.length;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:280px;display:block">
+    <style>
+      .axis{stroke:var(--axis,#333);stroke-width:1}
+      .grid{stroke:var(--grid,#1e1e1e);stroke-width:1;stroke-dasharray:2 3}
+      .tick{font-size:10px;fill:var(--tick,#888);font-family:inherit}
+      .hlbl{font-size:10px;fill:var(--tick,#888);font-family:inherit}
+      .legend{font-size:11px;fill:var(--tick,#888);font-family:inherit}
+    </style>`;
+  // Grille horizontale + labels Y (5 paliers)
+  for(let i=0;i<=5;i++){
+    const y=PAD.t+ch-(i/5)*ch;
+    const val=Math.round((i/5)*yMax);
+    svg+=`<line class="grid" x1="${PAD.l}" y1="${y}" x2="${W-PAD.r}" y2="${y}"/>`;
+    svg+=`<text class="tick" x="${PAD.l-6}" y="${y+3}" text-anchor="end">${val}</text>`;
+  }
+  // Axes
+  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
+  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
+  // Barres : entrants traités (rose) + sortants (gris) côte à côte, abandons (rouge) en transparent par-dessus
   slots.forEach((s,i)=>{
-    const x=i*(680/slots.length),bw=(680/slots.length)-2;
-    const hv=Math.round((s.vol/maxV)*100),ha=Math.round((s.aband/maxV)*100),ho=Math.round((s.out/maxV)*100);
-    svg+=`<rect x="${x}" y="${100-hv}" width="${bw*.52}" height="${hv}" fill="${P}" rx="1" opacity=".9"/>`;
-    svg+=`<rect x="${x+bw*.55}" y="${100-ho}" width="${bw*.35}" height="${ho}" fill="#666" rx="1" opacity=".8"/>`;
-    svg+=`<rect x="${x}" y="${100-ha}" width="${bw*.52}" height="${ha}" fill="#ff3b30" rx="1" opacity=".65"/>`;
-    if(i%4===0)svg+=`<text x="${x+bw/2}" y="110" text-anchor="middle" font-size="8" fill="#555">${s.lbl}</text>`;
+    const x=PAD.l+i*bw;
+    const hv=(s.vol/yMax)*ch, ha=(s.aband/yMax)*ch, ho=(s.out/yMax)*ch;
+    const barW=bw*.42, gap=bw*.10;
+    // Entrants traités
+    svg+=`<rect x="${x+gap}" y="${PAD.t+ch-hv}" width="${barW}" height="${hv}" fill="#E8006E" rx="2" opacity=".95">
+      <title>${s.lbl} · ${s.vol} appels entrants traités</title></rect>`;
+    // Sortants
+    svg+=`<rect x="${x+gap+barW+2}" y="${PAD.t+ch-ho}" width="${barW}" height="${ho}" fill="#999" rx="2" opacity=".85">
+      <title>${s.lbl} · ${s.out} appels sortants</title></rect>`;
+    // Abandons : overlay sur les entrants
+    if(s.aband>0)svg+=`<rect x="${x+gap}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="#ff3b30" rx="2" opacity=".55">
+      <title>${s.lbl} · ${s.aband} abandons</title></rect>`;
+    // Labels heure : tous les 2 (toutes les heures, pas toutes les demi-heures)
+    if(i%2===0){
+      svg+=`<text class="hlbl" x="${x+bw/2}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
+    }
   });
-  svg+=`<line x1="0" y1="100" x2="680" y2="100" stroke="#1e1e1e" stroke-width="1"/>`;
-  document.getElementById("chart-svg").innerHTML=svg;
+  // Légende sous l'axe X
+  const ly=PAD.t+ch+34;
+  svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="#E8006E" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Appels entrants traités</text>
+    <rect x="${PAD.l+170}" y="${ly-9}" width="11" height="11" fill="#999" rx="2"/>
+    <text class="legend" x="${PAD.l+186}" y="${ly}">Appels sortants</text>
+    <rect x="${PAD.l+295}" y="${ly-9}" width="11" height="11" fill="#ff3b30" rx="2" opacity=".55"/>
+    <text class="legend" x="${PAD.l+311}" y="${ly}">Abandons (overlay sur entrants)</text>
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : nb d'appels · max ${yMax}</text>`;
+  svg+="</svg>";
+  host.innerHTML=svg;
+  // Si la vue agrandie est ouverte, la rafraîchir aussi
+  const zo=document.getElementById("chart-zoom-content");
+  if(zo&&document.getElementById("chart-overlay").style.display!=="none"){zo.innerHTML=svg;}
 
-  const tot=QUALIFS.reduce((s,_)=>s+rnd(5,80),0)||1;
-  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
-    const v=rnd(5,80),pct=Math.round((v/tot)*100);
-    return`<div style="margin-bottom:7px">
-      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">
-        <span style="color:${q==="100 % KO"?P:"#ccc"};font-weight:${q==="100 % KO"?700:400}">${q}</span>
-        <span style="color:#555">${pct}%</span>
+  // Bloc Qualifications : labels et barres agrandis et lisibles
+  const totals=QUALIFS.map(q=>({q,v:rnd(5,80)}));
+  const tot=totals.reduce((s,o)=>s+o.v,0)||1;
+  document.getElementById("qualif-chart").innerHTML=totals.map(({q,v})=>{
+    const pct=Math.round((v/tot)*100);
+    const isKo=q==="100 % KO";
+    return`<div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;align-items:baseline">
+        <span style="color:${isKo?P:"var(--qual-label,#ddd)"};font-weight:${isKo?700:500}">${q}</span>
+        <span style="color:var(--qual-val,#888);font-size:11px"><b style="color:var(--qual-label,#ddd)">${v}</b> · ${pct}%</span>
       </div>
-      <div style="height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${q==="100 % KO"?P:"#444"};border-radius:2px"></div>
+      <div style="height:9px;background:var(--qual-bg,#1e1e1e);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${isKo?P:"linear-gradient(90deg,#888,#aaa)"};border-radius:5px;transition:width .3s"></div>
       </div>
     </div>`;
   }).join("");
 }
 
 // Skills
+// === Zoom du graphique tranches horaires ===
+function openChartZoom(){
+  renderChart(); // garantit un SVG fraichement rendu
+  const host=document.getElementById("chart-host");
+  const zo=document.getElementById("chart-zoom-content");
+  if(zo&&host)zo.innerHTML=host.innerHTML.replace(/max-height:[^;"]+;?/,'').replace(/width:100%/,'width:100%;height:auto');
+  document.getElementById("chart-overlay").style.display="flex";
+}
+function closeChartZoom(){document.getElementById("chart-overlay").style.display="none";}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    const ov=document.getElementById("chart-overlay");
+    if(ov&&ov.style.display!=="none")closeChartZoom();
+  }
+});
+
+// === Backlog mails par campagne — saisie manuelle superviseur ===
+const BACKLOG_KEY="wisecom_backlog_per_camp_v1";
+function loadBacklog(){try{return JSON.parse(localStorage.getItem(BACKLOG_KEY))||{};}catch{return{};}}
+function saveBacklog(b){try{localStorage.setItem(BACKLOG_KEY,JSON.stringify(b));return true;}catch{return false;}}
+function totalBacklog(){const b=loadBacklog();return Object.values(b).reduce((s,v)=>s+(parseInt(v)||0),0);}
+function setBacklog(camp,val){
+  const b=loadBacklog();
+  const n=Math.max(0,parseInt(val)||0);
+  if(n===0)delete b[camp]; else b[camp]=n;
+  saveBacklog(b);
+  // recalcule les KPI macro (le total backlog y est consommé)
+  renderKPIs(getFiltered());
+}
+function renderBacklog(){
+  const grid=document.getElementById("backlog-grid");if(!grid)return;
+  const b=loadBacklog();
+  // Liste des campagnes affichées : celles qui sont dans CAMPS, dans l'ordre alphabétique
+  grid.innerHTML=CAMPS.slice().sort().map(c=>{
+    const v=b[c]||0;
+    return`<div class="backlog-card">
+      <span class="backlog-camp">${c}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input class="backlog-input" type="number" min="0" max="9999" value="${v}" onchange="setBacklog('${c.replace(/'/g,"\\'")}',this.value)" title="Backlog mails à traiter pour ${c}">
+        <span style="font-size:10px;color:#666">mails</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
 function renderSkills(){
   const allA=agents.length?agents:AGENTS_BASE;
   const thead=`<thead><tr>
@@ -817,11 +1385,50 @@ function renderSkills(){
 function render(){
   const f=getFiltered(),s=getSorted(f);
   renderKPIs(f);
+  renderInoCoverage();
   renderAlerts(f);
   renderTable(s);
   renderChart();
   renderSkills();
+  renderBacklog();
   document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
+}
+
+// Bandeau de transparence — recense ce qui est branché à INO vs non disponible
+function renderInoCoverage(){
+  const z=document.getElementById("ino-coverage");if(!z)return;
+  if(!inoLive){z.innerHTML="";return;}
+  const sample=agents[0]||{};
+  const checks=[
+    {label:"Identité agent (nom, login)",ok:!!sample.nom},
+    {label:"Appels reçus / décrochés / sortants",ok:sample.appels!=null},
+    {label:"DMC (durée moyenne)",ok:sample.dmc>0},
+    {label:"1ère connexion / dernière déco",ok:!!sample.premiereAction},
+    {label:"Files (queues)",ok:!!sample.queues},
+    {label:"Heures de production",ok:sample.hprod>0},
+    {label:"Statut temps réel (Connecté/Pause/Wrap)",ok:!!sample.status},
+    {label:"Compétences agent",ok:Array.isArray(sample.skills)&&sample.skills.length>0},
+    {label:"Refus / 100 % KO / Réitérants",ok:sample.ko!=null||sample.refus!=null},
+    {label:"Taux de transformation",ok:sample.transfo!=null},
+    {label:"Adhérence planning",ok:sample.adherence!=null},
+    {label:"ACW (post-appel)",ok:sample.acw!=null},
+    {label:"Flux par tranche horaire",ok:slots.length>0},
+    {label:"Sparkline horaire par agent",ok:Array.isArray(sample.spark)},
+  ];
+  const okN=checks.filter(c=>c.ok).length;
+  const html=`<div style="background:linear-gradient(135deg,#0a1410,#0f1a14);border:1px solid #1a3a25;border-radius:10px;padding:10px 16px;margin-bottom:6px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#30d158;font-weight:700">● MODE INO RÉEL</span>
+      <span style="font-size:11px;color:#ccc">Couverture API : <b style="color:#30d158">${okN}</b> branché${okN>1?"s":""} · <b style="color:${P}">${checks.length-okN}</b> non disponible${checks.length-okN>1?"s":""}</span>
+      <span style="font-size:10px;color:#888;flex:1;text-align:right">Les champs "n.d." dans le tableau ne sont pas (encore) exposés par l'API. Aucune valeur fabriquée n'est affichée.</span>
+    </div>
+    <details style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;color:#666;outline:none">Voir le détail de la couverture INO</summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 12px;margin-top:8px;font-size:10px">
+        ${checks.map(c=>`<div style="color:${c.ok?"#30d158":"#888"}">${c.ok?"✓":"✕"} ${c.label}${c.ok?"":' <span style="color:#555">(n.d.)</span>'}</div>`).join("")}
+      </div>
+    </details>
+  </div>`;
+  z.innerHTML=html;
 }
 
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
@@ -848,7 +1455,7 @@ function simulate(){
 
 function toggleTheme(){
   darkMode=!darkMode;
-  document.body.className=darkMode?"":"light";
+  document.body.classList.toggle("light",!darkMode);
   document.getElementById("theme-btn").textContent=darkMode?"☀ Clair":"🌙 Sombre";
   buildSwitches();render();
 }
@@ -900,6 +1507,82 @@ function exportXlsx(){
 }
 
 // Export PDF amélioré
+// Export PDF de la matrice compétences (via fenêtre dédiée → Imprimer / Enregistrer en PDF)
+function exportSkillsPDF(){
+  const allA=agents.length?agents:AGENTS_BASE;
+  const dateStr=new Date().toLocaleDateString("fr-FR");
+  const filtre=document.getElementById("f-date-fin").value||"";
+  const rows=allA.map(a=>{
+    const cells=SKILLS.map(s=>(a.skills||[]).includes(s)
+      ?'<td class="ok">✓</td>'
+      :'<td class="ko">–</td>').join("");
+    return`<tr>
+      <td class="name"><b>${a.nom}</b><br><span class="sub">${(a.contrat||"CDI")} · ${a.camp}</span></td>
+      ${cells}
+      <td class="filesok">${a.files_ok?'<span class="ok-tag">OK</span>':'<span class="anom-tag">⚠ Anomalie</span>'}</td>
+    </tr>`;
+  }).join("");
+  const tot=SKILLS.map(s=>allA.filter(a=>(a.skills||[]).includes(s)).length);
+  const totRow=`<tr class="tot">
+    <td class="name"><b>TOTAL agents qualifiés</b></td>
+    ${tot.map((n,i)=>`<td class="cnt"><b>${n}</b><br><span class="sub">${Math.round(n/allA.length*100)}%</span></td>`).join("")}
+    <td></td>
+  </tr>`;
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Wisecom — Matrice de compétences ${dateStr}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#222;background:#fff;padding:24px;font-size:11px}
+      .header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #E8006E;padding-bottom:10px;margin-bottom:18px}
+      h1{font-size:18px;color:#E8006E;font-weight:800;letter-spacing:.02em}
+      .meta{font-size:10px;color:#666}
+      .intro{font-size:11px;color:#444;margin-bottom:14px;line-height:1.5}
+      table{width:100%;border-collapse:collapse;font-size:11px}
+      thead th{background:#fff0f6;color:#222;padding:9px 8px;text-align:center;font-weight:700;border-bottom:2px solid #E8006E;font-size:10px;letter-spacing:.02em}
+      thead th.name{text-align:left;min-width:170px}
+      tbody td{padding:7px 8px;text-align:center;border-bottom:1px solid #eee}
+      tbody td.name{text-align:left;font-size:11px}
+      tbody td.sub,.sub{font-size:9px;color:#888;font-weight:400}
+      tbody td.ok{color:#E8006E;font-weight:700;font-size:14px}
+      tbody td.ko{color:#ccc}
+      tbody tr.tot td{background:#fafafa;border-top:2px solid #E8006E;border-bottom:none;padding:9px 8px}
+      .ok-tag{color:#0a7a30;font-weight:700;font-size:10px}
+      .anom-tag{color:#c0005a;font-weight:700;font-size:10px}
+      .footer{margin-top:18px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#888;display:flex;justify-content:space-between}
+      .print-btn{position:fixed;top:16px;right:16px;background:linear-gradient(135deg,#FF005C,#c0005a);color:#fff;border:none;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(255,0,92,.3)}
+      @media print{
+        .print-btn{display:none}
+        body{padding:14px;font-size:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        thead{display:table-header-group}
+        tr{page-break-inside:avoid}
+      }
+      @page{size:A4 landscape;margin:12mm}
+    </style></head><body>
+    <button class="print-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <div class="header">
+      <div><h1>Matrice de compétences</h1><div class="meta">Wisecom · Tour de Contrôle INO</div></div>
+      <div class="meta">Édité le ${dateStr}${filtre?` · Données du ${filtre}`:""}<br>${allA.length} agents · ${SKILLS.length} compétences</div>
+    </div>
+    <p class="intro">Cartographie des compétences actives par agent. Une coche rose (✓) indique que l'agent est qualifié sur la compétence ; un tiret signifie qu'il ne l'est pas. Le total en pied de tableau indique le nombre d'agents qualifiés pour chaque compétence (en valeur absolue et en pourcentage de l'effectif filtré).</p>
+    <table>
+      <thead><tr>
+        <th class="name">Agent / Campagne</th>
+        ${SKILLS.map(s=>`<th>${s}</th>`).join("")}
+        <th>Files actives</th>
+      </tr></thead>
+      <tbody>${rows}${totRow}</tbody>
+    </table>
+    <div class="footer">
+      <span>Wisecom · Control Room · Document généré automatiquement — usage interne</span>
+      <span>Page <span class="pageno"></span></span>
+    </div>
+    <script>setTimeout(()=>window.print(),350);<\/script>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site.");return;}
+  w.document.write(html);w.document.close();
+}
+
 function exportPDF(){
   const f=getFiltered(),s=getSorted(f);
   const tApp=s.reduce((x,a)=>x+a.appels,0);
@@ -1032,6 +1715,7 @@ buildAllDropdowns();
 buildSwitches();
 render();
 setBadge("ready");
+refreshPresetSelect();
 // Bornage calendrier sur l'historique réellement disponible dans INO
 (function setupDateBounds(){
   var maxD=todayStr, minD="2022-01-01";
