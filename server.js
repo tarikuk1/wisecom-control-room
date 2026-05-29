@@ -255,24 +255,23 @@ body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-seri
 async function loadStats(){
   try{
     const r=await fetch('/api/admin/stats');const d=await r.json();
-    document.getElementById('stat-grid').innerHTML=`
-      <div class="stat-card"><div class="stat-label">Sessions actives</div><div class="stat-value">\${d.sessions||0}</div><div class="stat-sub">Sessions ouvertes</div></div>
-      <div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:\${d.inoOk?'#30d158':'#ff3b30'}">\${d.inoOk?'✓ OUI':'✕ NON'}</div><div class="stat-sub">Token bearer</div></div>
-      <div class="stat-card"><div class="stat-label">Appels du jour</div><div class="stat-value">\${d.stats&&d.stats.totalAppels||0}</div><div class="stat-sub">Via API INO</div></div>
-      <div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">\${Math.floor(d.uptime/3600)}h\${Math.floor((d.uptime%3600)/60)}m</div><div class="stat-sub">Depuis le démarrage</div></div>
-      <div class="stat-card"><div class="stat-label">Dernière MAJ</div><div class="stat-value" style="font-size:12px">\${d.lastEvent?new Date(d.lastEvent).toLocaleTimeString('fr-FR'):'–'}</div><div class="stat-sub">Webhook INO</div></div>
-    `;
+    const g=document.getElementById('stat-grid');
+    g.innerHTML='<div class="stat-card"><div class="stat-label">Sessions actives</div><div class="stat-value">'+(d.sessions||0)+'</div><div class="stat-sub">Sessions ouvertes</div></div>'+
+      '<div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:'+(d.inoOk?'#30d158':'#ff3b30')+'">'+(d.inoOk?'✓ OUI':'✕ NON')+'</div><div class="stat-sub">Token bearer</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Appels du jour</div><div class="stat-value">'+(d.stats&&d.stats.totalAppels||0)+'</div><div class="stat-sub">Via API INO</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">'+Math.floor(d.uptime/3600)+'h'+Math.floor((d.uptime%3600)/60)+'m</div><div class="stat-sub">Depuis le démarrage</div></div>'+
+      '<div class="stat-card"><div class="stat-label">Dernière MAJ</div><div class="stat-value" style="font-size:12px">'+(d.lastEvent?new Date(d.lastEvent).toLocaleTimeString('fr-FR'):'–')+'</div><div class="stat-sub">Webhook INO</div></div>';
   }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#ff3b30;font-size:11px">Erreur chargement stats</div>';}
 }
 async function loadUsers(){
   try{
     const r=await fetch('/api/admin/users');const d=await r.json();
-    const rows=d.users.map((u,i)=>`<tr>
-      <td style="color:#555">\${i+1}</td>
-      <td style="font-weight:600">\${u.login}</td>
-      <td><span class="badge-role \${u.role==='admin'?'badge-admin':'badge-user'}">\${u.role}</span></td>
-      <td>\${u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':`<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser('\${u.login}')">Supprimer</button>`}</td>
-    </tr>`).join('');
+    const rows=d.users.map((u,i)=>'<tr>'+
+      '<td style="color:#555">'+(i+1)+'</td>'+
+      '<td style="font-weight:600">'+u.login+'</td>'+
+      '<td><span class="badge-role '+(u.role==='admin'?'badge-admin':'badge-user')+'">'+u.role+'</span></td>'+
+      '<td>'+(u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':'<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser(\''+u.login+'\')">Supprimer</button>')+'</td>'+
+    '</tr>').join('');
     document.getElementById('users-tbody').innerHTML=rows||'<tr><td colspan="4" style="color:#555;font-size:11px">Aucun utilisateur</td></tr>';
   }catch(e){}
 }
