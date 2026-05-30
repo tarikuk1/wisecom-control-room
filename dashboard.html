@@ -631,7 +631,7 @@ const AGENTS_BASE=[
 ];
 
 function rnd(a,b){return Math.floor(a+Math.random()*(b-a));}
-function mmss(s){if(!s||isNaN(s))return"--:--";return`${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
+function mmss(s){if(!s||isNaN(s))return"–";const m=Math.floor(s/60),sc=Math.round(s%60);return m+"min "+String(sc).padStart(2,"0")+"sec";}
 // Arrondi à 5 minutes supérieur (17h42 → 17h45 ; 8h31 → 8h35 ; 9h57 → 10h00)
 function roundTo5(h,m){m=Math.ceil(m/5)*5;if(m>=60){m=0;h++;}if(h>=24)h=h%24;return[h,m];}
 function fmtTime(iso){
@@ -809,28 +809,26 @@ async function loadAgentsFromAPI(){
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
-        // Objectif depuis les critères campagne (localStorage) ou défaut 50
-        let obj=50;
-        try{const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');if(crit[camp]&&crit[camp].obj_appels)obj=crit[camp].obj_appels;}catch(e){}
-        const realise=hprod>0&&obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
+        // 1. Queues actives du jour
         const fq=(a.queues||"").split(", ").filter(Boolean);
-        // Chercher la campagne en matchant le nom de queue (insensible à la casse)
-        // Déduire la campagne principale depuis les queues actives
-        // Utiliser QUEUES_MAP pour un matching précis
+        // 2. Campagne principale (via QUEUES_MAP exact puis fallback)
         const camp=(()=>{
           for(const c of CAMPS){
-            const mappedQs=QUEUES_MAP[c]||[];
-            if(fq.some(q=>mappedQs.includes(q)))return c;
+            if((QUEUES_MAP[c]||[]).some(q=>fq.includes(q)))return c;
           }
-          // Fallback : matching par préfixe insensible à la casse
           for(const c of CAMPS){
-            const clow=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
-            if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(clow)))return c;
+            const cl=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+            if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(cl)))return c;
           }
-          // Fallback ultime : premier mot de la première queue
           return fq[0]?fq[0].split("_")[0].split(" ")[0]:"–";
         })();
+        // 3. Mails saisis manuellement
         const m=mailsEdit[a.id]||0;
+        // 4. Objectif depuis les critères campagne (localStorage) ou défaut 50
+        let obj=50;
+        try{const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');if(crit[camp]&&crit[camp].obj_appels)obj=+crit[camp].obj_appels||50;}catch(e){}
+        // 5. % de réalisé = (appels + mails) / objectif
+        const realise=obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
         // Occupation : calculée à partir des données INO disponibles (duree de communication / présence estimée)
@@ -1093,9 +1091,11 @@ function getFiltered(){
 
 function getSorted(f){
   return[...f].sort((a,b)=>{
-    const ma=mailsEdit[a.id]||a.mails_auto||0,mb=mailsEdit[b.id]||b.mails_auto||0;
-    if(sortCol==="actes")return sortDir*((a.appels+ma)-(b.appels+mb));
+    const ma=mailsEdit[a.id]??a.mails_auto??0,mb=mailsEdit[b.id]??b.mails_auto??0;
+    if(sortCol==="actes"||sortCol==="actesH")return sortDir*((a.appels+ma)-(b.appels+mb));
     if(sortCol==="nom")return sortDir*a.nom.localeCompare(b.nom);
+    if(sortCol==="dmc")return sortDir*(a.dmc-b.dmc);
+    if(sortCol==="realise")return sortDir*(a.realise-b.realise);
     return sortDir*((a[sortCol]||0)-(b[sortCol]||0));
   });
 }
@@ -1138,7 +1138,7 @@ const totRecus=Math.max(1,Math.round(totApp*1.15));
     {l:"Flux reçus",v:totRecus.toLocaleString()},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
-    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04:00"},
+    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04min00sec"},
     {l:"FCR",v:fcr+"%",sub:"Résolution au 1er contact",alert:fcr<70,good:fcr>=85,gauge:fcr},
     {l:"Taux de transformation global",v:(transfoGlobal!=null?transfoGlobal+"%":"n.d."),sub:transfoGlobal!=null?"Moyenne agents":"Non fourni par INO",good:transfoGlobal!=null&&transfoGlobal>=25},
     {l:"Appels décr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traités/h prod"},
