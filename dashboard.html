@@ -1293,6 +1293,14 @@ const totRecus=Math.max(1,Math.round(totApp*1.15));
 // Smart routing + Red flags
 function renderAlerts(f){
   const zone=document.getElementById("alerts-zone");
+  // Pilotage instantané : les conseils ne s'affichent QUE pour la journée en cours (live).
+  // Sur une date antérieure (historique), aucun conseil — ce n'est pas du temps réel.
+  const selDate=(document.getElementById("f-date-deb")||{}).value||new Date().toISOString().slice(0,10);
+  const today=new Date().toISOString().slice(0,10);
+  if(selDate!==today){
+    zone.innerHTML='<div style="padding:14px 18px;font-size:11px;color:#666;background:rgba(255,255,255,.02);border:1px solid #1a1a1a;border-radius:10px">📅 Consultation historique ('+selDate.split("-").reverse().join("/")+') — les conseils de pilotage ne s\'affichent que sur la journée en cours.</div>';
+    return;
+  }
   const crit=loadCriteres();
   let html="";
 
@@ -1334,19 +1342,33 @@ function renderAlerts(f){
         <span class="smart-text">Backlog mails <b style="color:${P}">${camp}</b> : <b style="color:${P}">${backlog} mails</b> — seuil maximum fixé à ${cc.backlog_max}. <b>attention</b> — action requise.</span>
       </div>`;
     }
-    // Alerte 0 agent connecté
-    if(cc.alert_no_agent&&stat.agents.filter(a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel').length===0&&stat.agents.length>0){
+    // Amplitude horaire d'ouverture du service (par campagne)
+    const hOuv=cc.h_ouv||"09:00", hFerm=cc.h_ferm||"18:00";
+    const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+    const toMin=t=>{const[h,m]=String(t).split(":").map(Number);return h*60+(m||0);};
+    const serviceOuvert=curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
+    const agentsDispo=stat.agents.filter(a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel').length;
+
+    // Conseil : campagne/file sans aucun agent disponible (pendant les heures d'ouverture)
+    if(serviceOuvert&&agentsDispo===0&&stat.agents.length>0){
       html+=`<div class="redflag-alert">
-        <span class="redflag-badge">🚨 ALERTE COUVERTURE</span>
-        <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent avec la compétence <b style="color:#ff3b30">${camp}</b> n'est actuellement connecté. Risque de non-couverture.</span>
+        <span class="redflag-badge">🚨 AUCUN AGENT</span>
+        <span style="font-size:12px;color:#ff9999;flex:1">La file <b style="color:#ff3b30">${camp}</b> n'a <b>aucun agent disponible</b> alors que le service est ouvert (${hOuv}–${hFerm}). Affecter un agent pour assurer la prise d'appels.</span>
       </div>`;
     }
-    if(enTension){
-      // Signaler la tension sans recommander de basculement (le manager gère lui-même les compétences)
+    // Conseil : service ouvert mais aucun agent du tout positionné sur la file
+    if(cc.alert_no_agent&&serviceOuvert&&stat.agents.length===0){
+      html+=`<div class="redflag-alert">
+        <span class="redflag-badge">🚨 ALERTE COUVERTURE</span>
+        <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent positionné sur <b style="color:#ff3b30">${camp}</b> (service ouvert ${hOuv}–${hFerm}). Risque de non-couverture.</span>
+      </div>`;
+    }
+    // Tension : uniquement pendant les heures d'ouverture du service
+    if(enTension&&serviceOuvert&&agentsDispo>0){
       const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
       html+=`<div class="smart-alert">
         <span class="smart-badge">⚠ attention</span>
-        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).</span>
+        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h · service ${hOuv}–${hFerm}).</span>
       </div>`;
     }
   });
@@ -2218,7 +2240,9 @@ function saveCriteres(){
       backlog_min:parseInt(document.getElementById('backlog-min-'+c)?.value||10),
       backlog_max:parseInt(document.getElementById('backlog-max-'+c)?.value||90),
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
-      obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50)
+      obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
+      h_ouv:document.getElementById('h-ouv-'+c)?.value||'09:00',
+      h_ferm:document.getElementById('h-ferm-'+c)?.value||'18:00'
     };
   });
   try{
@@ -2257,7 +2281,7 @@ function renderCriteres(){
     +'<div style="font-size:11px;color:#555">Ces critères déclenchent les alertes dans le dashboard. Lecture seule INO — aucune modification n\'est envoyée à INO.</div>'
     +'</div>';
   CAMPS.forEach(function(c){
-    const s=saved[c]||{qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50};
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00'},saved[c]||{});
     const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
     const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
     const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
@@ -2288,6 +2312,8 @@ function renderCriteres(){
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
           +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" aria-label="Objectif appels" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
+          +'<div class="param-row"><span class="param-label">⏰ Ouverture du service</span><input class="param-input" id="h-ouv-'+c+'" type="time" aria-label="Heure ouverture" value="'+s.h_ouv+'"></div>'
+          +'<div class="param-row"><span class="param-label">⏰ Fermeture du service</span><input class="param-input" id="h-ferm-'+c+'" type="time" aria-label="Heure fermeture" value="'+s.h_ferm+'"></div>'
           +'<div class="alert-trigger"><input type="checkbox" aria-label="Alerte aucun agent" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
           +'<label for="alert-no-agent-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence '+c+' est connecté</label></div>'
         +'</div>'
