@@ -838,7 +838,9 @@ async function refreshFromINO(){
 async function loadAgentsFromAPI(){
   try{
     const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
-    const res=await fetch(`/agents-day?date=${d}`);
+    const hDeb=document.getElementById("f-h-deb")?.value||"08:00";
+    const hFin=document.getElementById("f-h-fin")?.value||"20:00";
+    const res=await fetch(`/agents-day?date=${d}&hDeb=${hDeb}&hFin=${hFin}`);
     if(!res.ok)throw new Error();
     const data=await res.json();
     if(data.agents&&data.agents.length>0){
@@ -1652,7 +1654,24 @@ function toggleRow(id){
 // Graphiques
 function renderChart(){
   const host=document.getElementById("chart-host");if(!host)return;
-  if(!slots.length){
+  // Filtrer les slots par campagnes sélectionnées
+  const filteredSlots=slots.map(sl=>{
+    if(!sl.queues||Object.keys(sl.queues).length===0)return sl;
+    // Si toutes les campagnes sont sélectionnées, pas de filtrage
+    if(selCamps.length===CAMPS.length)return sl;
+    // Filtrer: garder seulement les queues des camps sélectionnés
+    const queuesCamp=Object.keys(sl.queues).filter(q=>
+      selCamps.some(c=>(QUEUES_MAP[c]||[]).some(mq=>
+        q.toLowerCase().includes(mq.toLowerCase().slice(0,8))||
+        mq.toLowerCase().includes(q.toLowerCase().slice(0,8))
+      ))
+    );
+    const filtVol=queuesCamp.reduce((s,q)=>s+(sl.queues[q]||0),0);
+    // Si aucun appel pour ce camp dans ce slot → garder le slot vide
+    return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
+  });
+  const displaySlots=filteredSlots;
+  if(!displaySlots.length){
     const msg=inoLive
       ?`<div style="padding:30px;color:#888;font-size:13px;text-align:center;line-height:1.6">
           <div style="font-size:30px;margin-bottom:8px">📊</div>
@@ -1667,7 +1686,7 @@ function renderChart(){
   // Dimensions agrandies + marges pour axes
   const W=970,H=240,PAD={t:18,r:14,b:48,l:42};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
-  const maxV=Math.max(...slots.map(s=>s.vol+s.out),1);
+  const maxV=Math.max(...displaySlots.map(s=>s.vol+s.out),1);
   // Échelle Y "ronde" : prochaine dizaine au-dessus
   const yMax=Math.ceil(maxV/10)*10;
   const bw=cw/slots.length;
