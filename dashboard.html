@@ -1057,21 +1057,7 @@ async function deletePreset(){
   presetStatus(`Vue « ${name} » supprimée`,"#ccc");
 }
 
-// Acquittement visuel d'une recommandation de smart routing (aucune écriture API)
-let acknowledgedAlerts={};
-function acknowledgeAlert(key){
-  acknowledgedAlerts[key]=Date.now();
-  const el=document.querySelector(`[data-alert-key="${key}"]`);
-  if(el){
-    el.classList.add("acknowledged");
-    const actions=el.querySelector(".smart-actions");
-    if(actions)actions.innerHTML=`<span style="font-size:10px;color:#30d158;font-weight:600">✓ Recommandation acquittée — ${new Date().toLocaleTimeString("fr-FR")}</span>`;
-  }
-}
-function dismissAlert(key){
-  const el=document.querySelector(`[data-alert-key="${key}"]`);
-  if(el)el.remove();
-}
+// Alertes de tension : signalées sans recommandation (le manager gère les compétences manuellement)
 
 // Filtrage
 function getFiltered(){
@@ -1356,31 +1342,12 @@ function renderAlerts(f){
       </div>`;
     }
     if(enTension){
-      // Cherche candidats disponibles depuis autres files
-      const candidats=agents.filter(a=>
-        a.camp!==camp&&
-        (a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel")&&
-        !f.find(x=>x.id===a.id&&x.camp===camp)
-      );
-      if(candidats.length>0){
-        const c=candidats[0];
-        const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
-        const key=`smart:${camp}:${c.id}`;
-        const ack=acknowledgedAlerts[key];
-        html+=`<div class="smart-alert${ack?" acknowledged":""}" data-alert-key="${key}">
-          <span class="smart-badge">⚠ attention</span>
-          <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).
-          Recommandation : Basculer <b style="color:${P}">${c.nom}</b> depuis <b>${c.camp}</b>
-          (compétence ${(c.skills||[]).join(", ")||"–"} validée) pour maintenir une <b style="color:#30d158">bonne maitrise</b> de la production.</span>
-          <div class="smart-actions">
-            ${ack
-              ?`<span style="font-size:10px;color:#30d158;font-weight:600">✓ Recommandation acquittée — ${new Date(ack).toLocaleTimeString("fr-FR")}</span>`
-              :`<button class="btn-validate" onclick="acknowledgeAlert('${key}')">✓ Valider la recommandation</button>
-                <button class="btn-dismiss" onclick="dismissAlert('${key}')">Ignorer</button>
-                <span style="font-size:9px;color:#666;align-self:center">Action visuelle uniquement — aucune écriture INO</span>`}
-          </div>
-        </div>`;
-      }
+      // Signaler la tension sans recommander de basculement (le manager gère lui-même les compétences)
+      const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
+      html+=`<div class="smart-alert">
+        <span class="smart-badge">⚠ attention</span>
+        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h).</span>
+      </div>`;
     }
   });
 
