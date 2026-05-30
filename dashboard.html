@@ -354,6 +354,30 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
 .col-def-close{margin-top:20px;display:flex;justify-content:flex-end;}
 .col-def-close button{background:#E8006E;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.05em;}
 
+.skill-act-btn{border-radius:50%;background:transparent;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;color:#555;width:22px;height:22px;line-height:20px;text-align:center;transition:all .2s;display:inline-block;}
+.skill-act-btn:hover{border-color:#E8006E;color:#E8006E;background:rgba(232,0,110,.08);}
+body.light .skill-act-btn{border-color:#ccc;color:#999;}
+body.light .skill-act-btn:hover{border-color:#E8006E;color:#E8006E;}
+/* ===== MODE CLAIR — fixes supplémentaires ===== */
+body.light .data-table,
+body.light table{background:#fff;}
+body.light .tbl{background:#fff;}
+body.light .agent-row{background:#fff;}
+body.light .agent-row:hover td{background:#fdf2f7!important;}
+body.light .detail-row td{background:#fafafa;}
+body.light .col-def-box{background:#fff;border-color:#e0e0e0;}
+body.light .col-def-overlay{background:rgba(0,0,0,.4);}
+body.light .col-def-title{color:#111;}
+body.light .col-def-text{color:#555;}
+body.light .skills-matrix th,body.light #skills-table th{background:#f5f5f5;color:#666;}
+body.light .skills-matrix td,body.light #skills-table td{background:#fff;border-color:#f0f0f0;}
+body.light input[type=number].mail-input{background:#fff5f9;color:#c0005a;border-color:#f0c0d8;}
+body.light .redflag-timer-badge{background:#ff3b30;}
+body.light .detail-cell{background:#fafafa;}
+body.light .agent-row .skills-cell{color:#c0005a;}
+body.light .ino-coverage{background:#f8f8f8;border-color:#e8e8e8;}
+body.light .ino-coverage-text{color:#555;}
+
 </style>
 </head>
 <body>
@@ -853,7 +877,7 @@ async function loadAgentsFromAPI(){
         try{const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');if(crit[camp]&&crit[camp].obj_appels)obj=+crit[camp].obj_appels||50;}catch(e){}
         // 5. % de réalisé = (appels + mails) / objectif
         const realise=obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
-        const appelsDecH=hprod>0?+(a.appelsIn/hprod).toFixed(1):0;
+        const appelsDecH=hprod>0?+((a.appelsIn+(a.appelsOut||0))/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
         // Occupation = duree communication / (présence * 50min/h)
         // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
@@ -874,7 +898,7 @@ async function loadAgentsFromAPI(){
         return{id:a.id,nom:a.nom,login:a.username,camp,
           skills:derivedSkills,
           contrat:a.contrat||null,obj,
-          status:a.status||null,
+          status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
           mails_auto:m,hprod,
           presence:a.presence!=null?a.presence:null,
@@ -885,7 +909,7 @@ async function loadAgentsFromAPI(){
           refus:a.refus!=null?a.refus:null,
           reiterants:a.reiterants!=null?a.reiterants:null,
           realise,files_ok:true,
-          acw:a.acw||null,occupation,adherence:a.adherence!=null?a.adherence:null,
+          acw:a.acwMoyen||null,occupation,adherence:a.adherence!=null?a.adherence:null,
           transfo:a.transfo!=null?a.transfo:null,
           spark:Array.isArray(a.spark)?a.spark:null,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
@@ -1121,6 +1145,41 @@ function getFiltered(){
   });
 }
 
+function askActivateSkill(agentId,agentNom,skillNom){
+  // Modal de confirmation avant activation
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9100;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML=`
+    <div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#E8006E;margin-bottom:8px">Activation de compétence</div>
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:12px">${skillNom}</div>
+      <div style="font-size:13px;color:#888;line-height:1.6;margin-bottom:20px">
+        Activer la compétence <strong style="color:#ccc">${skillNom}</strong> pour l'agent <strong style="color:#ccc">${decodeURIComponent(agentNom)}</strong> ?<br>
+        <span style="font-size:11px;color:#555;margin-top:6px;display:block">⚠ Cette action modifie la configuration INO de l'agent.</span>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button id="skill-cancel" style="background:#1e1e1e;color:#888;border:1px solid #333;border-radius:7px;padding:9px 20px;cursor:pointer;font-size:12px;font-weight:600">Annuler</button>
+        <button id="skill-confirm" style="background:#E8006E;color:#fff;border:none;border-radius:7px;padding:9px 20px;cursor:pointer;font-size:12px;font-weight:700">Activer ✓</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#skill-cancel').onclick=()=>overlay.remove();
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  overlay.querySelector('#skill-confirm').onclick=async()=>{
+    overlay.querySelector('#skill-confirm').textContent='…';
+    overlay.querySelector('#skill-confirm').disabled=true;
+    // Appel API — endpoint INO non exposé → message d'information
+    try{
+      // TODO: appeler l'API INO d'activation quand l'endpoint sera disponible
+      // await fetch('/api/activate-skill', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agentId,skillNom})});
+      overlay.remove();
+      showToast('⚠ Activation '+skillNom+' — API INO non exposée. À faire manuellement dans INO.','warn',6000);
+    }catch(err){
+      overlay.remove();
+      showToast('Erreur activation: '+err.message,'error');
+    }
+  };
+}
 function showColDef(title,def){
   if(!def)return;
   document.getElementById('col-def-title').textContent=title;
@@ -1313,7 +1372,7 @@ function renderTable(sorted){
     {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle des mails",def:"Nombre de mails traités — saisie manuelle par le superviseur. Alimente le calcul des Actes total et Actes/h."},
     {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails",def:"Total des actes de production = Appels décrochés + Appels sortants + Mails saisis. Formule : appelsIn + appelsOut + mails."},
     {k:"actesH",l:"Actes/h",title:"Actes total / H. Prod",def:"Productivité horaire globale. Formule : Actes total / H. Prod. Inclut entrants décrochés + sortants + mails."},
-    {k:"appelsH",l:"App./h",title:"Appels entrants décrochés / H. Prod",def:"Cadence d'appels entrants décrochés par heure de production. Formule : Décrochés entrants / H. Prod. NE comprend PAS les sortants ni les mails."},
+    {k:"appelsH",l:"App./h",title:"(Entrants décrochés + Sortants) / H. Prod",def:"Cadence d'appels traités par heure de production. Formule : (Appels entrants décrochés + Appels sortants) / H. Prod. Inclut les deux flux voix. Exemple : 3 entrants + 2 sortants = 5 actes voix / X heures."},
     {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : Durée totale de communication / Nombre d'appels traités. Source : agentDuration cumulé / total appels. Affiché en MMmin SSsec."},
     {k:"acw",l:"Post-appel (ACW)",title:"Temps de post-appel (After Call Work)",def:"Durée moyenne de traitement post-appel. ⚠ Non exposé directement par l'API INO histories. Alerte si dérive >20% vs moyenne du groupe campagne."},
     {k:"occupation",l:"Occupation",title:"Taux d'occupation = Temps comm / (Présence × 50/60)",def:"Taux d'occupation = Temps total de communication / (Présence estimée × 50 min/h). La règle des 50 min/h correspond à 10 min de temps non communicant par heure (pauses, wrap-up). Présence estimée = derniereAction - premiereAction."},
@@ -1374,7 +1433,19 @@ function renderTable(sorted){
         ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">🚨${rfMins}m</span>`:""}
         ${a.nom}
       </td>
-      <td>${a.status?`<span style="color:${sc};font-size:10px;font-weight:600">● ${a.status}</span>`:ndStatus(null)}</td>
+      <td>${(()=>{
+  const st=a.status;
+  if(!st)return ndStatus(null);
+  const cfg={
+    "Traitement":{bg:"#ff6b6b",fg:"#fff",label:"TRAITEMENT"},
+    "Post-appel":{bg:"#ff9f43",fg:"#fff",label:"ACW"},
+    "Actif":{bg:"#26de81",fg:"#fff",label:"ACTIF"},
+    "Déconnecté":{bg:"#a0a0a0",fg:"#fff",label:"DÉCONNECTÉ"},
+    "Connecté":{bg:"#26de81",fg:"#fff",label:"ACTIF"},
+  };
+  const c=cfg[st]||{bg:"#555",fg:"#ccc",label:st};
+  return `<span style="display:inline-block;background:${c.bg};color:${c.fg};border-radius:20px;padding:2px 10px;font-size:9px;font-weight:800;letter-spacing:.06em;min-width:80px;text-align:center">${c.label}</span>`;
+})()}</td>
       <td><span class="badge badge-camp" style="font-size:10px">${a.camp}</span></td>
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Première connexion">${fmtTime(a.premiereAction)}</td>
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Dernière déconnexion">${fmtTime(a.derniereAction)}</td>
@@ -1648,10 +1719,12 @@ function renderSkills(){
       +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:#111;white-space:nowrap">'+a.nom+'<br><span style="font-size:9px;color:#555">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+a.camp+'</span></span></td>'
       +colSkills.map(sk=>{
         const has=(a.skills||[]).includes(sk);
+        const eid=a.id+','+encodeURIComponent(a.nom)+','+encodeURIComponent(sk);
+        const btnStyle='display:inline-block;width:22px;height:22px;border-radius:50%;background:transparent;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;color:#555;line-height:20px;text-align:center;transition:all .2s';
         return '<td style="text-align:center;padding:8px 12px">'
           +(has
-            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">✓</span>'
-            :'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a"></span>')
+            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff" title="Compétence active">✓</span>'
+            :'<button class="skill-act-btn" data-eid="'+eid+'" title="Activer" style="'+btnStyle+'">+</button>')
           +'</td>';
       }).join('')
       +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
@@ -1741,7 +1814,7 @@ function simulate(){
     lastVoixActivity:Math.random()>.3?Date.now():Date.now()-rnd(6,15)*60000
   })).map(a=>({...a,
     actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]||a.mails_auto||0))/a.hprod).toFixed(1):0,
-    appelsH:a.hprod>0?+(a.appelsIn/a.hprod).toFixed(1):0  // entrants décrochés / hprod
+    appelsH:a.hprod>0?+((a.appelsIn+(a.appelsOut||0))/(a.hprod)).toFixed(1):0
   }));
   slots=slots.map(s=>({...s,vol:Math.max(5,s.vol+rnd(-5,12)),aband:Math.max(0,s.aband+rnd(-2,5))}));
   render();
@@ -2202,6 +2275,16 @@ refreshFromINO();
 buildColPanel();
 // Event delegation pour les définitions de colonnes au clic sur ⓘ
 document.addEventListener('click',function(e){
+  // Bouton activation compétence dans la matrice
+  const skillBtn=e.target.closest('.skill-act-btn');
+  if(skillBtn){
+    const parts=skillBtn.dataset.eid.split(',');
+    const aid=parts[0];
+    const nom=decodeURIComponent(parts[1]);
+    const sk=decodeURIComponent(parts.slice(2).join(','));
+    askActivateSkill(aid,nom,sk);
+    return;
+  }
   const btn=e.target.closest('[data-show-def]');
   if(btn){
     e.stopPropagation();
