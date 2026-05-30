@@ -1355,7 +1355,7 @@ function renderTable(sorted){
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Première connexion">${fmtTime(a.premiereAction)}</td>
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Dernière déconnexion">${fmtTime(a.derniereAction)}</td>
       <td style="color:#666">${fmtH(a.hprod)}</td>
-      <td style="color:#555">${a.presence!=null?fmtH(a.presence):nd(null)}</td>
+      <td style="${visibleCols.has('presence')?'':' display:none'};color:#555">${a.presence!=null?fmtH(a.presence):nd(null)}</td>
       <td title="Appels présentés à l'agent">${a.appelsIn||0}</td>
       <td style="font-weight:700" title="Appels décrochés / traités">${a.appels}</td>
       <td title="Appels sortants">${a.appelsOut||0}</td>
@@ -1367,15 +1367,15 @@ function renderTable(sorted){
       <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h = Actes total / H. Prod">${ach}</td>
       <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décrochés par heure de prod">${aph}</td>
       <td>${mmss(a.dmc)}</td>
-      <td title="${acwDrift?`Dérive >20% vs moyenne ${a.camp} (${mmss(Math.round(grpAcw))})`:"Temps de post-appel"}">
+      <td style="${visibleCols.has('acw')?'':' display:none'}" title="${acwDrift?`Dérive >20% vs moyenne ${a.camp} (${mmss(Math.round(grpAcw))})`:"Temps de post-appel"}">
         ${a.acw==null?nd(null):(acwDrift?`<span class="badge badge-alert">⚠ ${acwTxt}</span><div style="font-size:8px;color:${P}">attention</div>`:acwTxt)}
       </td>
       <td style="color:${a.occupation==null?"#666":(a.occupation>=85?"#30d158":a.occupation<70?P:"#ccc")};font-weight:600">${a.occupation==null?nd(null):occTxt}</td>
-      <td style="color:#ccc">${a.transfo==null?nd(null):transfoTxt}</td>
-      <td style="color:${adhColor};font-weight:600">${a.adherence==null?nd(null):adhTxt}</td>
+      <td style="${visibleCols.has('transfo')?'':' display:none'};color:#ccc">${a.transfo==null?nd(null):transfoTxt}</td>
+      <td style="color:${adhColor};font-weight:600" style="${visibleCols.has('adherence')?'':' display:none'}">${a.adherence==null?nd(null):adhTxt}</td>
       <td style="color:${(a.ko||0)>10?P:"inherit"};font-weight:${(a.ko||0)>10?700:400}">${a.ko==null?nd(null):(a.ko||0)}</td>
       <td>${a.refus==null?nd(null):((a.refus||0)>5?`<span class="badge badge-alert">⚠ ${a.refus}</span>`:(a.refus||0))}</td>
-      <td>${a.inactifs==null?nd(null):((a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0))}</td>
+      <td style="${visibleCols.has('inactifs')?'':' display:none'}">${a.inactifs==null?nd(null):((a.inactifs||0)>6?`<span class="badge badge-alert">⚠ ${a.inactifs}</span>`:(a.inactifs||0))}</td>
       <td style="min-width:110px">
         <div style="display:flex;align-items:center;gap:5px;white-space:nowrap">
           <div style="width:50px;height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;flex-shrink:0"><div style="height:100%;width:${Math.min(a.realise,100)}%;background:${a.realise>=80?"#30d158":a.realise<50?"#ff3b30":P};border-radius:2px;transition:width .3s"></div></div>
@@ -1384,11 +1384,11 @@ function renderTable(sorted){
         </div>
       </td>
       <td>${sparkSVG(a.spark)}</td>
-      <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;font-weight:600;color:#E8006E;" title="${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'n.d.'}">${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'<span style="color:#444;font-style:italic">n.d.</span>'}</td>
+      <td style="text-align:center;${visibleCols.has('files')?'':' display:none'}">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
+      <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;font-weight:600;color:#E8006E;" title="${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'n.d.'}">${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'<span style="color:#444;font-style:italic">n.d.</span>'}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
-      <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
+      <td colspan="27" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
     </tr>`;
   }).join("")+`<tr class="total-row">
     <td colspan="8" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
