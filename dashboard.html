@@ -462,6 +462,7 @@ body.light .ino-coverage-text{color:#555;}
 <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Personnaliser les colonnes affichées" style="position:relative;z-index:300;">⊞ Colonnes <span id="col-count" style="font-size:9px;background:#E8006E;color:#fff;border-radius:8px;padding:1px 5px;margin-left:2px;"></span></button>
       <a href="/admin" target="_blank" style="font-size:10px;color:#555;text-decoration:none;padding:4px 9px;border-radius:4px;border:1px solid #222;transition:all .15s;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">⚙ Admin</a>
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Interroge l'API INO en lecture seule et met à jour les données">🔄 RAFRAÎCHIR (Fetch API INO)</button>
+      <button class="btn" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharge les compétences INO de tous les agents (plus lent)" style="background:#1a1a1a;color:#888;border:1px solid #2a2a2a;font-size:11px;padding:6px 12px;">↺ Compétences</button>
       <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Clair</button>
       <button class="btn btn-primary" onclick="simulate()">⚡ Simuler</button>
       <button class="btn" onclick="openCriteres()" style="background:linear-gradient(135deg,#2a0a1a,#1a0812);color:#E8006E;border:1px solid #E8006E44;font-weight:700;font-size:11px;padding:6px 14px;position:relative;z-index:300;" title="Paramétrage des critères et KPI par campagne">⚙ Critères KPI</button>
@@ -892,20 +893,11 @@ async function loadAgentsFromAPI(){
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
-        // Compétences depuis l'API INO /cc/agent/:id/flow/voice/skills/list (actives)
-        // Fallback: dériver depuis les queues via COMP_MAP
-        const inoSkills=Array.isArray(a.skillsData)&&a.skillsData.length>0
-          ?a.skillsData  // [{id, name, score, active}]
-          :null;
-        const derivedSkills=inoSkills
-          ?inoSkills.map(s=>s.name)
-          :(rawQueues.length>0?queuesToComps(rawQueues):null);
-        const allSkillsData=Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0
-          ?a.allSkillsData
-          :(inoSkills||null);
+        // Compétences: vides au chargement initial, remplies via bouton ↺ Compétences
+        // (évite ~15s de délai au rafraîchir principal)
         return{id:a.id,nom:a.nom,login:a.username,camp,
-          skills:derivedSkills,
-          allSkillsData:allSkillsData,  // actives+inactives avec IDs
+          skills:Array.isArray(a.skillsData)&&a.skillsData.length>0?a.skillsData.map(s=>s.name||s):[],
+          allSkillsData:Array.isArray(a.allSkillsData)?a.allSkillsData:[],
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
@@ -1259,6 +1251,42 @@ function showColDef(title,def){
 function closeColDef(e){
   if(e.target===document.getElementById('col-def-overlay'))
     document.getElementById('col-def-overlay').classList.remove('open');
+}
+// ===== RAFRAÎCHISSEMENT COMPÉTENCES (déclenché manuellement) =====
+async function refreshSkills(){
+  if(agents.length===0){showToast('Chargez d’abord les données agents','warn');return;}
+  const btn=document.getElementById('btn-refresh-skills');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Chargement…';}
+  try{
+    const agentIds=agents.map(a=>a.id);
+    showToast('↺ Récupération compétences INO ('+agentIds.length+' agents)…','info',15000);
+    const resp=await fetch('/api/refresh-skills',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({agentIds})
+    });
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    if(!data.ok)throw new Error(data.error||'Erreur serveur');
+    // Mettre à jour les agents avec les compétences reçues
+    let updated=0;
+    agents.forEach(a=>{
+      const sk=data.results[a.id];
+      if(sk&&!sk.error){
+        a.skills=sk.skills.map(s=>s.name);
+        a.allSkillsData=sk.allSkills;
+        a.skillsData=sk.skills;
+        updated++;
+      }
+    });
+    render();
+    if(document.getElementById('skills-table'))renderSkills();
+    showToast('✓ Compétences mises à jour ('+updated+'/'+agentIds.length+' agents)','ok',5000);
+  }catch(e){
+    showToast('Erreur compétences: '+e.message,'error');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
+  }
 }
 function getSorted(f){
   return[...f].sort((a,b)=>{
