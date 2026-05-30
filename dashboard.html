@@ -892,11 +892,20 @@ async function loadAgentsFromAPI(){
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
-        // Compétences = regroupement des queues via COMP_MAP
-        // Ex: Vivest_Client + Vivest_Standard → ["Vivest"]  Sortant Vivest → ["Vivest_Sortant"]
-        const derivedSkills=rawQueues.length>0?queuesToComps(rawQueues):null;
+        // Compétences depuis l'API INO /cc/agent/:id/flow/voice/skills/list (actives)
+        // Fallback: dériver depuis les queues via COMP_MAP
+        const inoSkills=Array.isArray(a.skillsData)&&a.skillsData.length>0
+          ?a.skillsData  // [{id, name, score, active}]
+          :null;
+        const derivedSkills=inoSkills
+          ?inoSkills.map(s=>s.name)
+          :(rawQueues.length>0?queuesToComps(rawQueues):null);
+        const allSkillsData=Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0
+          ?a.allSkillsData
+          :(inoSkills||null);
         return{id:a.id,nom:a.nom,login:a.username,camp,
           skills:derivedSkills,
+          allSkillsData:allSkillsData,  // actives+inactives avec IDs
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
@@ -1145,9 +1154,11 @@ function getFiltered(){
   });
 }
 
-async function askActivateSkill(agentId,agentNom,skillNom){
+async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScore){
   const nom=decodeURIComponent(agentNom);
   const sk=decodeURIComponent(skillNom);
+  const preloadedId=knownSkillId&&knownSkillId!=='null'&&knownSkillId!==''?knownSkillId:null;
+  const preloadedScore=knownScore||100;
   
   // Créer la modal de confirmation
   const overlay=document.createElement('div');
@@ -1170,7 +1181,18 @@ async function askActivateSkill(agentId,agentNom,skillNom){
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
   
   // Récupérer l'ID INO réel de la compétence
-  let skillId=null;
+  let skillId=preloadedId;
+  if(skillId){
+    // ID déjà connu depuis la matrice (allSkillsData)
+    overlay.querySelector('#skill-loading').style.display='none';
+    overlay.querySelector('#skill-info').style.display='block';
+    overlay.querySelector('#skill-info').innerHTML=
+      '<strong style="color:#ccc">Compétence :</strong> '+sk+' (ID: '+skillId+')<br>'+
+      '<span style="color:#555">Score configuré : '+preloadedScore+'</span><br><br>'+
+      '<span style="color:#ff9f43">⚠ Cette action modifie la configuration INO de l’agent en temps réel.</span>';
+    const btn=overlay.querySelector('#skill-confirm');
+    btn.disabled=false;btn.style.background='#E8006E';btn.style.color='#fff';btn.style.cursor='pointer';
+  }else
   try{
     const r=await fetch('/api/skill-list/'+agentId);
     if(r.ok){
@@ -1528,7 +1550,7 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center;${visibleCols.has('files')?'':' display:none'}">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;vertical-align:middle;" title="${Array.isArray(a.skills)&&a.skills.length?'Compétences actives: '+a.skills.join(' · '):'Compétences non disponibles via API INO'}">${(()=>{const sk=Array.isArray(a.skills)?a.skills:[];if(sk.length===0)return '<span style="color:#444;font-style:italic;font-size:10px">n.d.</span>';return '<span style="font-size:11px;font-weight:700;color:#E8006E">'+sk.length+'</span><span style="font-size:8px;color:#888;margin-left:4px">'+sk.slice(0,2).join(', ')+(sk.length>2?' +'+(sk.length-2):'')+ '</span>';})()}</td>
+      <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;vertical-align:middle;" title="${(function(){var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];return all.length?all.map(function(s){return s.name+(s.active?' ON':' OFF')+(s.score?' ('+s.score+')':'');}).join(' | '):'n.d.';})()}">${(function(){var sk=Array.isArray(a.skills)?a.skills:[];var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];var inactive=all.filter(function(s){return !s.active;}).length;if(sk.length===0&&all.length===0)return'<span style="color:#444;font-style:italic;font-size:10px">n.d.</span>';return'<span style="font-size:11px;font-weight:700;color:#E8006E">'+sk.length+'</span><span style="font-size:8px;color:#888;margin-left:3px">act'+(inactive>0?' / <span style="color:#555">'+inactive+' OFF</span>':'')+'</span>';})()}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="27" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
@@ -1766,12 +1788,17 @@ function renderSkills(){
     return '<tr>'
       +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:#111;white-space:nowrap">'+a.nom+'<br><span style="font-size:9px;color:#555">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+a.camp+'</span></span></td>'
       +colSkills.map(sk=>{
-        const has=(a.skills||[]).includes(sk);
-        const eid=a.id+','+encodeURIComponent(a.nom)+','+encodeURIComponent(sk);
+        // Chercher dans allSkillsData pour avoir l'ID et le score
+        const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
+        const has=skillEntry?skillEntry.active:((a.skills||[]).includes(sk));
+        const skillId=skillEntry?skillEntry.id:null;
+        const skillScore=skillEntry?skillEntry.score:100;
+        const sid=skillId||'';
+        const eid=a.id+','+encodeURIComponent(a.nom)+','+encodeURIComponent(sk)+','+sid+','+skillScore;
         const btnStyle='display:inline-block;width:22px;height:22px;border-radius:50%;background:transparent;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;color:#555;line-height:20px;text-align:center;transition:all .2s';
         return '<td style="text-align:center;padding:8px 12px">'
           +(has
-            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff" title="Compétence active">✓</span>'
+            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff" title="Actif · Score: '+skillScore+'">✓</span>'
             :'<button class="skill-act-btn" data-eid="'+eid+'" title="Activer" style="'+btnStyle+'">+</button>')
           +'</td>';
       }).join('')
@@ -2329,8 +2356,10 @@ document.addEventListener('click',function(e){
     const parts=skillBtn.dataset.eid.split(',');
     const aid=parts[0];
     const nom=decodeURIComponent(parts[1]);
-    const sk=decodeURIComponent(parts.slice(2).join(','));
-    askActivateSkill(aid,nom,sk);
+    const sk=decodeURIComponent(parts[2]);
+    const sid=parts[3]||'';
+    const score=parseInt(parts[4])||100;
+    askActivateSkill(aid,nom,sk,sid,score);
     return;
   }
   const btn=e.target.closest('[data-show-def]');
