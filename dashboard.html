@@ -539,20 +539,34 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
 
 <script>
 const P="#E8006E";
-const CAMPS=["Voltalis","Omoda","Elvetis","Alcéane","Vivest","Evoriel","ELECTROSUR","Antargaz"];
+const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage"];
 const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
 const CONTRATS=["CDI","CDD","Alternance","Intérim"];
 const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
 const QUEUES_MAP={
-  Voltalis:["Voltalis_Client","Voltalis_Tech","Voltalis_Sortant","VOLTALIS","VOLTALIS_ENT","VOLTALIS_SOR"],
-  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV","OMODA","OMODA_ENT"],
-  Elvetis:["Elvetis_RQ","Elvetis_SAV","ELVETIS","ELVETIS_ENT"],
-  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence","ALCEANE","ALCÉANE","ALCEANE_ENT"],
-  Vivest:["Vivest_Client","Vivest_Sortant","Vivest_Standard","VIVEST","VIVEST_ENT","VIVEST_SOR"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Locataire","Evoriel_Bailleur","EVORIEL","EVORIEL_ENT"],
-  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR","ELECTROSUR_ENT"],
-  Antargaz:["Antargaz_Client","Antargaz_Sortant","ANTARGAZ","ANTARGAZ_ENT"],
+  // Campagnes Wisecom — mapping issu des queues INO réelles (histories API 29/05/2026)
+  Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération"],
+  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_Magasin_Autres"],
+  Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Sortant Vivest","Sortant Verspieren"],
+  Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération"],
+  Antargaz:["Antargaz_Client","Antargaz_Sortant","Antargaz"],
+  Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
+  Elvetis:["Elvetis_RQ","Elvetis_SAV"],
+  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence","Alceane"],
+  "MG Motor":["MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession","MG Motor"],
+  Filippi:["Filippi_Hertz Ajaccio_Réservation","Filippi_Hertz Ajaccio_Assistance","Filippi_Hertz Bastia_Réservation","Filippi_Hertz Bastia_Assistance","Filippi_Hertz Bastia_Ville","Filippi_Hertz Calvi_Réservation","Filippi_Hertz Calvi_Assistance","Filippi_Hertz Figari_Réservation","Filippi_Hertz Figari_Assistance","Filippi_Sixt_Ajaccio_Réservation","Filippi_Sixt_Ajaccio_Assistance","Filippi_Sixt_Bastia_Réservation","Filippi_Sixt_Figari_Réservation","Filippi_Sixt_Figari_Assistance"],
+  "Nature & Découvertes":["Nature & Découvertes"],
+  Delsey:["Delsey_Site FR","Delsey_Plateforme internet FR","Delsey_Autres Sites FR"],
+  LMB:["LMB_Inscription","LMB_Autre demande","LMB_Parent d'enfant"],
+  Afnor:["Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi","Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION"],
+  SOS:["SOS _ MA","SOS _ MA _ Réitération"],
+  LGR:["LGR-SC","LGR-Réitération"],
+  LMDW:["LMDW_FR"],
+  LBE:["1_LBE_Offre et souscription"],
+  M123:["M123_FR"],
+  Equisign:["Equisign"],
+  Eiffage:["Eiffage"],
 };
 const AGENTS_BASE=[
   {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
@@ -754,8 +768,21 @@ async function loadAgentsFromAPI(){
         const realise=hprod>0&&obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
         const fq=(a.queues||"").split(", ").filter(Boolean);
         // Chercher la campagne en matchant le nom de queue (insensible à la casse)
-        const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase().replace(/é/g,"e").replace(/è/g,"e"))))||
-          (fq[0]?fq[0].split("_")[0]:"–")||"–";
+        // Déduire la campagne principale depuis les queues actives
+        // Utiliser QUEUES_MAP pour un matching précis
+        const camp=(()=>{
+          for(const c of CAMPS){
+            const mappedQs=QUEUES_MAP[c]||[];
+            if(fq.some(q=>mappedQs.includes(q)))return c;
+          }
+          // Fallback : matching par préfixe insensible à la casse
+          for(const c of CAMPS){
+            const clow=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+            if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(clow)))return c;
+          }
+          // Fallback ultime : premier mot de la première queue
+          return fq[0]?fq[0].split("_")[0].split(" ")[0]:"–";
+        })();
         const m=mailsEdit[a.id]||0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
