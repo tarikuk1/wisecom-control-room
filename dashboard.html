@@ -342,6 +342,18 @@ body.light input[type=number]{background:#fff;color:#222;border-color:#ddd;}
 /* Inputs date/time : forcer texte lisible en mode clair */
 body.light input[type=date]::-webkit-calendar-picker-indicator,
 body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opacity:.6;}
+/* ===== MODAL DÉFINITION COLONNE ===== */
+.col-def-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.col-def-overlay.open{opacity:1;pointer-events:all;}
+.col-def-box{background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:28px 32px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .2s;}
+.col-def-overlay.open .col-def-box{transform:translateY(0);}
+.col-def-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#E8006E;margin-bottom:6px;}
+.col-def-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:16px;letter-spacing:.02em;}
+.col-def-text{font-size:13px;color:#999;line-height:1.7;}
+.col-def-text strong{color:#ccc;}
+.col-def-close{margin-top:20px;display:flex;justify-content:flex-end;}
+.col-def-close button{background:#E8006E;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.05em;}
+
 </style>
 </head>
 <body>
@@ -863,7 +875,7 @@ async function loadAgentsFromAPI(){
           skills:derivedSkills,
           contrat:a.contrat||null,obj,
           status:a.status||null,
-          appels:total,appelsIn:a.appelsIn,appelsOut:a.appelsOut,
+          appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
           mails_auto:m,hprod,
           presence:a.presence!=null?a.presence:null,
           dmc:a.dmt||0,
@@ -1109,6 +1121,16 @@ function getFiltered(){
   });
 }
 
+function showColDef(title,def){
+  if(!def)return;
+  document.getElementById('col-def-title').textContent=title;
+  document.getElementById('col-def-text').innerHTML=def.replace(/\n/g,'<br>').replace(/Formule :/g,'<strong>Formule :</strong>').replace(/Source :/g,'<strong>Source :</strong>').replace(/ATTENTION :/g,'<strong style="color:#E8006E">⚠ ATTENTION :</strong>');
+  document.getElementById('col-def-overlay').classList.add('open');
+}
+function closeColDef(e){
+  if(e.target===document.getElementById('col-def-overlay'))
+    document.getElementById('col-def-overlay').classList.remove('open');
+}
 function getSorted(f){
   return[...f].sort((a,b)=>{
     const ma=mailsEdit[a.id]??a.mails_auto??0,mb=mailsEdit[b.id]??b.mails_auto??0;
@@ -1277,33 +1299,33 @@ function renderAlerts(f){
 function renderTable(sorted){
   // Filtrer les colonnes selon la sélection utilisateur
   const ALL_COLS=[
-    {k:"expand",l:""},
-    {k:"nom",l:"Agent"},
-    {k:"status",l:"Statut"},
-    {k:"camp",l:"File / Campagne"},
-    {k:"premiere",l:"1ère connexion",title:"Heure de première connexion de l'agent dans la journée"},
-    {k:"derniere",l:"Dernière déco",title:"Heure de dernière déconnexion de l'agent"},
-    {k:"hprod",l:"H. Prod"},
-    {k:"presence",l:"Présence"},
-    {k:"appelsIn",l:"Appels reçus",title:"Appels entrants présentés à l'agent (file)"},
-    {k:"appels",l:"Décrochés",title:"Appels entrants effectivement décrochés / traités"},
-    {k:"appelsOut",l:"Sortants",title:"Appels sortants réalisés"},
-    {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle — alimente le calcul des actes/h"},
-    {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails"},
-    {k:"actesH",l:"Actes/h",title:"Actes total / Heures de production"},
-    {k:"appelsH",l:"App./h",title:"Appels décrochés / Heures de production"},
-    {k:"dmc",l:"DMC"},
-    {k:"acw",l:"Post-appel (ACW)",title:"Temps de post-appel moyen — alerte si dérive >20% vs groupe"},
-    {k:"occupation",l:"Occupation",title:"Taux d'occupation (communication / présence)"},
-    {k:"transfo",l:"Transformation",title:"Taux de transformation"},
-    {k:"adherence",l:"Adhérence",title:"Adhérence au planning"},
-    {k:"ko",l:"100 % KO"},
-    {k:"refus",l:"Qualif. Refus",title:"Appels qualifiés 'Refus' par l'agent — Note : les appels abandonnés (raccrochage file) ne sont pas attribuables par agent dans l'API INO"},
-    {k:"inactifs",l:"Inactifs"},
-    {k:"realise",l:"% de réalisé"},
-    {k:"spark",l:"Activité du jour",title:"Évolution des actes sur la journée"},
-    {k:"files",l:"Files"},
-    {k:"skills",l:"Compétences",title:"Compétences actives de l'agent"}
+    {k:"expand",l:"",def:""},
+    {k:"nom",l:"Agent",def:"Nom complet de l'agent. Source : API INO /call/in/histories (agent.firstname + agent.lastname)."},
+    {k:"status",l:"Statut",def:"Statut temps réel de l'agent (Connecté / En Pause / Wrap-up / Déconnecté). ⚠ Non disponible via l'API INO histories — nécessite un endpoint temps réel non exposé dans cette version.",title:"Statut temps réel — non disponible API INO"},
+    {k:"camp",l:"File / Campagne",def:"Campagne principale de l'agent, déduite des queues actives dans les historiques INO du jour via QUEUES_MAP."},
+    {k:"premiere",l:"1ère connexion",title:"Heure de première connexion de l'agent dans la journée",def:"Timestamp du premier appel enregistré pour cet agent dans la journée. Source : acdDate du premier enregistrement histories."},
+    {k:"derniere",l:"Dernière déco",title:"Heure de dernière déconnexion de l'agent",def:"Timestamp du dernier appel enregistré. Utilisé avec la 1ère connexion pour calculer H.Prod."},
+    {k:"hprod",l:"H. Prod",def:"Heures de production = durée entre 1ère connexion et dernière déconnexion. Formule : (derniereAction - premiereAction) / 3 600 000 ms. Si timestamps absents, fallback = duree_comm / 0,75."},
+    {k:"presence",l:"Présence",def:"Temps de présence réel sur le plateau. Non exposé par l'API INO histories — affiché n.d."},
+    {k:"appelsIn",l:"Appels présentés",title:"Appels entrants présentés à l'agent (décrochés + non décrochés)",def:"Appels entrants présentés à l'agent = décrochés + présentés mais non décrochés (agentDuration=0). Les abandons de file (appelant raccroche avant distribution) ont agent=null et ne sont PAS comptabilisés ici. Source : API INO /call/in/histories."},
+    {k:"appels",l:"Décrochés",title:"Appels entrants effectivement décrochés",def:"Appels entrants effectivement décrochés par l'agent (agentDuration > 0). Source : count des enregistrements /call/in/histories avec agent assigné."},
+    {k:"appelsOut",l:"Sortants",title:"Appels sortants réalisés",def:"Appels sortants réalisés par l'agent. Source : API INO /call/out/histories."},
+    {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle des mails",def:"Nombre de mails traités — saisie manuelle par le superviseur. Alimente le calcul des Actes total et Actes/h."},
+    {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails",def:"Total des actes de production = Appels décrochés + Appels sortants + Mails saisis. Formule : appelsIn + appelsOut + mails."},
+    {k:"actesH",l:"Actes/h",title:"Actes total / H. Prod",def:"Productivité horaire globale. Formule : Actes total / H. Prod. Inclut entrants décrochés + sortants + mails."},
+    {k:"appelsH",l:"App./h",title:"Appels entrants décrochés / H. Prod",def:"Cadence d'appels entrants décrochés par heure de production. Formule : Décrochés entrants / H. Prod. NE comprend PAS les sortants ni les mails."},
+    {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : Durée totale de communication / Nombre d'appels traités. Source : agentDuration cumulé / total appels. Affiché en MMmin SSsec."},
+    {k:"acw",l:"Post-appel (ACW)",title:"Temps de post-appel (After Call Work)",def:"Durée moyenne de traitement post-appel. ⚠ Non exposé directement par l'API INO histories. Alerte si dérive >20% vs moyenne du groupe campagne."},
+    {k:"occupation",l:"Occupation",title:"Taux d'occupation = Temps comm / (Présence × 50/60)",def:"Taux d'occupation = Temps total de communication / (Présence estimée × 50 min/h). La règle des 50 min/h correspond à 10 min de temps non communicant par heure (pauses, wrap-up). Présence estimée = derniereAction - premiereAction."},
+    {k:"transfo",l:"Transformation",title:"Taux de transformation (qualifications positives)",def:"Taux de transformation = qualifications positives (RDV, Intéressé) / total qualifications. Source : h.status analysé dans les histories INO."},
+    {k:"adherence",l:"Adhérence",title:"Adhérence au planning",def:"Taux d'adhérence au planning prévu. ⚠ Non exposé par l'API INO histories."},
+    {k:"ko",l:"100 % KO",title:"Appels présentés mais non décrochés par l'agent",def:"Appels entrants présentés à l'agent mais non décrochés (agentDuration=0 ou status=abandoned). ATTENTION : les abandons de file (appelant raccroche avant d'être distribué) ont agent=null et ne sont PAS inclus ici — ils apparaissent dans les KPI globaux de flux manqués."},
+    {k:"refus",l:"Qualif. Refus",title:"Qualifications 'Refus' post-appel",def:"Nombre d'appels qualifiés 'Refus' par l'agent après traitement. Ce sont des QUALIFICATIONS post-appel (outcome du call), pas des refus de décroché. Les vrais refus de décroché sont dans la colonne 100% KO."},
+    {k:"inactifs",l:"Inactifs",def:"Nombre de périodes d'inactivité longue détectées. ⚠ Non exposé directement par l'API INO."},
+    {k:"realise",l:"% de réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
+    {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire",def:"Courbe de l'activité horaire de l'agent sur la journée. Chaque point = nombre d'appels traités dans le créneau horaire. Buckets de 1h de 08h à 19h (heure France)."},
+    {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
+    {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour via COMP_MAP. Le détail complet est visible au survol (tooltip)."}
   ];
   // Appliquer la sélection utilisateur (toujours garder expand + nom)
   const cols=ALL_COLS.filter(c=>c.k==='expand'||c.k==='nom'||visibleCols.has(c.k));
@@ -1311,9 +1333,11 @@ function renderTable(sorted){
   document.getElementById("thead-row").innerHTML=cols.map(c=>{
     const sortable=!["expand","spark","files","mails","premiere","derniere"].includes(c.k);
     const cls=[sortCol===c.k?"active":"",c.k==="mails"?"col-mail":""].filter(Boolean).join(" ");
-    return `<th class="${cls}" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${c.title||c.l}"
+    const defEsc=c.def?(c.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')):'';
+    return `<th class="${cls}" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${(c.title||c.l).replace(/"/g,'&quot;')}"
       style="${c.k==="expand"?"width:22px;":""}">
       ${c.l}${sortable?(sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"):""}
+      ${c.def?`<span data-show-def="${c.l.replace(/<[^>]+>/g,'').trim()}" data-def-text="${defEsc}" style="margin-left:3px;font-size:9px;color:#555;cursor:pointer;vertical-align:super;font-weight:normal" title="Voir définition complète">ⓘ</span>`:''}
     </th>`;}).join("");
 
   // Moyenne ACW par groupe (campagne) pour détecter les dérives >20%
@@ -1385,7 +1409,7 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center;${visibleCols.has('files')?'':' display:none'}">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;font-weight:600;color:#E8006E;" title="${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'n.d.'}">${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'<span style="color:#444;font-style:italic">n.d.</span>'}</td>
+      <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;vertical-align:middle;" title="${Array.isArray(a.skills)&&a.skills.length?'Compétences actives: '+a.skills.join(' · '):'Compétences non disponibles via API INO'}">${(()=>{const sk=Array.isArray(a.skills)?a.skills:[];if(sk.length===0)return '<span style="color:#444;font-style:italic;font-size:10px">n.d.</span>';return '<span style="font-size:11px;font-weight:700;color:#E8006E">'+sk.length+'</span><span style="font-size:8px;color:#888;margin-left:4px">'+sk.slice(0,2).join(', ')+(sk.length>2?' +'+(sk.length-2):'')+ '</span>';})()}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="27" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
@@ -1407,6 +1431,7 @@ function renderTable(sorted){
 // Sparkline SVG (mini-courbe de la journée) pour un agent
 function sparkSVG(data){
   if(!Array.isArray(data)||data.length===0)return'<span style="color:#444;font-size:10px">n.d.</span>';
+  if(data.every(v=>v===0))return'<span style="color:#333;font-size:9px">─</span>';
   const w=72,h=20,max=Math.max(...data,1),n=data.length;
   // Cas n=1 : afficher un point au centre plutôt qu'une polyline (sinon i/(n-1)=NaN)
   if(n===1){
@@ -1849,7 +1874,17 @@ function exportSkillsPDF(){
       <span>Page <span class="pageno"></span></span>
     </div>
     <script>setTimeout(()=>window.print(),350);<\/script>
-    </body></html>`;
+    
+<!-- Modal définition colonne -->
+<div class="col-def-overlay" id="col-def-overlay" onclick="closeColDef(event)">
+  <div class="col-def-box">
+    <div class="col-def-label">Définition & formule</div>
+    <div class="col-def-title" id="col-def-title"></div>
+    <div class="col-def-text" id="col-def-text"></div>
+    <div class="col-def-close"><button onclick="document.getElementById('col-def-overlay').classList.remove('open')">Fermer ×</button></div>
+  </div>
+</div>
+</body></html>`;
   const w=window.open("","_blank");
   if(!w){alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site.");return;}
   w.document.write(html);w.document.close();
@@ -2165,6 +2200,14 @@ async function loadSkillsFromINO(){
 // Chargement initial unique pour ne pas afficher un écran vide à l'ouverture.
 refreshFromINO();
 buildColPanel();
+// Event delegation pour les définitions de colonnes au clic sur ⓘ
+document.addEventListener('click',function(e){
+  const btn=e.target.closest('[data-show-def]');
+  if(btn){
+    e.stopPropagation();
+    showColDef(btn.dataset.showDef,btn.dataset.defText);
+  }
+});
 // Init compteur colonnes
 const _ccInit=document.getElementById('col-count');
 if(_ccInit)_ccInit.textContent=visibleCols.size;
