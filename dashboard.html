@@ -568,6 +568,53 @@ const QUEUES_MAP={
   Equisign:["Equisign"],
   Eiffage:["Eiffage"],
 };
+// Mapping queue INO → nom de compétence INO (basé sur les panels agents observés)
+// Permet d'afficher "Vivest · Vivest_Sortant" plutôt que les noms de files techniques
+const COMP_MAP={
+  // Vivest
+  "Vivest_Client":"Vivest","Vivest_Client_Réitération":"Vivest","Vivest_Standard":"Vivest","Vivest_Standard_Réitération":"Vivest interne",
+  "Sortant Vivest":"Vivest_Sortant","Sortant Verspieren":"Vivest_Sortant",
+  // Voltalis
+  "Voltalis_Assistance_Autres":"Voltalis_Assistance","Voltalis_Assistance_Autres_Réitération":"Voltalis_Assistance",
+  "Voltalis_My Voltalis":"Voltalis_MyVoltalis","Voltalis NPV OPB":"Voltalis_NPV",
+  "Voltalis_Acquisition_Prospect":"Voltalis_Acquisition","Voltalis_Acquisition_A déjà RDV":"Voltalis_Acquisition",
+  "Voltalis_RDV":"Voltalis_RDV",
+  // ELECTROSUR
+  "ELECTROSUR_Sinistre":"ELECTROSUR_Sinistre","ELECTROSUR_Sinistre_Réitération":"ELECTROSUR_Sinistre",
+  "ELECTROSUR_Autres":"ELECTROSUR_Autres","ELECTROSUR_Autres_Réitération":"ELECTROSUR_Autres",
+  "ELECTROSUR_Information":"ELECTROSUR_Info","ELECTROSUR_Information_Réitération":"ELECTROSUR_Info",
+  "ELECTROSUR_MOBILE_Sinistre":"ELECTROSUR_Mobile","ELECTROSUR_MOBILE_Autres":"ELECTROSUR_Mobile","ELECTROSUR_MOBILE_Information":"ELECTROSUR_Mobile",
+  "ELECTROSUR_Magasin_Autres":"ELECTROSUR_Magasin",
+  // Evoriel
+  "Evoriel_Locataire":"Evoriel_Locataire","Evoriel_Locataire_Réitération":"Evoriel_Locataire",
+  "Evoriel_Copropriétaire":"Evoriel_Copro","Evoriel_Copropriétaire_Réitération":"Evoriel_Copro",
+  "Evoriel_Bailleur":"Evoriel_Bailleur","Evoriel_Bailleur_Réitération":"Evoriel_Bailleur",
+  // MG Motor
+  "MG_Autre demande":"MG_Autre","MG_Information véhicule":"MG_Info","MG_Véhicule en concession":"MG_Concession","MG Motor":"MG Motor",
+  // Filippi
+  "Filippi_Hertz Ajaccio_Réservation":"Hertz_Ajaccio","Filippi_Hertz Ajaccio_Assistance":"Hertz_Ajaccio",
+  "Filippi_Hertz Bastia_Réservation":"Hertz_Bastia","Filippi_Hertz Bastia_Assistance":"Hertz_Bastia","Filippi_Hertz Bastia_Ville":"Hertz_Bastia",
+  "Filippi_Hertz Calvi_Réservation":"Hertz_Calvi","Filippi_Hertz Calvi_Assistance":"Hertz_Calvi",
+  "Filippi_Hertz Figari_Réservation":"Hertz_Figari","Filippi_Hertz Figari_Assistance":"Hertz_Figari",
+  "Filippi_Sixt_Ajaccio_Réservation":"Sixt_Ajaccio","Filippi_Sixt_Ajaccio_Assistance":"Sixt_Ajaccio",
+  "Filippi_Sixt_Bastia_Réservation":"Sixt_Bastia","Filippi_Sixt_Figari_Réservation":"Sixt_Figari","Filippi_Sixt_Figari_Assistance":"Sixt_Figari",
+  // Autres
+  "Nature & Découvertes":"Nature&Déco","LMB_Inscription":"LMB","LMB_Autre demande":"LMB","LMB_Parent d'enfant":"LMB",
+  "SOS _ MA":"SOS_MA","SOS _ MA _ Réitération":"SOS_MA",
+  "LGR-SC":"LGR","LGR-Réitération":"LGR","LMDW_FR":"LMDW","1_LBE_Offre et souscription":"LBE",
+  "M123_FR":"M123","Equisign":"Equisign","Eiffage":"Eiffage",
+  "Delsey_Site FR":"Delsey","Delsey_Plateforme internet FR":"Delsey","Delsey_Autres Sites FR":"Delsey",
+  "Afnor_RQ_auditeur":"Afnor_RQ","Afnor_RQ_planification_audit_suivi":"Afnor_RQ","Afnor_Web Call Back Home Page":"Afnor_WCB","Afnor Web Call Back FORMATION":"Afnor_Formation",
+};
+// Déduire les compétences INO depuis les queues actives (dédupliqué)
+function queuesToComps(queues){
+  if(!Array.isArray(queues)||!queues.length)return null;
+  const seen=new Set();
+  const comps=[];
+  queues.forEach(q=>{const c=COMP_MAP[q]||q;if(!seen.has(c)){seen.add(c);comps.push(c);}});
+  return comps;
+}
+
 const AGENTS_BASE=[
   {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
   {id:2,nom:"Maetzu CRISTINA",login:"Maetzu-C",camp:"Omoda",skills:["Equisign","LMDW"],contrat:"CDI",obj:45},
@@ -791,9 +838,9 @@ async function loadAgentsFromAPI(){
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
-        // Skills = noms de queues (seule source disponible dans l'API INO histories)
-        // On affiche le queueName brut : c'est le nom réel de la file/compétence dans INO
-        const derivedSkills=rawQueues.length>0?rawQueues.filter((v,i,arr)=>v&&arr.indexOf(v)===i):null;
+        // Compétences = regroupement des queues via COMP_MAP
+        // Ex: Vivest_Client + Vivest_Standard → ["Vivest"]  Sortant Vivest → ["Vivest_Sortant"]
+        const derivedSkills=rawQueues.length>0?queuesToComps(rawQueues):null;
         return{id:a.id,nom:a.nom,login:a.username,camp,
           skills:derivedSkills,
           contrat:a.contrat||null,obj,
