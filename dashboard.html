@@ -1145,38 +1145,86 @@ function getFiltered(){
   });
 }
 
-function askActivateSkill(agentId,agentNom,skillNom){
-  // Modal de confirmation avant activation
+async function askActivateSkill(agentId,agentNom,skillNom){
+  const nom=decodeURIComponent(agentNom);
+  const sk=decodeURIComponent(skillNom);
+  
+  // Créer la modal de confirmation
   const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9100;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML=`
-    <div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5)">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#E8006E;margin-bottom:8px">Activation de compétence</div>
-      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:12px">${skillNom}</div>
-      <div style="font-size:13px;color:#888;line-height:1.6;margin-bottom:20px">
-        Activer la compétence <strong style="color:#ccc">${skillNom}</strong> pour l'agent <strong style="color:#ccc">${decodeURIComponent(agentNom)}</strong> ?<br>
-        <span style="font-size:11px;color:#555;margin-top:6px;display:block">⚠ Cette action modifie la configuration INO de l'agent.</span>
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="skill-cancel" style="background:#1e1e1e;color:#888;border:1px solid #333;border-radius:7px;padding:9px 20px;cursor:pointer;font-size:12px;font-weight:600">Annuler</button>
-        <button id="skill-confirm" style="background:#E8006E;color:#fff;border:none;border-radius:7px;padding:9px 20px;cursor:pointer;font-size:12px;font-weight:700">Activer ✓</button>
-      </div>
-    </div>`;
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9100;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s';
+  overlay.innerHTML=`<div style="background:#161616;border:1px solid #2a2a2a;border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+    <div style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#E8006E;margin-bottom:10px">⚙ Activation de compétence</div>
+    <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">${sk}</div>
+    <div style="font-size:12px;color:#E8006E;margin-bottom:16px">Agent : ${nom}</div>
+    <div id="skill-modal-body" style="font-size:12px;color:#777;line-height:1.7;margin-bottom:20px">
+      <div id="skill-loading" style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:14px;height:14px;border:2px solid #E8006E;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite"></span> Récupération de l’ID compétence…</div>
+      <div id="skill-info" style="display:none"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button id="skill-cancel" style="background:#1e1e1e;color:#888;border:1px solid #2a2a2a;border-radius:8px;padding:9px 20px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s" onmouseover="this.style.borderColor='#555'" onmouseout="this.style.borderColor='#2a2a2a'">Annuler</button>
+      <button id="skill-confirm" disabled style="background:#333;color:#888;border:none;border-radius:8px;padding:9px 22px;cursor:not-allowed;font-size:12px;font-weight:700;transition:all .2s">Activer ✓</button>
+    </div>
+  </div>`;
   document.body.appendChild(overlay);
   overlay.querySelector('#skill-cancel').onclick=()=>overlay.remove();
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  
+  // Récupérer l'ID INO réel de la compétence
+  let skillId=null;
+  try{
+    const r=await fetch('/api/skill-list/'+agentId);
+    if(r.ok){
+      const d=await r.json();
+      const allSkills=[...(d.profileSkills||[]),(d.flowSkills||[])].flat();
+      const match=allSkills.find(s=>s.name&&s.name.toLowerCase()===sk.toLowerCase());
+      if(match){
+        skillId=match.id;
+        overlay.querySelector('#skill-loading').style.display='none';
+        overlay.querySelector('#skill-info').style.display='block';
+        overlay.querySelector('#skill-info').innerHTML=
+          '<strong style="color:#ccc">Compétence trouvée :</strong> '+match.name+' (ID: '+match.id+')<br>'+
+          '<span style="color:#555">Score actuel : '+match.score+' | Statut : '+(match.status===1?'<span style="color:#E8006E">inactif</span>':'<span style="color:#30d158">actif</span>')+'</span><br><br>'+
+          '<span style="color:#ff9f43">⚠ Cette action modifie la configuration INO de l\u2019agent en temps réel.</span>';
+        const btn=overlay.querySelector('#skill-confirm');
+        btn.disabled=false;btn.style.background='#E8006E';btn.style.color='#fff';btn.style.cursor='pointer';
+      } else {
+        overlay.querySelector('#skill-loading').style.display='none';
+        overlay.querySelector('#skill-info').style.display='block';
+        overlay.querySelector('#skill-info').innerHTML=
+          '<span style="color:#ff3b30">⚠ Compétence "'+sk+'" non trouvée dans le profil INO de l’agent.</span><br>'+
+          '<span style="color:#555;font-size:11px">Compétences disponibles : '+allSkills.map(s=>s.name).join(', ')+'</span>';
+      }
+    } else {
+      throw new Error('API /skill-list → HTTP '+r.status+'. Le compte INO actuel n’a pas les droits /cc/*. Contactez l’admin INO pour activer les droits /cc/* sur le compte dasboard_INO.');
+    }
+  }catch(err){
+    overlay.querySelector('#skill-loading').style.display='none';
+    overlay.querySelector('#skill-info').style.display='block';
+    overlay.querySelector('#skill-info').innerHTML='<span style="color:#ff3b30">'+err.message+'</span>';
+  }
+  
   overlay.querySelector('#skill-confirm').onclick=async()=>{
-    overlay.querySelector('#skill-confirm').textContent='…';
-    overlay.querySelector('#skill-confirm').disabled=true;
-    // Appel API — endpoint INO non exposé → message d'information
+    if(!skillId){showToast('ID compétence non trouvé','error');return;}
+    const btn=overlay.querySelector('#skill-confirm');
+    btn.textContent='⏳ Activation…';btn.disabled=true;
     try{
-      // TODO: appeler l'API INO d'activation quand l'endpoint sera disponible
-      // await fetch('/api/activate-skill', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agentId,skillNom})});
+      const resp=await fetch('/api/activate-skill',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({agentId,skillId,skillNom:sk,agentNom:nom,score:100})
+      });
+      const result=await resp.json();
       overlay.remove();
-      showToast('⚠ Activation '+skillNom+' — API INO non exposée. À faire manuellement dans INO.','warn',6000);
+      if(result.ok){
+        showToast('✓ Compétence "'+sk+'" activée pour '+nom,'ok',5000);
+        // Rafraîchir la matrice
+        setTimeout(()=>renderSkills(),500);
+      } else {
+        showToast('✗ '+result.error,'error',8000);
+      }
     }catch(err){
       overlay.remove();
-      showToast('Erreur activation: '+err.message,'error');
+      showToast('Erreur: '+err.message,'error');
     }
   };
 }
@@ -1359,7 +1407,7 @@ function renderTable(sorted){
   // Filtrer les colonnes selon la sélection utilisateur
   const ALL_COLS=[
     {k:"expand",l:"",def:""},
-    {k:"nom",l:"Agent",def:"Nom complet de l'agent. Source : API INO /call/in/histories (agent.firstname + agent.lastname)."},
+    {k:"nom",l:"Agent",def:"Nom complet de l’agent. Source : API INO /call/in/histories (agent.firstname + agent.lastname)."},
     {k:"status",l:"Statut",def:"Statut temps réel de l'agent (Connecté / En Pause / Wrap-up / Déconnecté). ⚠ Non disponible via l'API INO histories — nécessite un endpoint temps réel non exposé dans cette version.",title:"Statut temps réel — non disponible API INO"},
     {k:"camp",l:"File / Campagne",def:"Campagne principale de l'agent, déduite des queues actives dans les historiques INO du jour via QUEUES_MAP."},
     {k:"premiere",l:"1ère connexion",title:"Heure de première connexion de l'agent dans la journée",def:"Timestamp du premier appel enregistré pour cet agent dans la journée. Source : acdDate du premier enregistrement histories."},
