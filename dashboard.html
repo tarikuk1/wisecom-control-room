@@ -419,13 +419,13 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
       <span id="last-update" style="font-size:10px;color:#444;"></span>
     </div>
     <div class="actions">
-      <span class="clock" id="clock"></span>
-<button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Personnaliser les colonnes affichées">⊞ Colonnes</button>
+      <span class="clock" id="clock" style="pointer-events:none;user-select:none;"></span>
+<button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Personnaliser les colonnes affichées" style="position:relative;z-index:300;">⊞ Colonnes <span id="col-count" style="font-size:9px;background:#E8006E;color:#fff;border-radius:8px;padding:1px 5px;margin-left:2px;"></span></button>
       <a href="/admin" target="_blank" style="font-size:10px;color:#555;text-decoration:none;padding:4px 9px;border-radius:4px;border:1px solid #222;transition:all .15s;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">⚙ Admin</a>
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Interroge l'API INO en lecture seule et met à jour les données">🔄 RAFRAÎCHIR (Fetch API INO)</button>
       <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn">☀ Clair</button>
       <button class="btn btn-primary" onclick="simulate()">⚡ Simuler</button>
-      <button class="btn" onclick="openCriteres()" style="background:linear-gradient(135deg,#2a0a1a,#1a0812);color:#E8006E;border:1px solid #E8006E44;font-weight:700;font-size:11px;padding:6px 14px;" title="Paramétrage des critères et KPI par campagne">⚙ Critères KPI</button>
+      <button class="btn" onclick="openCriteres()" style="background:linear-gradient(135deg,#2a0a1a,#1a0812);color:#E8006E;border:1px solid #E8006E44;font-weight:700;font-size:11px;padding:6px 14px;position:relative;z-index:300;" title="Paramétrage des critères et KPI par campagne">⚙ Critères KPI</button>
       <button class="btn btn-dark" onclick="exportXlsx()">📊 Excel</button>
       <button class="btn btn-dark" onclick="exportPDF()">📄 PDF</button>
       <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
@@ -748,8 +748,10 @@ async function loadAgentsFromAPI(){
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
-        const obj=50;
-        const realise=total>0&&hprod>0?Math.min(100,Math.round((total/obj)*100)):0;
+        // Objectif depuis les critères campagne (localStorage) ou défaut 50
+        let obj=50;
+        try{const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');if(crit[camp]&&crit[camp].obj_appels)obj=crit[camp].obj_appels;}catch(e){}
+        const realise=hprod>0&&obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
         const fq=(a.queues||"").split(", ").filter(Boolean);
         // Chercher la campagne en matchant le nom de queue (insensible à la casse)
         const camp=CAMPS.find(c=>fq.some(q=>q.toLowerCase().includes(c.toLowerCase().replace(/é/g,"e").replace(/è/g,"e"))))||
@@ -1289,14 +1291,7 @@ function renderTable(sorted){
       </td>
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
-      <td style="max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):''}">${(()=>{
-  if(!Array.isArray(a.skills)||a.skills.length===0)return '<span style="color:#444;font-size:10px;font-style:italic">n.d.</span>';
-  const shown=a.skills.slice(0,3);
-  const rest=a.skills.length-3;
-  const badges=shown.map(s=>'<span style="display:inline-block;background:#1a0812;color:#E8006E;border-radius:3px;padding:0 5px;font-size:9px;font-weight:700;margin-right:2px;border:1px solid #E8006E33">'+s+'</span>').join('');
-  const more=rest>0?'<span style="color:#555;font-size:9px">+'+rest+'</span>':'';
-  return badges+more;
-})()}</td>
+      <td style="max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;font-weight:600;color:#E8006E;" title="${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'n.d.'}">${Array.isArray(a.skills)&&a.skills.length?a.skills.join(' · '):'<span style="color:#444;font-style:italic">n.d.</span>'}</td>
     </tr>
     <tr class="detail-row" id="detail-${a.id}" style="display:none">
       <td colspan="${cols.length}" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
@@ -1532,6 +1527,9 @@ function render(){
   renderSkills();
   renderBacklog();
   document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
+  // Compteur colonnes
+  const colCountEl=document.getElementById('col-count');
+  if(colCountEl)colCountEl.textContent=visibleCols.size;
   // Mettre à jour la page critères si elle est ouverte
   if(document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
 }
@@ -1582,7 +1580,7 @@ function updateMails(id,val){
     const m=mailsEdit[id];
     a.mails_auto=m;
     a.actesH=a.hprod>0?+((a.appels+m)/a.hprod).toFixed(1):0;
-    a.realise=a.appels+m>0&&a.hprod>0?Math.min(100,Math.round(((a.appels+m)/a.obj)*100)):a.realise;
+    if(a.hprod>0&&a.obj>0)a.realise=Math.min(100,Math.round(((a.appels+m)/a.obj)*100));
   }
   render();
 }
@@ -2038,6 +2036,9 @@ async function loadSkillsFromINO(){
 // Chargement initial unique pour ne pas afficher un écran vide à l'ouverture.
 refreshFromINO();
 buildColPanel();
+// Init compteur colonnes
+const _ccInit=document.getElementById('col-count');
+if(_ccInit)_ccInit.textContent=visibleCols.size;
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
 </script>
