@@ -98,7 +98,8 @@ async function fetchDayStats(){
   }catch(e){console.error("Stats:",e.message);}
 }
 
-async function fetchAgentsDay(date){
+async function fetchAgentsDay(date,hDeb,hFin){
+  hDeb=parseInt((hDeb||'08:00').split(':')[0]);hFin=parseInt((hFin||'20:00').split(':')[0]);
   const token=await getToken();if(!token)throw new Error("Pas de token");
   const[ri,ro]=await Promise.all([
     apiReq("POST","/call/in/histories",{startDate:date+" 00:01:00",endDate:date+" 23:59:59",limit:1000},token),
@@ -110,8 +111,18 @@ async function fetchAgentsDay(date){
   function slotKey(dt){
     if(!dt)return null;
     const d=new Date(dt);if(isNaN(d))return null;
-    const h=d.getHours(),m=d.getMinutes()<30?"00":"30";
-    return `${String(h).padStart(2,"0")}:${m}`;
+    // Heure France (UTC+2 en été, UTC+1 en hiver) — Railway est en UTC
+    const hUtc=d.getUTCHours();
+    const offset=isDST(d)?2:1;
+    const hFr=(hUtc+offset)%24;
+    const m=d.getUTCMinutes()<30?"00":"30";
+    return String(hFr).padStart(2,"0")+":"+m;
+  }
+  function isDST(d){
+    // Heure d'été France: dernier dimanche mars → dernier dimanche octobre
+    const jan=new Date(d.getFullYear(),0,1).getTimezoneOffset();
+    const jul=new Date(d.getFullYear(),6,1).getTimezoneOffset();
+    return d.getTimezoneOffset()<Math.max(jan,jul);
   }
   // Qualifications agrégées par agent (h.status contient le résultat : KO, Refus, Réitérant, etc.)
   function tagQualif(a,status){
@@ -145,9 +156,12 @@ async function fetchAgentsDay(date){
     if(dt){const _d=new Date(dt);const hh=_d.getUTCHours()+2;const idx=hh-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
     const sk=slotKey(dt);
     if(sk){
-      if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0};
-      if(type==="in")slotsMap[sk].vol++;else slotsMap[sk].out++;
+      if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0,queues:{}};
+      if(type==="in"){slotsMap[sk].vol++;}else{slotsMap[sk].out++;}
       if(h.status&&String(h.status).toLowerCase().includes("aband"))slotsMap[sk].aband++;
+      // Stocker le volume par queue pour filtrage côté client
+      const qn=h.queue&&h.queue.queueName?h.queue.queueName:"";
+      if(qn){slotsMap[sk].queues[qn]=(slotsMap[sk].queues[qn]||0)+1;}
     }
     // Stocker pour calcul ACW
     if(!agentCalls[k])agentCalls[k]=[];
@@ -165,9 +179,14 @@ async function fetchAgentsDay(date){
     }
     if(gaps.length>0)agents[k].acwMoyen=Math.round(gaps.reduce((s,v)=>s+v,0)/gaps.length);
   });
-  // Slots ordonnés 08:00 → 19:30
+  // Slots ordonnés hDeb → hFin-1 (tranches de 30 min)
   const slots=[];
-  for(let h=8;h<=19;h++){for(const m of["00","30"]){const k=String(h).padStart(2,"0")+":"+m;slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});}}
+  for(let h=hDeb;h<hFin;h++){
+    for(const m of["00","30"]){
+      const k=String(h).padStart(2,"0")+":"+m;
+      slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});
+    }
+  }
   // Enrichir avec les compétences INO
   let agentSkillsMap={};
   try{agentSkillsMap=await fetchAgentSkills();}catch(e){console.error('[SKILLS]',e.message);}
@@ -514,7 +533,9 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/agents-day"){
     const u=new URL(req.url,"http://localhost");
     const date=u.searchParams.get("date")||new Date().toISOString().slice(0,10);
-    fetchAgentsDay(date).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
+    const hDeb=u.searchParams.get("hDeb")||"08:00";
+    const hFin=u.searchParams.get("hFin")||"20:00";
+    fetchAgentsDay(date,hDeb,hFin).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
