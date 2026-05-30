@@ -193,10 +193,43 @@ async function fetchAgentsDay(date){
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
       spark:a.spark,
-      skills:Array.isArray(sk.skills)?sk.skills:[],
+      skills:[],  // enrichi ci-dessous via API INO /cc/agent/:id/flow/voice/skills/list
+      allSkills:[],  // toutes les compétences (actives + inactives) pour la matrice
       acwMoyen:a.acwMoyen||null
     };
   }).sort((a,b)=>b.total-a.total);
+
+  // === ENRICHISSEMENT COMPÉTENCES INO (en parallèle avec retry) ===
+  const _skillsToken=await getToken();
+  if(_skillsToken){
+    const enrichSkills=async(agent)=>{
+      for(let attempt=0;attempt<3;attempt++){
+        try{
+          const r=await apiReq("POST","/cc/agent/"+agent.id+"/flow/voice/skills/list",{},_skillsToken);
+          if(r&&(r.flowSkills||r.profileSkills)){
+            const flow=r.flowSkills||[];
+            agent.skills=flow.filter(s=>s.status===1).map(s=>({id:s.id,name:s.name,score:s.score||100,active:true}));
+            agent.allSkills=flow.map(s=>({id:s.id,name:s.name,score:s.score||100,active:s.status===1}));
+            return;
+          }
+        }catch(e){
+          if(e.statusCode===401&&attempt<2){await new Promise(r=>setTimeout(r,3000*(attempt+1)));continue;}
+          break;
+        }
+        break;
+      }
+      // Fallback: dériver depuis les queues actives
+      agent.skills=agent.queues?(agent.queues.split(", ").filter(Boolean).map(q=>({id:null,name:q,score:100,active:true}))):[];
+      agent.allSkills=agent.skills;
+    };
+    // Traiter par batch de 3 pour éviter le rate-limiting
+    for(let i=0;i<list.length;i+=3){
+      const batch=list.slice(i,i+3);
+      await Promise.all(batch.map(enrichSkills));
+      if(i+3<list.length)await new Promise(r=>setTimeout(r,4000));
+    }
+  }
+
   return {agents:list,slots,total:list.length,date};
 }
 
