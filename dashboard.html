@@ -797,7 +797,7 @@ async function refreshFromINO(){
 }
 async function loadAgentsFromAPI(){
   try{
-    const d=document.getElementById("f-date-fin").value||new Date().toISOString().slice(0,10);
+    const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
     const res=await fetch(`/agents-day?date=${d}`);
     if(!res.ok)throw new Error();
     const data=await res.json();
@@ -1590,20 +1590,44 @@ function renderBacklog(){
 }
 
 function renderSkills(){
-  const allA=agents.length?agents:AGENTS_BASE;
-  const thead=`<thead><tr>
-    <th style="min-width:170px;padding:8px 12px">Agent</th>
-    ${SKILLS.map(s=>`<th style="text-align:center;min-width:85px;padding:8px 12px">${s}</th>`).join("")}
-    <th style="text-align:center;min-width:80px;padding:8px 12px">Files OK</th>
-  </tr></thead>`;
-  const tbody=`<tbody>${allA.map((a,i)=>`<tr>
-    <td style="font-weight:600;padding:8px 12px">${a.nom}<br><span style="font-size:9px;color:#555">${a.contrat||"–"} · ${a.camp}</span></td>
-    ${SKILLS.map(s=>`<td style="text-align:center;padding:8px 12px">
-      ${(a.skills||[]).includes(s)?`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${P};line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">✓</span>`:
-      `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a"></span>`}
-    </td>`).join("")}
-    <td style="text-align:center;padding:8px 12px">${a.files_ok?'<span style="color:#30d158;font-weight:700">✓ OK</span>':'<span style="color:#E8006E;font-weight:700">⚠ Anomalie</span>'}</td>
-  </tr>`).join("")}</tbody>`;
+  const allA=(agents.length?agents:AGENTS_BASE).slice().sort((a,b)=>a.camp.localeCompare(b.camp)||a.nom.localeCompare(b.nom));
+  // Construire la liste des compétences réelles depuis les données INO (a.skills = queuesToComps)
+  // Si aucun agent INO, fallback sur la liste statique
+  const hasInoSkills=allA.some(a=>Array.isArray(a.skills)&&a.skills.length>0);
+  let colSkills;
+  if(hasInoSkills){
+    const seen=new Set();
+    allA.forEach(a=>(a.skills||[]).forEach(sk=>{if(sk)seen.add(sk);}));
+    // Trier : d'abord par campagne dominante puis alphabétique
+    colSkills=[...seen].sort((a,b)=>{
+      const ca=allA.find(x=>(x.skills||[]).includes(a));
+      const cb=allA.find(x=>(x.skills||[]).includes(b));
+      const campA=ca?ca.camp:"";const campB=cb?cb.camp:"";
+      return campA.localeCompare(campB)||a.localeCompare(b);
+    });
+  }else{
+    colSkills=SKILLS;
+  }
+  const thead='<thead><tr>'
+    +'<th style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2">Agent</th>'
+    +colSkills.map(sk=>'<th style="text-align:center;min-width:85px;padding:8px 12px;font-size:10px;white-space:nowrap">'+sk+'</th>').join('')
+    +'<th style="text-align:center;min-width:70px;padding:8px 12px;font-size:10px">Files</th>'
+    +'</tr></thead>';
+  const tbody='<tbody>'+allA.map(a=>{
+    const campColor=a.camp&&a.camp!=="–"?P:"#555";
+    return '<tr>'
+      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:#111;white-space:nowrap">'+a.nom+'<br><span style="font-size:9px;color:#555">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+a.camp+'</span></span></td>'
+      +colSkills.map(sk=>{
+        const has=(a.skills||[]).includes(sk);
+        return '<td style="text-align:center;padding:8px 12px">'
+          +(has
+            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff">✓</span>'
+            :'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a"></span>')
+          +'</td>';
+      }).join('')
+      +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
+      +'</tr>';
+  }).join('')+'</tbody>';
   document.getElementById("skills-table").innerHTML=thead+tbody;
 }
 
@@ -1966,6 +1990,8 @@ refreshPresetSelect();
     el.addEventListener("change",function(){
       if(el.value && el.value>maxD) el.value=maxD;
       if(el.value && el.value<minD) el.value=minD;
+      // Rafraîchir automatiquement quand la date change
+      if(el.value) refreshFromINO();
     });
   });
 })();
