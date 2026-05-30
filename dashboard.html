@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control Room — Wisecom</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;transition:background .3s,color .3s;}
@@ -703,7 +706,7 @@ function genAgents(){
       lastVoixActivity: st==="Déconnecté"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
     };
   }).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
-    appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0}));
+    appelsH:a.hprod>0?+(a.appelsIn/a.hprod).toFixed(1):0}));
 }
 
 // Génère 12 points horaires (08h→19h) pour la sparkline d'un agent
@@ -838,15 +841,16 @@ async function loadAgentsFromAPI(){
         try{const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');if(crit[camp]&&crit[camp].obj_appels)obj=+crit[camp].obj_appels||50;}catch(e){}
         // 5. % de réalisé = (appels + mails) / objectif
         const realise=obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
-        const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
+        const appelsDecH=hprod>0?+(a.appelsIn/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
         // Occupation = duree communication / (présence * 50min/h)
         // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
         let presenceSec=0;
         if(a.premiereAction&&a.derniereAction){
-          presenceSec=(new Date(a.derniereAction)-new Date(a.premiereAction))/1000;
+          try{presenceSec=Math.abs(new Date(a.derniereAction)-new Date(a.premiereAction))/1000;}catch(e){presenceSec=0;}
         }
-        // Si présence < durée comm (cas limite) ou absente, on ne calcule pas
+        // Fallback: si présence trop courte, utiliser duree*1.25 comme estimation
+        if(presenceSec<a.duree&&a.duree>0) presenceSec=a.duree*1.25;
         const tempsDispo=presenceSec>0?(presenceSec*(50/60)):0;
         const occupation=(tempsDispo>0&&a.duree>0)?Math.min(100,Math.round((a.duree/tempsDispo)*100)):null;
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
@@ -1325,7 +1329,7 @@ function renderTable(sorted){
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
     const actes=a.appels+m;
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
     const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
@@ -1712,7 +1716,7 @@ function simulate(){
     lastVoixActivity:Math.random()>.3?Date.now():Date.now()-rnd(6,15)*60000
   })).map(a=>({...a,
     actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]||a.mails_auto||0))/a.hprod).toFixed(1):0,
-    appelsH:a.hprod>0?+(a.appels/a.hprod).toFixed(1):0
+    appelsH:a.hprod>0?+(a.appelsIn/a.hprod).toFixed(1):0  // entrants décrochés / hprod
   }));
   slots=slots.map(s=>({...s,vol:Math.max(5,s.vol+rnd(-5,12)),aband:Math.max(0,s.aband+rnd(-2,5))}));
   render();
@@ -1754,7 +1758,7 @@ function exportXlsx(){
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
     rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
   });
@@ -1866,7 +1870,7 @@ function exportPDF(){
   const rows=s.map((a,i)=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appels/a.hprod).toFixed(1):"–";
+    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
     const bg=i%2===0?"#fff":"#fafafa";
     const isAlert=a.realise<60||(a.ko||0)>10||(a.refus||0)>5;
