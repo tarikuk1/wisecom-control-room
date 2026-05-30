@@ -1343,24 +1343,36 @@ function renderAlerts(f){
       </div>`;
     }
     // Amplitude horaire d'ouverture du service (par campagne)
-    const hOuv=cc.h_ouv||"09:00", hFerm=cc.h_ferm||"18:00";
     const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
     const toMin=t=>{const[h,m]=String(t).split(":").map(Number);return h*60+(m||0);};
-    const serviceOuvert=curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
+    const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
+    const jourAuj=_jrKeys[nowH.getDay()];
+    let serviceOuvert,hOuv="–",hFerm="–";
+    if(cc.h24){serviceOuvert=true;hOuv="00:00";hFerm="24:00";}
+    else if(cc.jours&&cc.jours[jourAuj]){
+      const jd=cc.jours[jourAuj];
+      if(!jd.on){serviceOuvert=false;}
+      else{hOuv=jd.o||"09:00";hFerm=jd.f||"18:00";serviceOuvert=curMin>=toMin(hOuv)&&curMin<toMin(hFerm);}
+    }else{
+      // fallback ancien format
+      hOuv=cc.h_ouv||"09:00";hFerm=cc.h_ferm||"18:00";
+      serviceOuvert=curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
+    }
+    const plageLbl=cc.h24?"24h/24":(hOuv+"–"+hFerm);
     const agentsDispo=stat.agents.filter(a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel').length;
 
     // Conseil : campagne/file sans aucun agent disponible (pendant les heures d'ouverture)
     if(serviceOuvert&&agentsDispo===0&&stat.agents.length>0){
       html+=`<div class="redflag-alert">
         <span class="redflag-badge">🚨 AUCUN AGENT</span>
-        <span style="font-size:12px;color:#ff9999;flex:1">La file <b style="color:#ff3b30">${camp}</b> n'a <b>aucun agent disponible</b> alors que le service est ouvert (${hOuv}–${hFerm}). Affecter un agent pour assurer la prise d'appels.</span>
+        <span style="font-size:12px;color:#ff9999;flex:1">La file <b style="color:#ff3b30">${camp}</b> n'a <b>aucun agent disponible</b> alors que le service est ouvert (${plageLbl}). Affecter un agent pour assurer la prise d'appels.</span>
       </div>`;
     }
     // Conseil : service ouvert mais aucun agent du tout positionné sur la file
     if(cc.alert_no_agent&&serviceOuvert&&stat.agents.length===0){
       html+=`<div class="redflag-alert">
         <span class="redflag-badge">🚨 ALERTE COUVERTURE</span>
-        <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent positionné sur <b style="color:#ff3b30">${camp}</b> (service ouvert ${hOuv}–${hFerm}). Risque de non-couverture.</span>
+        <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent positionné sur <b style="color:#ff3b30">${camp}</b> (service ouvert ${plageLbl}). Risque de non-couverture.</span>
       </div>`;
     }
     // Tension : uniquement pendant les heures d'ouverture du service
@@ -1368,7 +1380,7 @@ function renderAlerts(f){
       const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
       html+=`<div class="smart-alert">
         <span class="smart-badge">⚠ attention</span>
-        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h · service ${hOuv}–${hFerm}).</span>
+        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h · service ${plageLbl}).</span>
       </div>`;
     }
   });
@@ -2230,6 +2242,20 @@ const CRITERES_KEY='wisecom_criteres_v1';
 function loadCriteres(){
   try{return JSON.parse(localStorage.getItem(CRITERES_KEY))||{};}catch{return{};}
 }
+function toggleH24(c){
+  const cb=document.getElementById('h24-'+c);
+  const grid=document.getElementById('jours-'+c);
+  if(grid)grid.style.display=cb.checked?'none':'flex';
+}
+function toggleJour(c,j){
+  const cb=document.querySelector('.jour-on[data-c="'+c+'"][data-j="'+j+'"]');
+  const on=cb.checked;
+  ['o','f'].forEach(function(t){
+    const inp=document.querySelector('.jour-'+t+'[data-c="'+c+'"][data-j="'+j+'"]');
+    if(inp){inp.style.opacity=on?'1':'.35';inp.style.pointerEvents=on?'auto':'none';}
+  });
+  const lbl=cb.closest('label');if(lbl)lbl.style.color=on?'#ccc':'#555';
+}
 function saveCriteres(){
   const data={};
   CAMPS.forEach(c=>{
@@ -2241,8 +2267,13 @@ function saveCriteres(){
       backlog_max:parseInt(document.getElementById('backlog-max-'+c)?.value||90),
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
       obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
-      h_ouv:document.getElementById('h-ouv-'+c)?.value||'09:00',
-      h_ferm:document.getElementById('h-ferm-'+c)?.value||'18:00'
+      h24:document.getElementById('h24-'+c)?.checked||false,
+      jours:(function(){var o={};['lun','mar','mer','jeu','ven','sam','dim'].forEach(function(j){
+        var on=document.querySelector('.jour-on[data-c="'+c+'"][data-j="'+j+'"]');
+        var oo=document.querySelector('.jour-o[data-c="'+c+'"][data-j="'+j+'"]');
+        var ff=document.querySelector('.jour-f[data-c="'+c+'"][data-j="'+j+'"]');
+        o[j]={on:on?on.checked:false,o:oo?oo.value:'09:00',f:ff?ff.value:'18:00'};
+      });return o;})()
     };
   });
   try{
@@ -2281,7 +2312,11 @@ function renderCriteres(){
     +'<div style="font-size:11px;color:#555">Ces critères déclenchent les alertes dans le dashboard. Lecture seule INO — aucune modification n\'est envoyée à INO.</div>'
     +'</div>';
   CAMPS.forEach(function(c){
-    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00'},saved[c]||{});
+    const _defJours={lun:{on:true,o:'09:00',f:'18:00'},mar:{on:true,o:'09:00',f:'18:00'},mer:{on:true,o:'09:00',f:'18:00'},jeu:{on:true,o:'09:00',f:'18:00'},ven:{on:true,o:'09:00',f:'18:00'},sam:{on:false,o:'09:00',f:'18:00'},dim:{on:false,o:'09:00',f:'18:00'}};
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours))},saved[c]||{});
+    if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
+    // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
+    Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
     const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
     const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
     const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
@@ -2312,8 +2347,22 @@ function renderCriteres(){
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
           +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" aria-label="Objectif appels" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
-          +'<div class="param-row"><span class="param-label">⏰ Ouverture du service</span><input class="param-input" id="h-ouv-'+c+'" type="time" aria-label="Heure ouverture" value="'+s.h_ouv+'"></div>'
-          +'<div class="param-row"><span class="param-label">⏰ Fermeture du service</span><input class="param-input" id="h-ferm-'+c+'" type="time" aria-label="Heure fermeture" value="'+s.h_ferm+'"></div>'
+          +'<div class="param-row" style="flex-direction:column;align-items:stretch;gap:8px">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="param-label">⏰ Amplitude horaire d\'ouverture</span>'
+              +'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:'+(s.h24?P:'#888')+';cursor:pointer"><input type="checkbox" id="h24-'+c+'" aria-label="Ouvert 24h/24 7j/7" '+(s.h24?'checked':'')+' onchange="toggleH24(\''+c+'\')"> 24h/24 · 7j/7</label>'
+            +'</div>'
+            +'<div id="jours-'+c+'" style="display:'+(s.h24?'none':'flex')+';flex-direction:column;gap:5px">'
+              +[['lun','Lundi'],['mar','Mardi'],['mer','Mercredi'],['jeu','Jeudi'],['ven','Vendredi'],['sam','Samedi'],['dim','Dimanche']].map(function(jr){
+                  var jk=jr[0],jl=jr[1],jd=s.jours[jk]||{on:false,o:'09:00',f:'18:00'};
+                  return '<div style="display:flex;align-items:center;gap:10px;font-size:12px">'
+                    +'<label style="display:flex;align-items:center;gap:6px;min-width:110px;cursor:pointer;color:'+(jd.on?'#ccc':'#555')+'"><input type="checkbox" class="jour-on" data-c="'+c+'" data-j="'+jk+'" '+(jd.on?'checked':'')+' onchange="toggleJour(\''+c+'\',\''+jk+'\')"> '+jl+'</label>'
+                    +'<input class="param-input jour-o" data-c="'+c+'" data-j="'+jk+'" type="time" aria-label="Ouverture '+jl+'" value="'+jd.o+'" style="width:100px'+(jd.on?'':';opacity:.35;pointer-events:none')+'">'
+                    +'<span style="color:#555">→</span>'
+                    +'<input class="param-input jour-f" data-c="'+c+'" data-j="'+jk+'" type="time" aria-label="Fermeture '+jl+'" value="'+jd.f+'" style="width:100px'+(jd.on?'':';opacity:.35;pointer-events:none')+'">'
+                    +'</div>';
+                }).join('')
+            +'</div>'
+          +'</div>'
           +'<div class="alert-trigger"><input type="checkbox" aria-label="Alerte aucun agent" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
           +'<label for="alert-no-agent-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence '+c+' est connecté</label></div>'
         +'</div>'
