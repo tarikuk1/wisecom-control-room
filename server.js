@@ -199,37 +199,6 @@ async function fetchAgentsDay(date){
     };
   }).sort((a,b)=>b.total-a.total);
 
-  // === ENRICHISSEMENT COMPÉTENCES INO (en parallèle avec retry) ===
-  const _skillsToken=await getToken();
-  if(_skillsToken){
-    const enrichSkills=async(agent)=>{
-      for(let attempt=0;attempt<3;attempt++){
-        try{
-          const r=await apiReq("POST","/cc/agent/"+agent.id+"/flow/voice/skills/list",{},_skillsToken);
-          if(r&&(r.flowSkills||r.profileSkills)){
-            const flow=r.flowSkills||[];
-            agent.skills=flow.filter(s=>s.status===1).map(s=>({id:s.id,name:s.name,score:s.score||100,active:true}));
-            agent.allSkills=flow.map(s=>({id:s.id,name:s.name,score:s.score||100,active:s.status===1}));
-            return;
-          }
-        }catch(e){
-          if(e.statusCode===401&&attempt<2){await new Promise(r=>setTimeout(r,3000*(attempt+1)));continue;}
-          break;
-        }
-        break;
-      }
-      // Fallback: dériver depuis les queues actives
-      agent.skills=agent.queues?(agent.queues.split(", ").filter(Boolean).map(q=>({id:null,name:q,score:100,active:true}))):[];
-      agent.allSkills=agent.skills;
-    };
-    // Traiter par batch de 3 pour éviter le rate-limiting
-    for(let i=0;i<list.length;i+=3){
-      const batch=list.slice(i,i+3);
-      await Promise.all(batch.map(enrichSkills));
-      if(i+3<list.length)await new Promise(r=>setTimeout(r,4000));
-    }
-  }
-
   return {agents:list,slots,total:list.length,date};
 }
 
@@ -472,6 +441,51 @@ const server=http.createServer(async(req,res)=>{
     });return;
   }
   // === LISTE DES SKILLS DISPONIBLES PAR AGENT ===
+  // === RAFRAÎCHISSEMENT COMPÉTENCES (route dédiée, déclenchée manuellement) ===
+  if(url==="/api/refresh-skills"&&req.method==="POST"){
+    const _s3=cookies.session?sessions[cookies.session]:null;
+    if(!_s3){res.writeHead(401);res.end(JSON.stringify({error:"Non authentifié"}));return;}
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",async()=>{
+      try{
+        const {agentIds}=JSON.parse(body||"{}");
+        if(!Array.isArray(agentIds)||agentIds.length===0){
+          res.writeHead(400);res.end(JSON.stringify({error:"agentIds[] requis"}));return;
+        }
+        const token=await getToken();
+        if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token INO indisponible"}));return;}
+        const results={};
+        // Traiter par batch de 3 avec délai pour respecter le rate-limiting INO
+        for(let i=0;i<agentIds.length;i+=3){
+          const batch=agentIds.slice(i,i+3);
+          await Promise.all(batch.map(async(agentId)=>{
+            for(let attempt=0;attempt<3;attempt++){
+              try{
+                const r=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+                if(r&&(r.flowSkills||r.profileSkills)){
+                  const flow=r.flowSkills||[];
+                  results[agentId]={
+                    skills:flow.filter(s=>s.status===1).map(s=>({id:s.id,name:s.name,score:s.score||100,active:true})),
+                    allSkills:flow.map(s=>({id:s.id,name:s.name,score:s.score||100,active:s.status===1}))
+                  };
+                  return;
+                }
+              }catch(e){
+                if(attempt<2){await new Promise(r=>setTimeout(r,3000*(attempt+1)));continue;}
+                results[agentId]={error:String(e.message||e).slice(0,80)};
+              }
+              break;
+            }
+          }));
+          if(i+3<agentIds.length)await new Promise(r=>setTimeout(r,3000));
+        }
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,results,count:Object.keys(results).length}));
+      }catch(e){
+        res.writeHead(500);res.end(JSON.stringify({error:e.message}));
+      }
+    });return;
+  }
   if(url.startsWith("/api/skill-list/")){
     const _s2=cookies.session?sessions[cookies.session]:null;
     if(!_s2){res.writeHead(401);res.end(JSON.stringify({error:"Non authentifié"}));return;}
