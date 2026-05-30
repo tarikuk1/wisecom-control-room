@@ -409,6 +409,52 @@ const server=http.createServer(async(req,res)=>{
       }catch(e){res.writeHead(400);res.end(JSON.stringify({error:"JSON invalide"}));}
     });return;
   }
+  // === ACTIVATION DE COMPÉTENCE VIA INO API ===
+  if(url==="/api/activate-skill"&&req.method==="POST"){
+    const _s=cookies.session?sessions[cookies.session]:null;
+    if(!_s){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",async()=>{
+      try{
+        const {agentId,skillId,skillNom,agentNom,score}=JSON.parse(body);
+        if(!agentId||!skillId) return (res.writeHead(400),res.end(JSON.stringify({ok:false,error:"agentId et skillId requis"})));
+        const token=await getToken();
+        if(!token) return (res.writeHead(502),res.end(JSON.stringify({ok:false,error:"Token INO indisponible"})));
+        const now=new Date().toISOString().replace("T"," ").slice(0,19);
+        const addResp=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skill/add",
+          {aas:{id:parseInt(skillId),score:score||100,startDate:now,status:1}},token);
+        if(addResp&&addResp.aas){
+          console.log("[SKILL] Activée: agent="+agentNom+" skill="+skillNom);
+          res.writeHead(200,{"Content-Type":"application/json"});
+          res.end(JSON.stringify({ok:true,skill:addResp.aas,message:"Compétence activée"}));
+        } else {
+          res.writeHead(502);
+          res.end(JSON.stringify({ok:false,error:"Réponse INO inattendue. Le compte API INO actuel (dasboard_INO) n'a pas les droits /cc/*. Contactez l'administrateur INO pour activer les droits Centre de Contacts.",raw:JSON.stringify(addResp).slice(0,200)}));
+        }
+      }catch(e){
+        console.error("[SKILL] Erreur:",e.message);
+        res.writeHead(500);
+        res.end(JSON.stringify({ok:false,error:e.message}));
+      }
+    });return;
+  }
+  // === LISTE DES SKILLS DISPONIBLES PAR AGENT ===
+  if(url.startsWith("/api/skill-list/")){
+    const _s2=cookies.session?sessions[cookies.session]:null;
+    if(!_s2){res.writeHead(401);res.end(JSON.stringify({error:"Non authentifié"}));return;}
+    const agentId=url.replace("/api/skill-list/","").split("?")[0];
+    try{
+      const token=await getToken();
+      if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      const data=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify(data||{}));
+    }catch(e){
+      res.writeHead(500);
+      res.end(JSON.stringify({error:e.message}));
+    }
+    return;
+  }
   // Health public
   if(url==="/health"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({status:"ok",version:"2.1",sseClients:sseClients.length,inoConnected:!!bToken,lastEvent:lastPayload?lastPayload.horodatage:null,uptime:Math.round(process.uptime()),stats:statsCache}));}
   // API status public
