@@ -579,34 +579,36 @@ body.light .ino-coverage-text{color:#555;}
 
 <script>
 const P="#E8006E";
-const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage"];
+const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
 const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
 const CONTRATS=["CDI","CDD","Alternance","Intérim"];
 const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
 const QUEUES_MAP={
-  // Campagnes Wisecom — mapping issu des queues INO réelles (histories API 29/05/2026)
-  Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération"],
-  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_Magasin_Autres"],
-  Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Sortant Vivest","Sortant Verspieren"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération"],
-  Antargaz:["Antargaz_Client","Antargaz_Sortant","Antargaz"],
+  // Mapping exact basé sur les queues INO réelles (semaine 26-30/05/2026)
+  Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],
+  ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],
+  Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération","Vivest_Interne","Sortant Vivest","Sortant Verspieren"],
+  Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"],
+  Antargaz:["Antargaz","Antargaz_Client","Antargaz_Sortant"],
   Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
   Elvetis:["Elvetis_RQ","Elvetis_SAV"],
-  "Alcéane":["Alcéane_Locataires","Alcéane_Urgence","Alceane"],
-  "MG Motor":["MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession","MG Motor"],
-  Filippi:["Filippi_Hertz Ajaccio_Réservation","Filippi_Hertz Ajaccio_Assistance","Filippi_Hertz Bastia_Réservation","Filippi_Hertz Bastia_Assistance","Filippi_Hertz Bastia_Ville","Filippi_Hertz Calvi_Réservation","Filippi_Hertz Calvi_Assistance","Filippi_Hertz Figari_Réservation","Filippi_Hertz Figari_Assistance","Filippi_Sixt_Ajaccio_Réservation","Filippi_Sixt_Ajaccio_Assistance","Filippi_Sixt_Bastia_Réservation","Filippi_Sixt_Figari_Réservation","Filippi_Sixt_Figari_Assistance"],
-  "Nature & Découvertes":["Nature & Découvertes"],
-  Delsey:["Delsey_Site FR","Delsey_Plateforme internet FR","Delsey_Autres Sites FR"],
-  LMB:["LMB_Inscription","LMB_Autre demande","LMB_Parent d'enfant"],
-  Afnor:["Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi","Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION"],
+  "Alcéane":["Alcéane astreinte","Alcéane interne","Alcéane_Locataires","Alcéane_Urgence","Alceane"],
+  "MG Motor":["MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession","MG_Application Ismart","MG Motor","MG Motor Enquete","Sortant MG Motot"],
+  Filippi:["Filippi_Hertz Ajaccio_Réservation","Filippi_Hertz Ajaccio_Assistance","Filippi_Hertz Bastia_Réservation","Filippi_Hertz Bastia_Assistance","Filippi_Hertz Bastia_Ville","Filippi_Hertz Calvi_Réservation","Filippi_Hertz Calvi_Assistance","Filippi_Hertz Figari_Réservation","Filippi_Hertz Figari_Assistance","Filippi_Sixt_Ajaccio_Réservation","Filippi_Sixt_Ajaccio_Assistance","Filippi_Sixt_Bastia_Réservation","Filippi_Sixt_Bastia_Assistance","Filippi_Sixt_Figari_Réservation","Filippi_Sixt_Figari_Assistance"],
+  "Nature & Découvertes":["Nature & Découvertes","Nature & Découvertes_Réitération"],
+  Delsey:["Delsey_Site FR","Delsey_Site EN","Delsey_Plateforme internet FR","Delsey_Autres Sites FR","Sortant Delsey FR"],
+  LMB:["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Parent d'enfant"],
+  Afnor:["Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi","Afnor_RQ_planif_audit_suivi_Réitération","Afnor_RQ_renouvellement_certificat","Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION","AFNOR Sortant"],
   SOS:["SOS _ MA","SOS _ MA _ Réitération"],
-  LGR:["LGR-SC","LGR-Réitération"],
-  LMDW:["LMDW_FR"],
-  LBE:["1_LBE_Offre et souscription"],
-  M123:["M123_FR"],
-  Equisign:["Equisign"],
-  Eiffage:["Eiffage"],
+  LGR:["LGR-SC","LGR-Réitération","LGR Boutique"],
+  LMDW:["LMDW_FR","Sortant LMDW"],
+  LBE:["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)"],
+  M123:["M123_FR","M123_Boutique","Sortant Maison 123 VIP"],
+  Equisign:["Equisign","Equisign _ Réitération"],
+  Eiffage:["Eiffage","Eiffage Réitération","Sortant Eiffage"],
+  Apex:["Apex _ La route des langues","Apex _ Séjours Home Abroad"],
+  Monetize:["Monetize FR"],
 };
 // Mapping queue INO → nom de compétence INO (basé sur les panels agents observés)
 // Permet d'afficher "Vivest · Vivest_Sortant" plutôt que les noms de files techniques
@@ -1660,11 +1662,16 @@ function renderChart(){
     // Si toutes les campagnes sont sélectionnées, pas de filtrage
     if(selCamps.length===CAMPS.length)return sl;
     // Filtrer: garder seulement les queues des camps sélectionnés
+    const normalize=s=>s.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[\s_-]/g,'');
     const queuesCamp=Object.keys(sl.queues).filter(q=>
-      selCamps.some(c=>(QUEUES_MAP[c]||[]).some(mq=>
-        q.toLowerCase().includes(mq.toLowerCase().slice(0,8))||
-        mq.toLowerCase().includes(q.toLowerCase().slice(0,8))
-      ))
+      selCamps.some(c=>{
+        // Match exact d'abord via QUEUES_MAP
+        if((QUEUES_MAP[c]||[]).includes(q))return true;
+        // Match normalisé (insensible accents/espaces/underscores)
+        const qn=normalize(q);
+        return (QUEUES_MAP[c]||[]).some(mq=>normalize(mq)===qn)||
+               normalize(c)===qn.slice(0,normalize(c).length);
+      })
     );
     const filtVol=queuesCamp.reduce((s,q)=>s+(sl.queues[q]||0),0);
     // Si aucun appel pour ce camp dans ce slot → garder le slot vide
