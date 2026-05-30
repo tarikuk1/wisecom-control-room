@@ -3,7 +3,7 @@ const PORT=process.env.PORT||3000;
 const INO_LOGIN=process.env.INO_LOGIN||"tarik_dashboard";
 const INO_PWD=process.env.INO_PWD||"XnF!AuuWJg$cR$S";
 const INO_APIKEY=process.env.INO_APIKEY||"dasboard_INO";
-const SECURITY_CODE=process.env.SECURITY_CODE||"286828";
+let SECURITY_CODE=process.env.SECURITY_CODE||"286828";
 const USERS_RAW=process.env.USERS||"tarik:Wisecom2026!,admin:ControlRoom2026!";
 const USERS=Object.fromEntries(USERS_RAW.split(",").map(u=>{const[l,...r]=u.trim().split(":");return[l.toLowerCase(),r.join(":")];}));
 
@@ -300,6 +300,16 @@ body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-seri
     </div>
     <button class="btn btn-pink" onclick="resetPwd()">Réinitialiser</button>
   </div>
+  <div class="section">
+    <div class="section-title">🔐 Code de sécurité 2FA</div>
+    <div id="code-alert-box" class="alert"></div>
+    <div style="font-size:11px;color:#777;margin-bottom:14px;line-height:1.6">Le code à 6 chiffres demandé après la connexion. Modification réservée aux administrateurs. Prend effet immédiatement pour toutes les prochaines connexions.</div>
+    <div class="row">
+      <div class="field"><label>Code actuel</label><input type="password" id="code-current" placeholder="Code actuel (6 chiffres)" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+      <div class="field"><label>Nouveau code</label><input type="password" id="code-new" placeholder="Nouveau code (6 chiffres)" inputmode="numeric" maxlength="6" autocomplete="off"></div>
+    </div>
+    <button class="btn btn-pink" onclick="changeSecurityCode()">Modifier le code 2FA</button>
+  </div>
 </div>
 <script>
 async function loadStats(){
@@ -340,6 +350,20 @@ async function deleteUser(login){
   const r=await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',login})});
   const d=await r.json();
   if(d.ok){showAlert(d.message,true);loadUsers();}else showAlert(d.error||'Erreur',false);
+}
+async function changeSecurityCode(){
+  const current=document.getElementById('code-current').value.trim();
+  const newCode=document.getElementById('code-new').value.trim();
+  const box=document.getElementById('code-alert-box');
+  if(!/^[0-9]{6}$/.test(newCode)){box.textContent='Le nouveau code doit comporter exactement 6 chiffres';box.className='alert alert-err';box.style.display='block';return;}
+  try{
+    const r=await fetch('/api/admin/security-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current,newCode})});
+    const d=await r.json();
+    box.style.display='block';
+    if(d.ok){box.textContent='✓ '+d.message;box.className='alert alert-ok';document.getElementById('code-current').value='';document.getElementById('code-new').value='';}
+    else{box.textContent='✕ '+(d.error||'Erreur');box.className='alert alert-err';}
+    setTimeout(()=>box.style.display='none',5000);
+  }catch(e){box.textContent='✕ '+e.message;box.className='alert alert-err';box.style.display='block';}
 }
 async function resetPwd(){
   const login=document.getElementById('reset-login').value.trim();
@@ -543,6 +567,20 @@ const server=http.createServer(async(req,res)=>{
       res.writeHead(403,{"Content-Type":"application/json"});
       return res.end(JSON.stringify({error:"Accès réservé aux administrateurs"}));
     }
+  }
+  if(url==="/api/admin/security-code"&&req.method==="POST"){
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",()=>{
+      try{
+        const{current,newCode}=JSON.parse(body);
+        if(current!==SECURITY_CODE){res.writeHead(403);return res.end(JSON.stringify({ok:false,error:"Code actuel incorrect"}));}
+        if(!newCode||!/^[0-9]{6}$/.test(newCode)){res.writeHead(400);return res.end(JSON.stringify({ok:false,error:"Le nouveau code doit comporter exactement 6 chiffres"}));}
+        SECURITY_CODE=newCode;
+        console.log("[ADMIN] Code de sécurité 2FA modifié par "+session.login);
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,message:"Code de sécurité mis à jour"}));
+      }catch(e){res.writeHead(500);res.end(JSON.stringify({ok:false,error:e.message}));}
+    });return;
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
