@@ -425,7 +425,7 @@ body.light .ino-coverage-text{color:#555;}
   <div class="modal-box" role="dialog" aria-modal="true">
     <div class="modal-title" id="modal-title">Action</div>
     <div class="modal-msg" id="modal-msg"></div>
-    <input id="modal-input" class="modal-input" type="text" style="display:none">
+    <input id="modal-input" class="modal-input" type="text" aria-label="Saisie" style="display:none">
     <div class="modal-actions">
       <button class="btn-dismiss" id="modal-cancel">Annuler</button>
       <button class="btn-validate" id="modal-ok">Valider</button>
@@ -612,50 +612,9 @@ const QUEUES_MAP={
 };
 // Mapping queue INO → nom de compétence INO (basé sur les panels agents observés)
 // Permet d'afficher "Vivest · Vivest_Sortant" plutôt que les noms de files techniques
-const COMP_MAP={
-  // Vivest
-  "Vivest_Client":"Vivest","Vivest_Client_Réitération":"Vivest","Vivest_Standard":"Vivest","Vivest_Standard_Réitération":"Vivest interne",
-  "Sortant Vivest":"Vivest_Sortant","Sortant Verspieren":"Vivest_Sortant",
-  // Voltalis
-  "Voltalis_Assistance_Autres":"Voltalis_Assistance","Voltalis_Assistance_Autres_Réitération":"Voltalis_Assistance",
-  "Voltalis_My Voltalis":"Voltalis_MyVoltalis","Voltalis NPV OPB":"Voltalis_NPV",
-  "Voltalis_Acquisition_Prospect":"Voltalis_Acquisition","Voltalis_Acquisition_A déjà RDV":"Voltalis_Acquisition",
-  "Voltalis_RDV":"Voltalis_RDV",
-  // ELECTROSUR
-  "ELECTROSUR_Sinistre":"ELECTROSUR_Sinistre","ELECTROSUR_Sinistre_Réitération":"ELECTROSUR_Sinistre",
-  "ELECTROSUR_Autres":"ELECTROSUR_Autres","ELECTROSUR_Autres_Réitération":"ELECTROSUR_Autres",
-  "ELECTROSUR_Information":"ELECTROSUR_Info","ELECTROSUR_Information_Réitération":"ELECTROSUR_Info",
-  "ELECTROSUR_MOBILE_Sinistre":"ELECTROSUR_Mobile","ELECTROSUR_MOBILE_Autres":"ELECTROSUR_Mobile","ELECTROSUR_MOBILE_Information":"ELECTROSUR_Mobile",
-  "ELECTROSUR_Magasin_Autres":"ELECTROSUR_Magasin",
-  // Evoriel
-  "Evoriel_Locataire":"Evoriel_Locataire","Evoriel_Locataire_Réitération":"Evoriel_Locataire",
-  "Evoriel_Copropriétaire":"Evoriel_Copro","Evoriel_Copropriétaire_Réitération":"Evoriel_Copro",
-  "Evoriel_Bailleur":"Evoriel_Bailleur","Evoriel_Bailleur_Réitération":"Evoriel_Bailleur",
-  // MG Motor
-  "MG_Autre demande":"MG_Autre","MG_Information véhicule":"MG_Info","MG_Véhicule en concession":"MG_Concession","MG Motor":"MG Motor",
-  // Filippi
-  "Filippi_Hertz Ajaccio_Réservation":"Hertz_Ajaccio","Filippi_Hertz Ajaccio_Assistance":"Hertz_Ajaccio",
-  "Filippi_Hertz Bastia_Réservation":"Hertz_Bastia","Filippi_Hertz Bastia_Assistance":"Hertz_Bastia","Filippi_Hertz Bastia_Ville":"Hertz_Bastia",
-  "Filippi_Hertz Calvi_Réservation":"Hertz_Calvi","Filippi_Hertz Calvi_Assistance":"Hertz_Calvi",
-  "Filippi_Hertz Figari_Réservation":"Hertz_Figari","Filippi_Hertz Figari_Assistance":"Hertz_Figari",
-  "Filippi_Sixt_Ajaccio_Réservation":"Sixt_Ajaccio","Filippi_Sixt_Ajaccio_Assistance":"Sixt_Ajaccio",
-  "Filippi_Sixt_Bastia_Réservation":"Sixt_Bastia","Filippi_Sixt_Figari_Réservation":"Sixt_Figari","Filippi_Sixt_Figari_Assistance":"Sixt_Figari",
-  // Autres
-  "Nature & Découvertes":"Nature&Déco","LMB_Inscription":"LMB","LMB_Autre demande":"LMB","LMB_Parent d'enfant":"LMB",
-  "SOS _ MA":"SOS_MA","SOS _ MA _ Réitération":"SOS_MA",
-  "LGR-SC":"LGR","LGR-Réitération":"LGR","LMDW_FR":"LMDW","1_LBE_Offre et souscription":"LBE",
-  "M123_FR":"M123","Equisign":"Equisign","Eiffage":"Eiffage",
-  "Delsey_Site FR":"Delsey","Delsey_Plateforme internet FR":"Delsey","Delsey_Autres Sites FR":"Delsey",
-  "Afnor_RQ_auditeur":"Afnor_RQ","Afnor_RQ_planification_audit_suivi":"Afnor_RQ","Afnor_Web Call Back Home Page":"Afnor_WCB","Afnor Web Call Back FORMATION":"Afnor_Formation",
-};
+
 // Déduire les compétences INO depuis les queues actives (dédupliqué)
-function queuesToComps(queues){
-  if(!Array.isArray(queues)||!queues.length)return null;
-  const seen=new Set();
-  const comps=[];
-  queues.forEach(q=>{const c=COMP_MAP[q]||q;if(!seen.has(c)){seen.add(c);comps.push(c);}});
-  return comps;
-}
+
 
 const AGENTS_BASE=[
   {id:1,nom:"Céline DEBAISIEUX",login:"Celine-D",camp:"Voltalis",skills:["LMDW","Visio"],contrat:"CDI",obj:50},
@@ -697,8 +656,8 @@ function nd(v,suffix){
   if(v===null||v===undefined)return'<span style="color:#666;font-style:italic;font-size:10px" title="Non disponible via l\'API INO actuelle">n.d.</span>';
   return suffix?v+suffix:v;
 }
-function ndInt(v){return (v===null||v===undefined)?nd(null):v;}
-function ndPct(v){return (v===null||v===undefined)?nd(null):v+"%";}
+
+
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false;
@@ -764,25 +723,7 @@ function genSlots(){
 }
 
 // SSE
-function updateSSEProgress(status, pct) {
-  const badge = document.getElementById("sse-badge");
-  if(!badge) return;
-  if(status === "connecting") {
-    badge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">◌ Connexion INO… <span style="display:inline-block;width:60px;height:3px;background:#2a2a2a;border-radius:2px;overflow:hidden;"><span id="sse-prog" style="display:block;height:100%;background:#ff9f0a;border-radius:2px;width:0%;transition:width .5s;"></span></span></span>';
-    badge.style.background="#2a1e0a"; badge.style.color="#ff9f0a";
-    let p=0; const iv=setInterval(()=>{p=Math.min(p+5,90);const el=document.getElementById("sse-prog");if(el)el.style.width=p+"%";},300);
-    badge._iv = iv;
-  } else if(status === "live") {
-    if(badge._iv) clearInterval(badge._iv);
-    badge.innerHTML = "● INO connecté";
-    badge.style.background="#081a10"; badge.style.color="#30d158";
-    document.getElementById("last-update") && (document.getElementById("last-update").textContent = "Connecté " + new Date().toLocaleTimeString("fr-FR"));
-  } else {
-    if(badge._iv) clearInterval(badge._iv);
-    badge.innerHTML = "✕ Hors ligne — reconnexion…";
-    badge.style.background="#1e0808"; badge.style.color="#E8006E";
-  }
-}
+
 function connectSSE(){
   // SSE progress bar
   const badge=document.getElementById("sse-badge");
@@ -970,7 +911,7 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
     wrap.innerHTML=`<div class="ck-btn${open?" open":""}" id="${cid}-btn">${disp}<span class="ck-count" style="margin-left:5px">${selected.length}</span><span style="font-size:9px;color:#666;margin-left:4px">${open?"▲":"▼"}</span></div>
     ${open?`<div class="ck-dropdown">
       <div class="ck-header">${label}</div>
-      <div class="ck-search-wrap"><input class="ck-search" id="${cid}-search" type="text" placeholder="Rechercher…" value="${query.replace(/"/g,'&quot;')}"></div>
+      <div class="ck-search-wrap"><input class="ck-search" id="${cid}-search" type="text" aria-label="Rechercher dans la liste" placeholder="Rechercher…" value="${query.replace(/"/g,'&quot;')}"></div>
       <div class="ck-all" id="${cid}-all"><span class="ck-box" style="border:2px solid ${P};background:${all?P:"transparent"};border-radius:4px">${all?"✓":""}</span>${all?"Tout décocher":"Tout cocher"}</div>
       <div class="ck-list">
       ${filtered.length?filtered.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o.replace(/"/g,'&quot;')}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join(""):`<div style="padding:8px 12px;color:#555;font-size:11px">Aucun résultat</div>`}
@@ -1486,7 +1427,7 @@ function renderTable(sorted){
     {k:"realise",l:"% de réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
     {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire",def:"Courbe de l'activité horaire de l'agent sur la journée. Chaque point = nombre d'appels traités dans le créneau horaire. Buckets de 1h de 08h à 19h (heure France)."},
     {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
-    {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour via COMP_MAP. Le détail complet est visible au survol (tooltip)."}
+    {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."}
   ];
   // Appliquer la sélection utilisateur (toujours garder expand + nom)
   const cols=ALL_COLS.filter(c=>c.k==='expand'||c.k==='nom'||visibleCols.has(c.k));
@@ -1815,7 +1756,7 @@ function renderBacklog(){
 
 function renderSkills(){
   const allA=(agents.length?agents:AGENTS_BASE).slice().sort((a,b)=>a.camp.localeCompare(b.camp)||a.nom.localeCompare(b.nom));
-  // Construire la liste des compétences réelles depuis les données INO (a.skills = queuesToComps)
+  // Construire la liste des compétences réelles depuis l'API INO (a.skills enrichi par /api/refresh-skills)
   // Si aucun agent INO, fallback sur la liste statique
   const hasInoSkills=allA.some(a=>Array.isArray(a.skills)&&a.skills.length>0);
   let colSkills;
@@ -2226,25 +2167,7 @@ render();
 setBadge("ready");
 refreshPresetSelect();
 // Bornage calendrier sur l'historique réellement disponible dans INO
-(function setupDateBounds(){
-  var maxD=todayStr, minD="2022-01-01";
-  ["f-date-deb","f-date-fin"].forEach(function(id){
-    var el=document.getElementById(id); if(!el)return;
-    el.max=maxD; el.min=minD;
-    el.addEventListener("change",function(){
-      if(el.value && el.value>maxD) el.value=maxD;
-      if(el.value && el.value<minD) el.value=minD;
-      if(el.value) refreshFromINO();
-    });
-  });
-  // Heures : refresh quand on change la tranche horaire
-  ["f-h-deb","f-h-fin"].forEach(function(id){
-    var el=document.getElementById(id); if(!el)return;
-    el.addEventListener("change",function(){
-      refreshFromINO();
-    });
-  });
-})();
+
 
 // ============================================================
 // PANNEAU COLONNES
@@ -2347,20 +2270,20 @@ function renderCriteres(){
       +'<div class="kpi-param-grid">'
         +'<div class="param-group">'
           +'<div class="param-title">📞 Qualité de Service (QS)</div>'
-          +'<div class="param-row"><span class="param-label">QS minimum (seuil bas)</span><input class="param-input" id="qs-min-'+c+'" type="number" min="0" max="100" value="'+s.qs_min+'"><span class="param-unit">%</span></div>'
-          +'<div class="param-row"><span class="param-label">QS maximum (seuil haut)</span><input class="param-input" id="qs-max-'+c+'" type="number" min="0" max="100" value="'+s.qs_max+'"><span class="param-unit">%</span></div>'
+          +'<div class="param-row"><span class="param-label">QS minimum (seuil bas)</span><input class="param-input" id="qs-min-'+c+'" type="number" aria-label="QS minimum" min="0" max="100" value="'+s.qs_min+'"><span class="param-unit">%</span></div>'
+          +'<div class="param-row"><span class="param-label">QS maximum (seuil haut)</span><input class="param-input" id="qs-max-'+c+'" type="number" aria-label="QS maximum" min="0" max="100" value="'+s.qs_max+'"><span class="param-unit">%</span></div>'
           +'<div style="font-size:9px;color:#555;margin-top:4px">Alerte si QS &lt; min ou &gt; max</div>'
         +'</div>'
         +'<div class="param-group">'
           +'<div class="param-title">📧 Backlog Mails</div>'
-          +'<div class="param-row"><span class="param-label">Backlog actuel (saisie)</span><input class="param-input" id="backlog-val-'+c+'" type="number" min="0" value="'+s.backlog_val+'"><span class="param-unit">mails</span></div>'
-          +'<div class="param-row"><span class="param-label">Seuil minimum</span><input class="param-input" id="backlog-min-'+c+'" type="number" min="0" value="'+s.backlog_min+'"><span class="param-unit">mails</span></div>'
-          +'<div class="param-row"><span class="param-label">Seuil maximum</span><input class="param-input" id="backlog-max-'+c+'" type="number" min="0" value="'+s.backlog_max+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-row"><span class="param-label">Backlog actuel (saisie)</span><input class="param-input" id="backlog-val-'+c+'" type="number" aria-label="Backlog valeur" min="0" value="'+s.backlog_val+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-row"><span class="param-label">Seuil minimum</span><input class="param-input" id="backlog-min-'+c+'" type="number" aria-label="Backlog minimum" min="0" value="'+s.backlog_min+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-row"><span class="param-label">Seuil maximum</span><input class="param-input" id="backlog-max-'+c+'" type="number" aria-label="Backlog maximum" min="0" value="'+s.backlog_max+'"><span class="param-unit">mails</span></div>'
         +'</div>'
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
-          +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
-          +'<div class="alert-trigger"><input type="checkbox" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
+          +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" aria-label="Objectif appels" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
+          +'<div class="alert-trigger"><input type="checkbox" aria-label="Alerte aucun agent" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
           +'<label for="alert-no-agent-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence '+c+' est connecté</label></div>'
         +'</div>'
       +'</div>'
@@ -2375,28 +2298,7 @@ function renderCriteres(){
 // ============================================================
 // COMPÉTENCES : chargement depuis /api/skills puis fallback
 // ============================================================
-async function loadSkillsFromINO(){
-  try{
-    const r=await fetch('/api/skills');
-    if(!r.ok)return;
-    const data=await r.json();
-    if(!data.ok||!data.agents)return;
-    // Mettre à jour les compétences sur les agents en mémoire
-    let updated=0;
-    agents=agents.map(a=>{
-      const sk=data.agents[a.id];
-      if(sk&&Array.isArray(sk.skills)&&sk.skills.length>0){
-        a.skills=sk.skills;
-        updated++;
-      }
-      return a;
-    });
-    if(updated>0){
-      console.log('[SKILLS] Mise à jour: '+updated+' agents enrichis');
-      render();
-    }
-  }catch(e){console.log('[SKILLS] Non disponible, fallback data_base');}
-}
+
 
 // Pas de rafraîchissement automatique : l'API INO n'est interrogée que sur action du bouton RAFRAÎCHIR.
 // Chargement initial unique pour ne pas afficher un écran vide à l'ouverture.
