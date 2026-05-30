@@ -537,6 +537,13 @@ const server=http.createServer(async(req,res)=>{
     const hFin=u.searchParams.get("hFin")||"20:00";
     fetchAgentsDay(date,hDeb,hFin).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
   }
+  // [SÉCURITÉ] Routes admin : exiger le rôle admin (pas seulement une session valide)
+  if(url.startsWith("/api/admin/")){
+    if(session.login!=="admin"&&session.login!=="tarik"){
+      res.writeHead(403,{"Content-Type":"application/json"});
+      return res.end(JSON.stringify({error:"Accès réservé aux administrateurs"}));
+    }
+  }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
   if(url==="/api/skills"){
