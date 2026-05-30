@@ -662,6 +662,7 @@ function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-
 
 let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false;
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
+let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
@@ -1755,37 +1756,67 @@ function renderBacklog(){
 }
 
 function renderSkills(){
-  const allA=(agents.length?agents:AGENTS_BASE).slice().sort((a,b)=>a.camp.localeCompare(b.camp)||a.nom.localeCompare(b.nom));
-  // Construire la liste des compétences réelles depuis l'API INO (a.skills enrichi par /api/refresh-skills)
-  // Si aucun agent INO, fallback sur la liste statique
-  const hasInoSkills=allA.some(a=>Array.isArray(a.skills)&&a.skills.length>0);
-  let colSkills;
-  if(hasInoSkills){
-    const seen=new Set();
-    allA.forEach(a=>(a.skills||[]).forEach(sk=>{if(sk)seen.add(sk);}));
-    // Trier : d'abord par campagne dominante puis alphabétique
-    colSkills=[...seen].sort((a,b)=>{
-      const ca=allA.find(x=>(x.skills||[]).includes(a));
-      const cb=allA.find(x=>(x.skills||[]).includes(b));
-      const campA=ca?ca.camp:"";const campB=cb?cb.camp:"";
-      return campA.localeCompare(campB)||a.localeCompare(b);
-    });
-  }else{
-    colSkills=SKILLS;
+  const host=document.getElementById("skills-table");if(!host)return;
+  // N'afficher que les agents réels (issus de l'API INO), pas les fictifs AGENTS_BASE
+  const realAgents=agents.filter(a=>a.id);
+  // Les compétences ne sont chargées qu'à la demande via le bouton "↺ Compétences"
+  const hasInoSkills=realAgents.some(a=>Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0);
+
+  if(!hasInoSkills){
+    // État vide explicite : inviter à charger les compétences
+    host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
+      +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">🧩</div>'
+      +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Compétences non chargées</div>'
+      +'<div style="font-size:12px;color:#666;max-width:420px;margin:0 auto 18px;line-height:1.6">Les compétences INO ne sont pas récupérées automatiquement (pour garder le rafraîchissement rapide). Cliquez sur le bouton ci-dessous pour charger les compétences réelles de chaque agent depuis INO.</div>'
+      +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">↺ Charger les compétences INO</button>'
+      +'</td></tr>';
+    return;
   }
+
+  // Construire la liste des colonnes = union de toutes les compétences réelles (actives + inactives)
+  const seen=new Map();
+  realAgents.forEach(a=>(a.allSkillsData||[]).forEach(s=>{if(s&&s.name&&!seen.has(s.name))seen.set(s.name,s.id);}));
+  let colSkills=[...seen.keys()].sort((a,b)=>a.localeCompare(b));
+
+  // Tri des lignes (agents) selon skillSort
+  let sorted=realAgents.slice();
+  if(skillSort.col==='__agent'){
+    sorted.sort((a,b)=>a.nom.localeCompare(b.nom));
+  }else if(skillSort.col==='__files'){
+    sorted.sort((a,b)=>(a.files_ok?1:0)-(b.files_ok?1:0));
+  }else if(skillSort.col==='__count'){
+    const cnt=a=>(a.allSkillsData||[]).filter(s=>s.active).length;
+    sorted.sort((a,b)=>cnt(a)-cnt(b));
+  }else if(skillSort.col){
+    // Tri par état actif/inactif de la compétence (colonne)
+    const val=a=>{const e=(a.allSkillsData||[]).find(s=>s.name===skillSort.col);return e?(e.active?2:1):0;};
+    sorted.sort((a,b)=>val(a)-val(b));
+  }else{
+    sorted.sort((a,b)=>(a.camp||"").localeCompare(b.camp||"")||a.nom.localeCompare(b.nom));
+  }
+  if(skillSort.dir==='desc')sorted.reverse();
+
+  const arrow=c=>skillSort.col===c?(skillSort.dir==='asc'?' ▲':' ▼'):'';
+  const thStyle='text-align:center;min-width:85px;padding:8px 12px;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none';
   const thead='<thead><tr>'
-    +'<th style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2">Agent</th>'
-    +colSkills.map(sk=>'<th style="text-align:center;min-width:85px;padding:8px 12px;font-size:10px;white-space:nowrap">'+sk+'</th>').join('')
-    +'<th style="text-align:center;min-width:70px;padding:8px 12px;font-size:10px">Files</th>'
+    +'<th onclick="sortSkills(\'__agent\')" style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2;cursor:pointer;user-select:none">Agent'+arrow('__agent')+'</th>'
+    +'<th onclick="sortSkills(\'__count\')" style="'+thStyle+'">Nb actives'+arrow('__count')+'</th>'
+    +colSkills.map(sk=>'<th onclick="sortSkills(\''+sk.replace(/'/g,"\\'")+'\')" style="'+thStyle+'">'+sk+arrow(sk)+'</th>').join('')
+    +'<th onclick="sortSkills(\'__files\')" style="'+thStyle+'">Files'+arrow('__files')+'</th>'
     +'</tr></thead>';
-  const tbody='<tbody>'+allA.map(a=>{
+  const tbody='<tbody>'+sorted.map(a=>{
     const campColor=a.camp&&a.camp!=="–"?P:"#555";
-    return '<tr>'
-      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:#111;white-space:nowrap">'+a.nom+'<br><span style="font-size:9px;color:#555">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+a.camp+'</span></span></td>'
+    // Coloration légère selon statut connecté/déconnecté
+    const isCo=a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel";
+    const rowBg=isCo?"rgba(48,209,88,.05)":"rgba(120,120,120,.04)";
+    const dot=isCo?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#30d158;margin-right:6px;vertical-align:middle" title="Connecté"></span>':'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle" title="Déconnecté"></span>';
+    const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
+    return '<tr style="background:'+rowBg+'">'
+      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(isCo?"#0d130d":"#111")+';white-space:nowrap">'+dot+a.nom+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
+      +'<td style="text-align:center;padding:8px 12px;font-weight:700;color:'+P+'">'+nbActives+'</td>'
       +colSkills.map(sk=>{
-        // Chercher dans allSkillsData pour avoir l'ID et le score
         const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
-        const has=skillEntry?skillEntry.active:((a.skills||[]).includes(sk));
+        const has=skillEntry?skillEntry.active:false;
         const skillId=skillEntry?skillEntry.id:null;
         const skillScore=skillEntry?skillEntry.score:100;
         const sid=skillId||'';
@@ -1794,15 +1825,22 @@ function renderSkills(){
         return '<td style="text-align:center;padding:8px 12px">'
           +(has
             ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff" title="Actif · Score: '+skillScore+'">✓</span>'
-            :'<button class="skill-act-btn" data-eid="'+eid+'" title="Activer" style="'+btnStyle+'">+</button>')
+            :(skillEntry
+              ?'<button class="skill-act-btn" data-eid="'+eid+'" title="Activer (compétence configurée, inactive)" style="'+btnStyle+'">+</button>'
+              :'<span style="color:#2a2a2a;font-size:10px" title="Non configurée pour cet agent">·</span>'))
           +'</td>';
       }).join('')
       +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
       +'</tr>';
   }).join('')+'</tbody>';
-  document.getElementById("skills-table").innerHTML=thead+tbody;
+  host.innerHTML=thead+tbody;
 }
 
+function sortSkills(col){
+  if(skillSort.col===col){skillSort.dir=skillSort.dir==='asc'?'desc':'asc';}
+  else{skillSort.col=col;skillSort.dir='asc';}
+  renderSkills();
+}
 function render(){
   const f=getFiltered(),s=getSorted(f);
   renderKPIs(f);
