@@ -124,45 +124,68 @@ async function fetchAgentsDay(date){
     if(s.includes("rdv")||s.includes("intéress")||s.includes("interess"))a.transfo_yes++;
     a.qualifs_total++;
   }
+  // Stocker les appels bruts par agent pour calcul ACW
+  const agentCalls={};
   function proc(h,type){
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
     if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,spark:Array(12).fill(0)};
     if(type==="in"){
       agents[k].appelsIn++;
-      // Appel entrant non décroché (présenté mais durée=0 ou status abandoned)
       const agDur=(h.call&&h.call.agentDuration)||0;
       if(agDur===0||(h.status&&String(h.status).toLowerCase().includes('abandon')))agents[k].nonDecroches++;
     }else agents[k].appelsOut++;
-    agents[k].duree+=(h.call&&h.call.agentDuration)||0;
+    const agDur2=(h.call&&h.call.agentDuration)||0;
+    agents[k].duree+=agDur2;
     const dt=h.callDate||h.acdDate;
     if(dt<agents[k].premiereAction)agents[k].premiereAction=dt;
     if(dt>agents[k].derniereAction)agents[k].derniereAction=dt;
     if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
-    // Qualification
     tagQualif(agents[k],h.status);
-    // Sparkline horaire (12 buckets de 1h, 08h → 19h)
     if(dt){const _d=new Date(dt);const hh=_d.getUTCHours()+2;const idx=hh-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
-    // Slot global flux par tranche horaire
     const sk=slotKey(dt);
     if(sk){
       if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0};
       if(type==="in")slotsMap[sk].vol++;else slotsMap[sk].out++;
       if(h.status&&String(h.status).toLowerCase().includes("aband"))slotsMap[sk].aband++;
     }
+    // Stocker pour calcul ACW
+    if(!agentCalls[k])agentCalls[k]=[];
+    if(agDur2>0&&dt)agentCalls[k].push({start:new Date(dt).getTime(),dur:agDur2*1000});
   }
   (ri&&ri.histories?ri.histories:[]).forEach(h=>proc(h,"in"));
   (ro&&ro.histories?ro.histories:[]).forEach(h=>proc(h,"out"));
+  // Calcul ACW moyen par agent (trou entre fin d'un appel et début du suivant)
+  Object.keys(agentCalls).forEach(k=>{
+    const calls=agentCalls[k].sort((a,b)=>a.start-b.start);
+    const gaps=[];
+    for(let i=1;i<calls.length;i++){
+      const gap=(calls[i].start-(calls[i-1].start+calls[i-1].dur))/1000;
+      if(gap>0&&gap<3600)gaps.push(gap); // exclure les gaps > 1h (pauses)
+    }
+    if(gaps.length>0)agents[k].acwMoyen=Math.round(gaps.reduce((s,v)=>s+v,0)/gaps.length);
+  });
   // Slots ordonnés 08:00 → 19:30
   const slots=[];
   for(let h=8;h<=19;h++){for(const m of["00","30"]){const k=String(h).padStart(2,"0")+":"+m;slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});}}
   // Enrichir avec les compétences INO
   let agentSkillsMap={};
   try{agentSkillsMap=await fetchAgentSkills();}catch(e){console.error('[SKILLS]',e.message);}
+  const now=Date.now();
   const list=Object.values(agents).map(a=>{
+    // Statut estimé depuis la dernière activité
+    let statutEstime="Inconnu";
+    if(a.derniereAction){
+      const lastMs=new Date(a.derniereAction).getTime();
+      const elapsedMin=(now-lastMs)/60000;
+      if(elapsedMin<5)statutEstime="Traitement";
+      else if(elapsedMin<15)statutEstime="Post-appel";
+      else if(elapsedMin<120)statutEstime="Actif";
+      else statutEstime="Déconnecté";
+    }
     const sk=agentSkillsMap[a.id]||{};
     return {
-      id:a.id,nom:a.nom,username:a.username,
+      id:a.id,nom:a.nom,username:a.username,statutEstime,lastCallDate:a.derniereAction,
       appelsIn:a.appelsIn,appelsPresentes:a.appelsIn+(a.nonDecroches||0),appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
       duree:a.duree,dmt:(a.appelsIn+a.appelsOut)>0?Math.round(a.duree/(a.appelsIn+a.appelsOut)):0,
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
@@ -170,7 +193,8 @@ async function fetchAgentsDay(date){
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
       spark:a.spark,
-      skills:Array.isArray(sk.skills)?sk.skills:[]
+      skills:Array.isArray(sk.skills)?sk.skills:[],
+      acwMoyen:a.acwMoyen||null
     };
   }).sort((a,b)=>b.total-a.total);
   return {agents:list,slots,total:list.length,date};
