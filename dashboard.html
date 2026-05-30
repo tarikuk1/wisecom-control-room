@@ -582,7 +582,7 @@ const P="#E8006E";
 const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
 const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
 const CONTRATS=["CDI","CDD","Alternance","Intérim"];
-const STATUSES=["Connecté","En Pause","Wrap-up","Déconnecté"];
+const STATUSES=["Actif","Traitement","Post-appel","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
 const QUEUES_MAP={
   // Mapping exact basé sur les queues INO réelles (semaine 26-30/05/2026)
@@ -661,7 +661,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false;
-let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Connecté","En Pause","Wrap-up"];
+let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
@@ -866,7 +866,7 @@ async function loadAgentsFromAPI(){
         };
       });
       selAgents=agents.map(a=>a.nom);
-      selStatus=["Connecté","En Pause","Wrap-up","Déconnecté","n.d."];
+      selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
       render();
@@ -1041,7 +1041,7 @@ function applyPreset(name){
   selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
   selContrats=Array.isArray(p.contrats)?p.contrats:[...CONTRATS];
-  selStatus=Array.isArray(p.status)?p.status:["Connecté","En Pause","Wrap-up"];
+  selStatus=Array.isArray(p.status)?p.status:["Actif","Traitement","Post-appel","Déconnecté","n.d."];
   if(p.sw&&typeof p.sw==="object")sw={...sw,...p.sw};
   buildAllDropdowns();buildSwitches();render();
   presetStatus(`Vue « ${name} » appliquée`,"#30d158");
@@ -1348,7 +1348,7 @@ function renderAlerts(f){
       </div>`;
     }
     // Alerte 0 agent connecté
-    if(cc.alert_no_agent&&stat.agents.filter(a=>a.status==='Connecté'||a.status==='En Pause').length===0&&stat.agents.length>0){
+    if(cc.alert_no_agent&&stat.agents.filter(a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel').length===0&&stat.agents.length>0){
       html+=`<div class="redflag-alert">
         <span class="redflag-badge">🚨 ALERTE COUVERTURE</span>
         <span style="font-size:12px;color:#ff9999;flex:1">Aucun agent avec la compétence <b style="color:#ff3b30">${camp}</b> n'est actuellement connecté. Risque de non-couverture.</span>
@@ -1358,7 +1358,7 @@ function renderAlerts(f){
       // Cherche candidats disponibles depuis autres files
       const candidats=agents.filter(a=>
         a.camp!==camp&&
-        (a.status==="Connecté"||a.status==="En Pause")&&
+        (a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel")&&
         !f.find(x=>x.id===a.id&&x.camp===camp)
       );
       if(candidats.length>0){
@@ -1384,7 +1384,7 @@ function renderAlerts(f){
   });
 
   // Agents sous-productifs
-  const sousP=f.filter(a=>a.hprod>1&&a.appelsH<5&&a.status==="Connecté");
+  const sousP=f.filter(a=>a.hprod>1&&a.appelsH<5&&(a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel"));
   if(sousP.length>0){
     html+=`<div class="smart-alert">
       <span class="smart-badge">📊 Organisation</span>
@@ -1456,7 +1456,7 @@ function renderTable(sorted){
     const actes=a.appels+m;
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
     const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
-    const sc=a.status==="Connecté"?"#30d158":a.status==="En Pause"?"#ff9f0a":a.status==="Wrap-up"?P:"#444";
+    const sc=a.status==="Actif"?"#30d158":a.status==="Traitement"?"#ff6b6b":a.status==="Post-appel"?"#ff9f43":"#444";
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
     const rfMins=Math.floor(inactifMs/60000);
@@ -2243,7 +2243,7 @@ function renderCriteres(){
   agents.forEach(a=>{
     if(!campStats[a.camp])campStats[a.camp]={agents:0,connectes:0,app:0,hp:0};
     campStats[a.camp].agents++;
-    if(a.status==='Connecté'||a.status==='En Pause')campStats[a.camp].connectes++;
+    if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campStats[a.camp].connectes++;
     campStats[a.camp].app+=a.appels;
     campStats[a.camp].hp+=a.hprod;
   });
