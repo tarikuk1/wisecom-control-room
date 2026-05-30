@@ -436,12 +436,12 @@ body.light input[type=time]::-webkit-calendar-picker-indicator{filter:none;opaci
   <div class="filter-panel" id="filter-panel">
     <div class="filter-row">
       <span class="filter-label">Période</span>
-      <input type="date" id="f-date-deb" min="2022-01-01">
+      <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
       <span style="font-size:10px;color:#444;">→</span>
-      <input type="date" id="f-date-fin" min="2022-01-01">
-      <input type="time" id="f-h-deb" value="08:00">
+      <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
+      <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début">
       <span style="font-size:10px;color:#444;">→</span>
-      <input type="time" id="f-h-fin" value="20:00">
+      <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin">
       <select id="f-pas">
         <option>15 min</option><option selected>30 min</option>
         <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
@@ -1774,11 +1774,14 @@ function exportXlsx(){
 // Export PDF amélioré
 // Export PDF de la matrice compétences (via fenêtre dédiée → Imprimer / Enregistrer en PDF)
 function exportSkillsPDF(){
-  const allA=agents.length?agents:AGENTS_BASE;
+  const allA=(agents.length?agents:AGENTS_BASE).slice().sort((a,b)=>a.camp.localeCompare(b.camp)||a.nom.localeCompare(b.nom));
   const dateStr=new Date().toLocaleDateString("fr-FR");
-  const filtre=document.getElementById("f-date-fin").value||"";
+  const filtre=document.getElementById("f-date-deb").value||"";
+  // Colonnes dynamiques depuis les vraies compétences INO
+  const seen=new Set();allA.forEach(a=>(a.skills||[]).forEach(sk=>{if(sk)seen.add(sk);}));
+  const dynSkills=seen.size>0?[...seen].sort():(SKILLS||[]);
   const rows=allA.map(a=>{
-    const cells=SKILLS.map(s=>(a.skills||[]).includes(s)
+    const cells=dynSkills.map(s=>(a.skills||[]).includes(s)
       ?'<td class="ok">✓</td>'
       :'<td class="ko">–</td>').join("");
     return`<tr>
@@ -1787,7 +1790,7 @@ function exportSkillsPDF(){
       <td class="filesok">${a.files_ok?'<span class="ok-tag">OK</span>':'<span class="anom-tag">⚠ Anomalie</span>'}</td>
     </tr>`;
   }).join("");
-  const tot=SKILLS.map(s=>allA.filter(a=>(a.skills||[]).includes(s)).length);
+  const tot=dynSkills.map(s=>allA.filter(a=>(a.skills||[]).includes(s)).length);
   const totRow=`<tr class="tot">
     <td class="name"><b>TOTAL agents qualifiés</b></td>
     ${tot.map((n,i)=>`<td class="cnt"><b>${n}</b><br><span class="sub">${Math.round(n/allA.length*100)}%</span></td>`).join("")}
@@ -1832,7 +1835,7 @@ function exportSkillsPDF(){
     <table>
       <thead><tr>
         <th class="name">Agent / Campagne</th>
-        ${SKILLS.map(s=>`<th>${s}</th>`).join("")}
+        ${dynSkills.map(s=>`<th>${s}</th>`).join("")}
         <th>Files actives</th>
       </tr></thead>
       <tbody>${rows}${totRow}</tbody>
@@ -1990,8 +1993,14 @@ refreshPresetSelect();
     el.addEventListener("change",function(){
       if(el.value && el.value>maxD) el.value=maxD;
       if(el.value && el.value<minD) el.value=minD;
-      // Rafraîchir automatiquement quand la date change
       if(el.value) refreshFromINO();
+    });
+  });
+  // Heures : refresh quand on change la tranche horaire
+  ["f-h-deb","f-h-fin"].forEach(function(id){
+    var el=document.getElementById(id); if(!el)return;
+    el.addEventListener("change",function(){
+      refreshFromINO();
     });
   });
 })();
