@@ -673,7 +673,7 @@ const COL_DEFS=[
   {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},
   {k:"acw",l:"Post-appel (ACW)",on:false},{k:"occupation",l:"Occupation",on:true},
   {k:"transfo",l:"Transformation",on:false},{k:"adherence",l:"Adhérence",on:false},
-  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Refus prise appel",on:true},
+  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Qualif. Refus",on:true},
   {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% de réalisé",on:true},
   {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
   {k:"skills",l:"Compétences",on:true}
@@ -808,7 +808,16 @@ async function loadAgentsFromAPI(){
       slots=Array.isArray(data.slots)?data.slots:[];
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
-        const hprod=a.duree>0?+(a.duree/3600).toFixed(2):0;
+        // H. Prod = durée entre 1ère connexion et dernière déconnexion (temps sur le plateau)
+        // Fallback : durée de communication / 0.75 (estimation ~75% d'occupation)
+        let hprod=0;
+        if(a.premiereAction&&a.derniereAction){
+          const presH=(new Date(a.derniereAction)-new Date(a.premiereAction))/3600000;
+          hprod=presH>0?+presH.toFixed(2):0;
+        }else if(a.duree>0){
+          // Fallback : comm / 0.75 (agent occupe ~75% du temps en comm)
+          hprod=+(a.duree/3600/0.75).toFixed(2);
+        }
         // 1. Queues actives du jour
         const fq=(a.queues||"").split(", ").filter(Boolean);
         // 2. Campagne principale (via QUEUES_MAP exact puis fallback)
@@ -831,8 +840,15 @@ async function loadAgentsFromAPI(){
         const realise=obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
         const appelsDecH=hprod>0?+(total/hprod).toFixed(1):0;
         const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
-        // Occupation : calculée à partir des données INO disponibles (duree de communication / présence estimée)
-        const occupation=hprod>0?Math.min(100,Math.round((a.duree/3600/(hprod*1.1))*100)):null;
+        // Occupation = duree communication / (présence * 50min/h)
+        // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
+        let presenceSec=0;
+        if(a.premiereAction&&a.derniereAction){
+          presenceSec=(new Date(a.derniereAction)-new Date(a.premiereAction))/1000;
+        }
+        // Si présence < durée comm (cas limite) ou absente, on ne calcule pas
+        const tempsDispo=presenceSec>0?(presenceSec*(50/60)):0;
+        const occupation=(tempsDispo>0&&a.duree>0)?Math.min(100,Math.round((a.duree/tempsDispo)*100)):null;
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
@@ -1278,7 +1294,7 @@ function renderTable(sorted){
     {k:"transfo",l:"Transformation",title:"Taux de transformation"},
     {k:"adherence",l:"Adhérence",title:"Adhérence au planning"},
     {k:"ko",l:"100 % KO"},
-    {k:"refus",l:"Refus prise appel",title:"Refus de prise de l'appel par l'agent"},
+    {k:"refus",l:"Qualif. Refus",title:"Appels qualifiés 'Refus' par l'agent — Note : les appels abandonnés (raccrochage file) ne sont pas attribuables par agent dans l'API INO"},
     {k:"inactifs",l:"Inactifs"},
     {k:"realise",l:"% de réalisé"},
     {k:"spark",l:"Activité du jour",title:"Évolution des actes sur la journée"},
