@@ -730,6 +730,7 @@ const COL_DEFS=[
   {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Dernière déco",on:true},
   {k:"hprod",l:"H. Prod",on:true},{k:"presence",l:"Présence",on:false},
   {k:"appelsIn",l:"Appels présentés",on:true},{k:"appels",l:"Décrochés",on:true},
+  {k:"refuses",l:"Appels refusés",on:true},
   {k:"appelsOut",l:"Sortants",on:true},{k:"mails",l:"Mails saisis",on:true},
   {k:"actes",l:"Actes total",on:true},{k:"actesH",l:"Actes/h",on:true},
   {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},
@@ -913,7 +914,7 @@ async function loadAgentsFromAPI(){
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
-          presentes:a.appelsPresentes||a.appelsIn,decroches:a.appelsIn,sortants:a.appelsOut,
+          presentes:a.appelsPresentes||a.appelsIn,decroches:a.appelsIn,refuses:a.nonDecroches||((a.appelsPresentes||a.appelsIn)-a.appelsIn),sortants:a.appelsOut,
           mails_auto:m,hprod,
           presence:a.presence!=null?a.presence:null,
           dmc:a.dmt||0,
@@ -1477,6 +1478,7 @@ function renderTable(sorted){
     {k:"presence",l:"Présence",def:"Temps de présence réel sur le plateau. Non exposé par l'API INO histories — affiché n.d."},
     {k:"appelsIn",l:"Appels présentés",title:"Appels entrants présentés à l'agent (décrochés + non décrochés)",def:"Appels entrants présentés à l'agent = décrochés + présentés mais non décrochés (agentDuration=0). Les abandons de file (appelant raccroche avant distribution) ont agent=null et ne sont PAS comptabilisés ici. Source : API INO /call/in/histories."},
     {k:"appels",l:"Décrochés",title:"Appels entrants effectivement décrochés",def:"Appels entrants effectivement décrochés par l'agent (agentDuration > 0). Source : count des enregistrements /call/in/histories avec agent assigné."},
+    {k:"refuses",l:"Appels refusés",title:"Appels présentés mais non décrochés par l'agent",def:"Appels entrants présentés à l'agent mais NON décrochés (distribués mais non pris). Indicateur de monitoring des agents qui ne décrochent pas. Formule : présentés − décrochés. N'inclut PAS les abandons de file (agent=null)."},
     {k:"appelsOut",l:"Sortants",title:"Appels sortants réalisés",def:"Appels sortants réalisés par l'agent. Source : API INO /call/out/histories."},
     {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle des mails",def:"Nombre de mails traités — saisie manuelle par le superviseur. Alimente le calcul des Actes total et Actes/h."},
     {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails",def:"Total des actes de production = Appels décrochés + Appels sortants + Mails saisis. Formule : appelsIn + appelsOut + mails."},
@@ -1514,7 +1516,7 @@ function renderTable(sorted){
   const acwAvgCamp={};
   Object.entries(acwByCamp).forEach(([c,arr])=>{acwAvgCamp[c]=arr.reduce((s,v)=>s+v,0)/arr.length;});
 
-  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0,tPres=0,tDecr=0,tHP=0,tDmcW=0;
+  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0,tPres=0,tDecr=0,tHP=0,tDmcW=0,tRefuses=0;
   const now=Date.now();
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
@@ -1528,7 +1530,7 @@ function renderTable(sorted){
     const rfMins=Math.floor(inactifMs/60000);
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
     tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
-    tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0);
+    tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0); tRefuses+=(a.refuses||0);
     // Dérive ACW : >20% au-dessus de la moyenne du groupe (campagne)
     const grpAcw=acwAvgCamp[a.camp];
     const acwDrift=a.acw&&grpAcw&&a.acw>grpAcw*1.2;
@@ -1563,6 +1565,7 @@ function renderTable(sorted){
       <td style="${visibleCols.has('presence')?'':' display:none'};color:#555">${a.presence!=null?fmtH(a.presence):nd(null)}</td>
       <td title="Appels présentés à l'agent">${a.appelsIn||0}</td>
       <td style="font-weight:700" title="Appels décrochés / traités">${a.decroches!=null?a.decroches:a.appels}</td>
+      <td style="${visibleCols.has('refuses')?'':' display:none'}" title="Appels présentés mais non décrochés (refusés par l'agent)">${(a.refuses||0)>0?`<span style="color:#ff3b30;font-weight:700">${a.refuses}</span>`:'<span style="color:#30d158">0</span>'}</td>
       <td title="Appels sortants">${a.appelsOut||0}</td>
       <td class="cell-mail">
         <input class="mail-input" type="number" min="0" max="999" value="${m}"
@@ -1599,6 +1602,7 @@ function renderTable(sorted){
     <td colspan="8" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
     <td style="padding:9px 10px;color:${P}" title="Total présentés (reçus)">${tPres}</td>
     <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés (traités)">${tDecr}</td>
+    <td style="padding:9px 10px;color:${P}" title="Total appels refusés (présentés non décrochés)">${(tRefuses||0)>0?`<span style="color:#ff3b30">${tRefuses}</span>`:'0'}</td>
     <td style="padding:9px 10px;color:${P}" title="Total sortants">${tOut}</td>
     <td class="cell-mail" style="padding:9px 10px;color:${P}" title="Total mails">${tM}</td>
     <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes (décrochés + sortants + mails)">${tDecr+tOut+tM}</td>
@@ -1608,7 +1612,7 @@ function renderTable(sorted){
     <td colspan="4" style="padding:9px 10px"></td>
     <td style="padding:9px 10px;color:${P}">${tKo}</td>
     <td style="padding:9px 10px;color:${P}">${tRef}</td>
-    <td colspan="4"></td>
+    <td colspan="5"></td>
   </tr>`;
 }
 
