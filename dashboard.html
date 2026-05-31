@@ -380,6 +380,12 @@ body.light .ino-coverage-text{color:#555;}
 
 
 /* ===== CORRECTIONS CONTRASTE / VISIBILITÉ (audit design) ===== */
+/* MODE CLAIR : fond global + topbar (étaient restés noirs) */
+body.light{background:#f4f4f6 !important;color:#1a1a1a !important;}
+body.light .topbar{background:#fff !important;border-bottom:1px solid #e5e5e5;}
+body.light .brand{color:#111 !important;}
+body.light .clock{color:#555 !important;}
+
 /* MODE SOMBRE : remonter les textes gris trop foncés vers du clair lisible */
 body:not(.light) .filter-label,
 body:not(.light) .brand-sub,
