@@ -796,6 +796,7 @@ async function loadAgentsFromAPI(){
       inoLive=true;
       // Le serveur ne renvoie PAS de slots par tranche horaire → on vide pour ne pas afficher de random
       slots=Array.isArray(data.slots)?data.slots:[];
+      window._nbJours=data.nbJours||1;
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         // H. Prod = durée entre 1ère connexion et dernière déconnexion (temps sur le plateau)
@@ -1689,7 +1690,7 @@ function renderChart(){
     <text class="legend" x="${PAD.l+186}" y="${ly}">Appels sortants</text>
     <rect x="${PAD.l+295}" y="${ly-9}" width="11" height="11" fill="#ff3b30" rx="2" opacity=".55"/>
     <text class="legend" x="${PAD.l+311}" y="${ly}">Abandons (overlay sur entrants)</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : nb d'appels · max ${yMax}</text>`;
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : ${(window._nbJours>1)?"moyenne/jour":"nb d\u0027appels"} · max ${yMax}</text>`;
   svg+="</svg>";
   host.innerHTML=svg;
   // Si la vue agrandie est ouverte, la rafraîchir aussi
@@ -1764,6 +1765,15 @@ function renderSkills(){
   const host=document.getElementById("skills-table");if(!host)return;
   // N'afficher que les agents réels (issus de l'API INO), pas les fictifs AGENTS_BASE
   const realAgents=agents.filter(a=>a.id);
+  // Cas 1 : aucun agent chargé (jour sans données INO, ou plage incluant un jour vide non encore alimenté)
+  if(realAgents.length===0){
+    host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
+      +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">📭</div>'
+      +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Aucun agent sur la période</div>'
+      +'<div style="font-size:12px;color:#666;max-width:440px;margin:0 auto;line-height:1.6">Aucune donnée agent INO pour la période sélectionnée. Vérifiez les dates (un jour sans activité — week-end, jour férié ou journée en cours non encore alimentée — peut être vide), puis cliquez sur « Rafraîchir ».</div>'
+      +'</td></tr>';
+    return;
+  }
   // Les compétences ne sont chargées qu'à la demande via le bouton "↺ Compétences"
   const hasInoSkills=realAgents.some(a=>Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0);
 
