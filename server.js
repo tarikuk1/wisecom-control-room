@@ -278,7 +278,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   }).sort((a,b)=>b.total-a.total);
 
   return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs,
-    flux:{recus:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants}};
+    flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants}};
 }
 
 function makeAdmin(login){
