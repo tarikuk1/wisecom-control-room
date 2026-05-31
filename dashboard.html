@@ -1498,14 +1498,15 @@ function renderTable(sorted){
     {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."}
   ];
   // Appliquer la sélection utilisateur (toujours garder expand + nom)
-  const cols=ALL_COLS.filter(c=>c.k==='expand'||c.k==='nom'||visibleCols.has(c.k));
+  // Rendre TOUTES les colonnes ; masquer les non sélectionnées via display:none (alignement strict avec le corps et la total-row)
+  const cols=ALL_COLS;
 
   document.getElementById("thead-row").innerHTML=cols.map(c=>{
     const sortable=!["expand","spark","files","mails","premiere","derniere"].includes(c.k);
     const cls=[sortCol===c.k?"active":"",c.k==="mails"?"col-mail":""].filter(Boolean).join(" ");
     const defEsc=c.def?(c.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')):'';
     return `<th class="${cls}" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${(c.title||c.l).replace(/"/g,'&quot;')}"
-      style="${c.k==="expand"?"width:22px;":""}">
+      style="${c.k==="expand"?"width:22px;":""}${(c.k!=='expand'&&c.k!=='nom'&&!visibleCols.has(c.k))?' display:none;':''}">
       ${c.l}${sortable?(sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"):""}
       ${c.def?`<span data-show-def="${c.l.replace(/<[^>]+>/g,'').trim()}" data-def-text="${defEsc}" style="margin-left:3px;font-size:9px;color:#555;cursor:pointer;vertical-align:super;font-weight:normal" title="Voir définition complète">ⓘ</span>`:''}
     </th>`;}).join("");
