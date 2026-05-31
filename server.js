@@ -194,11 +194,19 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(gaps.length>0)agents[k].acwMoyen=Math.round(gaps.reduce((s,v)=>s+v,0)/gaps.length);
   });
   // Slots ordonnés hDeb → hFin-1 (tranches de 30 min)
+  // Sur une plage multi-jours : moyenne PAR JOUR par tranche (profil journalier représentatif),
+  // sinon le cumul de N jours écrase l'échelle et ne "colle" pas à la lecture.
+  const nbJours=Math.max(1,jours.length);
   const slots=[];
   for(let h=hDeb;h<hFin;h++){
     for(const m of["00","30"]){
       const k=String(h).padStart(2,"0")+":"+m;
-      slots.push(slotsMap[k]||{lbl:k,vol:0,out:0,aband:0});
+      const sm=slotsMap[k];
+      if(sm&&nbJours>1){
+        slots.push({lbl:k,vol:Math.round(sm.vol/nbJours),out:Math.round(sm.out/nbJours),aband:Math.round(sm.aband/nbJours),queues:sm.queues||{}});
+      }else{
+        slots.push(sm||{lbl:k,vol:0,out:0,aband:0});
+      }
     }
   }
   // Enrichir avec les compétences INO
@@ -232,7 +240,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     };
   }).sort((a,b)=>b.total-a.total);
 
-  return {agents:list,slots,total:list.length,date};
+  return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length};
 }
 
 function makeAdmin(login){
