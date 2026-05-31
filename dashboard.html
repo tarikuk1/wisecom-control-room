@@ -1514,7 +1514,7 @@ function renderTable(sorted){
   const acwAvgCamp={};
   Object.entries(acwByCamp).forEach(([c,arr])=>{acwAvgCamp[c]=arr.reduce((s,v)=>s+v,0)/arr.length;});
 
-  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0;
+  let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0,tPres=0,tDecr=0,tHP=0,tDmcW=0;
   const now=Date.now();
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
@@ -1528,6 +1528,7 @@ function renderTable(sorted){
     const rfMins=Math.floor(inactifMs/60000);
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
     tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
+    tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0);
     // Dérive ACW : >20% au-dessus de la moyenne du groupe (campagne)
     const grpAcw=acwAvgCamp[a.camp];
     const acwDrift=a.acw&&grpAcw&&a.acw>grpAcw*1.2;
@@ -1600,10 +1601,10 @@ function renderTable(sorted){
     <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés (traités)">${tDecr}</td>
     <td style="padding:9px 10px;color:${P}" title="Total sortants">${tOut}</td>
     <td class="cell-mail" style="padding:9px 10px;color:${P}" title="Total mails">${tM}</td>
-    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes (décrochés + sortants + mails)">${tActes}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total actes / total H.Prod">${actesH}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total décrochés / total H.Prod">${appelsHTot}</td>
-    <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée par les décrochés">${mmss(avgDmc)}</td>
+    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes (décrochés + sortants + mails)">${tDecr+tOut+tM}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total actes / total H.Prod">${tHP>0?(+((tDecr+tOut+tM)/tHP).toFixed(1)):0}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total décrochés / total H.Prod">${tHP>0?(+(tDecr/tHP).toFixed(1)):0}</td>
+    <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée par les décrochés">${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</td>
     <td colspan="4" style="padding:9px 10px"></td>
     <td style="padding:9px 10px;color:${P}">${tKo}</td>
     <td style="padding:9px 10px;color:${P}">${tRef}</td>
@@ -2265,13 +2266,13 @@ function exportPDF(){
     <div class="kpi"><div class="kpi-l">QS</div><div class="kpi-v ${qs>=85?"green":"pink"}">${qs}%</div></div>
     <div class="kpi"><div class="kpi-l">Appels traités</div><div class="kpi-v">${tApp}</div></div>
     <div class="kpi"><div class="kpi-l">Mails hors INO</div><div class="kpi-v pink">${tM}</div></div>
-    <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${tActes}</div></div>
+    <div class="kpi"><div class="kpi-l">Total actes</div><div class="kpi-v pink">${tDecr+tOut+tM}</div></div>
     <div class="kpi"><div class="kpi-l">App. décr./h</div><div class="kpi-v">${+(tApp/totHP).toFixed(1)}</div></div>
-    <div class="kpi"><div class="kpi-l">Actes/h</div><div class="kpi-v ${actesH>=15?"green":"pink"}">${actesH}</div></div>
+    <div class="kpi"><div class="kpi-l">Actes/h</div><div class="kpi-v ${actesH>=15?"green":"pink"}">${tHP>0?(+((tDecr+tOut+tM)/tHP).toFixed(1)):0}</div></div>
     <div class="kpi"><div class="kpi-l">% de réalisé</div><div class="kpi-v ${pct>=80?"green":"pink"}">${pct}%</div></div>
   </div>
   <div class="section">
-    <div class="stitle">Détail individuel — ${s.length} agents · DMC moyenne : ${mmss(avgDmc)}</div>
+    <div class="stitle">Détail individuel — ${s.length} agents · DMC moyenne : ${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</div>
     <table><thead><tr>
       <th>Agent</th><th>Login</th><th>Campagne</th><th>Contrat</th><th>H.Prod</th>
       <th>IN</th><th>OUT</th><th>Total App.</th><th>Mails</th><th>Actes</th>
@@ -2284,10 +2285,10 @@ function exportPDF(){
       <td>${s.reduce((x,a)=>x+(a.appelsOut||0),0)}</td>
       <td><b>${tApp}</b></td>
       <td style="color:#E8006E"><b>${tM}</b></td>
-      <td style="color:#E8006E;font-size:13px"><b>${tActes}</b></td>
+      <td style="color:#E8006E;font-size:13px"><b>${tDecr+tOut+tM}</b></td>
       <td>${+(tApp/totHP).toFixed(1)}</td>
-      <td>${actesH}</td>
-      <td>${mmss(avgDmc)}</td>
+      <td>${tHP>0?(+((tDecr+tOut+tM)/tHP).toFixed(1)):0}</td>
+      <td>${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</td>
       <td>${s.reduce((x,a)=>x+(a.ko||0),0)}</td>
       <td>${s.reduce((x,a)=>x+(a.refus||0),0)}</td>
       <td>${pct}%</td><td></td>
