@@ -1600,20 +1600,34 @@ function renderTable(sorted){
       <td colspan="27" class="detail-cell" style="padding:0">${detailRowHTML(a)}</td>
     </tr>`;
   }).join("")+`<tr class="total-row">
-    <td colspan="8" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
-    <td style="padding:9px 10px;color:${P}" title="Total présentés (reçus)">${tPres}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés (traités)">${tDecr}</td>
-    <td style="padding:9px 10px;color:${P}" title="Total appels refusés (présentés non décrochés)">${(tRefuses||0)>0?`<span style="color:#ff3b30">${tRefuses}</span>`:'0'}</td>
+    <td style="${visibleCols.has('expand')?'':''}width:22px"></td>
+    <td style="padding:9px 10px;color:${P};font-size:12px;font-weight:700">TOTAL — ${sorted.length} agents</td>
+    <td style="${visibleCols.has('status')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('camp')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('premiere')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('derniere')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('hprod')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('presence')?'':' display:none'}"></td>
+    <td style="padding:9px 10px;color:${P}" title="Total présentés">${tPres}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés">${tDecr}</td>
+    <td style="padding:9px 10px;color:${P};${visibleCols.has('refuses')?'':' display:none'}" title="Total appels refusés">${(tRefuses||0)>0?`<span style="color:#ff3b30">${tRefuses}</span>`:'0'}</td>
     <td style="padding:9px 10px;color:${P}" title="Total sortants">${tOut}</td>
     <td class="cell-mail" style="padding:9px 10px;color:${P}" title="Total mails">${tM}</td>
-    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes (décrochés + sortants + mails)">${tDecr+tOut+tM}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total actes / total H.Prod">${tHP>0?(+((tDecr+tOut+tM)/tHP).toFixed(1)):0}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total décrochés / total H.Prod">${tHP>0?(+(tDecr/tHP).toFixed(1)):0}</td>
-    <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée par les décrochés">${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</td>
-    <td colspan="4" style="padding:9px 10px"></td>
-    <td style="padding:9px 10px;color:${P}">${tKo}</td>
-    <td style="padding:9px 10px;color:${P}">${tRef}</td>
-    <td colspan="5"></td>
+    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes">${tDecr+tOut+tM}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée actes/h">${tHP>0?(+((tDecr+tOut+tM)/tHP).toFixed(1)):0}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée app./h">${tHP>0?(+(tDecr/tHP).toFixed(1)):0}</td>
+    <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée">${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</td>
+    <td style="${visibleCols.has('acw')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('occupation')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('transfo')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('adherence')?'':' display:none'}"></td>
+    <td style="padding:9px 10px;color:${P};${visibleCols.has('ko')?'':' display:none'}">${tKo}</td>
+    <td style="padding:9px 10px;color:${P};${visibleCols.has('refus')?'':' display:none'}">${tRef}</td>
+    <td style="${visibleCols.has('inactifs')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('realise')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('spark')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('files')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('skills')?'':' display:none'}"></td>
   </tr>`;
 }
 
