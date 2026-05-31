@@ -579,6 +579,26 @@ body.light .ino-coverage-text{color:#555;}
 
 <script>
 const P="#E8006E";
+// === Timeout de déconnexion : 10 min d'inactivité ===
+(function(){
+  const INACT_MS=10*60*1000;
+  let _inactTimer=null;
+  let _warnTimer=null;
+  function _logout(){
+    try{document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#080808;color:#fff;font-family:sans-serif;flex-direction:column;gap:14px"><div style="font-size:32px">🔒</div><div style="font-size:16px;font-weight:600">Session expirée</div><div style="font-size:13px;color:#888">Déconnexion automatique après 10 minutes d\u2019inactivité.</div><a href="/login" style="margin-top:10px;background:#E8006E;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">Se reconnecter</a></div>';}catch(e){}
+    window.location.href="/logout";
+  }
+  function _reset(){
+    clearTimeout(_inactTimer);clearTimeout(_warnTimer);
+    // Avertissement 1 min avant
+    _warnTimer=setTimeout(function(){try{if(typeof showToast==="function")showToast("Déconnexion dans 1 min (inactivité)","warn",55000);}catch(e){}},INACT_MS-60000);
+    _inactTimer=setTimeout(_logout,INACT_MS);
+  }
+  ["mousemove","mousedown","keydown","scroll","touchstart","click"].forEach(function(ev){
+    document.addEventListener(ev,_reset,{passive:true});
+  });
+  _reset();
+})();
 const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
 const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
 const CONTRATS=["CDI","CDD","Alternance","Intérim"];
@@ -797,6 +817,7 @@ async function loadAgentsFromAPI(){
       // Le serveur ne renvoie PAS de slots par tranche horaire → on vide pour ne pas afficher de random
       slots=Array.isArray(data.slots)?data.slots:[];
       window._nbJours=data.joursActifs||data.nbJours||1;
+      window._flux=data.flux||null;
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         // H. Prod = durée entre 1ère connexion et dernière déconnexion (temps sur le plateau)
@@ -1251,7 +1272,7 @@ function renderKPIs(f){
   const reit=Math.floor(totApp*.04);
   const backlog=totalBacklog();
   // Appels reçus = approximation (entrants + abandons estimés)
-const totRecus=Math.max(1,Math.round(totApp*1.15));
+const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,Math.round(totApp*1.15));
   const totManques=totRecus-totApp;
   const qs=Math.round((totApp/totRecus)*100);
   const pct=Math.min(100,Math.round((totActes/600)*100));
@@ -1696,6 +1717,13 @@ function renderChart(){
     // Abandons : overlay sur les entrants
     if(s.aband>0)svg+=`<rect x="${x+gap}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="#ff3b30" rx="2" opacity=".55">
       <title>${s.lbl} · ${s.aband} abandons</title></rect>`;
+    // Valeur AU-DESSUS de chaque barre (volume par type et par tranche) — visibilité directe
+    if(s.vol>0){
+      svg+=`<text x="${x+gap+barW/2}" y="${PAD.t+ch-hv-3}" text-anchor="middle" style="font-size:8.5px;fill:#E8006E;font-weight:700;font-family:inherit">${s.vol}</text>`;
+    }
+    if(s.out>0){
+      svg+=`<text x="${x+gap+barW+2+barW/2}" y="${PAD.t+ch-ho-3}" text-anchor="middle" style="font-size:8.5px;fill:#999;font-weight:700;font-family:inherit">${s.out}</text>`;
+    }
     // Labels heure : tous les 2 (toutes les heures, pas toutes les demi-heures)
     if(i%2===0){
       svg+=`<text class="hlbl" x="${x+bw/2}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
