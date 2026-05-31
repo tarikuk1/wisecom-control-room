@@ -267,7 +267,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     const sk=agentSkillsMap[a.id]||{};
     return {
       id:a.id,nom:a.nom,username:a.username,statutEstime,lastCallDate:a.derniereAction,
-      appelsIn:a.appelsIn,appelsPresentes:a.presentes||(a.appelsIn+(a.nonDecroches||0)),appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
+      appelsIn:a.appelsIn,appelsPresentes:a.presentes||(a.appelsIn+(a.nonDecroches||0)),nonDecroches:a.nonDecroches||0,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
       duree:a.duree,dmt:a.appelsIn>0?Math.round(a.duree/a.appelsIn):0,
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
       queues:Array.from(a.queues).join(", "),
