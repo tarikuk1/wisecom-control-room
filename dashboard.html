@@ -1282,25 +1282,16 @@ const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
   const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
-  // Taux de transformation global
-  const transfoVals=f.filter(a=>a.transfo!=null);
-  const transfoGlobal=transfoVals.length>0?Math.round(transfoVals.reduce((s,a)=>s+a.transfo,0)/transfoVals.length):null;
-  // FCR (First Call Resolution) : appels résolus au 1er contact = traités hors réitérants
-  const fcr=totApp>0?Math.round(((totApp-reit)/totApp)*100):0;
-  // Indice d'Excellence Premium : composite QS / occupation / FCR / réalisé
-  const premium=Math.round((qs*0.35)+(occGlobal*0.25)+(fcr*0.25)+(pct*0.15));
+
 
   const kpis=[
     {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"Indice d'Excellence Premium",v:premium+"%",sub:"QS · Occupation · FCR · Réalisé",alert:premium<75,good:premium>=88,gauge:premium},
     {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Communication / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
     {l:"Flux reçus",v:totRecus.toLocaleString()},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04min00sec"},
-    {l:"FCR",v:fcr+"%",sub:"Résolution au 1er contact",alert:fcr<70,good:fcr>=85,gauge:fcr},
-    {l:"Taux de transformation global",v:(transfoGlobal!=null?transfoGlobal+"%":"n.d."),sub:transfoGlobal!=null?"Moyenne agents":"Non fourni par INO",good:transfoGlobal!=null&&transfoGlobal>=25},
     {l:"Appels décr./h",v:appelsH,good:appelsH>=12,alert:appelsH<6,sub:"Appels traités/h prod"},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"[App+Mails]/h prod"},
     {l:"100 % KO",v:totKo,alert:totKo>40},
@@ -1707,26 +1698,27 @@ function renderChart(){
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
   // Barres : entrants traités (rose) + sortants (gris) côte à côte, abandons (rouge) en transparent par-dessus
+  // Couleurs distinctes par thème : entrants traités (rose Wisecom), sortants (bleu acier), abandons (orange-rouge)
+  const C_IN="#E8006E", C_OUT="#3b9eff", C_ABAND="#ff7a18";
   slots.forEach((s,i)=>{
     const x=PAD.l+i*bw;
     const hv=(s.vol/yMax)*ch, ha=(s.aband/yMax)*ch, ho=(s.out/yMax)*ch;
-    const barW=bw*.42, gap=bw*.10;
-    // Entrants traités
-    svg+=`<rect x="${x+gap}" y="${PAD.t+ch-hv}" width="${barW}" height="${hv}" fill="#E8006E" rx="2" opacity=".95">
-      <title>${s.lbl} · ${s.vol} appels entrants traités</title></rect>`;
-    // Sortants
-    svg+=`<rect x="${x+gap+barW+2}" y="${PAD.t+ch-ho}" width="${barW}" height="${ho}" fill="#999" rx="2" opacity=".85">
-      <title>${s.lbl} · ${s.out} appels sortants</title></rect>`;
-    // Abandons : overlay sur les entrants
-    if(s.aband>0)svg+=`<rect x="${x+gap}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="#ff3b30" rx="2" opacity=".55">
+    // 3 barres fines côte à côte
+    const barW=bw*.26, gap=bw*.07, g2=barW+1;
+    const xIn=x+gap, xOut=x+gap+g2, xAb=x+gap+g2*2;
+    // Entrants traités (rose)
+    svg+=`<rect x="${xIn}" y="${PAD.t+ch-hv}" width="${barW}" height="${hv}" fill="${C_IN}" rx="2">
+      <title>${s.lbl} · ${s.vol} entrants traités</title></rect>`;
+    // Sortants (bleu acier)
+    svg+=`<rect x="${xOut}" y="${PAD.t+ch-ho}" width="${barW}" height="${ho}" fill="${C_OUT}" rx="2">
+      <title>${s.lbl} · ${s.out} sortants</title></rect>`;
+    // Abandons (orange-rouge) — barre dédiée, plus en overlay
+    if(s.aband>0)svg+=`<rect x="${xAb}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="${C_ABAND}" rx="2">
       <title>${s.lbl} · ${s.aband} abandons</title></rect>`;
-    // Valeur AU-DESSUS de chaque barre (volume par type et par tranche) — visibilité directe
-    if(s.vol>0){
-      svg+=`<text x="${x+gap+barW/2}" y="${PAD.t+ch-hv-3}" text-anchor="middle" style="font-size:8.5px;fill:#E8006E;font-weight:700;font-family:inherit">${s.vol}</text>`;
-    }
-    if(s.out>0){
-      svg+=`<text x="${x+gap+barW+2+barW/2}" y="${PAD.t+ch-ho-3}" text-anchor="middle" style="font-size:8.5px;fill:#999;font-weight:700;font-family:inherit">${s.out}</text>`;
-    }
+    // Valeurs au-dessus de chaque barre (par type et par tranche)
+    if(s.vol>0)svg+=`<text x="${xIn+barW/2}" y="${PAD.t+ch-hv-3}" text-anchor="middle" style="font-size:8px;fill:${C_IN};font-weight:700;font-family:inherit">${s.vol}</text>`;
+    if(s.out>0)svg+=`<text x="${xOut+barW/2}" y="${PAD.t+ch-ho-3}" text-anchor="middle" style="font-size:8px;fill:${C_OUT};font-weight:700;font-family:inherit">${s.out}</text>`;
+    if(s.aband>0)svg+=`<text x="${xAb+barW/2}" y="${PAD.t+ch-ha-3}" text-anchor="middle" style="font-size:8px;fill:${C_ABAND};font-weight:700;font-family:inherit">${s.aband}</text>`;
     // Labels heure : tous les 2 (toutes les heures, pas toutes les demi-heures)
     if(i%2===0){
       svg+=`<text class="hlbl" x="${x+bw/2}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
@@ -1734,12 +1726,12 @@ function renderChart(){
   });
   // Légende sous l'axe X
   const ly=PAD.t+ch+34;
-  svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="#E8006E" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Appels entrants traités</text>
-    <rect x="${PAD.l+170}" y="${ly-9}" width="11" height="11" fill="#999" rx="2"/>
-    <text class="legend" x="${PAD.l+186}" y="${ly}">Appels sortants</text>
-    <rect x="${PAD.l+295}" y="${ly-9}" width="11" height="11" fill="#ff3b30" rx="2" opacity=".55"/>
-    <text class="legend" x="${PAD.l+311}" y="${ly}">Abandons (overlay sur entrants)</text>
+  svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités</text>
+    <rect x="${PAD.l+140}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
+    <text class="legend" x="${PAD.l+156}" y="${ly}">Sortants</text>
+    <rect x="${PAD.l+235}" y="${ly-9}" width="11" height="11" fill="${C_ABAND}" rx="2"/>
+    <text class="legend" x="${PAD.l+251}" y="${ly}">Abandons</text>
     <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : ${(window._nbJours>1)?"moyenne/jour":"nb d\u0027appels"} · max ${yMax}</text>`;
   svg+="</svg>";
   host.innerHTML=svg;
