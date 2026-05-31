@@ -98,13 +98,27 @@ async function fetchDayStats(){
   }catch(e){console.error("Stats:",e.message);}
 }
 
-async function fetchAgentsDay(date,hDeb,hFin){
+async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   hDeb=parseInt((hDeb||'08:00').split(':')[0]);hFin=parseInt((hFin||'20:00').split(':')[0]);
   const token=await getToken();if(!token)throw new Error("Pas de token");
-  const[ri,ro]=await Promise.all([
-    apiReq("POST","/call/in/histories",{startDate:date+" 00:01:00",endDate:date+" 23:59:59",limit:1000},token),
-    apiReq("POST","/call/out/histories",{startDate:date+" 00:01:00",endDate:date+" 23:59:59",limit:1000},token)
-  ]);
+  // Construire la liste des jours de la plage [date .. dateFin] (incluse)
+  const _d0=new Date(date+"T00:00:00"); const _d1=new Date((dateFin||date)+"T00:00:00");
+  const jours=[]; for(let d=new Date(_d0); d<=_d1; d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10)); if(jours.length>62)break;}
+  // Récupérer les histoires de chaque jour, en séquentiel (rate-limit INO), puis agréger
+  let riH=[], roH=[];
+  for(const jr of jours){
+    try{
+      const ri1=await apiReq("POST","/call/in/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
+      if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,jours.length>1?400:0));
+    try{
+      const ro1=await apiReq("POST","/call/out/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
+      if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
+    }catch(e){}
+    if(jours.length>1)await new Promise(r=>setTimeout(r,400));
+  }
+  const ri={histories:riH}, ro={histories:roH};
   const agents={};
   // Slots horaires (créneaux de 30 min de 08h à 20h) pour le graphique flux par tranche
   const slotsMap={};
@@ -557,9 +571,10 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/agents-day"){
     const u=new URL(req.url,"http://localhost");
     const date=u.searchParams.get("date")||new Date().toISOString().slice(0,10);
+    const dateFin=u.searchParams.get("dateFin")||date;
     const hDeb=u.searchParams.get("hDeb")||"08:00";
     const hFin=u.searchParams.get("hFin")||"20:00";
-    fetchAgentsDay(date,hDeb,hFin).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
+    fetchAgentsDay(date,hDeb,hFin,dateFin).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
   }
   // [SÉCURITÉ] Routes admin : exiger le rôle admin (pas seulement une session valide)
   if(url.startsWith("/api/admin/")){
