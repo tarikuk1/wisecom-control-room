@@ -181,8 +181,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       fluxRecusIn++;                         // tout appel entrant présenté
       if(_isAband)fluxAbandons++;            // présenté mais non décroché
       else if(h.agent&&h.agent.id)fluxDecroches++; // décroché par un agent
-      // Alimenter aussi le slot horaire pour les abandons sans agent (sinon invisibles)
-      if(_isAband){
+      // Abandon SANS agent : alimenter le slot ici car le code ci-dessous (réservé aux appels avec agent) ne le verra pas
+      if(_isAband&&(!h.agent||!h.agent.id)){
         const _sk=slotKey(h.callDate||h.acdDate);
         if(_sk){if(!slotsMap[_sk])slotsMap[_sk]={lbl:_sk,vol:0,out:0,aband:0,queues:{}};slotsMap[_sk].aband++;}
       }
@@ -206,8 +206,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     const sk=slotKey(dt);
     if(sk){
       if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0,queues:{}};
-      if(type==="in"){slotsMap[sk].vol++;}else{slotsMap[sk].out++;}
-      if(h.status&&String(h.status).toLowerCase().includes("aband"))slotsMap[sk].aband++;
+      // Classification identique aux compteurs flux : entrant décroché → vol, abandon → aband, sortant → out
+      if(type==="in"){
+        if(_isAband){slotsMap[sk].aband++;}else{slotsMap[sk].vol++;}
+      }else{slotsMap[sk].out++;}
       // Stocker le volume par queue pour filtrage côté client
       const qn=h.queue&&h.queue.queueName?h.queue.queueName:"";
       if(qn){slotsMap[sk].queues[qn]=(slotsMap[sk].queues[qn]||0)+1;}
