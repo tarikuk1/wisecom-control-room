@@ -174,7 +174,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       // Alimenter aussi le slot horaire pour les abandons sans agent (sinon invisibles)
       if(_isAband){
         const _sk=slotKey(h.callDate||h.acdDate);
-        if(_sk){if(!slotsMap[_sk])slotsMap[_sk]={lbl:_sk,vol:0,out:0,aband:0,queues:{}};slotsMap[_sk].aband++;slotsMap[_sk].vol++;}
+        if(_sk){if(!slotsMap[_sk])slotsMap[_sk]={lbl:_sk,vol:0,out:0,aband:0,queues:{}};slotsMap[_sk].aband++;}
       }
     }else{fluxSortants++;}
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
