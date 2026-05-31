@@ -545,7 +545,7 @@ body.light .ino-coverage-text{color:#555;}
     <div class="two-col">
       <div class="panel" style="flex:2;min-width:300px;">
         <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span class="panel-title">Volumes par tranche horaire</span>
+          <span class="panel-title">Volumes par tranche horaire <span id="chart-period" style="font-weight:600;font-size:11px;color:#888;margin-left:6px"></span></span>
           <button class="btn-zoom" onclick="openChartZoom()" title="Ouvrir le graphique en grand pour une meilleure lecture">🔍 Agrandir</button>
         </div>
         <div style="padding:14px;">
@@ -1626,6 +1626,21 @@ function renderChart(){
     return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
   });
   const displaySlots=filteredSlots;
+  // Période sélectionnée (date à date) + volume total affiché
+  const _fr=s=>s?s.split("-").reverse().join("/"):"";
+  const _dDeb=(document.getElementById("f-date-deb")||{}).value||"";
+  const _dFin=(document.getElementById("f-date-fin")||{}).value||_dDeb;
+  const _periodeLbl=(_dDeb===_dFin)?_fr(_dDeb):(_fr(_dDeb)+" → "+_fr(_dFin));
+  const _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
+  const _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  const _volIn=displaySlots.reduce((s,x)=>s+(x.vol||0),0);
+  const _volOut=displaySlots.reduce((s,x)=>s+(x.out||0),0);
+  const _multi=(window._nbJours>1);
+  const _spanP=document.getElementById("chart-period");
+  if(_spanP){
+    _spanP.textContent="· "+_periodeLbl+" · "+_hDeb+"–"+_hFin+" · "
+      +(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants"));
+  }
   if(!displaySlots.length){
     const msg=inoLive
       ?`<div style="padding:30px;color:#888;font-size:13px;text-align:center;line-height:1.6">
@@ -1639,7 +1654,7 @@ function renderChart(){
     return;
   }
   // Dimensions agrandies + marges pour axes
-  const W=970,H=240,PAD={t:18,r:14,b:48,l:42};
+  const W=970,H=248,PAD={t:26,r:14,b:48,l:42};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
   const maxV=Math.max(...displaySlots.map(s=>s.vol+s.out),1);
   // Échelle Y "ronde" : prochaine dizaine au-dessus
@@ -1652,7 +1667,11 @@ function renderChart(){
       .tick{font-size:10px;fill:var(--tick,#888);font-family:inherit}
       .hlbl{font-size:10px;fill:var(--tick,#888);font-family:inherit}
       .legend{font-size:11px;fill:var(--tick,#888);font-family:inherit}
+      .chart-period{font-size:11px;fill:var(--tick,#aaa);font-family:inherit;font-weight:700}
     </style>`;
+  // Bandeau période + volume directement sur le graphique (visible en vue agrandie et à l'export)
+  svg+=`<text class="chart-period" x="${PAD.l}" y="11">${_periodeLbl} · ${_hDeb}–${_hFin}</text>`;
+  svg+=`<text class="chart-period" x="${W-PAD.r}" y="11" text-anchor="end" style="fill:#E8006E">${_multi?("\u2248 "+_volIn+" entr./j"):(_volIn+" entrants · "+_volOut+" sortants")}</text>`;
   // Grille horizontale + labels Y (5 paliers)
   for(let i=0;i<=5;i++){
     const y=PAD.t+ch-(i/5)*ch;
