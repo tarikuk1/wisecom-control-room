@@ -106,7 +106,9 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   const jours=[]; for(let d=new Date(_d0); d<=_d1; d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10)); if(jours.length>62)break;}
   // Récupérer les histoires de chaque jour, en séquentiel (rate-limit INO), puis agréger
   let riH=[], roH=[];
+  let joursActifs=0;
   for(const jr of jours){
+    let avant=riH.length+roH.length;
     try{
       const ri1=await apiReq("POST","/call/in/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
@@ -116,8 +118,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       const ro1=await apiReq("POST","/call/out/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
     }catch(e){}
+    if((riH.length+roH.length)>avant)joursActifs++;
     if(jours.length>1)await new Promise(r=>setTimeout(r,400));
   }
+  if(joursActifs===0)joursActifs=1;
   const ri={histories:riH}, ro={histories:roH};
   const agents={};
   // Slots horaires (créneaux de 30 min de 08h à 20h) pour le graphique flux par tranche
@@ -196,7 +200,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Slots ordonnés hDeb → hFin-1 (tranches de 30 min)
   // Sur une plage multi-jours : moyenne PAR JOUR par tranche (profil journalier représentatif),
   // sinon le cumul de N jours écrase l'échelle et ne "colle" pas à la lecture.
-  const nbJours=Math.max(1,jours.length);
+  const nbJours=joursActifs;
   const slots=[];
   for(let h=hDeb;h<hFin;h++){
     for(const m of["00","30"]){
@@ -240,7 +244,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     };
   }).sort((a,b)=>b.total-a.total);
 
-  return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length};
+  return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs};
 }
 
 function makeAdmin(login){
