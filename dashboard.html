@@ -796,7 +796,7 @@ async function loadAgentsFromAPI(){
       inoLive=true;
       // Le serveur ne renvoie PAS de slots par tranche horaire → on vide pour ne pas afficher de random
       slots=Array.isArray(data.slots)?data.slots:[];
-      window._nbJours=data.nbJours||1;
+      window._nbJours=data.joursActifs||data.nbJours||1;
       agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         // H. Prod = durée entre 1ère connexion et dernière déconnexion (temps sur le plateau)
