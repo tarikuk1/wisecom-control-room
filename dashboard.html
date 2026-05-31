@@ -729,7 +729,7 @@ const COL_DEFS=[
   {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
   {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Dernière déco",on:true},
   {k:"hprod",l:"H. Prod",on:true},{k:"presence",l:"Présence",on:false},
-  {k:"appelsIn",l:"Appels reçus",on:true},{k:"appels",l:"Décrochés",on:true},
+  {k:"appelsIn",l:"Appels présentés",on:true},{k:"appels",l:"Décrochés",on:true},
   {k:"appelsOut",l:"Sortants",on:true},{k:"mails",l:"Mails saisis",on:true},
   {k:"actes",l:"Actes total",on:true},{k:"actesH",l:"Actes/h",on:true},
   {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},
@@ -764,8 +764,8 @@ function genAgents(){
       derniereAction:st==="Déconnecté"?`2026-05-28T${String(rnd(15,18)).padStart(2,"0")}:${String(rnd(0,59)).padStart(2,"0")}:00Z`:null,
       lastVoixActivity: st==="Déconnecté"?Date.now()-rnd(6,20)*60000:Date.now()-rnd(0,4)*60000
     };
-  }).map(a=>({...a,actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
-    appelsH:a.hprod>0?+(a.appelsIn/a.hprod).toFixed(1):0}));
+  }).map(a=>({...a,actesH:a.hprod>0?+(((a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]??a.mails_auto))/a.hprod).toFixed(1):0,
+    appelsH:a.hprod>0?+((a.decroches||0)/a.hprod).toFixed(1):0}));
 }
 
 // Génère 12 points horaires (08h→19h) pour la sparkline d'un agent
@@ -913,6 +913,7 @@ async function loadAgentsFromAPI(){
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
+          presentes:a.appelsPresentes||a.appelsIn,decroches:a.appelsIn,sortants:a.appelsOut,
           mails_auto:m,hprod,
           presence:a.presence!=null?a.presence:null,
           dmc:a.dmt||0,
@@ -1299,14 +1300,17 @@ function getSorted(f){
 
 // KPIs
 function renderKPIs(f){
-  const totApp=f.reduce((s,a)=>s+a.appels,0);
+  const totDecr=f.reduce((s,a)=>s+(a.decroches||0),0);    // entrants décrochés (traités)
+  const totSort=f.reduce((s,a)=>s+(a.sortants||0),0);     // appels sortants (catégorie distincte)
+  const totPres=f.reduce((s,a)=>s+(a.presentes||0),0);    // entrants présentés
   const totM=f.reduce((s,a)=>s+(mailsEdit[a.id]||a.mails_auto||0),0);
-  const totActes=totApp+totM;
-  const totDuree=f.reduce((s,a)=>s+a.dmc*a.appels,0);
-  const avgDmc=totApp>0?Math.round(totDuree/totApp):0;
+  const totApp=totDecr;                                   // "Flux traités" = décrochés seuls
+  const totActes=totDecr+totSort+totM;                    // acte = décroché + sortant + mail
+  const totDuree=f.reduce((s,a)=>s+a.dmc*(a.decroches||0),0);
+  const avgDmc=totDecr>0?Math.round(totDuree/totDecr):0;
   const totHP=f.reduce((s,a)=>s+a.hprod,0)||1;
   const actesH=+(totActes/totHP).toFixed(1);
-  const appelsH=+(totApp/totHP).toFixed(1);
+  const appelsH=+(totDecr/totHP).toFixed(1);
   const totKo=f.reduce((s,a)=>s+a.ko,0);
   const horsOuv=Math.floor(totApp*.07);
   const reit=Math.floor(totApp*.04);
@@ -1515,9 +1519,9 @@ function renderTable(sorted){
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
-    const actes=a.appels+m;
+    const actes=(a.decroches||0)+(a.sortants||0)+m;
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
+    const aph=a.hprod>0?((a.decroches||0)/a.hprod).toFixed(1):"–";
     const sc=a.status==="Actif"?"#30d158":a.status==="Traitement"?"#ff6b6b":a.status==="Post-appel"?"#ff9f43":"#444";
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
@@ -1557,7 +1561,7 @@ function renderTable(sorted){
       <td style="color:#666">${fmtH(a.hprod)}</td>
       <td style="${visibleCols.has('presence')?'':' display:none'};color:#555">${a.presence!=null?fmtH(a.presence):nd(null)}</td>
       <td title="Appels présentés à l'agent">${a.appelsIn||0}</td>
-      <td style="font-weight:700" title="Appels décrochés / traités">${a.appels}</td>
+      <td style="font-weight:700" title="Appels décrochés / traités">${a.decroches!=null?a.decroches:a.appels}</td>
       <td title="Appels sortants">${a.appelsOut||0}</td>
       <td class="cell-mail">
         <input class="mail-input" type="number" min="0" max="999" value="${m}"
@@ -1592,12 +1596,15 @@ function renderTable(sorted){
     </tr>`;
   }).join("")+`<tr class="total-row">
     <td colspan="8" style="padding:9px 10px;color:${P};font-size:12px">TOTAL — ${sorted.length} agents</td>
-    <td style="padding:9px 10px;color:${P}" title="Total reçus">${tIn}</td>
-    <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés">${tApp}</td>
+    <td style="padding:9px 10px;color:${P}" title="Total présentés (reçus)">${tPres}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Total décrochés (traités)">${tDecr}</td>
     <td style="padding:9px 10px;color:${P}" title="Total sortants">${tOut}</td>
     <td class="cell-mail" style="padding:9px 10px;color:${P}" title="Total mails">${tM}</td>
-    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes">${tApp+tM}</td>
-    <td colspan="7" style="padding:9px 10px"></td>
+    <td style="padding:9px 10px;color:${P};font-size:14px" title="Total actes (décrochés + sortants + mails)">${tActes}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total actes / total H.Prod">${actesH}</td>
+    <td style="padding:9px 10px;color:${P};font-weight:700" title="Moyenne cumulée = total décrochés / total H.Prod">${appelsHTot}</td>
+    <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée par les décrochés">${mmss(avgDmc)}</td>
+    <td colspan="4" style="padding:9px 10px"></td>
     <td style="padding:9px 10px;color:${P}">${tKo}</td>
     <td style="padding:9px 10px;color:${P}">${tRef}</td>
     <td colspan="4"></td>
@@ -2000,7 +2007,7 @@ function updateMails(id,val){
   if(a){
     const m=mailsEdit[id];
     a.mails_auto=m;
-    a.actesH=a.hprod>0?+((a.appels+m)/a.hprod).toFixed(1):0;
+    a.actesH=a.hprod>0?+(((a.decroches||0)+(a.sortants||0)+m)/a.hprod).toFixed(1):0;
     if(a.hprod>0&&a.obj>0)a.realise=Math.min(100,Math.round(((a.appels+m)/a.obj)*100));
   }
   render();
@@ -2018,7 +2025,7 @@ function simulate(){
     inactifs:Math.max(0,(a.inactifs||0)+(Math.random()>.8?1:-1)),
     lastVoixActivity:Math.random()>.3?Date.now():Date.now()-rnd(6,15)*60000
   })).map(a=>({...a,
-    actesH:a.hprod>0?+((a.appels+(mailsEdit[a.id]||a.mails_auto||0))/a.hprod).toFixed(1):0,
+    actesH:a.hprod>0?+(((a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]||a.mails_auto||0))/a.hprod).toFixed(1):0,
     appelsH:a.hprod>0?+((a.appelsIn+(a.appelsOut||0))/(a.hprod)).toFixed(1):0
   }));
   slots=slots.map(s=>({...s,vol:Math.max(5,s.vol+rnd(-5,12)),aband:Math.max(0,s.aband+rnd(-2,5))}));
@@ -2060,8 +2067,8 @@ function exportXlsx(){
   const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
-    const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
+    const actes=(a.decroches||0)+(a.sortants||0)+m;
+    const aph=a.hprod>0?((a.decroches||0)/a.hprod).toFixed(1):"–";
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
     rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
   });
@@ -2170,20 +2177,25 @@ function exportSkillsPDF(){
 
 function exportPDF(){
   const f=getFiltered(),s=getSorted(f);
-  const tApp=s.reduce((x,a)=>x+a.appels,0);
+  const tPres=s.reduce((x,a)=>x+(a.presentes||0),0);   // présentés
+  const tDecr=s.reduce((x,a)=>x+(a.decroches||0),0);   // décrochés (traités)
+  const tOut=s.reduce((x,a)=>x+(a.sortants||0),0);     // sortants
   const tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
-  const tActes=tApp+tM;
+  const tApp=tDecr;
+  const tActes=tDecr+tOut+tM;                          // acte = décroché + sortant + mail
   const totHP=s.reduce((x,a)=>x+a.hprod,0)||1;
+  // Moyennes CUMULÉES = total / total H.Prod (doivent égaler les KPI du haut)
   const actesH=+(tActes/totHP).toFixed(1);
-  const avgDmc=tApp>0?Math.round(s.reduce((x,a)=>x+a.dmc*a.appels,0)/tApp):0;
+  const appelsHTot=+(tDecr/totHP).toFixed(1);
+  const avgDmc=tDecr>0?Math.round(s.reduce((x,a)=>x+a.dmc*(a.decroches||0),0)/tDecr):0;
   const pct=Math.min(100,Math.round((tActes/600)*100));
   const totRecus=Math.max(1,Math.round(tApp*1.18));
   const qs=Math.round((tApp/totRecus)*100);
 
   const rows=s.map((a,i)=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
-    const actes=a.appels+m;
-    const aph=a.hprod>0?(a.appelsIn/a.hprod).toFixed(1):"–";
+    const actes=(a.decroches||0)+(a.sortants||0)+m;
+    const aph=a.hprod>0?((a.decroches||0)/a.hprod).toFixed(1):"–";
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
     const bg=i%2===0?"#fff":"#fafafa";
     const isAlert=a.realise<60||(a.ko||0)>10||(a.refus||0)>5;
@@ -2192,7 +2204,7 @@ function exportPDF(){
       <td><span style="background:#fff0f6;color:#E8006E;padding:1px 6px;border-radius:3px;font-size:10px">${a.camp}</span></td>
       <td style="color:#888">${a.contrat||"CDI"}</td>
       <td>${a.hprod?a.hprod.toFixed(1)+"h":"–"}</td>
-      <td>${a.appelsIn||0}</td><td>${a.appelsOut||0}</td><td><b>${a.appels}</b></td>
+      <td>${a.appelsIn||0}</td><td>${a.appelsOut||0}</td><td><b>${a.decroches!=null?a.decroches:a.appels}</b></td>
       <td style="color:#E8006E;font-weight:700">${m}</td>
       <td style="font-weight:800;color:#E8006E;font-size:13px">${actes}</td>
       <td style="color:${parseFloat(aph)>=12?"#27ae60":parseFloat(aph)<6?"#E8006E":"#333"};font-weight:700">${aph}</td>
