@@ -1273,8 +1273,11 @@ function renderKPIs(f){
   const backlog=totalBacklog();
   // Appels reçus = approximation (entrants + abandons estimés)
 const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,Math.round(totApp*1.15));
-  const totManques=totRecus-totApp;
-  const qs=Math.round((totApp/totRecus)*100);
+  // Flux entrants réels INO (décrochés vs présentés). Fallback sur l'ancien calcul si flux absent.
+  const _fx=window._flux;
+  const entrTraites=_fx?(_fx.decroches||0):totApp;
+  const totManques=_fx?(_fx.abandons||0):(totRecus-totApp);
+  const qs=Math.round(((_fx?entrTraites:totApp)/totRecus)*100);
   const pct=Math.min(100,Math.round((totActes/600)*100));
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
