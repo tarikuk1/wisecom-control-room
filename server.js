@@ -164,6 +164,16 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // car un appel abandonné n'a pas d'agent rattaché et serait sinon ignoré.
   let fluxRecusIn=0, fluxDecroches=0, fluxAbandons=0, fluxSortants=0;
   function proc(h,type){
+    // [PLAGE HORAIRE] Ne JAMAIS comptabiliser les appels hors de la plage [hDeb,hFin] sélectionnée.
+    // L'heure est convertie en heure France (Railway tourne en UTC).
+    const _dtP=h.callDate||h.acdDate;
+    if(_dtP){
+      const _dP=new Date(_dtP);
+      if(!isNaN(_dP)){
+        const _hFr=(_dP.getUTCHours()+(isDST(_dP)?2:1))%24;
+        if(_hFr<hDeb||_hFr>=hFin)return; // hors plage → ignoré partout (flux + slots + agents)
+      }
+    }
     // Comptage GLOBAL des flux réels (avant filtre agent) — un abandon n'a pas d'agent
     const _st=String(h.status||"").toLowerCase();
     const _isAband=_st.includes("aband");
