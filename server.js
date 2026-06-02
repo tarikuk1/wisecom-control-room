@@ -617,6 +617,7 @@ const server=http.createServer(async(req,res)=>{
   if(!session){res.writeHead(302,{Location:"/login"});return res.end();}
 
   if(url==="/events"){res.writeHead(200,{"Content-Type":"text/event-stream","Cache-Control":"no-cache","Connection":"keep-alive","X-Accel-Buffering":"no"});res.write(": connected\n\n");if(lastPayload)res.write("data: "+JSON.stringify(lastPayload)+"\n\n");sseClients.push(res);req.on("close",()=>{sseClients=sseClients.filter(c=>c!==res);});return;}
+  if(url==="/debug/raw-call"){try{const tk=await getToken();const rr=await apiReq("POST","/call/in/histories",{startDate:"2026-05-30 00:00:00",endDate:"2026-05-30 23:59:59",limit:5},tk);const arr=(rr&&rr.histories)||(Array.isArray(rr)?rr:[]);const first=arr[0]||{};const callObj=first.call||{};res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({topKeys:Object.keys(first),callKeys:Object.keys(callObj),sampleCall:callObj,sampleFull:first}));}catch(e){res.writeHead(500,{"Content-Type":"application/json"});return res.end(JSON.stringify({error:String(e&&e.message||e)}));}}
   if(url==="/agents-day"){
     const u=new URL(req.url,"http://localhost");
     const date=u.searchParams.get("date")||new Date().toISOString().slice(0,10);
