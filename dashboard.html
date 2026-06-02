@@ -2203,6 +2203,8 @@ function exportPDF(){
   const tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
   const tApp=tDecr;
   const tActes=tDecr+tOut+tM;                          // acte = décroché + sortant + mail
+  const tHP=s.reduce((x,a)=>x+(a.hprod||0),0)||1;
+  const tDmcW=s.reduce((x,a)=>x+(a.dmc||0)*(a.decroches||0),0);
   const totHP=s.reduce((x,a)=>x+a.hprod,0)||1;
   // Moyennes CUMULÉES = total / total H.Prod (doivent égaler les KPI du haut)
   const actesH=+(tActes/totHP).toFixed(1);
@@ -2537,6 +2539,7 @@ const _ccInit=document.getElementById('col-count');
 if(_ccInit)_ccInit.textContent=visibleCols.size;
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
+(function(){function _r(){if(typeof refreshFromINO==='function')refreshFromINO();}['f-date-deb','f-date-fin'].forEach(function(id){var el=document.getElementById(id);if(el&&!el._dateFixBound){el._dateFixBound=true;el.addEventListener('change',_r);}});})();
 </script>
 </body>
 </html>
