@@ -3003,71 +3003,104 @@ setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocal
 
 // ══════════════════════════════════════════════════════════════════
 //  EXPORT WHATSAPP — Affectation + Stat TC
+//  Fidèle aux formats de référence
 // ══════════════════════════════════════════════════════════════════
 
-const WA_CAMP_COLORS={
+// ── Couleurs campagnes ──────────────────────────────────────────
+var WA_CAMP_COLORS={
   "Filippi":"#FFD966","MNZ":"#F4B183","Eiffage":"#9DC3E6","CNPA":"#FF9999",
   "HMF":"#C5E0B4","LMDW":"#B4C6E7","Equisign":"#FFE699","ND":"#D9D9D9",
   "Delsey":"#F8CBAD","M123":"#BDD7EE","LGR":"#E2EFDA","LMB":"#FCE4D6",
   "Apex":"#D6DCE4","Alcéane":"#FFF2CC","Vivest":"#A9D18E","LBE":"#C9C9FF",
   "DIVERS":"#EFEFEF","AE1":"#BDD7EE","AE2":"#C5E0B4","AE3":"#F4B183",
-  "ORECA":"#FF9999","Voltalis":"#E2EFDA","Omoda":"#FFD966","OMODA":"#FFD966",
+  "ORECA":"#FF9999","Voltalis":"#70AD47","Omoda":"#FFD966","OMODA":"#FFD966",
 };
-const WA_SKILLS_CALLS=["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
-const WA_SKILLS_MAILS=["AE1","AE2","AE3"];
-const WA_SKILLS_COMP=["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
-const WA_HEADER_CAMPS={
+// Couleurs fond de groupe campagne (header)
+var WA_GROUP_COLORS={
   "Filippi":"#FFD966","Vivest":"#A9D18E","Verspieren":"#9DC3E6","Evoriel":"#C5E0B4",
-  "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#E2EFDA",
+  "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#70AD47",
   "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Eiffage":"#9DC3E6",
+  "ELECTROSUR":"#BDD7EE","Afnor":"#E2EFDA","SOS":"#FCE4D6","LMB":"#FCE4D6",
+  "Delsey":"#F8CBAD","LBE":"#C9C9FF","M123":"#BDD7EE","LGR":"#E2EFDA",
+  "Equisign":"#FFE699","Apex":"#D6DCE4","Nature & Découvertes":"#C5E0B4",
 };
 
-function waAgentSkills(a){
-  // Priorité 1 : allSkillsData depuis /api/refresh-skills (données INO directes)
-  if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0)
-    return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
-  // Priorité 2 : skills simplifiés
-  if(Array.isArray(a.skills)&&a.skills.length>0)
-    return new Set(a.skills.map(function(s){return s.name||s;}));
-  // Priorité 3 : déduire depuis les queues via QUEUES_MAP (toujours disponible)
-  var queuesAgent=(a.queues||"").split(", ").filter(Boolean);
-  var derived=new Set();
-  queuesAgent.forEach(function(q){
-    // Chercher dans QUEUES_MAP quel camp possède cette queue
-    Object.keys(QUEUES_MAP).forEach(function(camp){
-      if((QUEUES_MAP[camp]||[]).indexOf(q)>-1) derived.add(camp);
-    });
-    // Ajouter aussi le nom brut de la queue pour le matching partiel
-    derived.add(q);
-  });
-  return derived;
+// ── Colonnes compétences (fidèles à l'image de référence) ─────
+var WA_SKILLS_CALLS=["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
+var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+
+// ── Helpers CSS inline ──────────────────────────────────────────
+var CS="border:1px solid #aaa;padding:2px 4px;font-size:8.5px;white-space:nowrap;";
+var HS="border:1px solid #999;padding:2px 4px;font-size:8.5px;white-space:nowrap;font-weight:700;text-align:center;";
+
+function waTd(v,bg,bold,col,align,extra){
+  var ex=extra||'';
+  return '<td style="background:'+(bg||'#fff')+';font-weight:'+(bold?'700':'400')+
+    ';color:'+(col||'#222')+';text-align:'+(align||'center')+';'+CS+ex+'">'+v+'</td>';
 }
-function waHasSkill(sk,name){
-  return sk.has(name)||[...sk].some(function(x){return x.toLowerCase().includes(name.toLowerCase());});
+function waTh(v,bg,col,cs,rs,extra){
+  var ex=extra||'';
+  return '<th'+(cs>1?' colspan="'+cs+'"':'')+
+    (rs>1?' rowspan="'+rs+'"':'')+
+    ' style="background:'+(bg||'#2F3640')+';color:'+(col||'#fff')+';'+HS+ex+'">'+v+'</th>';
 }
-function waTime(dt){
+function mmss2(s){
+  if(!s||isNaN(s))return"–";
+  var m=Math.floor(s/60),sc=Math.round(s%60);
+  return m+"min "+String(sc).padStart(2,"0")+"s";
+}
+function waHr(dt){
   if(!dt)return"";
-  try{var d=new Date(dt);return String(d.getUTCHours()+2).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");}catch{return"";}
-}
-function waTd(txt,bg,bold,color,align,extra){
-  return '<td style="background:'+(bg||"transparent")+';font-weight:'+(bold?"700":"400")+';color:'+(color||"#111")+
-    ';text-align:'+(align||"center")+';padding:2px 4px;font-size:9.5px;border:1px solid #ccc;white-space:nowrap;'+(extra||"")+'">'+txt+'</td>';
-}
-function waTh(txt,bg,color,colspan,rowspan,extra){
-  return '<th'+(colspan>1?' colspan="'+colspan+'"':'')+
-    (rowspan>1?' rowspan="'+rowspan+'"':'')+
-    ' style="background:'+(bg||"#2F3640")+';color:'+(color||"#fff")+
-    ';text-align:center;padding:3px 5px;font-size:9.5px;font-weight:700;border:1px solid #aaa;'+(extra||"")+'">'+txt+'</th>';
+  try{
+    var d=new Date(dt);
+    // Ajuster UTC+2 (CEST)
+    return String(d.getUTCHours()+2).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");
+  }catch(e){return"";}
 }
 
+// Résoudre les compétences d'un agent depuis toutes les sources disponibles
+function waSkills(a){
+  // Source 1 : allSkillsData (depuis bouton Compétences INO)
+  if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
+    return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
+  }
+  // Source 2 : skills simplifiés
+  if(Array.isArray(a.skills)&&a.skills.length>0){
+    return new Set(a.skills.map(function(s){return s.name||s;}));
+  }
+  // Source 3 : déduction via QUEUES_MAP depuis les queues INO de l'agent
+  var sk=new Set();
+  var qs=(a.queues||"").split(", ").filter(Boolean);
+  qs.forEach(function(q){
+    Object.keys(QUEUES_MAP).forEach(function(camp){
+      if((QUEUES_MAP[camp]||[]).indexOf(q)>-1) sk.add(camp);
+    });
+    // Ajouter directement les tokens de queue
+    var tok=q.replace(/^Sortant\s+/i,"").split(/[_\s]/)[0];
+    if(tok) sk.add(tok);
+  });
+  return sk;
+}
+function waHas(sk,name){
+  return sk.has(name)||[...sk].some(function(x){
+    return x.toLowerCase().indexOf(name.toLowerCase())>-1;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TABLEAU 1 — AFFECTATION
+// ══════════════════════════════════════════════════════════════════
 function buildAffectationTable(sorted,dateStr,timeStr){
-  var totalCols=7+WA_SKILLS_CALLS.length+WA_SKILLS_MAILS.length+1+WA_SKILLS_COMP.length+1;
-  var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px;width:max-content;">';
-  // Titre
-  h+='<tr><td colspan="'+totalCols+'" style="background:#fff;padding:5px 8px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Affectation · '+dateStr+' · '+timeStr+'</td></tr>';
-  // Header ligne 1
+  var COLS=7+WA_SKILLS_CALLS.length+WA_SKILLS_MAILS.length+1+WA_SKILLS_COMP.length+1;
+  var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;width:max-content;">';
+
+  // ── Titre ──
+  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;letter-spacing:.02em;">Affectation · '+dateStr+' · '+timeStr+'</td></tr>';
+
+  // ── Header ligne 1 ──
   h+='<tr>';
-  h+=waTh("Nbr<br>opé","#2F3640","#fff",1,2);
+  h+=waTh("Nbr<br>opé<br>par tc","#2F3640","#fff",1,2);
   h+=waTh("Co.<br>INO","#2F3640","#fff",1,2);
   h+=waTh("H<br>début","#2F3640","#fff",1,2);
   h+=waTh("H<br>déj.","#2F3640","#fff",1,2);
@@ -3076,218 +3109,289 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+=waTh("Cumul","#2F3640","#fff",1,2);
   h+=waTh("Affectations appels","#1F4E79","#fff",WA_SKILLS_CALLS.length);
   h+=waTh("Emails","#4472C4","#fff",WA_SKILLS_MAILS.length);
-  h+=waTh("","#fff","#fff");
+  h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
   h+=waTh("Liste des compétences","#375623","#fff",WA_SKILLS_COMP.length);
   h+=waTh("Files<br>à jour","#C55A11","#fff");
   h+='</tr>';
-  // Header ligne 2 — skills
+
+  // ── Header ligne 2 — colonnes compétences ──
   h+='<tr>';
-  WA_SKILLS_CALLS.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E2EFDA","#333");});
+  WA_SKILLS_CALLS.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
   WA_SKILLS_MAILS.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#BDD7EE","#333");});
-  h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
-  WA_SKILLS_COMP.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E2EFDA","#333");});
+  h+=waTh("","#E8006E","#fff");
+  WA_SKILLS_COMP.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
   h+=waTh("","#C55A11","#fff");
   h+='</tr>';
-  // Lignes agents
+
+  // ── Lignes agents (triés par nbr appels desc) ──
   sorted.forEach(function(a,i){
-    var sk=waAgentSkills(a);
+    var sk=waSkills(a);
     var rowBg=i%2===0?"#FFFFFF":"#F7F7F7";
-    var statusOk=a.status==="Traitement"||a.status==="Actif"||a.status==="Post-appel";
-    var coInoBg=statusOk?"#00B050":a.status==="Déconnecté"?"#FF0000":"#FF9900";
-    var coInoTxt=statusOk?"OK":(a.status||"–");
-    var nbr=(a.sortants||0)+(a.decroches||0);
-    h+='<tr>';
-    h+=waTd(nbr>0?nbr:"","",true,"#E8006E");
-    h+=waTd(coInoTxt,coInoBg,true,"#fff");
-    h+=waTd(waTime(a.premiereAction),rowBg);
+
+    // Statut co.INO
+    var stOK=a.status==="Traitement"||a.status==="Actif"||a.status==="Post-appel";
+    var stDeco=a.status==="Déconnecté";
+    var stAbs=a.status===null||a.status==="n.d.";
+    var coTxt=stOK?"OK":stDeco?"Déconnecté":stAbs?"–":(a.status||"–");
+    var coBg=stOK?"#00B050":stDeco?"#FF0000":"#FF9900";
+    var coTxtCol="#fff";
+
+    // Nbr opé = entrants décrochés + sortants
+    var nbr=(a.decroches||0)+(a.sortants||0);
+
+    // Heures
+    var hDeb=waHr(a.premiereAction);
+    var hFin=waHr(a.derniereAction);
+    var hpNum=a.hprod?a.hprod.toFixed(1):"–";
+
+    // Login INO pour identification
+    var loginTxt=a.login||a.username||"";
+
+    h+='<tr style="background:'+rowBg+';">';
+    // Nbr opé
+    h+=waTd(nbr>0?nbr:"0","",true,"#E8006E");
+    // Co.INO
+    h+=waTd(coTxt,coBg,true,coTxtCol);
+    // H début
+    h+=waTd(hDeb,rowBg);
+    // H déj — non disponible INO
     h+=waTd("",rowBg);
+    // H retour — non disponible INO
     h+=waTd("",rowBg);
-    h+=waTd(waTime(a.derniereAction),rowBg);
-    var hpNum=a.hprod?Math.round(a.hprod):0;
-    h+=waTd(hpNum?hpNum+"h":"–",rowBg,true,hpNum>=7?"#000":"#CC0000");
+    // H fin
+    h+=waTd(hFin,rowBg);
+    // Cumul = H prod
+    h+=waTd(hpNum?hpNum+"h":"–",rowBg,true,hpNum!=="–"&&parseFloat(hpNum)>=7?"#000":"#C00");
+
+    // Affectations appels — colorié si compétence active
     WA_SKILLS_CALLS.forEach(function(s){
-      var has=waHasSkill(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E2EFDA"):rowBg,has,"#222");
+      var has=waHas(sk,s);
+      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
+    // Affectations emails
     WA_SKILLS_MAILS.forEach(function(s){
-      var has=waHasSkill(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg,has,"#222");
+      var has=waHas(sk,s);
+      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg,has,"#333");
     });
-    var campBg=WA_CAMP_COLORS[a.camp]||WA_HEADER_CAMPS[a.camp]||"#FFF";
-    var loginTxt=a.login||a.username||'';
-    h+=waTd('<b>'+a.nom+'</b>'+(loginTxt?'<br><span style="font-size:8px;color:#888;font-weight:400;">'+loginTxt+'</span>':''),campBg,false,"#111","left","min-width:120px;font-size:9px;");
+
+    // Nom agent + login INO
+    var campBg=WA_GROUP_COLORS[a.camp]||"#FFF8E7";
+    h+=waTd(
+      '<b style="font-size:9px;">'+a.nom+'</b>'+(loginTxt?'<br><span style="font-size:7.5px;color:#666;font-weight:400;">'+loginTxt+'</span>':''),
+      campBg,false,"#111","left",
+      "min-width:115px;line-height:1.3;"
+    );
+
+    // Liste compétences — toutes compétences actives
     WA_SKILLS_COMP.forEach(function(s){
-      var has=waHasSkill(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E2EFDA"):rowBg,has,"#222");
+      var has=waHas(sk,s);
+      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
-    var files=(a.queues||"").split(", ").filter(Boolean).slice(0,2).join(", ");
-    var loginDisp=a.login||a.username||'';
-    h+=waTd((loginDisp?'<b style="color:#888;">'+loginDisp+'</b><br>':'')+files,rowBg,false,"#666","left","font-size:8px;max-width:100px;line-height:1.4;");
+
+    // Files à jour — queues INO brutes (2 premières)
+    var files=(a.queues||"").split(", ").filter(Boolean);
+    var filesDisp=files.slice(0,3).join(", ");
+    h+=waTd(filesDisp||"–",rowBg,false,"#555","left","font-size:7.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;");
     h+='</tr>';
   });
-  // Ligne totaux
-  var totCols=function(skills){return skills.map(function(s){
-    var n=sorted.filter(function(a){return waHasSkill(waAgentSkills(a),s);}).length;
-    return waTd(n>0?n:"",n>0?"#BDD7EE99":"#1F4E79",true,n>0?"#1F4E79":"#fff");
-  }).join("");};
+
+  // ── Ligne totaux ──
   h+='<tr style="background:#1F4E79;">';
-  h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
-  h+=totCols(WA_SKILLS_CALLS);
-  h+=totCols(WA_SKILLS_MAILS);
-  h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
-  totCols(WA_SKILLS_COMP).split('</td>').forEach(function(){});
-  h+='<td colspan="'+(WA_SKILLS_COMP.length+1)+'" style="background:#1F4E79;border:1px solid #aaa;"></td>';
-  h+='</tr>';
-  // Résumé campagnes
-  var campsRésumé=[
-    {n:"Vivest",c:"#A9D18E"},{n:"Voltalis",c:"#E2EFDA"},{n:"Alcéane",c:"#FFF2CC"},{n:"GLOBAL",c:"#BDD7EE"}
-  ];
-  h+='<tr><td colspan="'+totalCols+'" style="height:8px;border:none;background:#fff;"></td></tr><tr>';
-  h+='<td colspan="3" style="border:none;background:#fff;"></td>';
-  campsRésumé.forEach(function(x){
-    var n=x.n==="GLOBAL"?sorted.length:sorted.filter(function(a){return a.camp===x.n;}).length;
-    h+='<td style="background:'+x.c+';font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #ccc;">'+x.n+'</td>';
-    h+=waTd(n,x.c,true);
+  h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:9px;padding:2px 6px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
+  // Compter par skill
+  WA_SKILLS_CALLS.forEach(function(s){
+    var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
+    h+=waTd(n>0?n:"","#BDD7EE",true,n>0?"#1F4E79":"#1F4E79");
   });
-  h+='<td colspan="'+(totalCols-11)+'" style="border:none;background:#fff;"></td></tr>';
+  WA_SKILLS_MAILS.forEach(function(s){
+    var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
+    h+=waTd(n>0?n:"","#9DC3E6",true,"#1F4E79");
+  });
+  h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
+  WA_SKILLS_COMP.forEach(function(){h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';});
+  h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
+  h+='</tr>';
+
+  // ── Bloc récap campagnes ──
+  var campRecap=[
+    {n:"Vivest",c:"#A9D18E"},{n:"Voltalis",c:"#70AD47"},{n:"Alcéane",c:"#FFF2CC"},
+    {n:"GLOBAL",c:"#BDD7EE"}
+  ];
+  h+='<tr><td colspan="'+COLS+'" style="height:5px;border:none;background:#fff;"></td></tr><tr>';
+  h+='<td colspan="3" style="border:none;background:#fff;"></td>';
+  campRecap.forEach(function(x){
+    var n=x.n==="GLOBAL"?sorted.length:sorted.filter(function(a){return a.camp===x.n;}).length;
+    h+='<td style="background:'+x.c+';color:#222;font-weight:700;font-size:9px;padding:2px 7px;border:1px solid #ccc;">'+x.n+'</td>';
+    h+=waTd(n,x.c,true,"#111");
+  });
+  h+='<td colspan="'+(COLS-11)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
   return h;
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  TABLEAU 2 — STAT TC
+//  Format fidèle image : date | CumulMulti/Vivest/Filippi | campagnes
+// ══════════════════════════════════════════════════════════════════
 function buildStatTCTable(sorted,dateStr,timeStr){
-  // Grouper agents par campagne (triés par nb appels desc)
+  // Grouper par campagne
   var campData={};
   sorted.forEach(function(a){
     var camp=a.camp||"–";
     if(!campData[camp])campData[camp]={
-      agents:[],appIn:0,appOut:0,dureeW:0,hprod:0,mails:0,actes:0
+      agents:[],appIn:0,appOut:0,durW:0,hp:0,mails:0
     };
     campData[camp].agents.push(a);
-    campData[camp].appIn  +=(a.decroches||0);
-    campData[camp].appOut +=(a.sortants||0);
-    campData[camp].dureeW +=(a.dmc||0)*(a.decroches||0);
-    campData[camp].hprod  +=(a.hprod||0);
-    campData[camp].mails  +=(mailsEdit[a.id]||a.mails_auto||0);
-    campData[camp].actes  +=(a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]||a.mails_auto||0);
+    campData[camp].appIn +=(a.decroches||0);
+    campData[camp].appOut+=(a.sortants||0);
+    campData[camp].durW  +=(a.dmc||0)*(a.decroches||0);
+    campData[camp].hp    +=(a.hprod||0);
+    campData[camp].mails +=(mailsEdit[a.id]||a.mails_auto||0);
   });
-  // Campagnes triées par nb d'agents desc
-  var allCamps=Object.keys(campData).filter(function(k){return campData[k].agents.length>0;})
-    .sort(function(a,b){return campData[b].agents.length-campData[a].agents.length;});
 
-  var CAMP_BG={
-    "Filippi":"#FFD966","Vivest":"#A9D18E","Verspieren":"#9DC3E6","Evoriel":"#C5E0B4",
-    "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#E2EFDA",
-    "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Eiffage":"#9DC3E6",
-  };
-  var CELL_S = "border:1px solid #ccc;padding:3px 5px;font-size:9px;text-align:center;white-space:nowrap;";
-  var HDR_S  = "border:1px solid #aaa;padding:3px 5px;font-size:9px;font-weight:700;text-align:center;white-space:nowrap;";
+  // Campagnes triées par nb agents desc
+  var camps=Object.keys(campData).sort(function(a,b){
+    return campData[b].agents.length-campData[a].agents.length;
+  });
 
-  var h='<div style="margin-top:20px;overflow-x:auto;">';
-  h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px;table-layout:auto;">';
+  var T=sorted;
+  var tAppIn =T.reduce(function(s,a){return s+(a.decroches||0);},0);
+  var tAppOut=T.reduce(function(s,a){return s+(a.sortants||0);},0);
+  var tDurW  =T.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
+  var tHp    =T.reduce(function(s,a){return s+(a.hprod||0);},0);
+  var tMails =T.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+
+  var viv=T.filter(function(a){return a.camp==="Vivest";});
+  var vAppIn=viv.reduce(function(s,a){return s+(a.decroches||0);},0);
+  var vDurW =viv.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
+  var vHp   =viv.reduce(function(s,a){return s+(a.hprod||0);},0);
+  var vMails=viv.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+  var vAppOut=viv.reduce(function(s,a){return s+(a.sortants||0);},0);
+
+  var fil=T.filter(function(a){return a.camp==="Filippi";});
+  var fAppIn=fil.reduce(function(s,a){return s+(a.decroches||0);},0);
+  var fDurW =fil.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
+  var fHp   =fil.reduce(function(s,a){return s+(a.hprod||0);},0);
+  var fMails=fil.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+  var fAppOut=fil.reduce(function(s,a){return s+(a.sortants||0);},0);
+
+  // Nombre de colonnes total
+  var nCampCols=camps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
+  var COLS=4+nCampCols; // KPI label + cumul Multi + cumul Vivest + cumul Filippi + campagnes
+
+  var h='<div style="margin-top:16px;">';
+  h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;">';
 
   // ── Titre ──
-  var totalAgents=sorted.length;
-  var totalCols=4+allCamps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
-  h+='<tr><td colspan="'+totalCols+'" style="background:#fff;padding:5px 8px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+'</td></tr>';
+  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+'</td></tr>';
 
-  // ── Header ligne 1 : libellé KPI | cumulatifs | campagnes ──
+  // ── Header ligne 1 : KPI col + cumulatifs + groupes campagne ──
   h+='<tr>';
-  h+='<th style="'+HDR_S+'background:#2F3640;color:#fff;" rowspan="2">KPI</th>';
-  h+='<th style="'+HDR_S+'background:#444;color:#fff;" rowspan="2">Total<br>'+totalAgents+' ag.</th>';
-  h+='<th style="'+HDR_S+'background:#A9D18E;color:#333;" rowspan="2">Vivest</th>';
-  h+='<th style="'+HDR_S+'background:#FFD966;color:#333;" rowspan="2">Filippi</th>';
-  allCamps.forEach(function(camp){
+  h+=waTh("",                   "#fff","#fff",   1,2);
+  h+=waTh("Cumul<br>Multi",     "#FF7C80","#fff", 1,2);
+  h+=waTh("Cumul<br>Vivest",    "#A9D18E","#222", 1,2);
+  h+=waTh("Cumul<br>Filippi",   "#FFD966","#222", 1,2);
+  camps.forEach(function(camp){
     var n=campData[camp].agents.length;
-    var bg=CAMP_BG[camp]||"#E0E0E0";
-    h+='<th colspan="'+(n+1)+'" style="'+HDR_S+'background:'+bg+';color:#222;">'+camp+'</th>';
+    var bg=WA_GROUP_COLORS[camp]||"#E0E0E0";
+    // Titre groupe = camp (+ 1 col cumul)
+    h+=waTh(camp,bg,"#222",n+1);
   });
   h+='</tr>';
 
-  // ── Header ligne 2 : prénoms agents ──
+  // ── Header ligne 2 : prénoms agents par camp ──
   h+='<tr>';
-  allCamps.forEach(function(camp){
-    var bg=CAMP_BG[camp]||"#E0E0E0";
+  camps.forEach(function(camp){
+    var bg=(WA_GROUP_COLORS[camp]||"#E0E0E0")+"CC";
     campData[camp].agents.forEach(function(a){
-      var nom=(a.nom||"").split(" ").slice(-1)[0].substring(0,8); // prénom
-      h+='<th style="'+HDR_S+'background:'+bg+'44;color:#333;font-weight:600;">'+nom+'</th>';
+      // Prénom (dernier token du nom complet)
+      var prenom=a.nom.split(" ").pop().substring(0,9);
+      // Login INO court
+      var lgn=(a.login||a.username||"").substring(0,10);
+      h+=waTh('<span style="font-size:8px;">'+prenom+'</span>'+(lgn?'<br><span style="font-size:7px;font-weight:400;color:#444;">'+lgn+'</span>':''),bg,"#222");
     });
-    h+='<th style="'+HDR_S+'background:'+bg+'88;color:#444;">Cumul</th>';
+    h+=waTh("Cumul","#D0D0D0","#333");
   });
   h+='</tr>';
 
   // ── Lignes KPI ──
   var KPIS=[
-    {lbl:"Appels Traités",  bg:"#FFF2CC",col:"#000",
-     aFn:function(a){return a.decroches||0;},
-     cFn:function(cd){return cd.appIn;},
-     tFn:function(){return sorted.reduce(function(s,a){return s+(a.decroches||0);},0);},
-     vivFn:function(){return sorted.filter(function(a){return a.camp==="Vivest";}).reduce(function(s,a){return s+(a.decroches||0);},0);},
-     filFn:function(){return sorted.filter(function(a){return a.camp==="Filippi";}).reduce(function(s,a){return s+(a.decroches||0);},0);}
-    },
-    {lbl:"DMC",             bg:"#FFE0E0",col:"#CC0000",fmt:true,
-     aFn:function(a){return a.dmc?mmss(a.dmc):"–";},
-     cFn:function(cd){return cd.appIn>0?mmss(Math.round(cd.dureeW/cd.appIn)):"–";},
-     tFn:function(){var tot=sorted.reduce(function(s,a){return s+(a.decroches||0);},0);var dur=sorted.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);return tot>0?mmss(Math.round(dur/tot)):"–";},
-     vivFn:function(){var viv=sorted.filter(function(a){return a.camp==="Vivest";});var t=viv.reduce(function(s,a){return s+(a.decroches||0);},0);var d=viv.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);return t>0?mmss(Math.round(d/t)):"–";},
-     filFn:function(){return "–";}
-    },
-    {lbl:"Appels Sortants", bg:"#EBF3FF",col:"#1F4E79",
-     aFn:function(a){return a.sortants||0;},
-     cFn:function(cd){return cd.appOut;},
-     tFn:function(){return sorted.reduce(function(s,a){return s+(a.sortants||0);},0);},
-     vivFn:function(){return sorted.filter(function(a){return a.camp==="Vivest";}).reduce(function(s,a){return s+(a.sortants||0);},0);},
-     filFn:function(){return 0;}
-    },
-    {lbl:"Mails traités",   bg:"#F0FFF0",col:"#1a6b1a",
-     aFn:function(a){return mailsEdit[a.id]||a.mails_auto||0;},
-     cFn:function(cd){return cd.mails;},
-     tFn:function(){return sorted.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);},
-     vivFn:function(){return 0;},filFn:function(){return 0;}
-    },
-    {lbl:"H. Formation",    bg:"#FFE0FF",col:"#CC0000",
-     aFn:function(){return 0;},cFn:function(){return 0;},
-     tFn:function(){return 0;},vivFn:function(){return 0;},filFn:function(){return 0;}
-    },
-    {lbl:"H. Incident",     bg:"#FFE0FF",col:"#CC0000",
-     aFn:function(){return 0;},cFn:function(){return 0;},
-     tFn:function(){return 0;},vivFn:function(){return 0;},filFn:function(){return 0;}
-    },
-    {lbl:"H. de Prod",      bg:"#E0F0FF",col:"#1F4E79",
-     aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
-     cFn:function(cd){return cd.hprod.toFixed(1);},
-     tFn:function(){return sorted.reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);},
-     vivFn:function(){return sorted.filter(function(a){return a.camp==="Vivest";}).reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);},
-     filFn:function(){return sorted.filter(function(a){return a.camp==="Filippi";}).reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);}
-    },
-    {lbl:"Total Heures",    bg:"#E0F0FF",col:"#1F4E79",
-     aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
-     cFn:function(cd){return cd.hprod.toFixed(1);},
-     tFn:function(){return sorted.reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);},
-     vivFn:function(){return sorted.filter(function(a){return a.camp==="Vivest";}).reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);},
-     filFn:function(){return sorted.filter(function(a){return a.camp==="Filippi";}).reduce(function(s,a){return s+(a.hprod||0);},0).toFixed(1);}
-    },
-    {lbl:"Actes/heure",     bg:"#FFE8F5",col:"#E8006E",bold:true,
-     aFn:function(a){return a.actesH||0;},
-     cFn:function(cd){return cd.hprod>0?((cd.actes/cd.hprod).toFixed(1)):0;},
-     tFn:function(){var hp=sorted.reduce(function(s,a){return s+(a.hprod||0);},0);var ac=sorted.reduce(function(s,a){return s+(a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]||a.mails_auto||0);},0);return hp>0?(ac/hp).toFixed(1):0;},
-     vivFn:function(){var viv=sorted.filter(function(a){return a.camp==="Vivest";});var hp=viv.reduce(function(s,a){return s+(a.hprod||0);},0);var ac=viv.reduce(function(s,a){return s+(a.decroches||0)+(a.sortants||0);},0);return hp>0?(ac/hp).toFixed(1):0;},
-     filFn:function(){return 0;}
+    {
+      lbl:"Appels Traités",bg:"#FFF2CC",col:"#000",
+      tot:function(){return tAppIn;},
+      vFn:function(){return vAppIn;},
+      fFn:function(){return fAppIn;},
+      aFn:function(a){return a.decroches||0;},
+      cFn:function(cd){return cd.appIn;}
+    },{
+      lbl:"DMC",bg:"#FFE0E0",col:"#CC0000",
+      tot:function(){return tAppIn>0?mmss2(Math.round(tDurW/tAppIn)):"–";},
+      vFn:function(){return vAppIn>0?mmss2(Math.round(vDurW/vAppIn)):"–";},
+      fFn:function(){return fAppIn>0?mmss2(Math.round(fDurW/fAppIn)):"–";},
+      aFn:function(a){return a.dmc?mmss2(a.dmc):"–";},
+      cFn:function(cd){return cd.appIn>0?mmss2(Math.round(cd.durW/cd.appIn)):"–";}
+    },{
+      lbl:"Appels Sortants",bg:"#EBF3FF",col:"#1F4E79",
+      tot:function(){return tAppOut;},
+      vFn:function(){return vAppOut;},
+      fFn:function(){return fAppOut;},
+      aFn:function(a){return a.sortants||0;},
+      cFn:function(cd){return cd.appOut;}
+    },{
+      lbl:"Mails traités",bg:"#F0FFF0",col:"#1a6b1a",
+      tot:function(){return tMails;},
+      vFn:function(){return vMails;},
+      fFn:function(){return fMails;},
+      aFn:function(a){return mailsEdit[a.id]||a.mails_auto||0;},
+      cFn:function(cd){return cd.mails;}
+    },{
+      lbl:"Heures formation/débrief",bg:"#FFE0FF",col:"#CC0000",
+      tot:function(){return 0;},vFn:function(){return 0;},fFn:function(){return 0;},
+      aFn:function(){return 0;},cFn:function(){return 0;}
+    },{
+      lbl:"Heures incident/bug",bg:"#FFE0FF",col:"#CC0000",
+      tot:function(){return 0;},vFn:function(){return 0;},fFn:function(){return 0;},
+      aFn:function(){return 0;},cFn:function(){return 0;}
+    },{
+      lbl:"Heures de prod",bg:"#E0F0FF",col:"#1F4E79",
+      tot:function(){return tHp.toFixed(1);},
+      vFn:function(){return vHp.toFixed(1);},
+      fFn:function(){return fHp.toFixed(1);},
+      aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
+      cFn:function(cd){return cd.hp.toFixed(1);}
+    },{
+      lbl:"Total Heures",bg:"#E0F0FF",col:"#1F4E79",
+      tot:function(){return tHp.toFixed(1);},
+      vFn:function(){return vHp.toFixed(1);},
+      fFn:function(){return fHp.toFixed(1);},
+      aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
+      cFn:function(cd){return cd.hp.toFixed(1);}
+    },{
+      lbl:"Actes par heures",bg:"#FFE8F5",col:"#E8006E",bold:true,
+      tot:function(){return tHp>0?((tAppIn+tAppOut+tMails)/tHp).toFixed(2):"–";},
+      vFn:function(){return vHp>0?((vAppIn+vAppOut+vMails)/vHp).toFixed(2):"–";},
+      fFn:function(){return fHp>0?((fAppIn+fAppOut+fMails)/fHp).toFixed(2):"–";},
+      aFn:function(a){return a.actesH||0;},
+      cFn:function(cd){return cd.hp>0?((cd.appIn+cd.appOut+cd.mails)/cd.hp).toFixed(2):"–";}
     },
   ];
 
   KPIS.forEach(function(kpi){
     h+='<tr>';
-    h+='<td style="'+CELL_S+'background:'+kpi.bg+';font-weight:700;color:'+kpi.col+';text-align:left;">'+kpi.lbl+'</td>';
-    h+='<td style="'+CELL_S+'background:'+kpi.bg+'88;font-weight:'+(kpi.bold?'700':'400')+';color:'+kpi.col+';">'+kpi.tFn()+'</td>';
-    h+='<td style="'+CELL_S+'background:#A9D18E44;color:'+kpi.col+';">'+kpi.vivFn()+'</td>';
-    h+='<td style="'+CELL_S+'background:#FFD96644;color:'+kpi.col+';">'+kpi.filFn()+'</td>';
-    allCamps.forEach(function(camp){
+    h+='<td style="background:'+kpi.bg+';font-weight:'+(kpi.bold?'700':'600')+';color:'+kpi.col+
+       ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+kpi.lbl+'</td>';
+    // Cumulatifs
+    h+=waTd(kpi.tot(),kpi.bg+"88",kpi.bold,kpi.col);
+    h+=waTd(kpi.vFn(),"#A9D18E44",kpi.bold,kpi.col);
+    h+=waTd(kpi.fFn(),"#FFD96644",kpi.bold,kpi.col);
+    // Par campagne
+    camps.forEach(function(camp){
       var cd=campData[camp];
-      var bg=(CAMP_BG[camp]||"#E0E0E0")+"22";
+      var campBg=(WA_GROUP_COLORS[camp]||"#E0E0E0")+"22";
       cd.agents.forEach(function(a){
-        h+='<td style="'+CELL_S+'background:'+bg+';color:'+kpi.col+';">'+kpi.aFn(a)+'</td>';
+        h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
       });
-      h+='<td style="'+CELL_S+'background:'+(CAMP_BG[camp]||"#D0D0D0")+'55;font-weight:700;color:'+kpi.col+';">'+kpi.cFn(cd)+'</td>';
+      h+=waTd(kpi.cFn(cd),(WA_GROUP_COLORS[camp]||"#D0D0D0")+"55",true,kpi.col);
     });
     h+='</tr>';
   });
@@ -3296,6 +3400,9 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   return h;
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  RENDU + EXPORTS
+// ══════════════════════════════════════════════════════════════════
 function renderWA(){
   var z=document.getElementById("wa-preview");
   if(!z)return;
@@ -3308,56 +3415,54 @@ function renderWA(){
     z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
   }
-  var sorted=[...agents].sort(function(a,b){return (b.appels||0)-(a.appels||0);});
-  z.innerHTML='<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'
-    +'<div style="height:20px;"></div>'
-    +'<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>';
+  var sorted=[...agents].sort(function(a,b){
+    return (b.decroches+b.sortants)-(a.decroches+a.sortants);
+  });
+  z.innerHTML=
+    '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
+    '<div style="height:16px;"></div>'+
+    '<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>';
 }
 
 function exportWA_PDF(){
-  if(agents.length===0){showToast("Rafraîchissez d'abord les données","#ff3b30");return;}
+  if(agents.length===0){showToast("Aucune donnée chargée. Lancez un rafraîchissement.","#ff3b30");return;}
   var aff=document.getElementById("wa-table-affectation");
   var stat=document.getElementById("wa-table-stat");
-  if(!aff){showToast("Ouvrez d'abord l'onglet Export WhatsApp","#ff9f0a");return;}
+  if(!aff){showToast("Générez d'abord l'aperçu dans l'onglet Export WhatsApp.","#ff9f0a");return;}
   var now=new Date();
   var ds=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
   var ts=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   var w=window.open("","_blank");
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Export WhatsApp '+ds+'</title>'+
-    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:9px;background:#fff;color:#000;padding:8px;}'+
-    'table{border-collapse:collapse;}td,th{border:1px solid #ccc;padding:2px 4px;font-size:9px;}'+
-    'h2{font-size:12px;color:#E8006E;margin:10px 0 4px;}'+
-    '@media print{@page{size:A3 landscape;margin:6mm;}}</style>'+
-    '</head><body>'+
-    '<h2>Affectation — '+ds+' · '+ts+'</h2>'+aff.innerHTML+
-    '<h2 style="margin-top:16px;">Stat TC — '+ds+' · '+ts+'</h2>'+stat.innerHTML+
-    '</body></html>');
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:6px;}'+
+    'table{border-collapse:collapse;}td,th{border:1px solid #ccc;padding:2px 4px;font-size:8.5px;}'+
+    'h2{font-size:11px;color:#E8006E;margin:8px 0 3px;font-family:Arial;}'+
+    '@media print{@page{size:A3 landscape;margin:5mm;}}</style>'+
+    '</head><body>'+aff.innerHTML+'<div style="height:12px;"></div>'+stat.innerHTML+'</body></html>');
   w.document.close();
   setTimeout(function(){w.print();},500);
 }
 
 function exportWA_Excel(){
-  if(agents.length===0){showToast("Rafraîchissez d'abord les données","#ff3b30");return;}
+  if(agents.length===0){showToast("Aucune donnée chargée. Lancez un rafraîchissement.","#ff3b30");return;}
   var aff=document.getElementById("wa-table-affectation");
   var stat=document.getElementById("wa-table-stat");
-  if(!aff){showToast("Ouvrez d'abord l'onglet Export WhatsApp","#ff9f0a");return;}
+  if(!aff){showToast("Générez d'abord l'aperçu dans l'onglet Export WhatsApp.","#ff9f0a");return;}
   var now=new Date();
-  var dateISO=now.toISOString().slice(0,10);
   var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
-    '<head><meta charset="UTF-8"><style>td,th{border:1px solid #999;}</style></head>'+
-    '<body><h2 style="color:#E8006E;font-family:Arial;font-size:11px;">Affectation</h2>'+
+    '<head><meta charset="UTF-8"><style>td,th{border:1px solid #999;mso-number-format:"@";}</style></head>'+
+    '<body><h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Affectation</h2>'+
     aff.innerHTML+'<br><br>'+
-    '<h2 style="color:#E8006E;font-family:Arial;font-size:11px;">Stat TC</h2>'+
+    '<h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Stat TC</h2>'+
     stat.innerHTML+'</body></html>';
   var blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
   var url=URL.createObjectURL(blob);
-  var a=document.createElement("a");
-  a.href=url;a.download="Export_WhatsApp_"+dateISO+".xls";
-  document.body.appendChild(a);a.click();
-  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  showToast("Fichier Excel téléchargé.","#30d158");
+  var el=document.createElement("a");
+  el.href=url;el.download="Export_WhatsApp_"+now.toISOString().slice(0,10)+".xls";
+  document.body.appendChild(el);el.click();
+  setTimeout(function(){document.body.removeChild(el);URL.revokeObjectURL(url);},1000);
+  showToast("Fichier Excel téléchargé.");
 }
-// ══════════════════════════════════════════════════════════════════
 
 // Déconnexion avec modale branded (remplace confirm() natif)
 function confirmLogout(){
@@ -3370,6 +3475,7 @@ function confirmLogout(){
     if(confirmed)window.location.href='/logout';
   });
 }
+
 
 </script>
 </main>
