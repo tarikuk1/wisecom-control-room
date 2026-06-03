@@ -1036,7 +1036,7 @@ async function refreshFromINO(){
     ok=true;
     // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
     // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
-  }catch(e){ok=false;}
+  }catch(e){ok=false;console.error('[refreshFromINO]',e&&e.message||e);}
   finally{
     document.body.classList.remove("skeleton-on");
     if(btn){btn.disabled=false;btn.classList.remove("loading");btn.textContent=lbl||"🔄 RAFRAÎCHIR (Fetch API INO)";}
@@ -1093,7 +1093,19 @@ async function loadAgentsFromAPI(){
             const cl=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
             if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(cl)))return c;
           }
-          return fq[0]?fq[0].split("_")[0].split(" ")[0]:"–";
+          // Fallback : chercher quel camp de CAMPS est contenu dans le nom de la queue
+          if(fq[0]){
+            const q0=fq[0].toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+            for(const camp of CAMPS){
+              const cl=camp.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+              if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return camp;
+            }
+            // Dernier recours : premier token significatif
+            const tok=fq[0].replace(/^sortant /i,"").split(/[_ ]/)[0];
+            const found=CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()));
+            return found||fq[0];
+          }
+          return "–";
         })();
         // 3. Mails saisis manuellement
         const m=mailsEdit[a.id]||0;
@@ -1146,6 +1158,10 @@ async function loadAgentsFromAPI(){
         };
       });
       selAgents=agents.map(a=>a.nom);
+      // Mettre à jour selCamps avec les camps réellement présents + tous les CAMPS connus
+      const realCamps=[...new Set(agents.map(a=>a.camp).filter(x=>x&&x!=="–"))];
+      // Garder tous les CAMPS connus + les camps réels non référencés
+      selCamps=[...new Set([...CAMPS,...realCamps])];
       selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
@@ -1342,7 +1358,8 @@ async function deletePreset(){
 function getFiltered(){
   return agents.filter(a=>{
     if(hideDeconnecte&&(a.status==="Déconnecté"||(a.status===null&&(a.decroches||0)===0&&(a.sortants||0)===0)))return false;
-    if(!selCamps.includes(a.camp))return false;
+    // Camp connu dans selCamps OU camp inconnu (on ne filtre pas les agents sans camp référencé)
+    if(selCamps.length<CAMPS.length&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
     if(!selAgents.includes(a.nom))return false;
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
