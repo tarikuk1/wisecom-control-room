@@ -23,14 +23,14 @@ body.light .topbar{background:#fff;}
 
 /* ── TOPBAR ─────────────────────────────────────── */
 .topbar{
-  padding:0 24px;
-  height:56px;
-  display:flex;
+  padding:0 20px;
+  height:52px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
   align-items:center;
-  justify-content:space-between;
   position:relative;
   z-index:201;
-  gap:0;
+  gap:8px;
 }
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 10px #E8006E,0 0 20px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
@@ -41,8 +41,9 @@ body.light .brand{color:#111;}
 
 /* Topbar centre — statut + horloge */
 .topbar-center{
-  position:absolute;left:50%;transform:translateX(-50%);
-  display:flex;align-items:center;gap:14px;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  overflow:hidden;
+  min-width:0;
 }
 .sse-badge{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:700;display:flex;align-items:center;gap:5px;letter-spacing:.02em;}
 .clock{font-size:12px;color:#555;font-variant-numeric:tabular-nums;font-weight:500;}
@@ -50,7 +51,7 @@ body.light .clock{color:#888;}
 #last-update{font-size:10px;color:#444;}
 
 /* Topbar droite — actions groupées */
-.topbar-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.topbar-right{display:flex;align-items:center;gap:5px;flex-shrink:0;overflow-x:auto;}
 
 /* Séparateur vertical entre groupes de boutons */
 .btn-sep{width:1px;height:20px;background:#2a2a2a;flex-shrink:0;margin:0 2px;}
@@ -1664,7 +1665,7 @@ function renderTable(sorted){
     {k:"refus",l:"Qualif. Refus",title:"Qualifications 'Refus' post-appel",def:"Nombre d'appels qualifiés 'Refus' par l'agent après traitement. Ce sont des QUALIFICATIONS post-appel (outcome du call), pas des refus de décroché. Les vrais refus de décroché sont dans la colonne 100% KO."},
     {k:"inactifs",l:"Inactifs",def:"Nombre de périodes d'inactivité longue détectées. ⚠ Non exposé directement par l'API INO."},
     {k:"realise",l:"% de réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
-    {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire",def:"Courbe mini (sparkline) de l'activité horaire de l'agent sur la journée.\n\nDéfinition : chaque point représente le nombre d'appels (entrants décrochés + sortants) traités dans un créneau horaire de 1h.\n\nCalcul : le serveur découpe les timestamps d'appels (callDate / acdDate, en heure France UTC+1/+2) en buckets de 1h de 08h à 19h, puis compte les appels dans chaque bucket.\n\nLecture : un pic = forte activité sur ce créneau. Une courbe plate en début/fin = horaires d'arrivée/départ réels de l'agent. N.d. = aucun timestamp disponible dans les historiques INO."},
+    {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire — sparkline",def:"Courbe d'activité horaire de l'agent (sparkline).\n\nDéfinition : représentation graphique mini du rythme de production de l'agent heure par heure sur la journée sélectionnée.\n\nFormule de calcul :\n• Source : timestamps callDate / acdDate des historiques INO\n• Conversion en heure France (UTC+2 en été, UTC+1 en hiver)\n• Découpage en buckets de 1h de 08h à 19h (12 points)\n• Chaque point = entrants décrochés + sortants dans ce créneau\n• Valeur normalisée visuellement (hauteur relative au pic de la journée)\n\nLecture :\n• Pic haut = forte densité d'appels sur ce créneau\n• Creux = pause, déjeuner, ou faible volume distribué\n• Courbe qui commence tard = arrivée tardive ou appels débutant après 08h\n• Courbe qui s'arrête tôt = départ anticipé ou fin de planification\n• N.d. = aucun timestamp exploitable dans les historiques INO pour cet agent"},
     {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
     {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."}
   ];
@@ -2156,40 +2157,48 @@ function render(){
 }
 
 // Bandeau de transparence — recense ce qui est branché à INO vs non disponible
+let _inoCovOpen=false;
+function toggleInoCov(){
+  _inoCovOpen=!_inoCovOpen;
+  const d=document.getElementById("ino-cov-detail");
+  const b=document.getElementById("ino-cov-btn");
+  if(d)d.style.display=_inoCovOpen?"block":"none";
+  if(b)b.textContent=_inoCovOpen?"▲ Masquer":"▼ Détail connexion INO";
+}
 function renderInoCoverage(){
   const z=document.getElementById("ino-coverage");if(!z)return;
   if(!inoLive){z.innerHTML="";return;}
   const sample=agents[0]||{};
   const checks=[
-    {label:"Identité agent (nom, login)",ok:!!sample.nom},
-    {label:"Appels reçus / décrochés / sortants",ok:sample.appels!=null},
-    {label:"DMC (durée moyenne)",ok:sample.dmc>0},
-    {label:"1ère connexion / dernière déco",ok:!!sample.premiereAction},
-    {label:"Files (queues)",ok:!!sample.queues},
-    {label:"Heures de production",ok:sample.hprod>0},
-    {label:"Statut temps réel (Connecté/Pause/Wrap)",ok:!!sample.status},
-    {label:"Compétences agent",ok:Array.isArray(sample.skills)&&sample.skills.length>0},
-    {label:"Refus / 100 % KO / Réitérants",ok:sample.ko!=null||sample.refus!=null},
-    {label:"Taux de transformation",ok:sample.transfo!=null},
-    {label:"Adhérence planning",ok:sample.adherence!=null},
-    {label:"ACW (post-appel)",ok:sample.acw!=null},
-    {label:"Flux par tranche horaire",ok:slots.length>0},
-    {label:"Sparkline horaire par agent",ok:Array.isArray(sample.spark)},
+    {label:"Identité agent",ok:!!sample.nom},
+    {label:"Appels IN/OUT",ok:sample.appels!=null},
+    {label:"DMC",ok:sample.dmc>0},
+    {label:"1ère/dernière action",ok:!!sample.premiereAction},
+    {label:"Files actives",ok:!!sample.queues},
+    {label:"H. Prod",ok:sample.hprod>0},
+    {label:"Statut temps réel",ok:!!sample.status},
+    {label:"Compétences",ok:Array.isArray(sample.skills)&&sample.skills.length>0},
+    {label:"KO / Refus",ok:sample.ko!=null||sample.refus!=null},
+    {label:"Transformation",ok:sample.transfo!=null},
+    {label:"Adhérence",ok:sample.adherence!=null},
+    {label:"ACW",ok:sample.acw!=null},
+    {label:"Tranches horaires",ok:slots.length>0},
+    {label:"Sparkline agent",ok:Array.isArray(sample.spark)},
   ];
-  const okN=checks.filter(c=>c.ok).length;
-  const html=`<div style="background:linear-gradient(135deg,#0a1410,#0f1a14);border:1px solid #1a3a25;border-radius:10px;padding:10px 16px;margin-bottom:6px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
-      <span style="font-size:11px;color:#30d158;font-weight:700">● MODE INO RÉEL</span>
-      <span style="font-size:11px;color:#ccc">Couverture API : <b style="color:#30d158">${okN}</b> branché${okN>1?"s":""} · <b style="color:${P}">${checks.length-okN}</b> non disponible${checks.length-okN>1?"s":""}</span>
-      <span style="font-size:10px;color:#888;flex:1;text-align:right">Les champs "n.d." dans le tableau ne sont pas (encore) exposés par l'API. Aucune valeur fabriquée n'est affichée.</span>
-    </div>
-    <details style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;color:#666;outline:none">Voir le détail de la couverture INO</summary>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 12px;margin-top:8px;font-size:10px">
-        ${checks.map(c=>`<div style="color:${c.ok?"#30d158":"#888"}">${c.ok?"✓":"✕"} ${c.label}${c.ok?"":' <span style="color:#555">(n.d.)</span>'}</div>`).join("")}
-      </div>
-    </details>
-  </div>`;
-  z.innerHTML=html;
+  const okN=checks.filter(function(x){return x.ok;}).length;
+  const ko=checks.length-okN;
+  z.innerHTML=
+    '<div style="display:flex;align-items:center;gap:10px;padding:5px 20px;border-bottom:1px solid #1a1a1a;">'
+    +'<span style="font-size:11px;color:#30d158;font-weight:700;flex-shrink:0;">● INO Réel</span>'
+    +'<span style="font-size:10px;color:#555;">'+okN+'/'+checks.length+' champs'+(ko>0?' · <b style="color:#E8006E">'+ko+' n.d.</b>':'')+'</span>'
+    +'<button id="ino-cov-btn" onclick="toggleInoCov()" style="background:none;border:1px solid #252525;color:#555;font-size:10px;padding:2px 8px;border-radius:5px;cursor:pointer;white-space:nowrap;">▼ Détail connexion</button>'
+    +'</div>'
+    +'<div id="ino-cov-detail" style="display:none;padding:8px 20px;background:#0a0f0a;border-bottom:1px solid #161616;">'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:3px 14px;font-size:10px;margin-bottom:5px">'
+    +checks.map(function(x){return '<span style="color:'+(x.ok?'#30d158':'#444')+'">'+(x.ok?'✓':'✕')+' '+x.label+'</span>';}).join('')
+    +'</div>'
+    +'<span style="font-size:9px;color:#333;">Les champs n.d. ne sont pas exposés par l'API INO — aucune donnée simulée n'est affichée.</span>'
+    +'</div>';
 }
 
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
