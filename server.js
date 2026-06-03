@@ -26,15 +26,30 @@ function isRL(ip){const now=Date.now();if(!loginAttempts[ip])loginAttempts[ip]=[
 function recAttempt(ip){if(!loginAttempts[ip])loginAttempts[ip]=[];loginAttempts[ip].push(Date.now());}
 function secH(res){res.setHeader("X-Content-Type-Options","nosniff");res.setHeader("X-Frame-Options","DENY");}
 
+// ── Configuration campagnes (source: queues_config.js) ──────────────────
+const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
+const QUEUES_MAP={Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération","Vivest_Interne","Sortant Vivest","Sortant Verspieren"],Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"],Antargaz:["Antargaz","Antargaz_Client","Antargaz_Sortant"],Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],Elvetis:["Elvetis_RQ","Elvetis_SAV"],"Alcéane":["Alcéane astreinte","Alcéane interne","Alcéane_Locataires","Alcéane_Urgence","Alceane"],"MG Motor":["MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession","MG_Application Ismart","MG Motor","MG Motor Enquete","Sortant MG Motot"],Filippi:["Filippi_Hertz Ajaccio_Réservation","Filippi_Hertz Ajaccio_Assistance","Filippi_Hertz Bastia_Réservation","Filippi_Hertz Bastia_Assistance","Filippi_Hertz Bastia_Ville","Filippi_Hertz Calvi_Réservation","Filippi_Hertz Calvi_Assistance","Filippi_Hertz Figari_Réservation","Filippi_Hertz Figari_Assistance","Filippi_Sixt_Ajaccio_Réservation","Filippi_Sixt_Ajaccio_Assistance","Filippi_Sixt_Bastia_Réservation","Filippi_Sixt_Bastia_Assistance","Filippi_Sixt_Figari_Réservation","Filippi_Sixt_Figari_Assistance"],"Nature & Découvertes":["Nature & Découvertes","Nature & Découvertes_Réitération"],Delsey:["Delsey_Site FR","Delsey_Site EN","Delsey_Plateforme internet FR","Delsey_Autres Sites FR","Sortant Delsey FR"],LMB:["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Parent d'enfant"],Afnor:["Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi","Afnor_RQ_planif_audit_suivi_Réitération","Afnor_RQ_renouvellement_certificat","Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION","AFNOR Sortant"],SOS:["SOS _ MA","SOS _ MA _ Réitération"],LGR:["LGR-SC","LGR-Réitération","LGR Boutique"],LMDW:["LMDW_FR","Sortant LMDW"],LBE:["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)"],M123:["M123_FR","M123_Boutique","Sortant Maison 123 VIP"],Equisign:["Equisign","Equisign _ Réitération"],Eiffage:["Eiffage","Eiffage Réitération","Sortant Eiffage"],Apex:["Apex _ La route des langues","Apex _ Séjours Home Abroad"],Monetize:["Monetize FR"]};
+// ────────────────────────────────────────────────────────────────────────────
 let bToken=null,bExp=0,sseClients=[],lastPayload=null,statsCache={};
 
-function apiReq(method,p,body,token){
+const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
+
+function apiReq(method,p,body,token,timeoutMs){
   return new Promise((resolve,reject)=>{
     const auth=token?("Bearer "+token):"Basic "+Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const data=body?JSON.stringify(body):null;
     const opts={hostname:"wisecom.unicity.io",path:"/api"+p,method,headers:{"Content-Type":"application/json","Authorization":auth,"X-EKO-Api-Key":INO_APIKEY,...(data?{"Content-Length":Buffer.byteLength(data)}:{})}};
-    const req=https.request(opts,r=>{let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve(JSON.parse(buf));}catch{resolve(buf);}});});
-    req.on("error",reject);if(data)req.write(data);req.end();
+    const ms=timeoutMs||INO_TIMEOUT_MS;
+    let settled=false;
+    const done=(fn,val)=>{if(!settled){settled=true;clearTimeout(timer);fn(val);}};
+    // Timeout : résoudre avec objet vide plutôt que rejeter (données partielles acceptées)
+    const timer=setTimeout(()=>{
+      console.warn("[INO TIMEOUT] "+method+" "+p+" > "+ms+"ms — données partielles retournées");
+      done(resolve,{_timeout:true,histories:[]});
+    },ms);
+    const req=https.request(opts,r=>{let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,JSON.parse(buf));}catch{done(resolve,buf);}});});
+    req.on("error",e=>{done(reject,e);});
+    if(data)req.write(data);req.end();
   });
 }
 // Version exposant le status HTTP (utilisée pour les routes nécessitant gestion 401)
@@ -126,12 +141,36 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   for(const jr of jours){
     const avant=riH.length+roH.length;
     try{
+      // Appel principal (limit 2000)
       const [ri1,ro1]=await Promise.all([
         apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({})),
         apiReq("POST","/call/out/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({}))
       ]);
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
+      // Pagination : si on a atteint la limite, découper par demi-journée et compléter
+      if((ri1&&ri1.histories&&ri1.histories.length===2000)||(ro1&&ro1.histories&&ro1.histories.length===2000)){
+        console.warn("[PAGINATION] "+jr+" — limite 2000 atteinte, découpage demi-journée");
+        // Supprimer les données du jour déjà ajoutées et reprendre par tranches de 6h
+        riH=riH.slice(0,riH.length-(ri1&&ri1.histories?ri1.histories.length:0));
+        roH=roH.slice(0,roH.length-(ro1&&ro1.histories?ro1.histories.length:0));
+        const tranches=[
+          {s:jr+" 00:00:00",e:jr+" 05:59:59"},
+          {s:jr+" 06:00:00",e:jr+" 11:59:59"},
+          {s:jr+" 12:00:00",e:jr+" 17:59:59"},
+          {s:jr+" 18:00:00",e:jr+" 23:59:59"},
+        ];
+        for(const t of tranches){
+          await new Promise(r=>setTimeout(r,200)); // petit délai entre tranches
+          const [rip,rop]=await Promise.all([
+            apiReq("POST","/call/in/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(()=>({})),
+            apiReq("POST","/call/out/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(()=>({}))
+          ]);
+          if(rip&&rip.histories)riH=riH.concat(rip.histories);
+          if(rop&&rop.histories)roH=roH.concat(rop.histories);
+        }
+        console.log("[PAGINATION] "+jr+" — total après découpage: "+riH.length+" IN, "+roH.length+" OUT");
+      }
     }catch(e){console.error('[fetchAgentsDay]',jr,e.message);}
     if((riH.length+roH.length)>avant)joursActifs++;
     if(jours.length>1)await new Promise(r=>setTimeout(r,500));
@@ -684,6 +723,13 @@ const server=http.createServer(async(req,res)=>{
       res.end(JSON.stringify({ok:false,queues:[],error:e.message}));
     }
     return;
+  }
+  // Config publique — expose CAMPS, QUEUES_MAP, SKILLS au dashboard
+  // Permet à terme de charger la config depuis queues_config.js sans rebuild HTML
+  if(url==="/api/config"){
+    const cfg={CAMPS,QUEUES_MAP,SKILLS:["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"]};
+    res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"public,max-age=300"});
+    return res.end(JSON.stringify(cfg));
   }
   // Health public
   if(url==="/health"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({status:"ok",version:"2.1",sseClients:sseClients.length,inoConnected:!!bToken,lastEvent:lastPayload?lastPayload.horodatage:null,uptime:Math.round(process.uptime()),stats:statsCache}));}
