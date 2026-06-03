@@ -830,43 +830,44 @@ async function loadQueueStatus(){
   const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
   const grid=document.getElementById("queue-status-grid");
   const upd=document.getElementById("queue-last-update");
-  if(!grid)return;
+  if(!grid)return; // silencieux si le panel n'est pas visible
   try{
     const res=await fetch("/api/queues-status?date="+d);
-    if(!res.ok)throw new Error("HTTP "+res.status);
+    if(!res.ok)return; // pas de throw — ne bloque pas les agents
     const data=await res.json();
-    if(!data.ok&&data.error){
-      if(grid)grid.innerHTML='<div style="color:#ff3b30;font-size:11px;padding:8px">Erreur : '+data.error+'</div>';
+    if(!data.ok){
+      if(grid)grid.innerHTML='<div style="color:#ff9f0a;font-size:11px;padding:8px">Files : '+( data.error||'indisponible')+'</div>';
       return;
     }
-    const P2="#E8006E";
     const queues=data.queues||[];
     if(queues.length===0){
       grid.innerHTML='<div style="color:#555;font-size:11px;padding:8px">Aucune file active pour cette date.</div>';
       return;
     }
-    grid.innerHTML=queues.map(q=>{
+    const PK="#E8006E";
+    grid.innerHTML=queues.map(function(q){
       const qs=q.qs||0;
       const ta=q.tauxAbandon||0;
-      const qsColor=qs>=90?"#30d158":qs>=80?P2:"#ff3b30";
-      const taColor=ta<=5?"#30d158":ta<=15?P2:"#ff3b30";
-      return \`<div style="background:#161616;border:1px solid #2a2a2a;border-radius:9px;padding:12px 14px">
-        <div style="font-size:11px;font-weight:700;color:#ccc;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="\${q.name}">\${q.name||"–"}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Reçus</div><div style="font-size:16px;font-weight:800;color:\${P2}">\${q.recus}</div></div>
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Décrochés</div><div style="font-size:16px;font-weight:800;color:#30d158">\${q.decroches}</div></div>
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">QS%</div><div style="font-size:13px;font-weight:700;color:\${qsColor}">\${qs}%</div></div>
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Abandon%</div><div style="font-size:13px;font-weight:700;color:\${taColor}">\${ta}%</div></div>
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Sortants</div><div style="font-size:12px;font-weight:600;color:#888">\${q.sortants||0}</div></div>
-          <div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">DMC</div><div style="font-size:12px;font-weight:600;color:#888">\${window.mmss?mmss(q.dmc||0):Math.floor((q.dmc||0)/60)+"min "+((q.dmc||0)%60)+"s"}</div></div>
-        </div>
-      </div>\`;
+      const qsColor=qs>=90?"#30d158":qs>=80?PK:"#ff3b30";
+      const taColor=ta<=5?"#30d158":ta<=15?PK:"#ff3b30";
+      return '<div style="background:#161616;border:1px solid #2a2a2a;border-radius:9px;padding:12px 14px">'
+        +'<div style="font-size:11px;font-weight:700;color:#ccc;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(q.name||"")+'">'+( q.name||"–")+'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Reçus</div><div style="font-size:16px;font-weight:800;color:'+PK+'">'+q.recus+'</div></div>'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Décrochés</div><div style="font-size:16px;font-weight:800;color:#30d158">'+q.decroches+'</div></div>'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">QS%</div><div style="font-size:13px;font-weight:700;color:'+qsColor+'">'+qs+'%</div></div>'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Abandon%</div><div style="font-size:13px;font-weight:700;color:'+taColor+'">'+ta+'%</div></div>'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Sortants</div><div style="font-size:12px;font-weight:600;color:#888">'+(q.sortants||0)+'</div></div>'
+        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">DMC</div><div style="font-size:12px;font-weight:600;color:#888">'+mmss(q.dmc||0)+'</div></div>'
+        +'</div></div>';
     }).join("");
     if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR");
   }catch(e){
-    if(grid)grid.innerHTML='<div style="color:#ff3b30;font-size:11px;padding:8px">Erreur chargement files : '+e.message+'</div>';
+    // Silencieux — ne pas bloquer le chargement des agents
+    if(grid)grid.innerHTML='<div style="color:#555;font-size:10px;padding:8px">Files : '+e.message+'</div>';
   }
 }
+
 async function refreshFromINO(){
   if(inoRefreshing)return;
   inoRefreshing=true;
@@ -2401,6 +2402,7 @@ buildAllDropdowns();
 buildSwitches();
 render();
 setBadge("ready");
+connectSSE();
 refreshPresetSelect();
 // Bornage calendrier sur l'historique réellement disponible dans INO
 
