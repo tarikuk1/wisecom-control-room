@@ -672,6 +672,7 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
       <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
       <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
       <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+      <button class="tab" onclick="switchTab('whatsapp',this)" style="color:#25D366;border-bottom-color:transparent;" id="tab-btn-whatsapp">📋 Export WhatsApp</button>
     </div>
     <span id="agent-count" style="margin-left:auto;font-size:11px;color:#555;padding-right:4px;"></span>
   </div>
@@ -730,6 +731,25 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
       <div style="overflow-x:auto;padding:0;"><table class="tbl" id="skills-table"></table></div>
     </div>
   </div>
+
+  <!-- ══ ONGLET EXPORT WHATSAPP ══════════════════════════════════════════ -->
+  <div id="tab-whatsapp" style="display:none;">
+    <div class="panel">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="panel-title" style="color:#25D366;">📋 Export WhatsApp</span>
+          <span id="wa-timestamp" style="font-size:11px;color:#555;"></span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" onclick="renderWA()" style="background:#161616;border:1px solid #333;color:#ccc;font-size:11px;padding:6px 14px;">🔄 Actualiser l'aperçu</button>
+          <button class="btn" onclick="exportWA_PDF()" style="background:linear-gradient(135deg,#c0005a,#E8006E);color:#fff;font-size:11px;padding:6px 14px;font-weight:700;">📄 Exporter PDF</button>
+          <button class="btn" onclick="exportWA_Excel()" style="background:linear-gradient(135deg,#1d6f42,#28a745);color:#fff;font-size:11px;padding:6px 14px;font-weight:700;">📊 Exporter Excel</button>
+        </div>
+      </div>
+      <div id="wa-preview" style="padding:16px;overflow-x:auto;"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -2247,9 +2267,10 @@ function toggleFilters(){
 }
 
 function switchTab(id,btn){
-  ["tableau","graphiques","skills"].forEach(t=>{document.getElementById("tab-"+t).style.display=t===id?"block":"none";});
+  ["tableau","graphiques","skills","whatsapp"].forEach(t=>{document.getElementById("tab-"+t).style.display=t===id?"block":"none";});
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
+  if(id==="whatsapp")renderWA();
 }
 
 function showToast(msg,color="#30d158"){
@@ -2722,6 +2743,430 @@ if(_ccInit)_ccInit.textContent=visibleCols.size;
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
 (function(){function _r(){if(typeof refreshFromINO==='function')refreshFromINO();}['f-date-deb','f-date-fin'].forEach(function(id){var el=document.getElementById(id);if(el&&!el._dateFixBound){el._dateFixBound=true;el.addEventListener('change',_r);}});})();
+
+// ══════════════════════════════════════════════════════════════════
+//  EXPORT WHATSAPP — Tableau Affectation + Tableau Stat TC
+// ══════════════════════════════════════════════════════════════════
+
+// Palette campagnes (couleurs de fond cellule)
+const WA_CAMP_COLORS = {
+  "Filippi":      "#FFD966", // jaune
+  "Vivest":       "#A9D18E", // vert clair
+  "MNZ":          "#F4B183", // orange
+  "Eiffage":      "#9DC3E6", // bleu clair
+  "CNPA":         "#FF7C80", // rouge/rose
+  "HMF":          "#C5E0B4", // vert pâle
+  "LMDW":         "#B4C6E7", // bleu pâle
+  "Equisign":     "#FFE699", // jaune pâle
+  "ND":           "#D9D9D9", // gris
+  "Delsey":       "#F8CBAD", // saumon
+  "M123":         "#BDD7EE", // bleu très pâle
+  "LGR":          "#E2EFDA", // vert très pâle
+  "LMB":          "#FCE4D6", // pêche
+  "Apex":         "#D6DCE4", // gris bleu
+  "Alcéane":      "#FFF2CC", // jaune très pâle
+  "Vivest_sk":    "#A9D18E",
+  "LBE":          "#C9C9FF", // lavande
+  "DIVERS":       "#EFEFEF",
+  "Voltalis":     "#E2EFDA",
+  "OMODA":        "#FFD966",
+  "AE1":          "#BDD7EE",
+  "AE2":          "#C5E0B4",
+  "AE3":          "#F4B183",
+  "ORECA":        "#FF7C80",
+};
+const WA_STAT_COLORS = {
+  head_camp:    "#E8006E",   // rose Wisecom
+  head_agent:   "#2F3640",   // gris foncé
+  row_odd:      "#F9F9F9",
+  row_even:     "#FFFFFF",
+  kpi_label:    "#1a1a1a",
+  dmc:          "#FF5252",   // rouge
+  actes_h:      "#E8006E",   // rose
+  total_h:      "#2E75B6",   // bleu
+  multi_recep:  "#FF7C80",
+  vivest:       "#A9D18E",
+  filippi:      "#FFD966",
+  verspieren:   "#9DC3E6",
+  evoriel:      "#C5E0B4",
+  mg_motor:     "#F4B183",
+  omoda:        "#FFD966",
+};
+
+// Colonnes skills affectation appels
+const WA_SKILLS_CALLS = ["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+const WA_SKILLS_MAILS = ["AE1","AE2","AE3"];
+const WA_SKILLS_ALL   = ["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+
+// Groupes de campagnes pour le tableau Stat TC
+const WA_STAT_GROUPS = [
+  {label:"Multi Réception", camps:["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND"], color:"#FF7C80"},
+  {label:"Vivest",          camps:["Vivest"],  color:"#A9D18E"},
+  {label:"Filippi",         camps:["Filippi"], color:"#FFD966"},
+  {label:"Verspieren",      camps:["Verspieren"], color:"#9DC3E6"},
+  {label:"Evoriel",         camps:["Evoriel"], color:"#C5E0B4"},
+  {label:"MG Motor",        camps:["MG Motor","MG_Motor"], color:"#F4B183"},
+  {label:"OMODA",           camps:["Omoda","OMODA"], color:"#FFD966"},
+];
+
+function waGetAgentSkills(a){
+  // Retourne un Set des compétences actives depuis allSkillsData ou skills
+  if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0)
+    return new Set(a.allSkillsData.filter(s=>s.active).map(s=>s.name||s));
+  if(Array.isArray(a.skills)&&a.skills.length>0)
+    return new Set(a.skills.map(s=>s.name||s));
+  // Fallback: queues actives
+  return new Set((a.queues||"").split(", ").filter(Boolean));
+}
+
+function waFmtTime(dt){
+  if(!dt)return"";
+  try{
+    const d=new Date(dt);
+    const h=String(d.getUTCHours()+2).padStart(2,"0");
+    const m=String(d.getUTCMinutes()).padStart(2,"0");
+    return h+":"+m;
+  }catch{return"";}
+}
+
+function waCell(txt, bg, bold, color, align, extraStyle){
+  const b=bold?"font-weight:700;":"";
+  const c=color?"color:"+color+";":"";
+  const a=align?"text-align:"+align+";":"text-align:center;";
+  const bgS=bg?"background:"+bg+";":"";
+  const ex=extraStyle||"";
+  return '<td style="'+bgS+b+c+a+'padding:3px 5px;font-size:10px;border:1px solid #ccc;white-space:nowrap;'+ex+'">'+txt+'</td>';
+}
+function waHead(txt, bg, color, colspan, rowspan, extraStyle){
+  const cs=colspan>1?'colspan="'+colspan+'"':'';
+  const rs=rowspan>1?'rowspan="'+rowspan+'"':'';
+  const ex=extraStyle||"";
+  return '<th '+cs+' '+rs+' style="background:'+(bg||"#2F3640")+';color:'+(color||"#fff")+';padding:4px 6px;font-size:10px;font-weight:700;text-align:center;border:1px solid #bbb;'+ex+'">'+txt+'</th>';
+}
+
+function buildAffectationTable(){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  const timeStr=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  const sorted=[...agents].sort((a,b)=>(b.appels||0)-(a.appels||0));
+
+  // Calcul nbr files par skill (appels à 9h, 17h-19h, global) — simplifié depuis les données agents
+  const skillCallCount={};
+  WA_SKILLS_CALLS.forEach(sk=>{
+    skillCallCount[sk]={
+      total:sorted.filter(a=>{const s=waGetAgentSkills(a);return s.has(sk)||s.has(sk.toLowerCase());}).length
+    };
+  });
+
+  let html='<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;width:100%;">';
+  // Ligne titre date
+  const totalCols=7+WA_SKILLS_CALLS.length+WA_SKILLS_MAILS.length+1+WA_SKILLS_ALL.length+1;
+  html+='<tr><td colspan="'+totalCols+'" style="background:#fff;padding:6px 8px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Affectation — '+dateStr+' · Édité à '+timeStr+'</td></tr>';
+
+  // Ligne headers principaux
+  html+='<tr>';
+  html+=waHead("Nbr opé par tc","#2F3640","#fff",1,2);
+  html+=waHead("Co. INO","#2F3640","#fff",1,2);
+  html+=waHead("H début","#2F3640","#fff",1,2);
+  html+=waHead("H déj.","#2F3640","#fff",1,2);
+  html+=waHead("H retour","#2F3640","#fff",1,2);
+  html+=waHead("H fin","#2F3640","#fff",1,2);
+  html+=waHead("Cumul","#2F3640","#fff",1,2,"min-width:38px;");
+  html+=waHead("Affectations appels","#1F4E79","#fff",WA_SKILLS_CALLS.length);
+  html+=waHead("Affectations emails","#4472C4","#fff",WA_SKILLS_MAILS.length);
+  html+=waHead("","#fff","#fff");
+  html+=waHead("Liste des compétences","#375623","#fff",WA_SKILLS_ALL.length);
+  html+=waHead("Files à jour","#C55A11","#fff");
+  html+='</tr>';
+
+  // Sous-headers skills
+  html+='<tr>';
+  WA_SKILLS_CALLS.forEach(sk=>html+=waHead(sk,WA_CAMP_COLORS[sk]||"#E2EFDA","#222"));
+  WA_SKILLS_MAILS.forEach(sk=>html+=waHead(sk,WA_CAMP_COLORS[sk]||"#BDD7EE","#222"));
+  html+=waHead("03/06/2026","#E8006E","#fff");
+  WA_SKILLS_ALL.forEach(sk=>html+=waHead(sk,WA_CAMP_COLORS[sk]||"#E2EFDA","#222"));
+  html+=waHead("","#C55A11","#fff");
+  html+='</tr>';
+
+  // Lignes agents
+  sorted.forEach((a,i)=>{
+    const sk=waGetAgentSkills(a);
+    const hpStr=a.hprod?a.hprod.toFixed(1)+"h":"–";
+    const rowBg=i%2===0?"#FFFFFF":"#F5F5F5";
+    const statusOk=(a.status==="Traitement"||a.status==="Actif"||a.status==="Post-appel");
+    const statusColor=a.status==="Traitement"?"#FF0000":a.status==="Post-appel"?"#FF9900":a.status==="Déconnecté"?"#888888":"#000000";
+    const coIno=statusOk?"OK":(a.status||"–");
+    const coInoBg=statusOk?"#00B050":a.status==="Déconnecté"?"#FF0000":"#FF9900";
+
+    html+='<tr style="background:'+rowBg+';">';
+    html+=waCell((a.sortants||0)+(a.decroches||0),"","","","center","font-weight:700;color:#E8006E;");
+    html+=waCell(coIno,coInoBg,true,"#fff");
+    html+=waCell(waFmtTime(a.premiereAction));
+    html+=waCell("");  // H déj - non dispo
+    html+=waCell("");  // H retour
+    html+=waCell(waFmtTime(a.derniereAction));
+    html+=waCell(a.hprod?Math.round(a.hprod)+"h":"–","","",a.hprod>=7?"#000":"#FF0000","center");
+    // Skills appels — colorié si l'agent a la compétence
+    WA_SKILLS_CALLS.forEach(s=>{
+      const has=sk.has(s)||sk.has(s.toLowerCase())||[...sk].some(x=>x.toLowerCase().includes(s.toLowerCase()));
+      html+=waCell(has?s:"", has?(WA_CAMP_COLORS[s]||"#E2EFDA"):rowBg, has, "#222");
+    });
+    // Skills mails
+    WA_SKILLS_MAILS.forEach(s=>{
+      const has=sk.has(s)||[...sk].some(x=>x.toLowerCase().includes(s.toLowerCase()));
+      html+=waCell(has?s:"", has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg, has, "#222");
+    });
+    // Nom agent (colonne centrale)
+    html+=waCell('<b>'+a.nom+'</b>', a.camp&&WA_CAMP_COLORS[a.camp]?WA_CAMP_COLORS[a.camp]:"#FFF", false, "#111","left","min-width:120px;");
+    // Liste compétences
+    WA_SKILLS_ALL.forEach(s=>{
+      const has=sk.has(s)||[...sk].some(x=>x.toLowerCase().includes(s.toLowerCase()));
+      html+=waCell(has?s:"", has?(WA_CAMP_COLORS[s]||"#E2EFDA"):rowBg, has, "#222");
+    });
+    // Files à jour
+    html+=waCell(a.queues?a.queues.split(", ").slice(0,2).join(", "):"", rowBg, false, "#555","left","font-size:9px;max-width:100px;overflow:hidden;text-overflow:ellipsis;");
+    html+='</tr>';
+  });
+
+  // Ligne totaux
+  const totRA=sorted.length;
+  const totVivest=sorted.filter(a=>a.camp==="Vivest").length;
+  const totVoltalis=sorted.filter(a=>a.camp==="Voltalis").length;
+  const totAlceane=sorted.filter(a=>a.camp==="Alcéane").length;
+  const totGlobal=sorted.length;
+  html+='<tr style="background:#1F4E79;">';
+  html+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:10px;padding:4px 8px;border:1px solid #bbb;">RA '+totRA+' / 50</td>';
+  WA_SKILLS_CALLS.forEach(s=>{
+    const n=sorted.filter(a=>{const sk=waGetAgentSkills(a);return sk.has(s)||[...sk].some(x=>x.toLowerCase().includes(s.toLowerCase()));}).length;
+    html+=waCell(n>0?n:"", n>0?"#BDD7EE":"#1F4E79", true, n>0?"#1F4E79":"#fff");
+  });
+  html+='<td colspan="'+(WA_SKILLS_MAILS.length+1)+'" style="background:#1F4E79;border:1px solid #bbb;"></td>';
+  WA_SKILLS_ALL.forEach(()=>html+='<td style="background:#1F4E79;border:1px solid #bbb;"></td>');
+  html+='<td style="background:#1F4E79;border:1px solid #bbb;"></td>';
+  html+='</tr>';
+
+  // Bloc résumé
+  html+='<tr><td colspan="'+totalCols+'" style="padding:8px 0;border:none;background:#fff;"></td></tr>';
+  html+='<tr>';
+  html+='<td colspan="3" style="border:none;background:#fff;"></td>';
+  html+='<td style="background:#00B050;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #ccc;">Vivest</td>';
+  html+=waCell(totVivest,"#E2EFDA",true);
+  html+='<td style="background:#4472C4;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #ccc;">Voltalis</td>';
+  html+=waCell(totVoltalis,"#E2EFDA",true);
+  html+='<td style="background:#7030A0;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #ccc;">Alcéane</td>';
+  html+=waCell(totAlceane,"#E2EFDA",true);
+  html+='<td style="background:#2F3640;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;border:1px solid #ccc;">GLOBAL</td>';
+  html+=waCell(totGlobal,"#BDD7EE",true);
+  html+='<td colspan="'+(totalCols-11)+'" style="border:none;background:#fff;"></td>';
+  html+='</tr>';
+
+  html+='</table>';
+  return html;
+}
+
+function buildStatTCTable(){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  const timeStr=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+
+  // Récupérer les campagnes actives avec leurs agents
+  const campData={};
+  agents.forEach(a=>{
+    const camp=a.camp||"–";
+    if(!campData[camp])campData[camp]={agents:[],appelsIn:0,appelsOut:0,duree:0,hprod:0};
+    campData[camp].agents.push(a);
+    campData[camp].appelsIn+=(a.decroches||0);
+    campData[camp].appelsOut+=(a.sortants||0);
+    campData[camp].duree+=a.dmc*(a.decroches||0);
+    campData[camp].hprod+=(a.hprod||0);
+  });
+
+  // Identifier les agents par groupe stat
+  const allCamps=Object.keys(campData).sort();
+  const agentsByCamp={};
+  allCamps.forEach(camp=>{
+    agentsByCamp[camp]=campData[camp].agents.sort((a,b)=>a.nom.localeCompare(b.nom));
+  });
+
+  // Header campagnes — grouper selon WA_STAT_GROUPS puis les campagnes individuelles
+  const activeCampGroups=[];
+  // D'abord les campagnes individuelles réelles
+  allCamps.forEach(camp=>{
+    if(campData[camp].agents.length>0) activeCampGroups.push(camp);
+  });
+
+  // Trouver le max d'agents par campagne pour dimensionner les colonnes
+  const maxAgentsPerCamp={};
+  allCamps.forEach(camp=>{
+    maxAgentsPerCamp[camp]=campData[camp].agents.length;
+  });
+
+  // Construire le tableau Stat TC
+  let html='<div style="margin-top:24px;">';
+  html+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;">';
+
+  // Titre
+  const firstCampAgentsMax=Math.max(...allCamps.map(c=>maxAgentsPerCamp[c]||0),1);
+  const totalCampCols=allCamps.reduce((s,c)=>s+(maxAgentsPerCamp[c]||1),0)+allCamps.length;
+  html+='<tr><td colspan="'+(4+totalCampCols)+'" style="background:#fff;padding:6px 8px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC — '+dateStr+' · Édité à '+timeStr+'</td></tr>';
+
+  // Ligne 1 header : date + campagnes (avec coloration)
+  const CAMP_HEADER_COLORS={
+    "Filippi":"#FFD966","Vivest":"#A9D18E","Verspieren":"#9DC3E6","Evoriel":"#C5E0B4",
+    "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#E2EFDA",
+    "Alcéane":"#FFF2CC","MNZ":"#F4B183","Eiffage":"#9DC3E6","Antargaz":"#FFD966",
+  };
+
+  html+='<tr>';
+  html+=waHead("","#fff","#fff",1,2);
+  html+=waHead("Cumul Multi","#FF7C80","#fff",1,2);
+  html+=waHead("Cumul Vivest","#A9D18E","#222",1,2);
+  html+=waHead("Cumul Filippi","#FFD966","#222",1,2);
+  // Campagnes dynamiques
+  allCamps.forEach(camp=>{
+    const n=maxAgentsPerCamp[camp]||1;
+    const bg=CAMP_HEADER_COLORS[camp]||"#E0E0E0";
+    html+=waHead(camp, bg, "#222", n>1?n:undefined);
+    // séparateur Cumul
+    html+=waHead("Cumul<br>"+camp, "#D0D0D0","#333");
+  });
+  html+='</tr>';
+
+  // Sous-ligne agents par campagne
+  html+='<tr>';
+  html+='<td style="background:#fff;border:1px solid #ccc;"></td>';
+  // Pour chaque campagne, mettre les prénoms en sous-header
+  allCamps.forEach(camp=>{
+    const campAgents=agentsByCamp[camp]||[];
+    campAgents.forEach(a=>{
+      const nom=a.nom.split(" ")[1]||a.nom.split(" ")[0]; // prénom ou nom court
+      html+=waHead(nom.substring(0,8), CAMP_HEADER_COLORS[camp]||"#E0E0E0","#333");
+    });
+    html+=waHead("","#D0D0D0","#333"); // col cumul
+  });
+  html+='</tr>';
+
+  // Lignes de KPIs
+  const KPIS=[
+    {label:"Appels Traités",     key:"appelsIn",  color:"#000",   bgLabel:"#FFF2CC"},
+    {label:"DMC",                key:"dmc",        color:"#FF0000",bgLabel:"#FFE0E0", fmt:(v)=>mmss(v)},
+    {label:"Appels Sortants",    key:"appelsOut",  color:"#000",   bgLabel:"#EBF3FF"},
+    {label:"Mails traités",      key:"mails",      color:"#000",   bgLabel:"#F0FFF0"},
+    {label:"Heures formation",   key:"formation",  color:"#FF0000",bgLabel:"#FFE0FF"},
+    {label:"Heures incident/bug",key:"incident",   color:"#FF0000",bgLabel:"#FFE0FF"},
+    {label:"Heures de prod",     key:"hprod",      color:"#2E75B6",bgLabel:"#E0F0FF", fmt:(v)=>v?v.toFixed(1)+"h":"0"},
+    {label:"Total Heures",       key:"totalH",     color:"#2E75B6",bgLabel:"#E0F0FF", fmt:(v)=>v?v.toFixed(1)+"h":"0"},
+    {label:"Actes par heures",   key:"actesH",     color:"#E8006E",bgLabel:"#FFE8F5", bold:true},
+  ];
+
+  KPIS.forEach(kpi=>{
+    html+='<tr>';
+    html+='<td style="background:'+(kpi.bgLabel||"#F5F5F5")+';font-weight:700;color:'+(kpi.color||"#000")+';font-size:10px;padding:3px 8px;border:1px solid #ccc;white-space:nowrap;">'+(kpi.label)+'</td>';
+    // Cumulatifs globaux
+    const totMulti=agents.reduce((s,a)=>s+(a[kpi.key]||0),0);
+    const totVivest=agents.filter(a=>a.camp==="Vivest").reduce((s,a)=>s+(a[kpi.key]||0),0);
+    const totFilippi=agents.filter(a=>a.camp==="Filippi").reduce((s,a)=>s+(a[kpi.key]||0),0);
+    const fmtVal=kpi.fmt||((v)=>v||0);
+    html+=waCell(fmtVal(totMulti),"#FF7C8033",kpi.bold,"#E8006E");
+    html+=waCell(fmtVal(totVivest),"#A9D18E33",kpi.bold);
+    html+=waCell(fmtVal(totFilippi),"#FFD96633",kpi.bold);
+    // Par agent par campagne
+    allCamps.forEach(camp=>{
+      const campAgents=agentsByCamp[camp]||[];
+      let campTot=0;
+      campAgents.forEach(a=>{
+        let val=0;
+        if(kpi.key==="appelsIn")      val=a.decroches||0;
+        else if(kpi.key==="appelsOut") val=a.sortants||0;
+        else if(kpi.key==="dmc")       val=a.dmc||0;
+        else if(kpi.key==="hprod")     val=a.hprod||0;
+        else if(kpi.key==="actesH")    val=a.actesH||0;
+        else if(kpi.key==="mails")     val=mailsEdit[a.id]||a.mails_auto||0;
+        else if(kpi.key==="totalH")    val=a.hprod||0;
+        else val=0;
+        campTot+=val;
+        const bg=(i%2===0)?"#FFFFFF":"#F9F9F9";
+        html+=waCell(fmtVal(val),CAMP_HEADER_COLORS[camp]+"22"||"#F5F5F5",kpi.bold,kpi.color||"#000");
+      });
+      html+=waCell(fmtVal(campTot),"#D0D0D055",true,kpi.color||"#444");
+    });
+    html+='</tr>';
+  });
+
+  html+='</table></div>';
+  return html;
+}
+
+function renderWA(){
+  const z=document.getElementById("wa-preview");
+  if(!z)return;
+  const ts=document.getElementById("wa-timestamp");
+  const now=new Date();
+  if(ts)ts.textContent="Aperçu généré à "+now.toLocaleTimeString("fr-FR");
+  if(agents.length===0){
+    z.innerHTML='<div style="padding:30px;text-align:center;color:#555;">Aucune donnée agent chargée.<br>Cliquez sur <b>Rafraîchir</b> d\'abord.</div>';
+    return;
+  }
+  z.innerHTML='<div id="wa-table-affectation">'+buildAffectationTable()+'</div>'
+    +'<div style="height:24px;"></div>'
+    +'<div id="wa-table-stat">'+buildStatTCTable()+'</div>';
+}
+
+function exportWA_PDF(){
+  if(agents.length===0){showToast("Rafraîchissez les données d'abord","#ff3b30");return;}
+  const now=new Date();
+  const dateStr=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+  const timeStr=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  const aff=document.getElementById("wa-table-affectation");
+  const stat=document.getElementById("wa-table-stat");
+  if(!aff){showToast("Ouvrez l'onglet Export WhatsApp d'abord","#ff9f0a");return;}
+  const w=window.open("","_blank");
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>Export WhatsApp '+dateStr+'</title>'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:10px;background:#fff;color:#000;}'+
+    'table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;padding:3px 5px;font-size:9px;}'+
+    'h2{font-size:13px;color:#E8006E;margin:8px 0 4px;font-family:Arial;}'+
+    '@media print{@page{size:A3 landscape;margin:8mm;}}</style>'+
+    '</head><body>'+
+    '<h2>Affectation — '+dateStr+' · '+timeStr+'</h2>'+
+    aff.innerHTML+
+    '<div style="height:16px;"></div>'+
+    '<h2>Stat TC — '+dateStr+' · '+timeStr+'</h2>'+
+    stat.innerHTML+
+    '</body></html>');
+  w.document.close();
+  setTimeout(()=>{w.print();},400);
+}
+
+function exportWA_Excel(){
+  if(agents.length===0){showToast("Rafraîchissez les données d'abord","#ff3b30");return;}
+  const aff=document.getElementById("wa-table-affectation");
+  const stat=document.getElementById("wa-table-stat");
+  if(!aff){showToast("Ouvrez l'onglet Export WhatsApp d'abord","#ff9f0a");return;}
+  const now=new Date();
+  const dateISO=now.toISOString().slice(0,10);
+  // Construire un workbook HTML multi-table (xlsx-like via data URI)
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
+    '<head><meta charset="UTF-8">'+
+    '<style>'+
+    'td,th{border:1px solid #999;mso-number-format:"@";}'+
+    '</style></head><body>'+
+    '<h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Affectation</h2>'+
+    aff.innerHTML+
+    '<br><br>'+
+    '<h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Stat TC</h2>'+
+    stat.innerHTML+
+    '</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="Export_WhatsApp_"+dateISO+".xls";
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  showToast("✓ Export Excel téléchargé","#30d158");
+}
+// ══════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
