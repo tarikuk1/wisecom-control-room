@@ -1466,7 +1466,7 @@ function closeColDef(e){
 }
 // ===== RAFRAÎCHISSEMENT COMPÉTENCES (déclenché manuellement) =====
 async function refreshSkills(){
-  if(agents.length===0){showToast('Chargez d’abord les données agents','warn');return;}
+  if(agents.length===0){showToast('Chargez d\'abord les données agents','warn');return;}
   const btn=document.getElementById('btn-refresh-skills');
   if(btn){btn.disabled=true;btn.textContent='⏳ Chargement…';}
   try{
@@ -2270,7 +2270,7 @@ function renderInoCoverage(){
     +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:3px 14px;font-size:10px;margin-bottom:5px">'
     +checks.map(function(x){return '<span style="color:'+(x.ok?'#30d158':'#444')+'">'+(x.ok?'✓':'✕')+' '+x.label+'</span>';}).join('')
     +'</div>'
-    +'<span style="font-size:9px;color:#333;">Les champs n.d. ne sont pas exposés par l'API INO — aucune donnée simulée n'est affichée.</span>'
+    +'<span style="font-size:9px;color:#333;">Les champs n.d. ne sont pas exposés par l\'API INO — aucune donnée simulée n\'est affichée.</span>'
     +'</div>';
 }
 
