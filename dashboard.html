@@ -712,7 +712,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Paramétrage des garde-fous et alertes par campagne · Lecture seule INO</span>
     </div>
     <div style="display:flex;gap:var(--sp-2);align-items:center">
-      <button class="btn-save-criteres" onclick="saveCriteres()">💾 Enregistrer les critères</button>
+      <button class="btn-save-criteres" onclick="saveCriteres()">Enregistrer les critères</button>
       <button onclick="closeCriteres()" style="background:var(--s-5);border:1px solid var(--s-4);color:var(--t-muted);border-radius:var(--r-md);padding:8px 14px;font-size:var(--fs-md);cursor:pointer">✕ Fermer</button>
     </div>
   </div>
@@ -728,7 +728,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <input id="modal-input" class="modal-input" type="text" aria-label="Saisie" style="display:none">
     <div class="modal-actions">
       <button class="btn-dismiss" id="modal-cancel">Annuler</button>
-      <button class="btn-validate" id="modal-ok">Valider</button>
+      <button class="btn-validate" id="modal-ok">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -761,17 +761,17 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="topbar-center">
-      <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:var(--c-orange);">◌ Connexion…</span>
+      <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:var(--c-orange);">◌ Connexion INO…</span>
       <span class="clock" id="clock" style="pointer-events:none;user-select:none;"></span>
       <span id="last-update" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
     </div>
 
     <div class="topbar-right">
-      <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Rafraîchir les données INO">↺ Rafraîchir</button>
+      <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Actualiser les données depuis INO">↺ Actualiser</button>
       <div class="btn-sep"></div>
       <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
       <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
-      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences">Compétences</button>
+      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
       <div class="btn-sep"></div>
       <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel">📊</button>
       <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF">📄</button>
@@ -780,7 +780,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test">⚡</button>
       <button class="btn btn-ghost" onclick="toggleTheme()" id="theme-btn" title="Thème clair/sombre">☀</button>
       <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration">⚙</a>
-      <a href="/logout" class="btn btn-logout" title="Se déconnecter" onclick="return confirm('Se déconnecter ?')">⏻</a>
+      <a href="#" class="btn btn-logout" title="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
     </div>
   </div>
 
@@ -815,7 +815,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
         <option value="">— Sélectionner une vue —</option>
       </select>
-      <button class="btn btn-dark" onclick="savePreset()" title="Enregistrer la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾</button>
+      <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
       <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
       <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
 
@@ -857,11 +857,11 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   <!-- TABS -->
   <div role="tablist" aria-label="Sections" style="display:flex;align-items:center;border-bottom:1px solid var(--s-3);margin-bottom:14px;">
     <div style="display:flex;gap:0;">
-      <button role="tab" aria-selected="true" class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
+      <button role="tab" aria-selected="true" class="tab active" onclick="switchTab('tableau',this)">Agents</button>
       <button role="tab" aria-selected="false" class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
       <button role="tab" aria-selected="false" class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
-      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('whatsapp',this)"  id="tab-btn-whatsapp">📋 Export WhatsApp</button>
-      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('alertes',this)" id="tab-btn-alertes">🔔 Alertes <span id="alert-badge" style="display:none;background:var(--c-pink);color:var(--c-white);font-size:var(--fs-xs);border-radius:10px;padding:1px 6px;margin-left:3px;"></span></button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('whatsapp',this)"  id="tab-btn-whatsapp">Export WhatsApp</button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('alertes',this)" id="tab-btn-alertes">Alertes <span id="alert-badge" style="display:none;background:var(--c-pink);color:var(--c-white);font-size:var(--fs-xs);border-radius:10px;padding:1px 6px;margin-left:3px;"></span></button>
     </div>
     <span id="agent-count" style="margin-left:auto;font-size:var(--fs-body);color:var(--t-disabled);padding-right:4px;"></span>
   </div>
@@ -925,7 +925,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   <div id="tab-alertes" style="display:none;">
     <div class="panel">
       <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;">
-        <span class="panel-title">🔔 Alertes & Recommandations de pilotage</span>
+        <span class="panel-title">Alertes & Recommandations de pilotage</span>
         <div style="display:flex;align-items:center;gap:var(--sp-3);">
           <label style="display:flex;align-items:center;gap:7px;font-size:var(--fs-body);color:var(--t-muted);cursor:pointer;">
             <input type="checkbox" id="hide-deconnecte" onchange="toggleHideDeconnecte()" style="accent-color:var(--c-pink);">
@@ -947,7 +947,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
           <span id="wa-timestamp" style="font-size:var(--fs-body);color:var(--t-disabled);"></span>
         </div>
         <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;">
-          <button class="btn" onclick="renderWA()" style="background:var(--s-2);border:1px solid var(--s-4);color:var(--t-secondary);font-size:var(--fs-body);padding:6px 14px;">🔄 Actualiser l'aperçu</button>
+          <button class="btn" onclick="renderWA()" style="background:var(--s-2);border:1px solid var(--s-4);color:var(--t-secondary);font-size:var(--fs-body);padding:6px 14px;">Générer l'aperçu</button>
           <button class="btn" onclick="exportWA_PDF()" style="background:linear-gradient(135deg,var(--c-pink-dark),var(--c-pink));color:var(--c-white);font-size:var(--fs-body);padding:6px 14px;font-weight:var(--fw-bold);">📄 Exporter PDF</button>
           <button class="btn" onclick="exportWA_Excel()" style="background:linear-gradient(135deg,#1d6f42,#28a745);color:var(--c-white);font-size:var(--fs-body);padding:6px 14px;font-weight:var(--fw-bold);">📊 Exporter Excel</button>
         </div>
@@ -972,7 +972,7 @@ const P="#E8006E";
   function _reset(){
     clearTimeout(_inactTimer);clearTimeout(_warnTimer);
     // Avertissement 1 min avant
-    _warnTimer=setTimeout(function(){try{if(typeof showToast==="function")showToast("Déconnexion dans 1 min (inactivité)","warn",55000);}catch(e){}},INACT_MS-60000);
+    _warnTimer=setTimeout(function(){try{if(typeof showToast==="function")showToast("Session inactive — déconnexion dans 1 min.","warn",55000);}catch(e){}},INACT_MS-60000);
     _inactTimer=setTimeout(_logout,INACT_MS);
   }
   ["mousemove","mousedown","keydown","scroll","touchstart","click"].forEach(function(ev){
@@ -1068,8 +1068,8 @@ let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
   {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
-  {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Dernière déco",on:true},
-  {k:"hprod",l:"H. Prod",on:true},{k:"presence",l:"Présence",on:false},
+  {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Fin de session",on:true},
+  {k:"hprod",l:"H. prod",on:true},{k:"presence",l:"Présence",on:false},
   {k:"appelsIn",l:"Appels présentés",on:true},{k:"appels",l:"Décrochés",on:true},
   {k:"refuses",l:"Appels refusés",on:true},
   {k:"appelsOut",l:"Sortants",on:true},{k:"mails",l:"Mails saisis",on:true},
@@ -1077,8 +1077,8 @@ const COL_DEFS=[
   {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},{k:"dmt",l:"DMT",on:true},
   {k:"acw",l:"Post-appel (ACW)",on:false},{k:"occupation",l:"Occupation",on:true},
   {k:"transfo",l:"Transformation",on:false},{k:"adherence",l:"Adhérence",on:false},
-  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Qualif. Refus",on:true},
-  {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% de réalisé",on:true},
+  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Refus qualification",on:true},
+  {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% Réalisé",on:true},
   {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
   {k:"skills",l:"Compétences",on:true}
 ];
@@ -1131,7 +1131,7 @@ function connectSSE(){
   // SSE progress bar
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
-  es.onopen=()=>{badge.innerHTML="● INO connecté";badge.style.background="#081a10";badge.style.color="#30d158";};
+  es.onopen=()=>{badge.innerHTML="● INO à jour";badge.style.background="#081a10";badge.style.color="#30d158";};
   es.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.cumul_journee_agent)loadAgentsFromAPI().then(()=>{
   // Affiche indicateur de chargement initial
   document.getElementById("agent-count").textContent = "Chargement…";
@@ -1144,7 +1144,7 @@ function setBadge(state){
   const b=document.getElementById("sse-badge");if(!b)return;
   if(state==="loading"){b.textContent="◌ Interrogation INO…";b.style.background="#2a1e0a";b.style.color="#ff9f0a";}
   else if(state==="ok"){b.textContent="● INO à jour";b.style.background="#0a1e12";b.style.color="#30d158";}
-  else if(state==="ready"){b.textContent="● INO — prêt";b.style.background="#161616";b.style.color="#888";}
+  else if(state==="ready"){b.textContent="● INO à jour";b.style.background="#161616";b.style.color="#888";}
   else{b.textContent="● Hors ligne";b.style.background="#1e0a0a";b.style.color="#ff3b30";}
 }
 function stampUpdate(ok){
@@ -1205,7 +1205,7 @@ async function refreshFromINO(){
   inoRefreshing=true;
   const btn=document.getElementById("btn-refresh");
   const lbl=btn?btn.textContent:"";
-  if(btn){btn.disabled=true;btn.classList.add("loading");btn.textContent="◌ Chargement…";}
+  if(btn){btn.disabled=true;btn.classList.add("loading");btn.textContent="Chargement des données…";}
   setBadge("loading");
   document.body.classList.add("skeleton-on");
   const ac=document.getElementById("agent-count");if(ac)ac.textContent="Chargement…";
@@ -1237,11 +1237,11 @@ async function loadAgentsFromAPI(){
     const hDeb=document.getElementById("f-h-deb")?.value||"08:00";
     const hFin=document.getElementById("f-h-fin")?.value||"20:00";
     const res=await fetch(`/agents-day?date=${d}&dateFin=${dFin}&hDeb=${hDeb}&hFin=${hFin}`);
-    if(!res.ok)throw new Error("Erreur serveur HTTP "+res.status);
+    if(!res.ok)throw new Error("Connexion impossible (HTTP "+res.status);
     const data=await res.json();
     // Le serveur retourne un objet avec error:msg quand INO échoue (ex: date antérieure, token expiré)
     if(data.error&&(!data.agents||data.agents.length===0)){
-      showToast("⚠ Erreur API INO : "+data.error,"warn",8000);
+      showToast("Erreur INO — "+data.error+". Vérifiez la connexion ou réessayez.","warn",8000);
       // Permettre d'afficher un message dans le tableau plutôt que de crasher
       agents=[];selAgents=[];buildAllDropdowns();render();
       const ac=document.getElementById("agent-count");
@@ -1358,7 +1358,7 @@ async function loadAgentsFromAPI(){
       buildAllDropdowns();
       render();
       const ac=document.getElementById("agent-count");
-      if(ac)ac.textContent="Aucune donnée INO pour cette date";
+      if(ac)ac.textContent="Pas de données disponibles pour cette date.";
     }
   }catch(e){
     // On laisse remonter l'erreur pour que refreshFromINO affiche l'état KO (pas de masquage silencieux)
@@ -1633,7 +1633,7 @@ async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScor
   }
   
   overlay.querySelector('#skill-confirm').onclick=async()=>{
-    if(!skillId){showToast('ID compétence non trouvé','error');return;}
+    if(!skillId){showToast('Compétence introuvable. Rechargez les compétences INO.','error');return;}
     const btn=overlay.querySelector('#skill-confirm');
     btn.textContent='⏳ Activation…';btn.disabled=true;
     try{
@@ -1653,7 +1653,7 @@ async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScor
       }
     }catch(err){
       overlay.remove();
-      showToast('Erreur: '+err.message,'error');
+      showToast('Erreur — '+err.message,'error');
     }
   };
 }
@@ -1671,7 +1671,7 @@ function closeColDef(e){
 async function refreshSkills(){
   if(agents.length===0){showToast('Chargez d\'abord les données agents','warn');return;}
   const btn=document.getElementById('btn-refresh-skills');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Chargement…';}
+  if(btn){btn.disabled=true;btn.textContent='Chargement des données…';}
   try{
     const agentIds=agents.map(a=>a.id);
     showToast('↺ Récupération compétences INO ('+agentIds.length+' agents)…','info',15000);
@@ -1682,7 +1682,7 @@ async function refreshSkills(){
     });
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const data=await resp.json();
-    if(!data.ok)throw new Error(data.error||'Erreur serveur');
+    if(!data.ok)throw new Error(data.error||'Erreur serveur. Réessayez dans quelques instants.');
     // Mettre à jour les agents avec les compétences reçues
     let updated=0;
     agents.forEach(a=>{
@@ -1698,7 +1698,7 @@ async function refreshSkills(){
     if(document.getElementById('skills-table'))renderSkills();
     showToast('✓ Compétences mises à jour ('+updated+'/'+agentIds.length+' agents)','ok',5000);
   }catch(e){
-    showToast('Erreur compétences: '+e.message,'error');
+    showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
   }finally{
     if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
   }
@@ -1748,19 +1748,19 @@ const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,
 
   const kpis=[
     {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"% de réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
-    {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Communication / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
+    {l:"% Réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
     {l:"Flux reçus",v:totRecus.toLocaleString()},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
-    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04min00sec"},
+    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min"},
     {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)"},
-    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Appels sortants / H. Prod"},
-    {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Actes voix + mails / H. prod",hero:true},
+    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
+    {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Voix + mails / heure prod",hero:true},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
     {l:"Réitérants",v:reit,alert:reit>20},
-    {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Aucune saisie"},
+    {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Pas de backlog saisi"},
   ];
 
   document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
@@ -1920,8 +1920,8 @@ function renderTable(sorted){
     {k:"status",l:"Statut",def:"Statut temps réel de l'agent (Connecté / En Pause / Wrap-up / Déconnecté). ⚠ Non disponible via l'API INO histories — nécessite un endpoint temps réel non exposé dans cette version.",title:"Statut temps réel — non disponible API INO"},
     {k:"camp",l:"File / Campagne",def:"Campagne principale de l'agent, déduite des queues actives dans les historiques INO du jour via QUEUES_MAP."},
     {k:"premiere",l:"1ère connexion",title:"Heure de première connexion de l'agent dans la journée",def:"Timestamp du premier appel enregistré pour cet agent dans la journée. Source : acdDate du premier enregistrement histories."},
-    {k:"derniere",l:"Dernière déco",title:"Heure de dernière déconnexion de l'agent",def:"Timestamp du dernier appel enregistré. Utilisé avec la 1ère connexion pour calculer H.Prod."},
-    {k:"hprod",l:"H. Prod",def:"Heures de production — temps effectif sur le plateau calculé depuis les historiques INO.\n\nDéfinition : durée entre la 1ère action horodatée (premiere connexion / 1er appel) et la dernière action horodatée (dernier appel ou déconnexion) de la journée pour cet agent.\n\nFormule serveur : (derniereAction − premiereAction) / 3 600 000 ms.\n\nFallback (si timestamps absents) : Durée communication totale / 0,75 — postule un taux d'occupation de 75 %.\n\n⚠ Cette valeur est une estimation. Elle peut être supérieure au temps réellement payé si l'agent s'est absenté sans se déconnecter. Elle diffère du temps de présence badgé (non exposé par l'API INO histories)."},
+    {k:"derniere",l:"Fin de session",title:"Heure de dernière déconnexion de l'agent",def:"Timestamp du dernier appel enregistré. Utilisé avec la 1ère connexion pour calculer H.Prod."},
+    {k:"hprod",l:"H. prod",def:"Heures de production — temps effectif sur le plateau calculé depuis les historiques INO.\n\nDéfinition : durée entre la 1ère action horodatée (premiere connexion / 1er appel) et la dernière action horodatée (dernier appel ou déconnexion) de la journée pour cet agent.\n\nFormule serveur : (derniereAction − premiereAction) / 3 600 000 ms.\n\nFallback (si timestamps absents) : Durée communication totale / 0,75 — postule un taux d'occupation de 75 %.\n\n⚠ Cette valeur est une estimation. Elle peut être supérieure au temps réellement payé si l'agent s'est absenté sans se déconnecter. Elle diffère du temps de présence badgé (non exposé par l'API INO histories)."},
     {k:"presence",l:"Présence",def:"Temps de présence réel sur le plateau. Non exposé par l'API INO histories — affiché n.d."},
     {k:"appelsIn",l:"Appels présentés",title:"Appels entrants présentés à l'agent (décrochés + non décrochés)",def:"Appels entrants présentés à l'agent = décrochés + présentés mais non décrochés (agentDuration=0). Les abandons de file (appelant raccroche avant distribution) ont agent=null et ne sont PAS comptabilisés ici. Source : API INO /call/in/histories."},
     {k:"appels",l:"Décrochés",title:"Appels entrants effectivement décrochés",def:"Appels entrants effectivement décrochés par l'agent (agentDuration > 0). Source : count des enregistrements /call/in/histories avec agent assigné."},
@@ -1930,7 +1930,7 @@ function renderTable(sorted){
     {k:"mails",l:`<span style="color:${P}">Mails saisis ✏</span>`,title:"Saisie manuelle des mails",def:"Nombre de mails traités — saisie manuelle par le superviseur. Alimente le calcul des Actes total et Actes/h."},
     {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails",def:"Total des actes de production = Appels décrochés + Appels sortants + Mails saisis. Formule : appelsIn + appelsOut + mails."},
     {k:"actesH",l:"Actes/h",title:"Actes total / H. Prod",def:"Productivité horaire globale. Formule : Actes total / H. Prod. Inclut entrants décrochés + sortants + mails."},
-    {k:"appelsH",l:"App./h",title:"Appels sortants / H. Prod",def:"Cadence d'appels sortants par heure de production.\nFormule : Appels sortants / H. Prod.\nCe KPI mesure la productivité sortante de l'agent : combien d'appels émis par heure travaillée.\nExemple : 15 appels sortants pour 3h de prod = 5 App./h."},
+    {k:"appelsH",l:"App./h",title:"Sortants / H. prod",def:"Cadence d'appels sortants par heure de production.\nFormule : Appels sortants / H. Prod.\nCe KPI mesure la productivité sortante de l'agent : combien d'appels émis par heure travaillée.\nExemple : 15 appels sortants pour 3h de prod = 5 App./h."},
     {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : Durée totale de communication / Nombre d'appels traités. Source : agentDuration cumulé / total appels. Affiché en MMmin SSsec."},
     {k:"dmt",l:"DMT",title:"Durée Moyenne de Traitement = DMC + ACW estimé",def:"Durée Moyenne de Traitement (DMT).\n\nDéfinition métier : temps total mobilisé par un appel, de la prise en charge jusqu'à la clôture du traitement post-appel.\n\nFormule : DMT = DMC + ACW\n• DMC (Durée Moyenne de Communication) : temps passé en ligne avec l'interlocuteur.\n• ACW (After Call Work) : temps de traitement post-appel (qualification, saisie, compte-rendu).\n\n⚠ L'ACW inclus dans ce calcul est une ESTIMATION indirecte (voir définition colonne Post-appel ACW). Le DMT est donc lui aussi indicatif, pas une mesure exacte.\n\nCas n.d. : si l'agent a moins de 2 appels dans la journée, aucun gap n'est mesurable — le DMT affiché est alors égal à la DMC.\n\nAffichage : en minutes et secondes.\n\nUsage opérationnel : l'écart (DMT − DMC) révèle le poids du wrap-up. Un DMT nettement supérieur à la DMC signale un post-appel long (procédure complexe, saisie lourde). Un DMT ≈ DMC indique un traitement quasi-instantané après raccrochage."},
     {k:"acw",l:"Post-appel (ACW)",title:"After Call Work — Temps de post-appel (estimation)",def:"After Call Work (ACW) — Temps de traitement post-appel.\n\nDéfinition métier : durée entre la fin d'un appel et le début de l'appel suivant. C'est le temps qu'un agent consacre à finaliser son traitement après avoir raccroché : saisie CRM, qualification, rédaction de compte-rendu, mise à jour de dossier.\n\n⚠ SOURCE — L'API INO ne fournit PAS l'ACW en donnée directe. Cette valeur est une ESTIMATION calculée par le serveur à partir des historiques d'appels.\n• Formule : gap entre (fin appel N) et (début appel N+1), moyenné sur la journée\n• Fin appel N = timestamp début + agentDuration (en secondes)\n• Les gaps > 1 heure sont exclus (pauses, absences)\n\n⚠ BIAIS IMPORTANT — Ce gap inclut aussi le temps d'attente sans appel (délai entre la fin du wrap-up réel et la distribution de l'appel suivant par l'ACD). Il est impossible de distinguer automatiquement la part de post-appel réel de la part d'attente passive entre deux appels distribués.\n\nComment fiabiliser la lecture :\n• Croiser avec le volume : un ACW calculé sur 30+ appels est fiable. Sur moins de 10 appels, l'attente inter-appels domine et la valeur est peu exploitable.\n• Comparer au groupe campagne : un agent avec un ACW > 20 % au-dessus de la moyenne de ses collègues sur la même file mérite une vérification, même si la valeur absolue reste indicative.\n• Ne pas isoler cet indicateur : le croiser avec le taux d'occupation et le volume d'appels pour valider une tendance avant toute conclusion.\n\nAffichage : en minutes et secondes (ex : 2min 15sec).\nSeuil d'alerte : dérive > 20 % au-dessus de la moyenne du groupe campagne."},
@@ -1938,9 +1938,9 @@ function renderTable(sorted){
     {k:"transfo",l:"Transformation",title:"Taux de transformation (qualifications positives)",def:"Taux de transformation = qualifications positives (RDV, Intéressé) / total qualifications. Source : h.status analysé dans les histories INO."},
     {k:"adherence",l:"Adhérence",title:"Adhérence au planning",def:"Taux d'adhérence au planning prévu. ⚠ Non exposé par l'API INO histories."},
     {k:"ko",l:"100 % KO",title:"Appels présentés mais non décrochés par l'agent",def:"Appels entrants présentés à l'agent mais non décrochés (agentDuration=0 ou status=abandoned). ATTENTION : les abandons de file (appelant raccroche avant d'être distribué) ont agent=null et ne sont PAS inclus ici — ils apparaissent dans les KPI globaux de flux manqués."},
-    {k:"refus",l:"Qualif. Refus",title:"Qualifications 'Refus' post-appel",def:"Nombre d'appels qualifiés 'Refus' par l'agent après traitement. Ce sont des QUALIFICATIONS post-appel (outcome du call), pas des refus de décroché. Les vrais refus de décroché sont dans la colonne 100% KO."},
+    {k:"refus",l:"Refus qualification",title:"Qualifications 'Refus' post-appel",def:"Nombre d'appels qualifiés 'Refus' par l'agent après traitement. Ce sont des QUALIFICATIONS post-appel (outcome du call), pas des refus de décroché. Les vrais refus de décroché sont dans la colonne 100% KO."},
     {k:"inactifs",l:"Inactifs",def:"Nombre de périodes d'inactivité longue détectées. ⚠ Non exposé directement par l'API INO."},
-    {k:"realise",l:"% de réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
+    {k:"realise",l:"% Réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
     {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire — sparkline",def:"Courbe d'activité horaire de l'agent (sparkline).\n\nDéfinition : représentation graphique mini du rythme de production de l'agent heure par heure sur la journée sélectionnée.\n\nFormule de calcul :\n• Source : timestamps callDate / acdDate des historiques INO\n• Conversion en heure France (UTC+2 en été, UTC+1 en hiver)\n• Découpage en buckets de 1h de 08h à 19h (12 points)\n• Chaque point = entrants décrochés + sortants dans ce créneau\n• Valeur normalisée visuellement (hauteur relative au pic de la journée)\n\nLecture :\n• Pic haut = forte densité d'appels sur ce créneau\n• Creux = pause, déjeuner, ou faible volume distribué\n• Courbe qui commence tard = arrivée tardive ou appels débutant après 08h\n• Courbe qui s'arrête tôt = départ anticipé ou fin de planification\n• N.d. = aucun timestamp exploitable dans les historiques INO pour cet agent"},
     {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
     {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."}
@@ -2022,7 +2022,7 @@ function renderTable(sorted){
       </td>
       <td style="color:${P};font-weight:800;font-size:13px" title="Décrochés + Sortants + Mails">${actes}</td>
       <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h = Actes total / H. Prod">${ach}</td>
-      <td style="color:${parseFloat(aph)>=5?"#30d158":parseFloat(aph)<2?P:"#ccc"};font-weight:700" title="Appels sortants / H. Prod">${aph}</td>
+      <td style="color:${parseFloat(aph)>=5?"#30d158":parseFloat(aph)<2?P:"#ccc"};font-weight:700" title="Sortants / H. prod">${aph}</td>
       <td>${mmss(a.dmc)}</td>
       <td style="${visibleCols.has('dmt')?'':' display:none'}" title="DMT = DMC + ACW (${a.acw?'ACW estimé:'+mmss(a.acw):'ACW non dispo, = DMC'})">${mmss(a.dmc+(a.acw||0))}</td>
       <td style="${visibleCols.has('acw')?'':' display:none'}" title="${acwDrift?`Dérive >20% vs moyenne ${a.camp} (${mmss(Math.round(grpAcw))})`:"Temps de post-appel"}">
@@ -2328,7 +2328,7 @@ function renderSkills(){
   if(realAgents.length===0){
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
       +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">📭</div>'
-      +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Aucun agent sur la période</div>'
+      +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Aucun agent actif sur cette période.</div>'
       +'<div style="font-size:12px;color:#666;max-width:440px;margin:0 auto;line-height:1.6">Aucune donnée agent INO pour la période sélectionnée. Vérifiez les dates (un jour sans activité — week-end, jour férié ou journée en cours non encore alimentée — peut être vide), puis cliquez sur « Rafraîchir ».</div>'
       +'</td></tr>';
     return;
@@ -2342,7 +2342,7 @@ function renderSkills(){
       +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">🧩</div>'
       +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Compétences non chargées</div>'
       +'<div style="font-size:12px;color:#666;max-width:420px;margin:0 auto 18px;line-height:1.6">Les compétences INO ne sont pas récupérées automatiquement (pour garder le rafraîchissement rapide). Cliquez sur le bouton ci-dessous pour charger les compétences réelles de chaque agent depuis INO.</div>'
-      +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">↺ Charger les compétences INO</button>'
+      +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">Charger depuis INO</button>'
       +'</td></tr>';
     return;
   }
@@ -2451,7 +2451,7 @@ function renderInoCoverage(){
     {label:"DMC",ok:sample.dmc>0},
     {label:"1ère/dernière action",ok:!!sample.premiereAction},
     {label:"Files actives",ok:!!sample.queues},
-    {label:"H. Prod",ok:sample.hprod>0},
+    {label:"H. prod",ok:sample.hprod>0},
     {label:"Statut temps réel",ok:!!sample.status},
     {label:"Compétences",ok:Array.isArray(sample.skills)&&sample.skills.length>0},
     {label:"KO / Refus",ok:sample.ko!=null||sample.refus!=null},
@@ -2541,7 +2541,7 @@ function exportXlsx(){
   const msg=document.getElementById("export-msg");
   msg.style.display="inline";msg.textContent="Export en cours…";
   const f=getFiltered(),s=getSorted(f);
-  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. Prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
+  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=(a.decroches||0)+(a.sortants||0)+m;
@@ -2559,7 +2559,7 @@ function exportXlsx(){
   a.download=`Wisecom_ControlRoom_${new Date().toISOString().slice(0,10)}.csv`;a.click();
   setTimeout(()=>{msg.textContent="✓ Export téléchargé !";},800);
   setTimeout(()=>msg.style.display="none",4000);
-  showToast("✓ Export Excel téléchargé !");
+  showToast("Fichier Excel téléchargé.");
 }
 
 // Export PDF amélioré
@@ -2779,7 +2779,7 @@ function exportPDF(){
     <span>Export automatique · ${new Date().toLocaleString("fr-FR")}</span>
   </div></body></html>`);
   w.document.close();
-  showToast("✓ PDF prêt — cliquez Imprimer dans la nouvelle fenêtre");
+  showToast("PDF ouvert. Lancez l'impression depuis la fenêtre.");
 }
 
 // Init
@@ -2868,7 +2868,7 @@ function saveCriteres(){
   });
   try{
     localStorage.setItem(CRITERES_KEY,JSON.stringify(data));
-    showToast('Critères enregistrés avec succès','#30d158');
+    showToast('Critères enregistrés.','#30d158');
     // Mettre à jour les objectifs agents
     const crit=data;
     agents=agents.map(a=>{
@@ -2877,7 +2877,7 @@ function saveCriteres(){
       return a;
     });
     render();
-  }catch(e){showToast('Erreur sauvegarde','#E8006E');}
+  }catch(e){showToast('Sauvegarde échouée. Réessayez.','#E8006E');}
 }
 function openCriteres(){
   renderCriteres();
@@ -2917,7 +2917,7 @@ function renderCriteres(){
           +'<span class="camp-badge">'+c+'</span>'
           +'<span style="font-size:11px;color:#555">'+cs.agents+' agent(s) · '+cs.connectes+' connecté(s) · '+cs.app+' appels</span>'
           +(qs_alert?'<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS '+qs+'%</span>':'')
-          +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">🚨 Aucun agent connecté</span>':'')
+          +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">Aucun agent connecté en ce moment.</span>':'')
         +'</div>'
         +'<span style="font-size:10px;color:#444">QS actuel : '+(qs>0?qs+'%':'–')+'</span>'
       +'</div>'
@@ -3305,7 +3305,7 @@ function renderWA(){
   var timeStr=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   if(ts)ts.textContent="Aperçu · "+dateStr+" "+timeStr;
   if(agents.length===0){
-    z.innerHTML='<div style="padding:40px;text-align:center;color:#555;font-size:13px;">⚠ Aucune donnée agent chargée.<br><br>Cliquez sur <b style="color:#E8006E">↺ Rafraîchir</b> puis revenez dans cet onglet.</div>';
+    z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
   }
   var sorted=[...agents].sort(function(a,b){return (b.appels||0)-(a.appels||0);});
@@ -3355,9 +3355,21 @@ function exportWA_Excel(){
   a.href=url;a.download="Export_WhatsApp_"+dateISO+".xls";
   document.body.appendChild(a);a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  showToast("✓ Export Excel téléchargé","#30d158");
+  showToast("Fichier Excel téléchargé.","#30d158");
 }
 // ══════════════════════════════════════════════════════════════════
+
+// Déconnexion avec modale branded (remplace confirm() natif)
+function confirmLogout(){
+  showModal({
+    title:"Quitter la session ?",
+    message:"Vous serez déconnecté du Control Room.",
+    okLabel:"Se déconnecter",
+    cancelLabel:"Continuer"
+  }).then(function(confirmed){
+    if(confirmed)window.location.href='/logout';
+  });
+}
 
 </script>
 </main>
