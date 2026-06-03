@@ -986,7 +986,9 @@ async function refreshFromINO(){
   const minDelay=new Promise(r=>setTimeout(r,1500));
   let ok=false;
   try{
-    await Promise.all([loadAgentsFromAPI(),loadQueueStatus(),minDelay]);
+    // loadQueueStatus en fire-and-forget — ne bloque pas l'affichage des agents
+    loadQueueStatus(); // async, résultat affiché quand dispo
+    await Promise.all([loadAgentsFromAPI(),minDelay]);
     ok=true;
     // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
     // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
