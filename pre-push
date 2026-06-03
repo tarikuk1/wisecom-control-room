@@ -1,0 +1,86 @@
+#!/bin/sh
+# .git/hooks/pre-push — Wisecom Control Room
+# Bloque le push si server.js ou dashboard.html contiennent des erreurs JS
+
+set -e
+
+# Couleurs
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+
+echo "${YELLOW}[pre-push] Vérification syntaxe JS...${NC}"
+
+FAILED=0
+
+# 1. Vérifier server.js
+if [ -f "server.js" ]; then
+  node --check server.js 2>/tmp/node_err_server.txt
+  if [ $? -ne 0 ]; then
+    echo "${RED}✗ server.js — Erreur de syntaxe :${NC}"
+    cat /tmp/node_err_server.txt
+    FAILED=1
+  else
+    echo "${GREEN}✓ server.js — Syntaxe OK${NC}"
+  fi
+fi
+
+# 2. Vérifier dashboard.html — extraire le bloc JS et tester
+if [ -f "dashboard.html" ]; then
+  node -e "
+    const fs = require('fs');
+    const html = fs.readFileSync('dashboard.html', 'utf8');
+    const start = html.indexOf('<script>');
+    const end   = html.lastIndexOf('</script>');
+    if (start === -1 || end === -1) { console.log('Aucun bloc script trouvé'); process.exit(0); }
+    const js = html.slice(start + 8, end);
+    // Stubs minimalistes pour les APIs browser
+    const stubs = [
+      'var document={getElementById:function(id){var e={style:{},innerHTML:\"\",textContent:\"\",value:\"\",classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}},addEventListener:function(){},checked:false,disabled:false,dataset:{},querySelectorAll:function(){return[];},querySelector:function(){return null;}};return e;},querySelector:function(){return null;},querySelectorAll:function(){return[];},addEventListener:function(){},createElement:function(){return{style:{},click:function(){},appendChild:function(){},href:\"\",download:\"\"};},body:{appendChild:function(){},removeChild:function(){},classList:{add:function(){},remove:function(){}}}};',
+      'var window={location:{href:\"\"},open:function(){return{document:{write:function(){},close:function(){}},print:function(){}};},_nbJours:1,_flux:null};',
+      'var localStorage={_s:{},getItem:function(k){return this._s[k]||null;},setItem:function(k,v){this._s[k]=v;}};',
+      'var URL={createObjectURL:function(){return\"\";},revokeObjectURL:function(){}};',
+      'var Blob=function(){};',
+      'var EventSource=function(u){this.close=function(){};};',
+      'var fetch=function(){return Promise.resolve({ok:true,json:function(){return Promise.resolve({agents:[],slots:[],flux:{},count:0,ok:true,queues:[]});}});};',
+      'var setInterval=function(){return 0;};',
+      'var setTimeout=function(){return 0;};',
+    ].join('\n');
+    // Écrire dans un fichier temporaire pour node --check
+    require('fs').writeFileSync('/tmp/_dash_check.js', stubs + '\n' + js);
+  " 2>/tmp/node_err_extract.txt
+  if [ $? -ne 0 ]; then
+    echo "${RED}✗ dashboard.html — Extraction JS échouée :${NC}"
+    cat /tmp/node_err_extract.txt
+    FAILED=1
+  else
+    node --check /tmp/_dash_check.js 2>/tmp/node_err_dash.txt
+    if [ $? -ne 0 ]; then
+      echo "${RED}✗ dashboard.html — Erreur de syntaxe JS :${NC}"
+      cat /tmp/node_err_dash.txt
+      FAILED=1
+    else
+      echo "${GREEN}✓ dashboard.html JS — Syntaxe OK${NC}"
+    fi
+  fi
+fi
+
+# 3. Vérifier queues_config.js si présent
+if [ -f "queues_config.js" ]; then
+  node --check queues_config.js 2>/tmp/node_err_qc.txt
+  if [ $? -ne 0 ]; then
+    echo "${RED}✗ queues_config.js — Erreur de syntaxe :${NC}"
+    cat /tmp/node_err_qc.txt
+    FAILED=1
+  else
+    echo "${GREEN}✓ queues_config.js — Syntaxe OK${NC}"
+  fi
+fi
+
+if [ $FAILED -ne 0 ]; then
+  echo ""
+  echo "${RED}[pre-push] Push bloqué — corrige les erreurs JS ci-dessus.${NC}"
+  echo "${YELLOW}Contourne avec : git push --no-verify  (déconseillé)${NC}"
+  exit 1
+fi
+
+echo "${GREEN}[pre-push] Toutes les vérifications passent. Push autorisé.${NC}"
+exit 0
