@@ -680,7 +680,7 @@ body.light [style*="background:#0a0a0a"][style*="color:#"],
 body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !important;}
 </style>
 </head>
-<body>
+<body class="light">
 
 <!-- Modal générique (remplace prompt/confirm bloquants) -->
 <!-- Overlay colonnes -->
@@ -778,7 +778,6 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       <div class="btn-sep"></div>
       <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test">⚡</button>
-      <button class="btn btn-ghost" onclick="toggleTheme()" id="theme-btn" title="Thème clair/sombre">☀</button>
       <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration">⚙</a>
       <a href="#" class="btn btn-logout" title="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
     </div>
@@ -1061,7 +1060,7 @@ function nd(v,suffix){
 
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
-let darkMode=true,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
+let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
@@ -2510,12 +2509,7 @@ function simulate(){
   render();
 }
 
-function toggleTheme(){
-  darkMode=!darkMode;
-  document.body.classList.toggle("light",!darkMode);
-  document.getElementById("theme-btn").textContent=darkMode?"☀":"🌙";
-  buildSwitches();render();
-}
+function toggleTheme(){}
 
 function toggleFilters(){
   const b=document.getElementById("filter-btn");
