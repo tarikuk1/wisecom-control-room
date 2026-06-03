@@ -95,8 +95,8 @@ async function fetchDayStats(){
   const d=new Date().toISOString().slice(0,10);
   try{
     const[ci,co]=await Promise.all([
-      apiReq("POST","/call/in/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:1000},token),
-      apiReq("POST","/call/out/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:1000},token)
+      apiReq("POST","/call/in/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:2000},token),
+      apiReq("POST","/call/out/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:2000},token)
     ]);
     const all=[...(ci&&ci.histories?ci.histories:[]),...(co&&co.histories?co.histories:[])];
     const tr=all.filter(c=>c.call&&c.call.agentDuration>0);
@@ -119,22 +119,22 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Construire la liste des jours de la plage [date .. dateFin] (incluse)
   const _d0=new Date(date+"T00:00:00"); const _d1=new Date((dateFin||date)+"T00:00:00");
   const jours=[]; for(let d=new Date(_d0); d<=_d1; d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10)); if(jours.length>62)break;}
-  // Récupérer les histoires de chaque jour, en séquentiel (rate-limit INO), puis agréger
+  // Pour 1 jour : IN + OUT en parallèle (2× plus rapide)
+  // Pour plusieurs jours : séquentiel entre jours (rate-limit INO), mais IN+OUT parallèles
   let riH=[], roH=[];
   let joursActifs=0;
   for(const jr of jours){
-    let avant=riH.length+roH.length;
+    const avant=riH.length+roH.length;
     try{
-      const ri1=await apiReq("POST","/call/in/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
+      const [ri1,ro1]=await Promise.all([
+        apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({})),
+        apiReq("POST","/call/out/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({}))
+      ]);
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
-    }catch(e){}
-    await new Promise(r=>setTimeout(r,jours.length>1?400:0));
-    try{
-      const ro1=await apiReq("POST","/call/out/histories",{startDate:jr+" 00:01:00",endDate:jr+" 23:59:59",limit:1000},token);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
-    }catch(e){}
+    }catch(e){console.error('[fetchAgentsDay]',jr,e.message);}
     if((riH.length+roH.length)>avant)joursActifs++;
-    if(jours.length>1)await new Promise(r=>setTimeout(r,400));
+    if(jours.length>1)await new Promise(r=>setTimeout(r,500));
   }
   if(joursActifs===0)joursActifs=1;
   const ri={histories:riH}, ro={histories:roH};
@@ -259,9 +259,9 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       }
     }
   }
-  // Enrichir avec les compétences INO
-  let agentSkillsMap={};
-  try{agentSkillsMap=await fetchAgentSkills();}catch(e){console.error('[SKILLS]',e.message);}
+  // Utiliser le cache compétences s'il existe — sans déclencher d'appel réseau bloquant
+  // Le rechargement des compétences se fait via le bouton dédié (↺ Compétences)
+  const agentSkillsMap=Object.keys(skillsCache).length>0?skillsCache:{};
   const now=Date.now();
   const list=Object.values(agents).map(a=>{
     // Statut estimé depuis la dernière activité
