@@ -9,6 +9,8 @@
 <meta http-equiv="Expires" content="0">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
+.skip-link{position:absolute;left:-9999px;top:8px;z-index:9999;background:#E8006E;color:#fff;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;}
+.skip-link:focus{left:8px;}
 body{background:#0c0c0c;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;transition:background .3s,color .3s;}
 body.light{background:#f3f3f3;color:#111;}
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -37,6 +39,7 @@ body.light .topbar{background:#fff;}
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 10px #E8006E,0 0 20px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{box-shadow:0 0 10px #E8006E;}50%{box-shadow:0 0 18px #E8006E,0 0 36px rgba(232,0,110,.4);}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 .brand{font-weight:800;font-size:14px;letter-spacing:.08em;color:#fff;}
 body.light .brand{color:#111;}
 .brand-sub{font-size:9px;color:#777;margin-top:1px;letter-spacing:.04em;text-transform:uppercase;}
@@ -54,8 +57,9 @@ body.light .clock{color:#888;}
 body.light .btn-sep{background:#ddd;}
 
 /* Boutons */
-.btn{border:none;border-radius:6px;padding:6px 11px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap;min-height:32px;}
+.btn{border:none;border-radius:6px;padding:6px 11px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap;min-height:36px;}
 .btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.25);}
+.btn:focus-visible,.ck-btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #E8006E;outline-offset:2px;}
 .btn-primary{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
 .btn-primary:hover{box-shadow:0 4px 14px rgba(232,0,110,.4);}
 .btn-dark{background:#1e1e1e;color:#ccc;border:1px solid #2e2e2e;}
@@ -247,7 +251,7 @@ body.light .param-input{background:#fff;color:#E8006E;border-color:#ddd;}
 body.light .kpi-card{background:#f8f8f8;border-color:#e8e8e8;}
 .kpi-card.alert{border-color:#E8006E;background:linear-gradient(135deg,#1a0810,#141414);}
 .kpi-card.good{border-color:#30d158;background:linear-gradient(135deg,#081a10,#141414);}
-.kpi-label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
+.kpi-label{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
 .kpi-value{font-size:22px;font-weight:800;color:#fff;line-height:1.1;font-variant-numeric:tabular-nums;}
 body.light .kpi-value{color:#111;}
 .kpi-card.alert .kpi-value{color:#E8006E;}
@@ -263,7 +267,7 @@ body.light .kpi-gauge{background:#e0e0e0;}
 body.light .tabs-bar{background:#f8f8f8;border-bottom-color:#e5e5e5;}
 .tab{background:none;border:none;border-bottom:3px solid transparent;color:#aaa;padding:13px 22px;font-size:14px;cursor:pointer;font-weight:600;transition:all .2s;outline:none;white-space:nowrap;}
 .tab:hover{color:#fff;background:rgba(255,255,255,.06);}
-.tab.active{border-bottom-color:#E8006E;color:#E8006E;font-weight:800;background:rgba(232,0,110,.10);}
+.tab.active{border-bottom-color:#FF1A76;color:#FF1A76;font-weight:800;background:rgba(232,0,110,.10);}
 body.light .tab{color:#555;}
 body.light .tab.active{color:#E8006E;}
 .tab-count{font-size:10px;margin-left:auto;padding:10px 16px;color:#555;display:flex;align-items:center;}
@@ -580,6 +584,7 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
 <div class="toast" id="toast"></div>
 
 <!-- HEADER -->
+<a href="#main-content" class="skip-link">Aller au contenu</a>
 <div class="sticky">
 
   <!-- ── TOPBAR : logo | statut | actions ── -->
@@ -679,6 +684,7 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
   </div>
 </div>
 
+<main id="main-content">
 <!-- SMART ALERTS -->
 <div id="ino-coverage"></div>
 
@@ -687,13 +693,13 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
   <div class="kpi-grid" id="kpi-grid"></div>
 
   <!-- TABS -->
-  <div style="display:flex;align-items:center;border-bottom:1px solid #1e1e1e;margin-bottom:14px;">
+  <div role="tablist" aria-label="Sections" style="display:flex;align-items:center;border-bottom:1px solid #1e1e1e;margin-bottom:14px;">
     <div style="display:flex;gap:0;">
-      <button class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
-      <button class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
-      <button class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
-      <button class="tab" onclick="switchTab('whatsapp',this)" style="color:#25D366;border-bottom-color:transparent;" id="tab-btn-whatsapp">📋 Export WhatsApp</button>
-      <button class="tab" onclick="switchTab('alertes',this)" id="tab-btn-alertes">🔔 Alertes <span id="alert-badge" style="display:none;background:#E8006E;color:#fff;font-size:9px;border-radius:10px;padding:1px 6px;margin-left:3px;"></span></button>
+      <button role="tab" aria-selected="true" class="tab active" onclick="switchTab('tableau',this)">Tableau individuel</button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('graphiques',this)">Volumes & Tranches</button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('whatsapp',this)" style="color:#25D366;border-bottom-color:transparent;" id="tab-btn-whatsapp">📋 Export WhatsApp</button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('alertes',this)" id="tab-btn-alertes">🔔 Alertes <span id="alert-badge" style="display:none;background:#E8006E;color:#fff;font-size:9px;border-radius:10px;padding:1px 6px;margin-left:3px;"></span></button>
     </div>
     <span id="agent-count" style="margin-left:auto;font-size:11px;color:#555;padding-right:4px;"></span>
   </div>
@@ -1596,7 +1602,7 @@ const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,
   ];
 
   document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
-    <div class="kpi-card${k.alert?" alert":k.good?" good":""}">
+    <div class="kpi-card${k.alert?' alert':k.good?' good':''}" role="region" aria-label="${k.l} : ${typeof k.v==='number'?k.v:String(k.v).replace(/<[^>]+>/g,'')}">
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
@@ -1785,7 +1791,7 @@ function renderTable(sorted){
     const sortable=!["expand","spark","files","mails","premiere","derniere"].includes(c.k);
     const cls=[sortCol===c.k?"active":"",c.k==="mails"?"col-mail":""].filter(Boolean).join(" ");
     const defEsc=c.def?(c.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')):'';
-    return `<th class="${cls}" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${(c.title||c.l).replace(/"/g,'&quot;')}"
+    return `<th scope="col" class="${cls}"" ${sortable?`onclick="doSort('${c.k}')"`:""} title="${(c.title||c.l).replace(/"/g,'&quot;')}"
       style="${c.k==="expand"?"width:22px;":""}${(c.k!=='expand'&&c.k!=='nom'&&!visibleCols.has(c.k))?' display:none;':''}">
       ${c.l}${sortable?(sortCol===c.k?(sortDir>0?"&uarr;":"&darr;"):"<span style='color:#222'>↕</span>"):""}
       ${c.def?`<span data-show-def="${c.l.replace(/<[^>]+>/g,'').trim()}" data-def-text="${defEsc}" style="margin-left:3px;font-size:9px;color:#555;cursor:pointer;vertical-align:super;font-weight:normal" title="Voir définition complète">ⓘ</span>`:''}
@@ -1921,12 +1927,12 @@ function sparkSVG(data){
   // Cas n=1 : afficher un point au centre plutôt qu'une polyline (sinon i/(n-1)=NaN)
   if(n===1){
     const y=(h-(data[0]/max)*h).toFixed(1);
-    return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle"><circle cx="${w/2}" cy="${y}" r="2" fill="#E8006E"/></svg>`;
+    return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle" aria-hidden="true" focusable="false" role="img"><circle cx="${w/2}" cy="${y}" r="2" fill="#E8006E"/></svg>`;
   }
   const pts=data.map((v,i)=>`${(i/(n-1)*w).toFixed(1)},${(h-(v/max)*h).toFixed(1)}`).join(" ");
   const last=data[n-1],prev=data[n-2]||last;
   const col=last>=prev?"#30d158":"#E8006E";
-  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle">
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle" aria-hidden="true" focusable="false" role="img">
     <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
   </svg>`;
 }
@@ -3177,5 +3183,6 @@ function exportWA_Excel(){
 // ══════════════════════════════════════════════════════════════════
 
 </script>
+</main>
 </body>
 </html>
