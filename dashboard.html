@@ -18,106 +18,137 @@ body.light ::-webkit-scrollbar-thumb{background:#ccc;}
 /* Variables */
 .sticky{position:sticky;top:0;z-index:200;overflow:visible;background:#111;border-bottom:1px solid #1e1e1e;box-shadow:0 4px 24px rgba(0,0,0,.6);}
 body.light .sticky{background:#fff;border-bottom-color:#e5e5e5;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+body.light .ctrl-row-a{background:#fafafa;}
+body.light .ctrl-row-b{background:#fff;}
 body.light .controls-bar{background:#fafafa;border-top-color:#eee;}
 body.light .topbar{background:#fff;}
 
 /* ── TOPBAR ─────────────────────────────────────── */
 .topbar{
   padding:0 20px;
-  height:52px;
-  display:grid;
-  grid-template-columns:auto 1fr auto;
+  height:48px;
+  display:flex;
   align-items:center;
+  justify-content:space-between;
   position:relative;
   z-index:201;
-  gap:8px;
+  gap:12px;
 }
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 10px #E8006E,0 0 20px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{box-shadow:0 0 10px #E8006E;}50%{box-shadow:0 0 18px #E8006E,0 0 36px rgba(232,0,110,.4);}}
-.brand{font-weight:800;font-size:15px;letter-spacing:.1em;color:#fff;}
+.brand{font-weight:800;font-size:14px;letter-spacing:.08em;color:#fff;}
 body.light .brand{color:#111;}
-.brand-sub{font-size:9px;color:#444;margin-top:1px;letter-spacing:.06em;text-transform:uppercase;}
+.brand-sub{font-size:9px;color:#777;margin-top:1px;letter-spacing:.04em;text-transform:uppercase;}
 
 /* Topbar centre — statut + horloge */
-.topbar-center{
-  display:flex;align-items:center;justify-content:center;gap:12px;
-  overflow:hidden;
-  min-width:0;
-}
-.sse-badge{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:700;display:flex;align-items:center;gap:5px;letter-spacing:.02em;}
-.clock{font-size:12px;color:#555;font-variant-numeric:tabular-nums;font-weight:500;}
+.topbar-center{display:flex;align-items:center;gap:10px;flex:1;justify-content:center;min-width:0;overflow:hidden;}
+.sse-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700;display:flex;align-items:center;gap:4px;letter-spacing:.02em;flex-shrink:0;}
+.clock{font-size:11px;color:#888;font-variant-numeric:tabular-nums;font-weight:500;flex-shrink:0;}
 body.light .clock{color:#888;}
-#last-update{font-size:10px;color:#444;}
+#last-update{font-size:10px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
 
-/* Topbar droite — actions groupées */
-.topbar-right{display:flex;align-items:center;gap:5px;flex-shrink:0;overflow-x:auto;}
-
-/* Séparateur vertical entre groupes de boutons */
-.btn-sep{width:1px;height:20px;background:#2a2a2a;flex-shrink:0;margin:0 2px;}
+/* Topbar droite — actions */
+.topbar-right{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.btn-sep{width:1px;height:18px;background:#2a2a2a;flex-shrink:0;margin:0 3px;}
 body.light .btn-sep{background:#ddd;}
 
 /* Boutons */
-.btn{border:none;border-radius:7px;padding:7px 13px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;}
-.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.25);}
+.btn{border:none;border-radius:6px;padding:6px 11px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap;min-height:32px;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.25);}
 .btn-primary{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
 .btn-primary:hover{box-shadow:0 4px 14px rgba(232,0,110,.4);}
-.btn-dark{background:#1e1e1e;color:#ccc;border:1px solid #333;}
+.btn-dark{background:#1e1e1e;color:#ccc;border:1px solid #2e2e2e;}
 body.light .btn-dark{background:#f0f0f0;color:#333;border-color:#ccc;}
-.btn-refresh{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;padding:7px 16px;font-size:11px;font-weight:700;}
+.btn-dark:hover{border-color:#555;color:#fff;}
+body.light .btn-dark:hover{border-color:#888;color:#111;}
+.btn-refresh{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;font-weight:700;padding:6px 14px;}
 .btn-refresh:hover{box-shadow:0 4px 16px rgba(232,0,110,.5);}
-.btn-filter{background:#1e1e1e;color:#ccc;border:1px solid #333;}
+.btn-filter{background:#1e1e1e;color:#ccc;border:1px solid #2e2e2e;}
 .btn-filter.active{background:#1a0810;color:#E8006E;border-color:#E8006E55;}
 body.light .btn-filter{background:#f0f0f0;color:#333;border-color:#ccc;}
-.btn-logout{background:#1e1e1e;color:#ff4444;border:1px solid #3a1a1a;font-size:11px;}
-.btn-logout:hover{background:#2a1010;border-color:#ff4444;box-shadow:0 4px 10px rgba(255,68,68,.2);}
-body.light .btn-logout{background:#fff5f5;border-color:#ffcccc;color:#cc0000;}
+.btn-logout{background:transparent;color:#e84444;border:1px solid #3a1a1a;font-size:10px;padding:5px 9px;}
+.btn-logout:hover{background:#2a1010;border-color:#ff4444;}
+body.light .btn-logout{border-color:#ffcccc;color:#cc0000;}
 
-/* ── CONTROLES (sous topbar) ───────────────────── */
+/* ── BARRE DE CONTRÔLES ────────────────────────── */
+/* 2 rangées : Ligne A (période + période-heure + vues) / Ligne B (filtres + isoler) */
 .controls-bar{
-  padding:10px 24px;
   border-top:1px solid #1a1a1a;
-  display:flex;
-  align-items:center;
+  display:grid;
+  grid-template-rows:auto auto;
   gap:0;
-  flex-wrap:nowrap;
-  overflow-x:auto;
 }
-body.light .controls-bar{border-top-color:#eee;}
-.controls-bar::-webkit-scrollbar{height:2px;}
-.controls-bar::-webkit-scrollbar-thumb{background:#333;}
+body.light .controls-bar{border-top-color:#e8e8e8;}
 
-.ctrl-group{display:flex;align-items:center;gap:8px;padding:0 18px;flex-shrink:0;}
-.ctrl-group:first-child{padding-left:0;}
-.ctrl-group:last-child{padding-right:0;}
-.ctrl-divider{width:1px;height:30px;background:#1e1e1e;flex-shrink:0;}
-body.light .ctrl-divider{background:#e0e0e0;}
-
-.ctrl-label{font-size:9px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;}
-body.light .ctrl-label{color:#888;}
-
-/* Inputs dans la barre de contrôles */
-input[type=date],input[type=time],select{
-  background:#161616;color:#ccc;border:1px solid #252525;
-  border-radius:6px;padding:6px 10px;font-size:11px;
-  outline:none;transition:border .15s;height:32px;
+/* Rangée A — Période + Vues */
+.ctrl-row-a{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 20px;
+  border-bottom:1px solid #141414;
+  flex-wrap:wrap;
 }
-input[type=date]:focus,input[type=time]:focus,select:focus{border-color:#E8006E55;}
-body.light input[type=date],body.light input[type=time],body.light select{background:#fff;color:#333;border-color:#ddd;}
+body.light .ctrl-row-a{border-bottom-color:#f0f0f0;}
+
+/* Rangée B — Filtres + Isoler */
+.ctrl-row-b{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 20px;
+  flex-wrap:wrap;
+  min-height:42px;
+}
+
+/* Séparateur vertical léger entre zones */
+.ctrl-vsep{width:1px;height:22px;background:#222;flex-shrink:0;margin:0 6px;}
+body.light .ctrl-vsep{background:#ddd;}
+
+/* Label de section */
+.ctrl-label{
+  font-size:9px;font-weight:700;color:#777;
+  text-transform:uppercase;letter-spacing:.07em;
+  white-space:nowrap;flex-shrink:0;
+  padding:0 2px;
+}
+body.light .ctrl-label{color:#999;}
+
+/* Inputs date/time/select */
+input[type=date],input[type=time]{
+  background:#161616;color:#ddd;border:1px solid #2a2a2a;
+  border-radius:6px;padding:5px 8px;font-size:11px;
+  outline:none;transition:border .15s;height:30px;
+  cursor:pointer;
+}
+select{
+  background:#161616;color:#ddd;border:1px solid #2a2a2a;
+  border-radius:6px;padding:5px 8px;font-size:11px;
+  outline:none;transition:border .15s;height:30px;cursor:pointer;
+}
+input[type=date]:hover,input[type=time]:hover,select:hover{border-color:#444;}
+input[type=date]:focus,input[type=time]:focus,select:focus{border-color:#E8006E88;background:#1a0d12;}
+body.light input[type=date],body.light input[type=time],body.light select{
+  background:#fff;color:#333;border-color:#ddd;
+}
+body.light input[type=date]:focus,body.light input[type=time]:focus,body.light select:focus{
+  border-color:#E8006E;background:#fff0f6;
+}
+
+/* Flèche entre dates */
+.ctrl-arrow{font-size:11px;color:#555;flex-shrink:0;padding:0 2px;}
+body.light .ctrl-arrow{color:#aaa;}
 
 /* Switches Isoler */
 .filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.filter-label{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.07em;min-width:52px;flex-shrink:0;}
+.filter-label{font-size:10px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.07em;min-width:52px;flex-shrink:0;}
 input[type=date],input[type=time],select{background:#161616;color:#ccc;border:1px solid #2a2a2a;border-radius:7px;padding:9px 12px;font-size:13px;outline:none;transition:border .15s;}
 input[type=date]:focus,input[type=time]:focus,select:focus{border-color:#E8006E55;}
 body.light input[type=date],body.light input[type=time],body.light select{background:#fff;color:#333;border-color:#ddd;}
 
 /* Checkbox dropdown */
 .ck-wrap{position:relative;user-select:none;}
-.ck-btn{background:#161616;border:1px solid #2a2a2a;border-radius:7px;padding:9px 14px;font-size:13px;color:#ccc;cursor:pointer;min-width:135px;display:flex;justify-content:space-between;align-items:center;gap:6px;white-space:nowrap;transition:all .15s;}
+.ck-btn{background:#161616;border:1px solid #2a2a2a;border-radius:6px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:110px;max-width:160px;display:flex;justify-content:space-between;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;height:30px;}
 .ck-btn:hover{border-color:#444;}
 .ck-btn.open{border-color:#E8006E;background:#1a0a0f;}
-body.light .ck-btn{background:#eaeaea;border-color:#bbb;color:#222;}
+body.light .ck-btn{background:#f5f5f5;border-color:#ccc;color:#333;}
 .ck-dropdown{position:absolute;top:calc(100% + 5px);left:0;z-index:400;background:#1a1a1a;border:1px solid #333;border-radius:10px;min-width:220px;max-height:320px;overflow:visible;box-shadow:0 16px 40px rgba(0,0,0,.7);}
 body.light .ck-dropdown{background:#fff;border-color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,.12);}
 .ck-header{padding:7px 12px 5px;font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #252525;}
@@ -136,7 +167,7 @@ body.light .ck-search{background:#fff;border-color:#ddd;color:#222;}
 body.light .ck-search:focus{background:#fff0f6;border-color:#E8006E;}
 .ck-search::placeholder{color:#555;}
 .ck-list{max-height:220px;overflow-y:auto;scroll-behavior:smooth;}
-.ck-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;font-size:11px;font-weight:700;background:#E8006E;color:#fff;border-radius:9px;}
+.ck-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 5px;font-size:9px;font-weight:700;background:#E8006E;color:#fff;border-radius:8px;}
 .preset-select{background:#161616;border:1px solid #2a2a2a;border-radius:7px;padding:5px 10px;font-size:11px;color:#ccc;cursor:pointer;min-width:200px;outline:none;font-family:inherit;}
 .preset-select:focus,.preset-select:hover{border-color:#E8006E;}
 body.light .preset-select{background:#f0f0f0;border-color:#ddd;color:#444;}
@@ -551,93 +582,81 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
 <!-- HEADER -->
 <div class="sticky">
 
-  <!-- LIGNE 1 : Brand | Statut centré | Actions -->
+  <!-- ── TOPBAR : logo | statut | actions ── -->
   <div class="topbar">
 
-    <!-- Logo + brand -->
     <div class="logo">
       <div class="dot"></div>
       <div>
         <div class="brand">CONTROL ROOM</div>
-        <div class="brand-sub">Wisecom · Supervision temps réel</div>
+        <div class="brand-sub">Wisecom · Supervision</div>
       </div>
     </div>
 
-    <!-- Centre : badge INO + horloge + last update -->
     <div class="topbar-center">
       <span class="sse-badge" id="sse-badge" style="background:#2a1e0a;color:#ff9f0a;">◌ Connexion…</span>
       <span class="clock" id="clock" style="pointer-events:none;user-select:none;"></span>
-      <span id="last-update" style="font-size:10px;color:#444;"></span>
+      <span id="last-update"></span>
     </div>
 
-    <!-- Droite : actions groupées -->
     <div class="topbar-right">
-
-      <!-- Groupe 1 : données -->
-      <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Interroge l'API INO en lecture seule">↺ Rafraîchir</button>
-      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharge les compétences INO">Compétences</button>
-
+      <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Rafraîchir les données INO">↺ Rafraîchir</button>
       <div class="btn-sep"></div>
-
-      <!-- Groupe 2 : colonnes + filtres -->
-      <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Personnaliser les colonnes" style="position:relative;z-index:300;">
-        Colonnes <span id="col-count" style="font-size:9px;background:#E8006E;color:#fff;border-radius:10px;padding:1px 6px;margin-left:3px;"></span>
-      </button>
-      <button class="btn btn-filter" id="filter-btn" onclick="toggleFilters()">Filtres <span id="filter-active-count" style="font-size:9px;display:none;background:#E8006E;color:#fff;border-radius:10px;padding:1px 5px;margin-left:2px;"></span> ▾</button>
-
+      <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:#E8006E;color:#fff;border-radius:9px;padding:1px 6px;font-size:9px;margin-left:2px;"></span></button>
+      <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
+      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences">Compétences</button>
       <div class="btn-sep"></div>
-
-      <!-- Groupe 3 : outils -->
-      <button class="btn btn-dark" onclick="openCriteres()" title="Paramétrage KPI" style="position:relative;z-index:300;">Critères KPI</button>
-      <button class="btn btn-dark" onclick="exportXlsx()">Excel</button>
-      <button class="btn btn-dark" onclick="exportPDF()">PDF</button>
+      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel">📊</button>
+      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF">📄</button>
       <span id="export-msg" style="font-size:10px;color:#30d158;font-weight:700;display:none;"></span>
-
       <div class="btn-sep"></div>
-
-      <!-- Groupe 4 : système -->
-      <button class="btn btn-dark" onclick="simulate()" title="Générer des données de test">Simuler</button>
-      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn" title="Basculer thème">☀</button>
-      <a href="/admin" target="_blank" class="btn btn-dark" style="text-decoration:none;" title="Administration">Admin</a>
-      <a href="/logout" class="btn btn-logout" title="Se déconnecter" onclick="return confirm('Se déconnecter ?')">⏻ Déco</a>
+      <button class="btn btn-dark" onclick="simulate()" title="Données de test">⚡</button>
+      <button class="btn btn-dark" onclick="toggleTheme()" id="theme-btn" title="Thème clair/sombre">☀</button>
+      <a href="/admin" target="_blank" class="btn btn-dark" style="text-decoration:none;" title="Admin">⚙</a>
+      <a href="/logout" class="btn btn-logout" title="Déconnexion" onclick="return confirm('Se déconnecter ?')">⏻</a>
     </div>
   </div>
 
-  <!-- LIGNE 2 : Barre de contrôles (période, vues, filtres, isoler) -->
+  <!-- ── CONTRÔLES : 2 rangées ── -->
   <div class="controls-bar" id="filter-panel">
 
-    <!-- Période -->
-    <div class="ctrl-group">
+    <!-- Rangée A : Période + Vues sauvegardées -->
+    <div class="ctrl-row-a">
+
+      <!-- Période -->
       <span class="ctrl-label">Période</span>
       <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
-      <span style="font-size:10px;color:#444;">→</span>
+      <span class="ctrl-arrow">→</span>
       <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
-      <input type="time" id="f-h-deb" value="08:00" aria-label="Heure début" style="width:90px;">
-      <span style="font-size:10px;color:#444;">→</span>
-      <input type="time" id="f-h-fin" value="20:00" aria-label="Heure fin" style="width:90px;">
-      <select id="f-pas" style="width:90px;">
+
+      <div class="ctrl-vsep"></div>
+
+      <!-- Heures -->
+      <span class="ctrl-label">Horaire</span>
+      <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début" style="width:86px;">
+      <span class="ctrl-arrow">→</span>
+      <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin" style="width:86px;">
+      <select id="f-pas" style="width:88px;" aria-label="Pas de temps">
         <option>15 min</option><option selected>30 min</option>
         <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
       </select>
-    </div>
 
-    <div class="ctrl-divider"></div>
+      <div class="ctrl-vsep"></div>
 
-    <!-- Vues sauvegardées -->
-    <div class="ctrl-group">
-      <span class="ctrl-label">Vues</span>
-      <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" style="min-width:140px;">
-        <option value="">— Sélectionner —</option>
+      <!-- Vues sauvegardées -->
+      <span class="ctrl-label">Vue</span>
+      <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
+        <option value="">— Sélectionner une vue —</option>
       </select>
-      <button class="btn btn-dark" onclick="savePreset()" title="Enregistrer la vue actuelle" style="padding:5px 10px;font-size:10px;">💾 Enregistrer</button>
-      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue" style="padding:5px 10px;font-size:10px;">🗑</button>
-      <span id="preset-status" style="font-size:10px;color:#555;"></span>
+      <button class="btn btn-dark" onclick="savePreset()" title="Enregistrer la vue actuelle" style="padding:5px 10px;font-size:10px;">💾</button>
+      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:10px;">🗑</button>
+      <span id="preset-status" style="font-size:10px;color:#666;"></span>
+
     </div>
 
-    <div class="ctrl-divider"></div>
+    <!-- Rangée B : Filtres dropdowns + Isoler -->
+    <div class="ctrl-row-b">
 
-    <!-- Filtres dropdowns -->
-    <div class="ctrl-group" style="gap:6px;">
       <span class="ctrl-label">Filtres</span>
       <div class="ck-wrap" id="ck-camps"></div>
       <div class="ck-wrap" id="ck-queues"></div>
@@ -645,22 +664,18 @@ body.light [style*="background:#1e1e1e"][style*="color:#"]{color:#222 !important
       <div class="ck-wrap" id="ck-skills"></div>
       <div class="ck-wrap" id="ck-contrats"></div>
       <div class="ck-wrap" id="ck-status"></div>
-    </div>
 
-    <div class="ctrl-divider"></div>
+      <div class="ctrl-vsep"></div>
 
-    <!-- Isoler -->
-    <div class="ctrl-group">
       <span class="ctrl-label">Isoler</span>
-      <div id="sw-container" style="display:flex;gap:16px;flex-wrap:nowrap;align-items:center;"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-left:8px;padding-left:12px;border-left:1px solid #252525;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:#666;cursor:pointer;white-space:nowrap;" title="Masquer les agents déconnectés du tableau">
-          <input type="checkbox" id="hide-deconnecte-ctrl" onchange="toggleHideDeconnecteCtrl()" style="accent-color:#E8006E;width:12px;height:12px;">
-          Masquer déconnectés
-        </label>
-      </div>
-    </div>
+      <div id="sw-container" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;"></div>
 
+      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#888;cursor:pointer;white-space:nowrap;margin-left:6px;" title="Masquer les agents déconnectés">
+        <input type="checkbox" id="hide-deconnecte-ctrl" onchange="toggleHideDeconnecteCtrl()" style="accent-color:#E8006E;width:13px;height:13px;">
+        Masquer déco.
+      </label>
+
+    </div>
   </div>
 </div>
 
