@@ -37,16 +37,26 @@ function apiReq(method,p,body,token){
     req.on("error",reject);if(data)req.write(data);req.end();
   });
 }
+// Version exposant le status HTTP (utilisée pour les routes nécessitant gestion 401)
+function apiReqFull(method,p,body,token){
+  return new Promise((resolve,reject)=>{
+    const auth=token?("Bearer "+token):"Basic "+Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
+    const data=body?JSON.stringify(body):null;
+    const opts={hostname:"wisecom.unicity.io",path:"/api"+p,method,headers:{"Content-Type":"application/json","Authorization":auth,"X-EKO-Api-Key":INO_APIKEY,...(data?{"Content-Length":Buffer.byteLength(data)}:{})}};
+    const req=https.request(opts,r=>{let buf="";const status=r.statusCode;r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve({status,body:JSON.parse(buf)});}catch{resolve({status,body:buf});}});});
+    req.on("error",reject);if(data)req.write(data);req.end();
+  });
+}
 
-async function getToken(){
-  if(bToken&&Date.now()<bExp)return bToken;
+async function getToken(force){
+  if(!force&&bToken&&Date.now()<bExp)return bToken;
   try{
     const creds=Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const res=await new Promise((resolve,reject)=>{
       const req=https.request({hostname:"wisecom.unicity.io",path:"/api/auth",method:"GET",headers:{"Authorization":"Basic "+creds}},r=>{let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve(JSON.parse(buf));}catch{resolve({});}});});
       req.on("error",reject);req.end();
     });
-    if(res.access_token){bToken=res.access_token;bExp=Date.now()+270000;console.log("["+new Date().toLocaleTimeString("fr-FR")+"] Token OK");}
+    if(res.access_token){bToken=res.access_token;bExp=Date.now()+270000;console.log("["+new Date().toLocaleTimeString("fr-FR")+"] Token OK (force="+!!force+")");}
   }catch(e){console.error("Auth:",e.message);}
   return bToken;
 }
@@ -565,9 +575,18 @@ const server=http.createServer(async(req,res)=>{
         for(let i=0;i<agentIds.length;i+=3){
           const batch=agentIds.slice(i,i+3);
           await Promise.all(batch.map(async(agentId)=>{
+            let _tok=token;
             for(let attempt=0;attempt<3;attempt++){
               try{
-                const r=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+                const rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},_tok);
+                if(rf.status===401){
+                  // Token expiré côté INO : forcer un renouvellement
+                  _tok=await getToken(true);
+                  if(attempt<2){await new Promise(r=>setTimeout(r,1000*(attempt+1)));continue;}
+                  results[agentId]={error:"HTTP 401 — Token invalide après renouvellement"};
+                  break;
+                }
+                const r=rf.body;
                 if(r&&(r.flowSkills||r.profileSkills)){
                   const flow=r.flowSkills||[];
                   results[agentId]={
@@ -576,6 +595,9 @@ const server=http.createServer(async(req,res)=>{
                   };
                   return;
                 }
+                // Réponse inattendue mais pas d'erreur HTTP
+                results[agentId]={error:"Réponse INO vide ou inattendue (HTTP "+rf.status+")"};
+                return;
               }catch(e){
                 if(attempt<2){await new Promise(r=>setTimeout(r,3000*(attempt+1)));continue;}
                 results[agentId]={error:String(e.message||e).slice(0,80)};
@@ -597,14 +619,69 @@ const server=http.createServer(async(req,res)=>{
     if(!_s2){res.writeHead(401);res.end(JSON.stringify({error:"Non authentifié"}));return;}
     const agentId=url.replace("/api/skill-list/","").split("?")[0];
     try{
-      const token=await getToken();
+      let token=await getToken();
       if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token indisponible"}));return;}
-      const data=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+      let rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+      if(rf.status===401){
+        // Token expiré — renouveler et réessayer une fois
+        token=await getToken(true);
+        rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
+      }
+      if(rf.status===401){res.writeHead(502);res.end(JSON.stringify({error:"HTTP 401 — Droits insuffisants sur le compte INO dasboard_INO pour /cc/*"}));return;}
       res.writeHead(200,{"Content-Type":"application/json"});
-      res.end(JSON.stringify(data||{}));
+      res.end(JSON.stringify(rf.body||{}));
     }catch(e){
       res.writeHead(500);
       res.end(JSON.stringify({error:e.message}));
+    }
+    return;
+  }
+  // === STATUT FILES (agrégation temps réel depuis histories du jour) ===
+  if(url==="/api/queues-status"&&session){
+    const u2=new URL(req.url,"http://localhost");
+    const date=u2.searchParams.get("date")||new Date().toISOString().slice(0,10);
+    try{
+      const token=await getToken();
+      if(!token){res.writeHead(502,{"Content-Type":"application/json"});res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      const[ci,co]=await Promise.all([
+        apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token),
+        apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token)
+      ]);
+      const inH=(ci&&ci.histories)||[];
+      const outH=(co&&co.histories)||[];
+      // Agréger par file d'attente
+      const qMap={};
+      inH.forEach(h=>{
+        const qn=(h.queue&&h.queue.queueName)||"–";
+        if(!qMap[qn])qMap[qn]={name:qn,recus:0,decroches:0,abandons:0,sortants:0,dureeTotal:0,calls:0};
+        const isAband=String(h.status||"").toLowerCase().includes("aband");
+        qMap[qn].recus++;
+        if(!isAband&&h.agent&&h.agent.id){
+          qMap[qn].decroches++;
+          const dur=(h.call&&h.call.agentDuration)||0;
+          if(dur>0){qMap[qn].dureeTotal+=dur;qMap[qn].calls++;}
+        }else{qMap[qn].abandons++;}
+      });
+      outH.forEach(h=>{
+        const qn=(h.queue&&h.queue.queueName)||"–";
+        if(!qMap[qn])qMap[qn]={name:qn,recus:0,decroches:0,abandons:0,sortants:0,dureeTotal:0,calls:0};
+        qMap[qn].sortants++;
+      });
+      const queues=Object.values(qMap).map(q=>({
+        name:q.name,
+        recus:q.recus,
+        decroches:q.decroches,
+        abandons:q.abandons,
+        sortants:q.sortants,
+        qs:q.recus>0?Math.round((q.decroches/q.recus)*100):0,
+        tauxAbandon:q.recus>0?Math.round((q.abandons/q.recus)*100):0,
+        dmc:q.calls>0?Math.round(q.dureeTotal/q.calls):0
+      })).sort((a,b)=>b.recus-a.recus);
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({ok:true,queues,updatedAt:new Date().toISOString()}));
+    }catch(e){
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({ok:false,queues:[],error:e.message}));
     }
     return;
   }
@@ -624,7 +701,20 @@ const server=http.createServer(async(req,res)=>{
     const dateFin=u.searchParams.get("dateFin")||date;
     const hDeb=u.searchParams.get("hDeb")||"08:00";
     const hFin=u.searchParams.get("hFin")||"20:00";
-    fetchAgentsDay(date,hDeb,hFin,dateFin).then(d=>{res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({...d,count:d.agents.length}));}).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});return;
+    // Renouveler le token avant toute requête sur date passée (le token peut avoir expiré entre refreshes)
+    getToken().then(()=>fetchAgentsDay(date,hDeb,hFin,dateFin)).then(d=>{
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({...d,count:d.agents.length}));
+    }).catch(e=>{
+      // Retourner un JSON d'erreur exploitable (pas juste 500 vide)
+      // Le client peut afficher le message d'erreur à l'utilisateur
+      const msg=e&&e.message?e.message:String(e);
+      console.error("[agents-day] Erreur ("+date+"):",msg);
+      res.writeHead(200,{"Content-Type":"application/json"});
+      // Code 200 avec agents:[] pour que le client distingue "aucune donnée" de "échec réseau"
+      // On inclut error:true pour que le dashboard puisse afficher une alerte
+      res.end(JSON.stringify({agents:[],slots:[],flux:{recus:0,decroches:0,abandons:0,sortants:0},error:msg,date,dateFin}));
+    });return;
   }
   // [SÉCURITÉ] Routes admin : exiger le rôle admin (pas seulement une session valide)
   if(url.startsWith("/api/admin/")){
