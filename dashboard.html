@@ -1368,6 +1368,8 @@ function renderKPIs(f){
   const totActes=totDecr+totSort+totM;                    // acte = décroché + sortant + mail
   const totDuree=f.reduce((s,a)=>s+a.dmc*(a.decroches||0),0);
   const avgDmc=totDecr>0?Math.round(totDuree/totDecr):0;
+  const totAcwW=f.reduce((s,a)=>s+(a.acw||0)*(a.decroches||0),0);
+  const avgAcw=totDecr>0?Math.round(totAcwW/totDecr):0;
   const totHP=f.reduce((s,a)=>s+a.hprod,0)||1;
   const actesH=+(totActes/totHP).toFixed(1);
   const appelsH=+(totDecr/totHP).toFixed(1);
@@ -1396,7 +1398,8 @@ const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Seuil 04min00sec"},
-    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
+    {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)"},
+    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Appels sortants / H. Prod"},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"[App+Mails]/h prod"},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
@@ -1634,9 +1637,9 @@ function renderTable(sorted){
       </td>
       <td style="color:${P};font-weight:800;font-size:13px" title="Décrochés + Sortants + Mails">${actes}</td>
       <td style="color:${parseFloat(ach)>=15?"#30d158":parseFloat(ach)<8?P:"#ccc"};font-weight:700" title="Actes/h = Actes total / H. Prod">${ach}</td>
-      <td style="color:${parseFloat(aph)>=12?"#30d158":parseFloat(aph)<6?P:"#ccc"};font-weight:700" title="Appels décrochés par heure de prod">${aph}</td>
+      <td style="color:${parseFloat(aph)>=5?"#30d158":parseFloat(aph)<2?P:"#ccc"};font-weight:700" title="Appels sortants / H. Prod">${aph}</td>
       <td>${mmss(a.dmc)}</td>
-      <td style="${visibleCols.has('dmt')?'':' display:none'};color:${a.acw?'#ccc':'#555'}" title="DMT = DMC + ACW">${mmss(a.dmc+(a.acw||0))}</td>
+      <td style="${visibleCols.has('dmt')?'':' display:none'}" title="DMT = DMC + ACW (${a.acw?'ACW estimé:'+mmss(a.acw):'ACW non dispo, = DMC'})">${mmss(a.dmc+(a.acw||0))}</td>
       <td style="${visibleCols.has('acw')?'':' display:none'}" title="${acwDrift?`Dérive >20% vs moyenne ${a.camp} (${mmss(Math.round(grpAcw))})`:"Temps de post-appel"}">
         ${a.acw==null?nd(null):(acwDrift?`<span class="badge badge-alert">⚠ ${acwTxt}</span><div style="font-size:8px;color:${P}">attention</div>`:acwTxt)}
       </td>
@@ -2294,7 +2297,7 @@ function exportPDF(){
       <td style="color:${parseFloat(aph)>=12?"#27ae60":parseFloat(aph)<6?"#E8006E":"#333"};font-weight:700">${aph}</td>
       <td style="color:${parseFloat(ach)>=15?"#27ae60":parseFloat(ach)<8?"#E8006E":"#333"};font-weight:700">${ach}</td>
       <td>${mmss(a.dmc)}</td>
-      <td style="${visibleCols.has('dmt')?'':' display:none'};color:${a.acw?'#ccc':'#555'}" title="DMT = DMC + ACW">${mmss(a.dmc+(a.acw||0))}</td>
+      <td style="${visibleCols.has('dmt')?'':' display:none'}" title="DMT = DMC + ACW (${a.acw?'ACW estimé:'+mmss(a.acw):'ACW non dispo, = DMC'})">${mmss(a.dmc+(a.acw||0))}</td>
       <td style="color:${(a.ko||0)>10?"#E8006E":"#333"}">${a.ko||0}</td>
       <td style="color:${(a.refus||0)>5?"#E8006E":"#333"}">${a.refus||0}</td>
       <td style="color:${a.realise>=80?"#27ae60":a.realise<60?"#E8006E":"#333"};font-weight:700">${a.realise}%</td>
