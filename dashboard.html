@@ -1085,7 +1085,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
-var statTCEdits={}, waActiveCalls=[], waActiveMails=[];
+var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={};
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
@@ -3057,6 +3057,7 @@ var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equi
 (function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
 waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls:WA_SKILLS_CALLS.slice();
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
+if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
 }catch(e){waActiveCalls=WA_SKILLS_CALLS.slice();waActiveMails=WA_SKILLS_MAILS.slice();}})();
 
 // ── Helpers CSS inline ──────────────────────────────────────────
@@ -3183,10 +3184,12 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     h+=waTd(coTxt,coBg,true,coTxtCol);
     // H début
     h+=waTd(hDeb,rowBg);
-    // H déj — non disponible INO
-    h+=waTd("",rowBg);
-    // H retour — non disponible INO
-    h+=waTd("",rowBg);
+    // H déj — éditable manuellement
+    var _hDej=(waTimeEdits[a.id]&&waTimeEdits[a.id].hDej)||"";
+    var _hRetour=(waTimeEdits[a.id]&&waTimeEdits[a.id].hRetour)||"";
+    var _editStyle='cursor:pointer;outline:1px dashed #ccc;color:#555;';
+    h+='<td title="Cliquer pour saisir H déjeuner" onclick="waTimeEditPrompt('+a.id+',\'hDej\',\''+_hDej+'\')" style="background:'+rowBg+';text-align:center;'+CS+_editStyle+'">'+(_hDej||'<span style=\"color:#bbb;font-size:8px\">--:--</span>')+'</td>';
+    h+='<td title="Cliquer pour saisir H retour" onclick="waTimeEditPrompt('+a.id+',\'hRetour\',\''+_hRetour+'\')" style="background:'+rowBg+';text-align:center;'+CS+_editStyle+'">'+(_hRetour||'<span style=\"color:#bbb;font-size=8px\">--:--</span>')+'</td>';
     // H fin
     h+=waTd(hFin,rowBg);
     // Cumul = H prod
@@ -3211,9 +3214,13 @@ function buildAffectationTable(sorted,dateStr,timeStr){
       "min-width:115px;line-height:1.3;"
     );
 
-    // Liste compétences — toutes compétences actives
+    // Liste compétences — UNIQUEMENT depuis allSkillsData (données INO exactes)
+    var _hasInoSk=Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;
+    var _nbActif=_hasInoSk?a.allSkillsData.filter(function(x){return x.active;}).length:null;
     WA_SKILLS_COMP.forEach(function(s){
-      var has=waHas(sk,s);
+      var has=_hasInoSk
+        ?a.allSkillsData.some(function(x){return x.active&&(x.name||x)===s;})
+        :false;
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
 
@@ -3275,7 +3282,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     campData[camp].appOut+=(a.sortants||0);
     campData[camp].durW  +=(a.dmc||0)*(a.decroches||0);
     campData[camp].hp    +=(a.hprod||0);
-    campData[camp].mails +=(mailsEdit[a.id]||a.mails_auto||0);
+    var _mk=a.login||a.id;campData[camp].mails +=((statTCEdits[_mk]&&statTCEdits[_mk].mails!=null)?statTCEdits[_mk].mails:(mailsEdit[a.id]||a.mails_auto||0));
   });
 
   // Campagnes triées par nb agents desc
@@ -3288,20 +3295,20 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   var tAppOut=T.reduce(function(s,a){return s+(a.sortants||0);},0);
   var tDurW  =T.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
   var tHp    =T.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var tMails =T.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+  var tMails =T.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
 
   var viv=T.filter(function(a){return a.camp==="Vivest";});
   var vAppIn=viv.reduce(function(s,a){return s+(a.decroches||0);},0);
   var vDurW =viv.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
   var vHp   =viv.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var vMails=viv.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+  var vMails=viv.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
   var vAppOut=viv.reduce(function(s,a){return s+(a.sortants||0);},0);
 
   var fil=T.filter(function(a){return a.camp==="Filippi";});
   var fAppIn=fil.reduce(function(s,a){return s+(a.decroches||0);},0);
   var fDurW =fil.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
   var fHp   =fil.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var fMails=fil.reduce(function(s,a){return s+(mailsEdit[a.id]||a.mails_auto||0);},0);
+  var fMails=fil.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
   var fAppOut=fil.reduce(function(s,a){return s+(a.sortants||0);},0);
 
   // Nombre de colonnes total
@@ -3367,11 +3374,11 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       aFn:function(a){return a.sortants||0;},
       cFn:function(cd){return cd.appOut;}
     },{
-      lbl:"Mails traités",bg:"#F0FFF0",col:"#1a6b1a",
+      lbl:"Mails traités",bg:"#F0FFF0",col:"#1a6b1a",editable:true,editRow:"mails",
       tot:function(){return tMails;},
       vFn:function(){return vMails;},
       fFn:function(){return fMails;},
-      aFn:function(a){return mailsEdit[a.id]||a.mails_auto||0;},
+      aFn:function(a){var _k=a.login||a.id;return(statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0);},
       cFn:function(cd){return cd.mails;}
     },{
       lbl:"Heures formation/débrief",bg:"#FFE0FF",col:"#800080",editable:true,editRow:'form',
@@ -3406,7 +3413,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       tot:function(){var th=T.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((tAppIn+tAppOut+tMails)/th).toFixed(2):"–";},
       vFn:function(){var th=viv.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((vAppIn+vAppOut+vMails)/th).toFixed(2):"–";},
       fFn:function(){var th=fil.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((fAppIn+fAppOut+fMails)/th).toFixed(2):"–";},
-      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0,th=hp+f+i,ac=(a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]||a.mails_auto||0);return th>0?(ac/th).toFixed(2):"–";},
+      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0,th=hp+f+i,ml=(statTCEdits[k]&&statTCEdits[k].mails!=null)?statTCEdits[k].mails:(mailsEdit[a.id]||a.mails_auto||0),ac=(a.decroches||0)+(a.sortants||0)+ml;return th>0?(ac/th).toFixed(2):"–";},
       cFn:function(cd){var th=cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((cd.appIn+cd.appOut+cd.mails)/th).toFixed(2):"–";}
     },
   ];
@@ -3426,7 +3433,10 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       cd.agents.forEach(function(a){
         var ak=a.login||a.id;
         if(kpi.editable){
-          h+='<td contenteditable="true" data-sted-ak="'+ak+'" data-sted-row="'+kpi.editRow+'" onblur="statTCEdit(\''+ak+'\',\''+kpi.editRow+'\',parseFloat(this.textContent)||0)" style="background:'+campBg+';color:'+kpi.col+';font-weight:400;text-align:center;outline:1px dashed #bbb;cursor:text;'+CS+'min-width:30px;">'+kpi.aFn(a)+'</td>';
+          var _edited=(statTCEdits[ak]&&statTCEdits[ak][kpi.editRow]!=null);
+          var _cellStyle='background:'+campBg+';color:'+kpi.col+';font-weight:400;text-align:center;cursor:pointer;'+CS+'min-width:30px;'+(_edited?'font-weight:700;outline:2px solid '+kpi.col+';':'outline:1px dashed #ccc;');
+          var _val=kpi.aFn(a);
+          h+='<td title="Cliquer pour modifier" onclick="statTCEditPrompt(\''+ak+'\',\''+kpi.editRow+'\','+_val+')" style="'+_cellStyle+'">'+_val+(_edited?'<sup style=\"font-size:6px;color:'+kpi.col+'\">✎</sup>':'')+'</td>';
         } else {
           h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
         }
@@ -3443,7 +3453,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 // ══════════════════════════════════════════════════════════════════
 //  RENDU + EXPORTS
 // ══════════════════════════════════════════════════════════════════
-function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails}));}catch(e){}}
+function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits}));}catch(e){}}
 function waAllCamps(){var all=Object.keys(WA_CAMP_COLORS);(agents||[]).forEach(function(a){if(a.camp&&!all.includes(a.camp))all.push(a.camp);});return all.sort();}
 function waAddCamp(c,t){if(t==='calls'&&!waActiveCalls.includes(c))waActiveCalls.push(c);if(t==='mails'&&!waActiveMails.includes(c))waActiveMails.push(c);waSaveCols();waBuildConfig();renderWA();}
 function waRemoveCamp(c,t){if(t==='calls')waActiveCalls=waActiveCalls.filter(function(x){return x!==c;});if(t==='mails')waActiveMails=waActiveMails.filter(function(x){return x!==c;});waSaveCols();waBuildConfig();renderWA();}
@@ -3458,6 +3468,29 @@ function waBuildConfig(){
   panel.innerHTML='<div class="wa-cfg-hdr">⚙ Personnaliser les colonnes<button onclick="waResetCols()">↺ Réinitialiser</button></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels ('+waActiveCalls.length+')</div><div class="wa-cfg-tags">'+tags(waActiveCalls,'calls')+sel(avC,'calls')+'</div></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
+}
+function waTimeEditPrompt(agentId,field,currentVal){
+  var label=field==='hDej'?'H déjeuner (ex: 12:30)':'H retour (ex: 13:30)';
+  var v=prompt(label,currentVal||'');
+  if(v===null)return;
+  if(!waTimeEdits[agentId])waTimeEdits[agentId]={};
+  waTimeEdits[agentId][field]=v.trim();
+  waSaveCols();
+  if(window._lastWaSorted){
+    var z=document.getElementById('wa-table-affectation');
+    if(!z)return;
+    var now=new Date();
+    var ds=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    var tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    z.innerHTML=buildAffectationTable(window._lastWaSorted,ds,tm);
+  }
+}
+function statTCEditPrompt(ak,row,currentVal){
+  var labels={form:'Formation/débrief (heures)',incident:'Incident/bug (heures)',hprod:'Heures de prod',mails:'Mails traités'};
+  var v=prompt((labels[row]||row)+' — '+ak+' :', currentVal);
+  if(v===null)return;
+  var num=parseFloat(v.replace(',','.'));
+  statTCEdit(ak,row,isNaN(num)?0:num);
 }
 function statTCEdit(ak,row,val){
   if(!statTCEdits[ak])statTCEdits[ak]={};
