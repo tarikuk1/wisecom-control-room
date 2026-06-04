@@ -591,6 +591,19 @@ body.light .filter-group>.filter-label{color:#888;}
 @keyframes progShimmer{0%{background-position:200% 0}100%{background-position:0 0}}
 #skills-prog-lbl{font-size:11px;color:#888;margin-top:4px;}
 body.light #skills-prog-bar-wrap{background:#ddd;}
+#wa-config-panel{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+.wa-cfg-hdr{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.wa-cfg-hdr button{margin-left:auto;font-size:9px;padding:2px 7px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#666;}
+.wa-cfg-hdr button:hover{background:#f0e0e8;border-color:#E8006E;color:#E8006E;}
+.wa-cfg-row{margin-bottom:8px;}
+.wa-cfg-row:last-child{margin-bottom:0;}
+.wa-cfg-lbl{font-size:9px;font-weight:700;color:#555;margin-bottom:5px;}
+.wa-cfg-tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.wa-cfg-tag{display:inline-flex;align-items:center;gap:2px;padding:2px 7px 2px 8px;border-radius:10px;font-size:9.5px;font-weight:600;border:1px solid rgba(0,0,0,.1);cursor:default;}
+.wa-cfg-tag button{background:none;border:none;cursor:pointer;font-size:11px;line-height:1;padding:0 1px;opacity:.6;color:inherit;}
+.wa-cfg-tag button:hover{opacity:1;}
+.wa-cfg-sel{font-size:9.5px;padding:2px 6px;border:1.5px dashed #ccc;border-radius:10px;background:transparent;cursor:pointer;color:#888;max-width:160px;}
+.wa-cfg-sel:hover{border-color:#E8006E;color:#E8006E;}
 body.light .sw-track{background:var(--s-light-border)!important;}
 body.light .sw-track > .sw-thumb{background:var(--c-white);}
 body.light .total-row{background:#fff0f7;}
@@ -961,6 +974,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
           <button class="btn" onclick="exportWA_Excel()" style="background:linear-gradient(135deg,#1d6f42,#28a745);color:var(--c-white);font-size:var(--fs-body);padding:6px 14px;font-weight:var(--fw-bold);">📊 Exporter Excel</button>
         </div>
       </div>
+      <div id="wa-config-panel"></div>
       <div id="wa-preview" style="padding:16px;overflow-x:auto;"></div>
     </div>
   </div>
@@ -1071,7 +1085,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
-var statTCEdits={};
+var statTCEdits={}, waActiveCalls=[], waActiveMails=[];
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
@@ -3040,6 +3054,10 @@ var WA_GROUP_COLORS={
 var WA_SKILLS_CALLS=["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
 var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+(function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
+waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls:WA_SKILLS_CALLS.slice();
+waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
+}catch(e){waActiveCalls=WA_SKILLS_CALLS.slice();waActiveMails=WA_SKILLS_MAILS.slice();}})();
 
 // ── Helpers CSS inline ──────────────────────────────────────────
 var CS="border:1px solid #aaa;padding:2px 4px;font-size:8.5px;white-space:nowrap;";
@@ -3103,7 +3121,7 @@ function waHas(sk,name){
 //  TABLEAU 1 — AFFECTATION
 // ══════════════════════════════════════════════════════════════════
 function buildAffectationTable(sorted,dateStr,timeStr){
-  var COLS=7+WA_SKILLS_CALLS.length+WA_SKILLS_MAILS.length+1+WA_SKILLS_COMP.length+1;
+  var COLS=7+waActiveCalls.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
   var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;width:max-content;">';
 
   // ── Titre ──
@@ -3118,8 +3136,8 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+=waTh("H<br>retour","#2F3640","#fff",1,2);
   h+=waTh("H<br>fin","#2F3640","#fff",1,2);
   h+=waTh("Cumul","#2F3640","#fff",1,2);
-  h+=waTh("Affectations appels","#1F4E79","#fff",WA_SKILLS_CALLS.length);
-  h+=waTh("Emails","#4472C4","#fff",WA_SKILLS_MAILS.length);
+  h+=waTh("Affectations appels","#1F4E79","#fff",waActiveCalls.length);
+  h+=waTh("Emails","#4472C4","#fff",waActiveMails.length);
   h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
   h+=waTh("Liste des compétences","#375623","#fff",WA_SKILLS_COMP.length);
   h+=waTh("Files<br>à jour","#C55A11","#fff");
@@ -3127,8 +3145,8 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 
   // ── Header ligne 2 — colonnes compétences ──
   h+='<tr>';
-  WA_SKILLS_CALLS.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
-  WA_SKILLS_MAILS.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#BDD7EE","#333");});
+  waActiveCalls.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
+  waActiveMails.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#BDD7EE","#333");});
   h+=waTh("","#E8006E","#fff");
   WA_SKILLS_COMP.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
   h+=waTh("","#C55A11","#fff");
@@ -3175,12 +3193,12 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     h+=waTd(hpNum?hpNum+"h":"–",rowBg,true,hpNum!=="–"&&parseFloat(hpNum)>=7?"#000":"#C00");
 
     // Affectations appels — colorié si compétence active
-    WA_SKILLS_CALLS.forEach(function(s){
+    waActiveCalls.forEach(function(s){
       var has=waHas(sk,s);
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
     // Affectations emails
-    WA_SKILLS_MAILS.forEach(function(s){
+    waActiveMails.forEach(function(s){
       var has=waHas(sk,s);
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg,has,"#333");
     });
@@ -3210,11 +3228,11 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+='<tr style="background:#1F4E79;">';
   h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:9px;padding:2px 6px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
   // Compter par skill
-  WA_SKILLS_CALLS.forEach(function(s){
+  waActiveCalls.forEach(function(s){
     var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
     h+=waTd(n>0?n:"","#BDD7EE",true,n>0?"#1F4E79":"#1F4E79");
   });
-  WA_SKILLS_MAILS.forEach(function(s){
+  waActiveMails.forEach(function(s){
     var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
     h+=waTd(n>0?n:"","#9DC3E6",true,"#1F4E79");
   });
@@ -3425,6 +3443,22 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 // ══════════════════════════════════════════════════════════════════
 //  RENDU + EXPORTS
 // ══════════════════════════════════════════════════════════════════
+function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails}));}catch(e){}}
+function waAllCamps(){var all=Object.keys(WA_CAMP_COLORS);(agents||[]).forEach(function(a){if(a.camp&&!all.includes(a.camp))all.push(a.camp);});return all.sort();}
+function waAddCamp(c,t){if(t==='calls'&&!waActiveCalls.includes(c))waActiveCalls.push(c);if(t==='mails'&&!waActiveMails.includes(c))waActiveMails.push(c);waSaveCols();waBuildConfig();renderWA();}
+function waRemoveCamp(c,t){if(t==='calls')waActiveCalls=waActiveCalls.filter(function(x){return x!==c;});if(t==='mails')waActiveMails=waActiveMails.filter(function(x){return x!==c;});waSaveCols();waBuildConfig();renderWA();}
+function waResetCols(){waActiveCalls=WA_SKILLS_CALLS.slice();waActiveMails=WA_SKILLS_MAILS.slice();waSaveCols();waBuildConfig();renderWA();}
+function waBuildConfig(){
+  var panel=document.getElementById('wa-config-panel');if(!panel)return;
+  var all=waAllCamps();
+  var avC=all.filter(function(c){return!waActiveCalls.includes(c);});
+  var avM=all.filter(function(c){return!waActiveMails.includes(c);});
+  function tags(arr,t){return arr.map(function(c){var bg=WA_CAMP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333">'+c+'<button onclick="waRemoveCamp(\''+c.replace(/'/g,"\\'")+'\',\''+t+'\')">×</button></span>';}).join('');}
+  function sel(av,t){if(!av.length)return'';return'<select class="wa-cfg-sel" onchange="if(this.value){waAddCamp(this.value,\''+t+'\');this.value=\'\';}">'+'<option value="">+ Ajouter…</option>'+av.map(function(c){return'<option value="'+c+'">'+c+'</option>';}).join('')+'</select>';}
+  panel.innerHTML='<div class="wa-cfg-hdr">⚙ Personnaliser les colonnes<button onclick="waResetCols()">↺ Réinitialiser</button></div>'+
+    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels ('+waActiveCalls.length+')</div><div class="wa-cfg-tags">'+tags(waActiveCalls,'calls')+sel(avC,'calls')+'</div></div>'+
+    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
+}
 function statTCEdit(ak,row,val){
   if(!statTCEdits[ak])statTCEdits[ak]={};
   statTCEdits[ak][row]=parseFloat(val)||0;
@@ -3437,6 +3471,7 @@ function statTCEdit(ak,row,val){
   z.innerHTML=buildStatTCTable(window._lastWaSorted,ds,tm);
 }
 function renderWA(){
+  waBuildConfig();
   var z=document.getElementById("wa-preview");
   if(!z)return;
   var ts=document.getElementById("wa-timestamp");
@@ -3452,7 +3487,7 @@ function renderWA(){
     return (b.decroches+b.sortants)-(a.decroches+a.sortants);
   });
   // Exclure les agents sans compétence sur les campagnes WA
-  var allWaCamps=WA_SKILLS_CALLS.concat(WA_SKILLS_MAILS);
+  var allWaCamps=waActiveCalls.concat(waActiveMails);
   sorted=sorted.filter(function(a){
     var sk=waSkills(a);
     if(sk.size===0) return false; // aucune compétence connue → exclure
