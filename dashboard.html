@@ -1265,7 +1265,8 @@ async function loadAgentsFromAPI(){
       slots=Array.isArray(data.slots)?data.slots:[];
       window._nbJours=data.joursActifs||data.nbJours||1;
       window._flux=data.flux||null;
-      agents=data.agents.map(a=>{
+      const _oldSk=Object.fromEntries((agents||[]).filter(x=>x.id).map(x=>[x.id,{a:x.allSkillsData,s:x.skillsData,sk:x.skills}]));
+    agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
         // H. Prod = durée entre 1ère connexion et dernière déconnexion (temps sur le plateau)
         // Fallback : durée de communication / 0.75 (estimation ~75% d'occupation)
@@ -1327,8 +1328,8 @@ async function loadAgentsFromAPI(){
         // Compétences: vides au chargement initial, remplies via bouton ↺ Compétences
         // (évite ~15s de délai au rafraîchir principal)
         return{id:a.id,nom:a.nom,login:a.username,camp,
-          skills:Array.isArray(a.skillsData)&&a.skillsData.length>0?a.skillsData.map(s=>s.name||s):[],
-          allSkillsData:Array.isArray(a.allSkillsData)?a.allSkillsData:[],
+          skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:(Array.isArray(a.skillsData)&&a.skillsData.length>0?a.skillsData.map(s=>s.name||s):[]),
+          allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:(Array.isArray(a.allSkillsData)?a.allSkillsData:[]),
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
