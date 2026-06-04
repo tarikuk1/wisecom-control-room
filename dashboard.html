@@ -585,6 +585,12 @@ body.light .filter-label{color:var(--t-disabled);}
 .filter-group{display:flex;flex-direction:column;gap:2px;align-items:flex-start;}
 .filter-group>.filter-label{font-size:8px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;padding-left:2px;}
 body.light .filter-group>.filter-label{color:#888;}
+#skills-progress{display:none;padding:8px 0 12px;text-align:center;}
+#skills-prog-bar-wrap{background:#e0e0e0;border-radius:6px;height:7px;overflow:hidden;width:80%;max-width:500px;margin:0 auto 6px;}
+#skills-prog-bar{height:100%;background:linear-gradient(90deg,#E8006E 0%,#f5479e 50%,#E8006E 100%);background-size:200% 100%;border-radius:6px;width:0%;transition:width .35s ease;animation:none;}
+@keyframes progShimmer{0%{background-position:200% 0}100%{background-position:0 0}}
+#skills-prog-lbl{font-size:11px;color:#888;margin-top:4px;}
+body.light #skills-prog-bar-wrap{background:#ddd;}
 body.light .sw-track{background:var(--s-light-border)!important;}
 body.light .sw-track > .sw-thumb{background:var(--c-white);}
 body.light .total-row{background:#fff0f7;}
@@ -913,6 +919,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   </div>
 
   <div id="tab-skills" style="display:none;">
+<div id="skills-progress"><div id="skills-prog-bar-wrap"><div id="skills-prog-bar"></div></div><div id="skills-prog-lbl"></div></div>
+
     <div class="panel">
       <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)">
         <span class="panel-title">Matrice compétences × agents</span>
@@ -1063,6 +1071,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
+var statTCEdits={};
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
@@ -1668,10 +1677,15 @@ function closeColDef(e){
 async function refreshSkills(){
   if(agents.length===0){showToast('Chargez d\'abord les données agents','warn');return;}
   const btn=document.getElementById('btn-refresh-skills');
-  if(btn){btn.disabled=true;btn.textContent='Chargement des données…';}
+  if(btn){btn.disabled=true;btn.textContent='Chargement…';}
+  const _prog=document.getElementById('skills-progress');
+  const _bar=document.getElementById('skills-prog-bar');
+  const _lbl=document.getElementById('skills-prog-lbl');
+  if(_prog){_prog.style.display='block';_bar.style.width='5%';_bar.style.animation='progShimmer 1.5s linear infinite';_lbl.textContent='Connexion à INO…';}
+  let _pct=5;const _pt=setInterval(()=>{_pct=Math.min(_pct+1.5,88);if(_bar)_bar.style.width=_pct+'%';},500);
   try{
     const agentIds=agents.map(a=>a.id);
-    showToast('↺ Récupération compétences INO ('+agentIds.length+' agents)…','info',15000);
+    if(_lbl)_lbl.textContent='Récupération compétences — '+agentIds.length+' agents…';
     const resp=await fetch('/api/refresh-skills',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1693,8 +1707,12 @@ async function refreshSkills(){
     });
     render();
     if(document.getElementById('skills-table'))renderSkills();
+    clearInterval(_pt);if(_bar){_bar.style.width='100%';_bar.style.animation='none';}if(_lbl)_lbl.textContent='✓ '+updated+'/'+agentIds.length+' agents mis à jour';
+    setTimeout(()=>{if(_prog)_prog.style.display='none';},2500);
     showToast('✓ Compétences mises à jour ('+updated+'/'+agentIds.length+' agents)','ok',5000);
   }catch(e){
+    clearInterval(_pt);if(_bar){_bar.style.width='0';_bar.style.animation='none';}if(_lbl)_lbl.textContent='Erreur — réessayez';
+    setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);
     showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
   }finally{
     if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
@@ -2383,7 +2401,7 @@ function renderSkills(){
     const dot=isCo?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#30d158;margin-right:6px;vertical-align:middle" title="Connecté"></span>':'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle" title="Déconnecté"></span>';
     const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
     return '<tr style="background:'+rowBg+'">'
-      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(isCo?"#0d130d":"#111")+';white-space:nowrap">'+dot+a.nom+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
+      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(isCo?'#0d130d':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
       +'<td style="text-align:center;padding:8px 12px;font-weight:700;color:'+P+'">'+nbActives+'</td>'
       +colSkills.map(sk=>{
         const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
@@ -3337,41 +3355,47 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       aFn:function(a){return mailsEdit[a.id]||a.mails_auto||0;},
       cFn:function(cd){return cd.mails;}
     },{
-      lbl:"Heures formation/débrief",bg:"#FFE0FF",col:"#CC0000",
-      tot:function(){return 0;},vFn:function(){return 0;},fFn:function(){return 0;},
-      aFn:function(){return 0;},cFn:function(){return 0;}
+      lbl:"Heures formation/débrief",bg:"#FFE0FF",col:"#800080",editable:true,editRow:'form',
+      tot:function(){return T.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].form)||0);},0).toFixed(1);},
+      vFn:function(){return viv.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].form)||0);},0).toFixed(1);},
+      fFn:function(){return fil.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].form)||0);},0).toFixed(1);},
+      aFn:function(a){var k=a.login||a.id;return((statTCEdits[k]&&statTCEdits[k].form)||0).toFixed(1);},
+      cFn:function(cd){return cd.agents.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].form)||0);},0).toFixed(1);}
     },{
-      lbl:"Heures incident/bug",bg:"#FFE0FF",col:"#CC0000",
-      tot:function(){return 0;},vFn:function(){return 0;},fFn:function(){return 0;},
-      aFn:function(){return 0;},cFn:function(){return 0;}
+      lbl:"Heures incident/bug",bg:"#FFF0DD",col:"#994400",editable:true,editRow:'incident',
+      tot:function(){return T.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].incident)||0);},0).toFixed(1);},
+      vFn:function(){return viv.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].incident)||0);},0).toFixed(1);},
+      fFn:function(){return fil.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].incident)||0);},0).toFixed(1);},
+      aFn:function(a){var k=a.login||a.id;return((statTCEdits[k]&&statTCEdits[k].incident)||0).toFixed(1);},
+      cFn:function(cd){return cd.agents.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].incident)||0);},0).toFixed(1);}
     },{
-      lbl:"Heures de prod",bg:"#E0F0FF",col:"#1F4E79",
-      tot:function(){return tHp.toFixed(1);},
-      vFn:function(){return vHp.toFixed(1);},
-      fFn:function(){return fHp.toFixed(1);},
-      aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
-      cFn:function(cd){return cd.hp.toFixed(1);}
+      lbl:"Heures de prod",bg:"#E0F0FF",col:"#1F4E79",editable:true,editRow:'hprod',
+      tot:function(){return T.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0));},0).toFixed(1);},
+      vFn:function(){return viv.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0));},0).toFixed(1);},
+      fFn:function(){return fil.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0));},0).toFixed(1);},
+      aFn:function(a){var k=a.login||a.id;return((statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0)).toFixed(1);},
+      cFn:function(cd){return cd.agents.reduce(function(s,a){var k=a.login||a.id;return s+((statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0));},0).toFixed(1);}
     },{
-      lbl:"Total Heures",bg:"#E0F0FF",col:"#1F4E79",
-      tot:function(){return tHp.toFixed(1);},
-      vFn:function(){return vHp.toFixed(1);},
-      fFn:function(){return fHp.toFixed(1);},
-      aFn:function(a){return a.hprod?a.hprod.toFixed(1):"0";},
-      cFn:function(cd){return cd.hp.toFixed(1);}
+      lbl:"Total Heures",bg:"#E0F0FF",col:"#1F4E79",bold:true,
+      tot:function(){return T.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0).toFixed(1);},
+      vFn:function(){return viv.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0).toFixed(1);},
+      fFn:function(){return fil.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0).toFixed(1);},
+      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return(hp+f+i).toFixed(1);},
+      cFn:function(cd){return cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0).toFixed(1);}
     },{
       lbl:"Actes par heures",bg:"#FFE8F5",col:"#E8006E",bold:true,
-      tot:function(){return tHp>0?((tAppIn+tAppOut+tMails)/tHp).toFixed(2):"–";},
-      vFn:function(){return vHp>0?((vAppIn+vAppOut+vMails)/vHp).toFixed(2):"–";},
-      fFn:function(){return fHp>0?((fAppIn+fAppOut+fMails)/fHp).toFixed(2):"–";},
-      aFn:function(a){return a.actesH||0;},
-      cFn:function(cd){return cd.hp>0?((cd.appIn+cd.appOut+cd.mails)/cd.hp).toFixed(2):"–";}
+      tot:function(){var th=T.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((tAppIn+tAppOut+tMails)/th).toFixed(2):"–";},
+      vFn:function(){var th=viv.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((vAppIn+vAppOut+vMails)/th).toFixed(2):"–";},
+      fFn:function(){var th=fil.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((fAppIn+fAppOut+fMails)/th).toFixed(2):"–";},
+      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0,th=hp+f+i,ac=(a.decroches||0)+(a.sortants||0)+(mailsEdit[a.id]||a.mails_auto||0);return th>0?(ac/th).toFixed(2):"–";},
+      cFn:function(cd){var th=cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((cd.appIn+cd.appOut+cd.mails)/th).toFixed(2):"–";}
     },
   ];
 
   KPIS.forEach(function(kpi){
     h+='<tr>';
     h+='<td style="background:'+kpi.bg+';font-weight:'+(kpi.bold?'700':'600')+';color:'+kpi.col+
-       ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+kpi.lbl+'</td>';
+       ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+(kpi.editable?'<span style="opacity:.5;margin-right:3px;font-size:7px">✎</span>':'')+kpi.lbl+'</td>';
     // Cumulatifs
     h+=waTd(kpi.tot(),kpi.bg+"88",kpi.bold,kpi.col);
     h+=waTd(kpi.vFn(),"#A9D18E44",kpi.bold,kpi.col);
@@ -3381,7 +3405,12 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       var cd=campData[camp];
       var campBg=(WA_GROUP_COLORS[camp]||"#E0E0E0")+"22";
       cd.agents.forEach(function(a){
-        h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
+        var ak=a.login||a.id;
+        if(kpi.editable){
+          h+='<td contenteditable="true" data-sted-ak="'+ak+'" data-sted-row="'+kpi.editRow+'" onblur="statTCEdit(\''+ak+'\',\''+kpi.editRow+'\',parseFloat(this.textContent)||0)" style="background:'+campBg+';color:'+kpi.col+';font-weight:400;text-align:center;outline:1px dashed #bbb;cursor:text;'+CS+'min-width:30px;">'+kpi.aFn(a)+'</td>';
+        } else {
+          h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
+        }
       });
       h+=waTd(kpi.cFn(cd),(WA_GROUP_COLORS[camp]||"#D0D0D0")+"55",true,kpi.col);
     });
@@ -3395,6 +3424,17 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 // ══════════════════════════════════════════════════════════════════
 //  RENDU + EXPORTS
 // ══════════════════════════════════════════════════════════════════
+function statTCEdit(ak,row,val){
+  if(!statTCEdits[ak])statTCEdits[ak]={};
+  statTCEdits[ak][row]=parseFloat(val)||0;
+  if(!window._lastWaSorted)return;
+  var z=document.getElementById('wa-table-stat');
+  if(!z)return;
+  var now=new Date();
+  var ds=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  z.innerHTML=buildStatTCTable(window._lastWaSorted,ds,tm);
+}
 function renderWA(){
   var z=document.getElementById("wa-preview");
   if(!z)return;
@@ -3417,6 +3457,7 @@ function renderWA(){
     if(sk.size===0) return false; // aucune compétence connue → exclure
     return allWaCamps.some(function(s){return waHas(sk,s);});
   });
+  window._lastWaSorted=sorted;
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
     '<div style="height:16px;"></div>'+
@@ -3449,7 +3490,13 @@ function exportWA_Excel(){
   if(!aff){showToast("Générez d'abord l'aperçu dans l'onglet Export WhatsApp.","#ff9f0a");return;}
   var now=new Date();
   var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
-    '<head><meta charset="UTF-8"><style>td,th{border:1px solid #999;mso-number-format:"@";}</style></head>'+
+    '<head><meta charset="UTF-8"><style>'+
+    'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px;}'+
+    'td,th{border:2px solid #555;padding:3px 5px;text-align:center;vertical-align:middle;mso-number-format:\"@\";}'+
+    'th{background:#2F3640;color:#fff;font-weight:700;border:2px solid #333;}'+
+    'td:first-child,th:first-child{text-align:left;min-width:120px;}'+
+    'tr:nth-child(even) td{background-color:#f9f9f9;}'+
+    '</style></head>'+
     '<body><h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Affectation</h2>'+
     aff.innerHTML+'<br><br>'+
     '<h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Stat TC</h2>'+
