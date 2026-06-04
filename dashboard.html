@@ -591,6 +591,15 @@ body.light .filter-group>.filter-label{color:#888;}
 @keyframes progShimmer{0%{background-position:200% 0}100%{background-position:0 0}}
 #skills-prog-lbl{font-size:11px;color:#888;margin-top:4px;}
 body.light #skills-prog-bar-wrap{background:#ddd;}
+.wa-edit-btn{margin-top:3px;font-size:8px;padding:1px 6px;border:1.5px solid #E8006E;border-radius:3px;background:#fff;color:#E8006E;cursor:pointer;font-weight:700;}
+.wa-edit-btn:hover{background:#E8006E;color:#fff;}
+#wa-edit-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;}
+#wa-edit-panel{background:#fff;border-radius:12px;padding:24px 28px;width:440px;max-width:95vw;margin:60px auto;box-shadow:0 12px 48px rgba(0,0,0,.25);}
+.wa-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.wa-edit-field{display:flex;flex-direction:column;gap:3px;}
+.wa-edit-field label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.04em;}
+.wa-edit-field input{padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box;}
+.wa-edit-field input:focus{outline:none;border-color:#E8006E;}
 #wa-config-panel{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
 .wa-cfg-hdr{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
 .wa-cfg-hdr button{margin-left:auto;font-size:9px;padding:2px 7px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#666;}
@@ -981,6 +990,11 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
 </div>
 
+<!-- Modal édition WA — données agent -->
+<div id="wa-edit-modal" onclick="if(event.target===this)waEditClose()">
+  <div id="wa-edit-panel"></div>
+</div>
+
 <script>
 const P="#E8006E";
 // === Timeout de déconnexion : 10 min d'inactivité ===
@@ -1085,7 +1099,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
-var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={};
+var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={}, waEmailEdits={};
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
@@ -3058,6 +3072,8 @@ var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equi
 waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls:WA_SKILLS_CALLS.slice();
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
 if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
+if(_s&&typeof _s.email==='object')waEmailEdits=_s.email||{};
+if(_s&&typeof _s.stc==='object')statTCEdits=_s.stc||{};
 }catch(e){waActiveCalls=WA_SKILLS_CALLS.slice();waActiveMails=WA_SKILLS_MAILS.slice();}})();
 
 // ── Helpers CSS inline ──────────────────────────────────────────
@@ -3166,8 +3182,10 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     var coBg=stOK?"#00B050":stDeco?"#FF0000":"#FF9900";
     var coTxtCol="#fff";
 
-    // Nbr opé = entrants décrochés + sortants
-    var nbr=(a.decroches||0)+(a.sortants||0);
+    // Nbr opé = décrochés + sortants + mails (actes total)
+    var _nbrK=a.login||a.id;
+    var _nbrM=(statTCEdits[_nbrK]&&statTCEdits[_nbrK].mails!=null)?statTCEdits[_nbrK].mails:(mailsEdit[a.id]||a.mails_auto||0);
+    var nbr=(a.decroches||0)+(a.sortants||0)+_nbrM;
 
     // Heures
     var hDeb=waHr(a.premiereAction);
@@ -3200,16 +3218,21 @@ function buildAffectationTable(sorted,dateStr,timeStr){
       var has=waHas(sk,s);
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
-    // Affectations emails
+    // Affectations emails (INO + override manager)
     waActiveMails.forEach(function(s){
-      var has=waHas(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg,has,"#333");
+      var hasIno=waHas(sk,s);
+      var hasManual=Array.isArray(waEmailEdits[a.id])&&waEmailEdits[a.id].includes(s);
+      var has=hasIno||hasManual;
+      var eBg=has?(WA_CAMP_COLORS[s]||"#BDD7EE"):rowBg;
+      h+='<td style="background:'+eBg+';font-weight:'+(has?"700":"400")+';text-align:center;color:#333;'+CS+'">'+(has?(s+(hasManual&&!hasIno?'<sup style="font-size:6px"> M</sup>':'')):'')+'</td>';
     });
 
-    // Nom agent + login INO
+    // Nom agent + login INO + bouton ✎ Modifier
     var campBg=WA_GROUP_COLORS[a.camp]||"#FFF8E7";
+    var _ak=a.login||a.id;
     h+=waTd(
-      '<b style="font-size:9px;">'+a.nom+'</b>'+(loginTxt?'<br><span style="font-size:7.5px;color:#666;font-weight:400;">'+loginTxt+'</span>':''),
+      '<b style="font-size:9px;">'+a.nom+'</b>'+(loginTxt?'<br><span style="font-size:7.5px;color:#666;font-weight:400;">'+loginTxt+'</span>':'')+
+      '<br><button class="wa-edit-btn" onclick="event.stopPropagation();waEditOpen('+a.id+',\''+_ak+'\')" title="Modifier les données de cet agent">✎ Modifier</button>',
       campBg,false,"#111","left",
       "min-width:115px;line-height:1.3;"
     );
@@ -3453,7 +3476,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 // ══════════════════════════════════════════════════════════════════
 //  RENDU + EXPORTS
 // ══════════════════════════════════════════════════════════════════
-function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits}));}catch(e){}}
+function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits,email:waEmailEdits,stc:statTCEdits}));}catch(e){}}
 function waAllCamps(){var all=Object.keys(WA_CAMP_COLORS);(agents||[]).forEach(function(a){if(a.camp&&!all.includes(a.camp))all.push(a.camp);});return all.sort();}
 function waAddCamp(c,t){if(t==='calls'&&!waActiveCalls.includes(c))waActiveCalls.push(c);if(t==='mails'&&!waActiveMails.includes(c))waActiveMails.push(c);waSaveCols();waBuildConfig();renderWA();}
 function waRemoveCamp(c,t){if(t==='calls')waActiveCalls=waActiveCalls.filter(function(x){return x!==c;});if(t==='mails')waActiveMails=waActiveMails.filter(function(x){return x!==c;});waSaveCols();waBuildConfig();renderWA();}
@@ -3469,6 +3492,75 @@ function waBuildConfig(){
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels ('+waActiveCalls.length+')</div><div class="wa-cfg-tags">'+tags(waActiveCalls,'calls')+sel(avC,'calls')+'</div></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
 }
+var _waEditAgent=null;
+function waEditOpen(agentId,agentKey){
+  _waEditAgent={id:agentId,key:agentKey};
+  var a=(agents||[]).find(function(x){return x.id==agentId;})||{};
+  var sk=statTCEdits[agentKey]||{};
+  var tm=waTimeEdits[agentId]||{};
+  var em=waEmailEdits[agentId]||[];
+  var mails=sk.mails!=null?sk.mails:(mailsEdit[agentId]||a.mails_auto||0);
+  var form=sk.form!=null?sk.form:0;
+  var incident=sk.incident!=null?sk.incident:0;
+  var hprod=sk.hprod!=null?sk.hprod:(a.hprod||0);
+  function fld(lbl,id,val,type,step,ph){
+    return '<div class="wa-edit-field"><label>'+lbl+'</label><input id="'+id+'" type="'+type+'" value="'+val+'"'+(step?' step="'+step+'"':'')+(ph?' placeholder="'+ph+'"':'')+(type==='number'?' min="0"':'')+' autocomplete="off"></div>';
+  }
+  var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">'
+    +'<div><div style="font-size:13px;font-weight:700;color:#E8006E">✎ '+a.nom+'</div>'
+    +'<div style="font-size:10px;color:#888;margin-top:2px;">'+(a.camp||'–')+' · '+(a.login||agentKey)+'</div></div>'
+    +'<button onclick="waEditClose()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#aaa;line-height:1;padding:0">×</button></div>';
+  h+='<div class="wa-edit-grid">';
+  h+=fld('Mails traités','wem-mails',mails,'number','1');
+  h+=fld('H déjeuner','wem-hdej',tm.hDej||'','text',null,'12:30');
+  h+=fld('H retour','wem-hretour',tm.hRetour||'','text',null,'13:30');
+  h+=fld('H formation/débrief','wem-form',form,'number','0.5');
+  h+=fld('H incident/bug','wem-incident',incident,'number','0.5');
+  h+=fld('H prod (correction)','wem-hprod',parseFloat(hprod||0).toFixed(1),'number','0.1');
+  h+='</div>';
+  if(waActiveMails.length>0){
+    h+='<div style="font-size:10px;font-weight:700;color:#4472C4;margin-bottom:6px;margin-top:4px;">✉ Compétences email manuelles</div>';
+    h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">';
+    waActiveMails.forEach(function(s){
+      h+='<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #ddd;">'
+        +'<input type="checkbox" id="wem-em-'+s+'" '+(em.includes(s)?'checked':'')+'>'+s+'</label>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid #f0f0f0;">'
+    +'<button onclick="waEditClose()" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:12px;">Annuler</button>'
+    +'<button onclick="waEditSave()" style="padding:8px 20px;border:none;border-radius:6px;background:linear-gradient(135deg,#E8006E,#c2005a);color:#fff;font-weight:700;cursor:pointer;font-size:12px;">✓ Valider et recalculer</button>'
+    +'</div>';
+  document.getElementById('wa-edit-panel').innerHTML=h;
+  document.getElementById('wa-edit-modal').style.display='block';
+}
+function waEditSave(){
+  if(!_waEditAgent)return;
+  var id=_waEditAgent.id,key=_waEditAgent.key;
+  if(!statTCEdits[key])statTCEdits[key]={};
+  statTCEdits[key].mails=parseFloat(document.getElementById('wem-mails').value)||0;
+  statTCEdits[key].form=parseFloat(document.getElementById('wem-form').value)||0;
+  statTCEdits[key].incident=parseFloat(document.getElementById('wem-incident').value)||0;
+  statTCEdits[key].hprod=parseFloat(document.getElementById('wem-hprod').value)||0;
+  if(!waTimeEdits[id])waTimeEdits[id]={};
+  waTimeEdits[id].hDej=document.getElementById('wem-hdej').value.trim();
+  waTimeEdits[id].hRetour=document.getElementById('wem-hretour').value.trim();
+  var em=[];
+  waActiveMails.forEach(function(s){var c=document.getElementById('wem-em-'+s);if(c&&c.checked)em.push(s);});
+  waEmailEdits[id]=em;
+  waSaveCols();
+  waEditClose();
+  if(window._lastWaSorted){
+    var now=new Date();
+    var ds=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    var tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var z1=document.getElementById('wa-table-affectation');
+    var z2=document.getElementById('wa-table-stat');
+    if(z1)z1.innerHTML=buildAffectationTable(window._lastWaSorted,ds,tm);
+    if(z2)z2.innerHTML=buildStatTCTable(window._lastWaSorted,ds,tm);
+  }
+}
+function waEditClose(){document.getElementById('wa-edit-modal').style.display='none';_waEditAgent=null;}
 function waTimeEditPrompt(agentId,field,currentVal){
   var label=field==='hDej'?'H déjeuner (ex: 12:30)':'H retour (ex: 13:30)';
   var v=prompt(label,currentVal||'');
