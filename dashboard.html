@@ -591,7 +591,7 @@ body.light .filter-group>.filter-label{color:#888;}
 @keyframes progShimmer{0%{background-position:200% 0}100%{background-position:0 0}}
 #skills-prog-lbl{font-size:11px;color:#888;margin-top:4px;}
 body.light #skills-prog-bar-wrap{background:#ddd;}
-.wa-edit-btn{margin-top:3px;font-size:8px;padding:1px 6px;border:1.5px solid #E8006E;border-radius:3px;background:#fff;color:#E8006E;cursor:pointer;font-weight:700;}
+.wa-edit-btn{margin-top:4px;font-size:11px;padding:3px 8px;border:1.5px solid #E8006E;border-radius:4px;background:#fff;color:#E8006E;cursor:pointer;font-weight:700;letter-spacing:.02em;}
 .wa-edit-btn:hover{background:#E8006E;color:#fff;}
 #wa-edit-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;}
 #wa-edit-panel{background:#fff;border-radius:12px;padding:24px 28px;width:440px;max-width:95vw;margin:60px auto;box-shadow:0 12px 48px rgba(0,0,0,.25);}
@@ -600,6 +600,11 @@ body.light #skills-prog-bar-wrap{background:#ddd;}
 .wa-edit-field label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.04em;}
 .wa-edit-field input{padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%;box-sizing:border-box;}
 .wa-edit-field input:focus{outline:none;border-color:#E8006E;}
+.sk-active{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#E8006E;color:#fff;font-size:12px;font-weight:700;}
+.sk-inactive{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:transparent;border:2px solid #bbb;color:#aaa;font-size:14px;cursor:pointer;transition:all .15s;line-height:1;}
+.sk-inactive:hover{border-color:#E8006E;color:#E8006E;background:rgba(232,0,110,.06);}
+.sk-none{color:#ccc;font-size:13px;font-weight:300;}
+.sk-ratio{font-size:9px;color:#999;display:block;margin-top:1px;line-height:1;}
 #wa-config-panel{background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
 .wa-cfg-hdr{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
 .wa-cfg-hdr button{margin-left:auto;font-size:9px;padding:2px 7px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#666;}
@@ -2418,7 +2423,7 @@ function renderSkills(){
   const thStyle='text-align:center;min-width:85px;padding:8px 12px;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none';
   const thead='<thead><tr>'
     +'<th onclick="sortSkills(\'__agent\')" style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2;cursor:pointer;user-select:none">Agent'+arrow('__agent')+'</th>'
-    +'<th onclick="sortSkills(\'__count\')" style="'+thStyle+'">Nb actives'+arrow('__count')+'</th>'
+    +'<th onclick="sortSkills(\'__count\')" style="'+thStyle+'" title="Actives / Total configurées">Actif<br><span style="font-size:9px;font-weight:400;opacity:.7">/ Total</span>'+arrow('__count')+'</th>'
     +colSkills.map(sk=>'<th onclick="sortSkills(\''+sk.replace(/'/g,"\\'")+'\')" style="'+thStyle+'">'+sk+arrow(sk)+'</th>').join('')
     +'<th onclick="sortSkills(\'__files\')" style="'+thStyle+'">Files'+arrow('__files')+'</th>'
     +'</tr></thead>';
@@ -2431,7 +2436,7 @@ function renderSkills(){
     const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
     return '<tr style="background:'+rowBg+'">'
       +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(isCo?'#0d130d':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
-      +'<td style="text-align:center;padding:8px 12px;font-weight:700;color:'+P+'">'+nbActives+'</td>'
+      +'<td style="text-align:center;padding:6px 12px;font-weight:700;color:'+P+'">'+nbActives+'<span class="sk-ratio">'+(a.allSkillsData||[]).length+' config.</span></td>'
       +colSkills.map(sk=>{
         const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
         const has=skillEntry?skillEntry.active:false;
@@ -2439,14 +2444,22 @@ function renderSkills(){
         const skillScore=skillEntry?skillEntry.score:100;
         const sid=skillId||'';
         const eid=a.id+','+encodeURIComponent(a.nom)+','+encodeURIComponent(sk)+','+sid+','+skillScore;
-        const btnStyle='display:inline-block;width:22px;height:22px;border-radius:50%;background:transparent;border:1px solid #2a2a2a;cursor:pointer;font-size:11px;color:#555;line-height:20px;text-align:center;transition:all .2s';
-        return '<td style="text-align:center;padding:8px 12px">'
-          +(has
-            ?'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+P+';line-height:22px;text-align:center;font-size:11px;font-weight:700;color:#fff" title="Actif · Score: '+skillScore+'">✓</span>'
-            :(skillEntry
-              ?'<button class="skill-act-btn" data-eid="'+eid+'" title="Activer (compétence configurée, inactive)" style="'+btnStyle+'">+</button>'
-              :'<span style="color:#2a2a2a;font-size:10px" title="Non configurée pour cet agent">·</span>'))
-          +'</td>';
+        if(has){
+          // ACTIVE : cercle rose plein + score
+          return '<td style="text-align:center;padding:6px 12px;background:rgba(232,0,110,.05)">'
+            +'<span class="sk-active" title="Actif · Score: '+skillScore+'">✓</span>'
+            +(skillScore!==100&&skillScore!=null?'<span class="sk-ratio">'+skillScore+'%</span>':'')
+            +'</td>';
+        } else if(skillEntry){
+          // INACTIVE : cercle gris creux + bouton activation discret
+          return '<td style="text-align:center;padding:6px 12px;background:rgba(150,150,150,.04)">'
+            +'<button class="sk-inactive skill-act-btn" data-eid="'+eid+'" title="Configurée mais INACTIVE — cliquer pour activer">○</button>'
+            +(skillScore!==100&&skillScore!=null?'<span class="sk-ratio" style="color:#aaa">'+skillScore+'%</span>':'')
+            +'</td>';
+        } else {
+          // NON CONFIGURÉE
+          return '<td style="text-align:center;padding:6px 12px"><span class="sk-none" title="Non configurée pour cet agent">–</span></td>';
+        }
       }).join('')
       +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
       +'</tr>';
@@ -3457,9 +3470,10 @@ function buildStatTCTable(sorted,dateStr,timeStr){
         var ak=a.login||a.id;
         if(kpi.editable){
           var _edited=(statTCEdits[ak]&&statTCEdits[ak][kpi.editRow]!=null);
-          var _cellStyle='background:'+campBg+';color:'+kpi.col+';font-weight:400;text-align:center;cursor:pointer;'+CS+'min-width:30px;'+(_edited?'font-weight:700;outline:2px solid '+kpi.col+';':'outline:1px dashed #ccc;');
+          var _cellStyle='background:'+campBg+';color:'+kpi.col+';font-weight:400;text-align:center;cursor:pointer;'+CS+'min-width:32px;position:relative;'+(_edited?'font-weight:700;outline:2px solid '+kpi.col+';background:'+kpi.bg+'66;':'outline:1px dashed #ccc;');
           var _val=kpi.aFn(a);
-          h+='<td title="Cliquer pour modifier" onclick="statTCEditPrompt(\''+ak+'\',\''+kpi.editRow+'\','+_val+')" style="'+_cellStyle+'">'+_val+(_edited?'<sup style=\"font-size:6px;color:'+kpi.col+'\">✎</sup>':'')+'</td>';
+          var _indicator=_edited?'<span style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:'+kpi.col+';display:block;"></span>':'';
+          h+='<td title="Cliquer pour modifier" onclick="statTCEditPrompt(\''+ak+'\',\''+kpi.editRow+'\','+_val+')" style="'+_cellStyle+'">'+_val+_indicator+'</td>';
         } else {
           h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
         }
@@ -3504,7 +3518,7 @@ function waEditOpen(agentId,agentKey){
   var incident=sk.incident!=null?sk.incident:0;
   var hprod=sk.hprod!=null?sk.hprod:(a.hprod||0);
   function fld(lbl,id,val,type,step,ph){
-    return '<div class="wa-edit-field"><label>'+lbl+'</label><input id="'+id+'" type="'+type+'" value="'+val+'"'+(step?' step="'+step+'"':'')+(ph?' placeholder="'+ph+'"':'')+(type==='number'?' min="0"':'')+' autocomplete="off"></div>';
+    return '<div class="wa-edit-field"><label>'+lbl+'</label><input id="'+id+'" type="'+type+'" value="'+val+'"'+(step?' step="'+step+'"':'')+(ph?' placeholder="'+ph+'"':'')+(type==='number'?' min="0"':'')+' autocomplete="off" onclick="this.select()"></div>';
   }
   var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">'
     +'<div><div style="font-size:13px;font-weight:700;color:#E8006E">✎ '+a.nom+'</div>'
