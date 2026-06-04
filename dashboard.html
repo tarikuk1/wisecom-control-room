@@ -582,6 +582,9 @@ body.light .btn-dismiss{background:var(--c-white);color:var(--t-disabled);border
 body.light .btn-dismiss:hover{background:var(--s-light-2);color:var(--s-4);border-color:#bbb;}
 body.light .btn-refresh{color:var(--c-white);}
 body.light .filter-label{color:var(--t-disabled);}
+.filter-group{display:flex;flex-direction:column;gap:2px;align-items:flex-start;}
+.filter-group>.filter-label{font-size:8px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;padding-left:2px;}
+body.light .filter-group>.filter-label{color:#888;}
 body.light .sw-track{background:var(--s-light-border)!important;}
 body.light .sw-track > .sw-thumb{background:var(--c-white);}
 body.light .total-row{background:#fff0f7;}
@@ -824,12 +827,11 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="ctrl-row-b">
 
       <span class="ctrl-label">Filtres</span>
-      <div class="ck-wrap" id="ck-camps"></div>
-      <div class="ck-wrap" id="ck-queues"></div>
-      <div class="ck-wrap" id="ck-agents"></div>
-      <div class="ck-wrap" id="ck-skills"></div>
-      <div class="ck-wrap" id="ck-contrats"></div>
-      <div class="ck-wrap" id="ck-status"></div>
+      <div class="filter-group"><span class="filter-label">Campagnes</span><div class="ck-wrap" id="ck-camps"></div></div>
+      <div class="filter-group"><span class="filter-label">Files</span><div class="ck-wrap" id="ck-queues"></div></div>
+      <div class="filter-group"><span class="filter-label">Agents</span><div class="ck-wrap" id="ck-agents"></div></div>
+      <div class="filter-group"><span class="filter-label">Compétences</span><div class="ck-wrap" id="ck-skills"></div></div>
+      <div class="filter-group"><span class="filter-label">Statut</span><div class="ck-wrap" id="ck-status"></div></div>
 
       <div class="ctrl-vsep"></div>
 
@@ -981,7 +983,7 @@ const P="#E8006E";
 })();
 const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
 const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
-const CONTRATS=["CDI","CDD","Alternance","Intérim"];
+// CONTRATS supprimé — non disponible INO
 const STATUSES=["Actif","Traitement","Post-appel","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
 const QUEUES_MAP={
@@ -1061,7 +1063,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
-let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selContrats=[...CONTRATS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
+let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
 let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
@@ -1441,7 +1443,6 @@ function buildAllDropdowns(){
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
   buildCkDrop("ck-agents","Agents",agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
   buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
-  buildCkDrop("ck-contrats","Contrats",CONTRATS,selContrats,v=>{selContrats=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
 }
 
@@ -1506,7 +1507,7 @@ async function savePreset(){
     if(!ok){presetStatus("Enregistrement annulé","#888");return;}
   }
   p[name]={camps:[...selCamps],queues:[...selQueues],agents:[...selAgents],
-    skills:[...selSkills],contrats:[...selContrats],status:[...selStatus],
+    skills:[...selSkills],status:[...selStatus],
     sw:{...sw},savedAt:new Date().toISOString()};
   const ok=savePresets(p);
   if(!ok){presetStatus("Impossible d'enregistrer (stockage indisponible)","#ff3b30");return;}
@@ -1521,7 +1522,6 @@ function applyPreset(name){
   selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
   selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
-  selContrats=Array.isArray(p.contrats)?p.contrats:[...CONTRATS];
   selStatus=Array.isArray(p.status)?p.status:["Actif","Traitement","Post-appel","Déconnecté","n.d."];
   if(p.sw&&typeof p.sw==="object")sw={...sw,...p.sw};
   buildAllDropdowns();buildSwitches();render();
@@ -1548,8 +1548,6 @@ function getFiltered(){
     if(!selAgents.includes(a.nom))return false;
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
-    if(a.contrat==null){/* n.d. : ne pas exclure */}
-    else if(!selContrats.includes(a.contrat))return false;
     if(selSkills.length<SKILLS.length){
       if(!Array.isArray(a.skills)||a.skills.length===0){/* skills n.d. : on n'exclut pas */}
       else if(!a.skills.some(s=>selSkills.includes(s)))return false;
@@ -2535,13 +2533,13 @@ function exportXlsx(){
   const msg=document.getElementById("export-msg");
   msg.style.display="inline";msg.textContent="Export en cours…";
   const f=getFiltered(),s=getSorted(f);
-  const rows=[["Agent","Login","Campagne","Contrat","Statut","H. prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
+  const rows=[["Agent","Login","Campagne","Statut","H. prod","Présence","Appels IN","Appels OUT","Total Appels","Mails hors INO","Actes Total","App. décrochés/h","Actes/h","DMC","100% KO","Refus prise appel","Inactifs","% Réalisé","Files OK","1ère action","Dernière action","Files actives"]];
   s.forEach(a=>{
     const m=mailsEdit[a.id]||a.mails_auto||0;
     const actes=(a.decroches||0)+(a.sortants||0)+m;
     const aph=a.hprod>0?((a.sortants||0)/a.hprod).toFixed(1):"–";
     const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    rows.push([a.nom,a.login||a.username||"",a.camp,a.contrat||"CDI",a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
+    rows.push([a.nom,a.login||a.username||"",a.camp,a.status,a.hprod?a.hprod.toFixed(1)+"h":"–",a.presence?a.presence.toFixed(1)+"h":"–",a.appelsIn||0,a.appelsOut||0,a.appels,m,actes,aph,ach,mmss(a.dmc),a.ko||0,a.refus||0,a.inactifs||0,a.realise+"%",a.files_ok?"OK":"Anomalie",fmtTime(a.premiereAction),fmtTime(a.derniereAction),(a.queues||"").split(", ").slice(0,3).join(" | ")]);
   });
   // Ligne totaux
   const tApp=s.reduce((x,a)=>x+a.appels,0),tM=s.reduce((x,a)=>x+(mailsEdit[a.id]||a.mails_auto||0),0);
@@ -2570,7 +2568,7 @@ function exportSkillsPDF(){
       ?'<td class="ok">✓</td>'
       :'<td class="ko">–</td>').join("");
     return`<tr>
-      <td class="name"><b>${a.nom}</b><br><span class="sub">${(a.contrat||"CDI")} · ${a.camp}</span></td>
+      <td class="name"><b>${a.nom}</b><br><span class="sub">${a.camp}</span></td>
       ${cells}
       <td class="filesok">${a.files_ok?'<span class="ok-tag">OK</span>':'<span class="anom-tag">⚠ Anomalie</span>'}</td>
     </tr>`;
@@ -2675,7 +2673,7 @@ function exportPDF(){
     return`<tr style="background:${isAlert?"#fff8f9":bg}">
       <td>${a.nom}</td><td style="color:#888">${a.login||""}</td>
       <td><span style="background:#fff0f6;color:#E8006E;padding:1px 6px;border-radius:3px;font-size:10px">${a.camp}</span></td>
-      <td style="color:#888">${a.contrat||"CDI"}</td>
+      
       <td>${a.hprod?a.hprod.toFixed(1)+"h":"–"}</td>
       <td>${a.appelsIn||0}</td><td>${a.appelsOut||0}</td><td><b>${a.decroches!=null?a.decroches:a.appels}</b></td>
       <td style="color:#E8006E;font-weight:700">${m}</td>
@@ -2747,7 +2745,7 @@ function exportPDF(){
   <div class="section">
     <div class="stitle">Détail individuel — ${s.length} agents · DMC moyenne : ${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</div>
     <table><thead><tr>
-      <th>Agent</th><th>Login</th><th>Campagne</th><th>Contrat</th><th>H.Prod</th>
+      <th>Agent</th><th>Login</th><th>Campagne</th><th>H.Prod</th>
       <th>IN</th><th>OUT</th><th>Total App.</th><th>Mails</th><th>Actes</th>
       <th>App./h</th><th>Actes/h</th><th>DMC</th><th>DMT</th><th>KO</th><th>Refus prise appel</th><th>% Réalisé</th><th>Plage horaire</th>
     </tr></thead>
@@ -3094,7 +3092,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 
   // ── Header ligne 1 ──
   h+='<tr>';
-  h+=waTh("Nbr<br>opé<br>par tc","#2F3640","#fff",1,2);
+  h+=waTh("Nbr<br>opé","#2F3640","#fff",1,2);
   h+=waTh("Co.<br>INO","#2F3640","#fff",1,2);
   h+=waTh("H<br>début","#2F3640","#fff",1,2);
   h+=waTh("H<br>déj.","#2F3640","#fff",1,2);
@@ -3411,6 +3409,13 @@ function renderWA(){
   }
   var sorted=[...agents].sort(function(a,b){
     return (b.decroches+b.sortants)-(a.decroches+a.sortants);
+  });
+  // Exclure les agents sans compétence sur les campagnes WA
+  var allWaCamps=WA_SKILLS_CALLS.concat(WA_SKILLS_MAILS);
+  sorted=sorted.filter(function(a){
+    var sk=waSkills(a);
+    if(sk.size===0) return false; // aucune compétence connue → exclure
+    return allWaCamps.some(function(s){return waHas(sk,s);});
   });
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
