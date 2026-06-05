@@ -1531,7 +1531,7 @@ function buildAllDropdowns(){
 
 function buildSwitches(){
   const cont=document.getElementById("sw-container");
-  const defs=[["horsOuv","Hors SVI"],["reit","Réitérants"],["refus","Refus prise appel"],["inactif","Inactifs"]];
+  const defs=[["reit","Réitérants"],["refus","Refus prise appel"],["inactif","Inactifs"]];
   cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
     <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?21:2}px"></div></div>${l}
   </label>`).join("");
@@ -1635,8 +1635,10 @@ function getFiltered(){
       if(!Array.isArray(a.skills)||a.skills.length===0){/* skills n.d. : on n'exclut pas */}
       else if(!a.skills.some(s=>selSkills.includes(s)))return false;
     }
-    if(sw.refus&&a.refus===0)return false;
-    if(sw.inactif&&a.inactifs<3)return false;
+    if(sw.refus&&(a.refus||0)===0)return false;
+    if(sw.reit&&(a.reiterants||0)===0)return false;   // isoler agents avec réitérants
+    if(sw.inactif&&(a.inactifs||0)<3)return false;
+    // sw.horsOuv non filtrable : donnée Hors SVI non exposée par INO au niveau agent
     return true;
   });
 }
@@ -1821,8 +1823,10 @@ function renderKPIs(f){
   const actesH=+(totActes/totHP).toFixed(1);
   const appelsH=+(totSort/totHP).toFixed(1);
   const totKo=f.reduce((s,a)=>s+a.ko,0);
-  const horsOuv=Math.floor(totApp*.07);
-  const reit=Math.floor(totApp*.04);
+  // Réitérants : somme réelle des qualifications "réitérant" remontées par INO (h.status). Jamais inventé.
+  const reit=f.reduce((s,a)=>s+(a.reiterants||0),0);
+  // Hors SVI : non distingué par l'API INO histories au niveau agent → "n.d." (pas d'estimation trompeuse)
+  const horsOuv=null;
   const backlog=totalBacklog();
   // Flux : window._flux = flux GLOBAL INO (tous agents). On ne l'utilise QUE si la sélection
   // couvre tous les agents (aucun filtre campagne/agent actif). Sinon on recalcule sur le périmètre filtré.
@@ -1835,8 +1839,10 @@ function renderKPIs(f){
     :Math.max(1,totPres||Math.round(totApp*1.15));   // périmètre filtré : présentés réels des agents
   const entrTraites=_fx?(_fx.decroches||0):totDecr;   // décrochés du périmètre
   const totManques=_fx?(_fx.abandons||0):Math.max(0,totPres-totDecr); // présentés non décrochés
-  const qs=Math.round(((_fx?entrTraites:totDecr)/totRecus)*100);
-  const pct=Math.min(100,Math.round((totActes/600)*100));
+  const qs=Math.min(100,Math.round(((_fx?entrTraites:totDecr)/totRecus)*100));
+  // % Réalisé = Σ actes du périmètre / Σ objectifs des agents du périmètre (jamais un dénominateur fixe arbitraire)
+  const totObj=f.reduce((s,a)=>s+(a.obj||50),0)||1;
+  const pct=Math.min(100,Math.round((totActes/totObj)*100));
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
   const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
@@ -1844,7 +1850,7 @@ function renderKPIs(f){
 
   const kpis=[
     {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"% Réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
     {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés"},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
@@ -1854,8 +1860,8 @@ function renderKPIs(f){
     {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Voix + mails / heure prod",hero:true},
     {l:"100 % KO",v:totKo,alert:totKo>40},
-    {l:"Hors SVI",v:horsOuv,alert:horsOuv>30},
-    {l:"Réitérants",v:reit,alert:reit>20},
+    {l:"Hors SVI",v:horsOuv==null?"n.d.":horsOuv,alert:horsOuv!=null&&horsOuv>30,sub:horsOuv==null?"Non exposé par INO":""},
+    {l:"Réitérants",v:reit,alert:reit>20,sub:"Qualif. INO réelles"},
     {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Pas de backlog saisi"},
   ];
 
@@ -3951,5 +3957,6 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
 
 
