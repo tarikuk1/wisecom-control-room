@@ -898,6 +898,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
     </div>
   </div>
+  <!-- Résumé sélection active -->
+  <div id="selection-summary" style="background:var(--s-2);border-top:1px solid var(--s-3);padding:5px 20px;font-size:10px;color:var(--t-muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:26px;"></div>
 </header>
 
 <main id="main-content">
@@ -928,6 +930,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
           <tbody id="tbody-agents"></tbody>
         </table>
       </div>
+      <div id="staffing-banner" style="border-top:1px solid var(--s-3);background:var(--s-1)"></div>
     </div>
   </div>
 
@@ -1502,11 +1505,28 @@ if(!window._ckGlobalClose){
 
 function buildAllDropdowns(){
   allQueues=getAllQueues();
-  buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{selCamps=v;allQueues=getAllQueues();selQueues=getAllQueues();buildAllDropdowns();render();});
+  buildCkDrop("ck-camps","Campagnes",CAMPS,selCamps,v=>{
+    selCamps=v;
+    allQueues=getAllQueues();selQueues=getAllQueues();
+    // CASCADE : quand on change les camps → restreindre selAgents aux agents de ces camps
+    if(agents.length){
+      const agOfCamps=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
+      selAgents=agOfCamps.length>0?agOfCamps:agents.map(a=>a.nom);
+    }
+    buildAllDropdowns();render();
+  });
+  // Files : seulement celles des camps sélectionnés
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
-  buildCkDrop("ck-agents","Agents",agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom),selAgents,v=>{selAgents=v;render();});
+  // Agents : seulement ceux affectés aux camps sélectionnés (si filtre partiel)
+  const agList=agents.length
+    ?(selCamps.length<CAMPS.length
+        ?agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom)
+        :agents.map(a=>a.nom))
+    :AGENTS_BASE.map(a=>a.nom);
+  buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;render();});
   buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
+  renderSelectionSummary();
 }
 
 function buildSwitches(){
@@ -2042,8 +2062,9 @@ function renderTable(sorted){
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
     const actes=(a.decroches||0)+(a.sortants||0)+m;
-    const ach=a.hprod>0?((actes/a.hprod).toFixed(1)):"–";
-    const aph=a.hprod>0?((a.sortants||0)/a.hprod).toFixed(1):"–";
+    // Cohérence : hprod nul ou trop faible → "–" (jamais une valeur trompeuse)
+    const ach=(a.hprod&&a.hprod>=0.1)?((actes/a.hprod).toFixed(1)):"–";
+    const aph=(a.hprod&&a.hprod>=0.1)?((a.sortants||0)/a.hprod).toFixed(1):"–";
     const sc=a.status==="Actif"?"#30d158":a.status==="Traitement"?"#ff6b6b":a.status==="Post-appel"?"#ff9f43":"#444";
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
@@ -2503,6 +2524,8 @@ function render(){
   renderChart();
   renderSkills();
   renderBacklog();
+  renderStaffingBanner();
+  renderSelectionSummary();
   document.getElementById("agent-count").textContent=`${f.length} agent${f.length>1?"s":""} · ${f.reduce((x,a)=>x+a.appels,0)} appels`;
   // Compteur colonnes
   const colCountEl=document.getElementById('col-count');
@@ -2554,6 +2577,102 @@ function renderInoCoverage(){
     +'</div>'
     +'<span style="font-size:9px;color:#333;">Les champs n.d. ne sont pas exposés par l\'API INO — aucune donnée simulée n\'est affichée.</span>'
     +'</div>';
+}
+
+// ── Résumé sélection active (bandeau sous les filtres) ──────────────────
+function renderSelectionSummary(){
+  const el=document.getElementById('selection-summary');
+  if(!el)return;
+  const dDeb=document.getElementById('f-date-deb')?.value||'–';
+  const dFin=document.getElementById('f-date-fin')?.value||dDeb;
+  const hDeb=document.getElementById('f-h-deb')?.value||'08:00';
+  const hFin=document.getElementById('f-h-fin')?.value||'20:00';
+  const P='#E8006E';
+  const tag=(label,val,alert)=>`<span style="background:var(--s-3);border:1px solid var(--s-4);border-radius:4px;padding:2px 7px;white-space:nowrap;color:${alert?'#ff9f0a':'var(--t-secondary)'}">`
+    +`<span style="color:var(--t-disabled);font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-right:4px">${label}</span>`
+    +`<b style="color:${alert?'#ff9f0a':P}">${val}</b></span>`;
+  const campsDisp=selCamps.length===CAMPS.length?'Toutes ('+CAMPS.length+')':selCamps.length+' / '+CAMPS.length+' : '+selCamps.slice(0,4).join(', ')+(selCamps.length>4?' +'+( selCamps.length-4):'');
+  const periode=dDeb===dFin?dDeb:dDeb+' → '+dFin;
+  const agentsDisp=agents.length&&selAgents.length===agents.length?'Tous ('+agents.length+')':selAgents.length+' agent'+(selAgents.length>1?'s':'');
+  const queuesDisp=selQueues.length===allQueues.length?'Toutes':''+selQueues.length+' file'+(selQueues.length>1?'s':'');
+  const statusDisp=selStatus.length===STATUSES.length?'Tous':selStatus.join(', ');
+  el.innerHTML=`<span style="color:var(--t-disabled);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Sélection active →</span>`
+    +tag('Période',periode)
+    +tag('Horaire',hDeb+'–'+hFin)
+    +tag('Campagnes',campsDisp,selCamps.length<CAMPS.length)
+    +tag('Files',queuesDisp)
+    +tag('Agents',agentsDisp)
+    +tag('Statut',statusDisp)
+    +(inoLive
+      ?'<span style="color:#30d158;font-size:9px;margin-left:4px">● Données INO réelles</span>'
+      :'<span style="color:#ff9f0a;font-size:9px;margin-left:4px">◌ Simulation</span>');
+}
+
+// ── Bandeau staffing par campagne (sous tableau Agents) ──────────────────
+function renderStaffingBanner(){
+  const el=document.getElementById('staffing-banner');
+  if(!el)return;
+  const f=getFiltered();
+  if(!f.length){el.innerHTML='';return;}
+  // Construire staffing par camp : compter agents actifs et agents totaux
+  const campMap={};
+  f.forEach(a=>{
+    const c=a.camp||'–';
+    if(!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false};
+    campMap[c].total++;
+    if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
+    if(Array.isArray(a.skills)&&a.skills.length>0)campMap[c].hasSkills=true;
+  });
+  // Horaires SVI depuis critères
+  const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');
+  const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+  const toMin=t=>{const[h,m]=String(t).split(':').map(Number);return h*60+(m||0);};
+  const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
+  const jourAuj=_jrKeys[nowH.getDay()];
+  function isCampOpen(camp){
+    const cc=crit[camp]||{};
+    if(cc.h24)return true;
+    if(cc.jours&&cc.jours[jourAuj]){
+      const jd=cc.jours[jourAuj];
+      if(!jd.on)return false;
+      return curMin>=toMin(jd.o||'09:00')&&curMin<toMin(jd.f||'18:00');
+    }
+    const hOuv=cc.h_ouv||'08:00',hFerm=cc.h_ferm||'20:00';
+    return curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
+  }
+  const P='#E8006E';
+  const camps=Object.keys(campMap).filter(c=>c!=='–').sort();
+  let html=`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;">
+    <span style="font-size:10px;font-weight:700;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-right:4px">Staffing par campagne</span>`;
+  camps.forEach(camp=>{
+    const d=campMap[camp];
+    const open=isCampOpen(camp);
+    // Alerte rouge : service ouvert ET 0 agent actif
+    const alertZero=open&&d.actifs===0;
+    // Alerte compétences : service ouvert ET aucune compétence connue pour cette campagne
+    const alertSkills=open&&!d.hasSkills&&inoLive;
+    const bg=alertZero?'rgba(255,59,48,.12)':(alertSkills?'rgba(255,159,10,.08)':'var(--s-2)');
+    const border=alertZero?'1px solid rgba(255,59,48,.4)':(alertSkills?'1px solid rgba(255,159,10,.3)':'1px solid var(--s-4)');
+    const countColor=alertZero?'#ff3b30':(d.actifs>0?'#30d158':'var(--t-secondary)');
+    const badge=alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent actif">⚠ ALERTE</span>':
+      (alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Compétences non chargées">ⓘ</span>':'');
+    html+=`<div style="background:${bg};border:${border};border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default"
+      title="${camp} — ${d.actifs} actifs / ${d.total} agents${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
+      <span style="font-size:10px;color:var(--t-secondary)">${camp}</span>
+      <span style="font-size:11px;font-weight:700;color:${countColor}">${d.actifs}</span>
+      <span style="font-size:9px;color:var(--t-disabled)">/${d.total}</span>
+      ${badge}
+    </div>`;
+  });
+  // Total global
+  const totActifs=camps.reduce((s,c)=>s+(campMap[c]?.actifs||0),0);
+  const totAll=camps.reduce((s,c)=>s+(campMap[c]?.total||0),0);
+  html+=`<div style="background:var(--s-3);border:1px solid var(--s-4);border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:4px">
+    <span style="font-size:10px;color:var(--t-muted)">TOTAL</span>
+    <span style="font-size:11px;font-weight:700;color:${P}">${totActifs}</span>
+    <span style="font-size:9px;color:var(--t-disabled)">/${totAll} agents</span>
+  </div></div>`;
+  el.innerHTML=html;
 }
 
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
@@ -3142,14 +3261,24 @@ function waHr(dt){
 
 // Résoudre les compétences d'un agent depuis toutes les sources disponibles
 function waSkills(a){
-  // Source unique FIABLE : compétences INO actives (allSkillsData)
+  // SOURCE 1 (fiable) : allSkillsData INO chargées via bouton Compétences → seule source vérité
   if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
     return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
   }
+  // SOURCE 2 (partiellement fiable) : skills[] issus du cache INO
+  // On ne retient QUE les compétences reconnues dans WA_SKILLS_CALLS/WA_SKILLS_COMP pour éviter faux-positifs
   if(Array.isArray(a.skills)&&a.skills.length>0){
-    return new Set(a.skills.map(function(s){return s.name||s;}));
+    var allWa=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP,...WA_SKILLS_MAILS]);
+    var filtered=a.skills.map(function(s){return s.name||s;}).filter(function(n){return allWa.has(n);});
+    if(filtered.length>0)return new Set(filtered);
   }
-  // Aucune deduction par queues (donnees non fiables) -> ensemble vide
+  // SOURCE 3 : déduction depuis la campagne principale uniquement (strict)
+  // Un agent Afnor n'a PAS ND, LMDW, Filippi etc. automatiquement
+  if(a.camp&&a.camp!=='–'){
+    var campSkill=a.camp; // la campagne = la compétence éponyme s'il y en a une
+    var allWa2=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP]);
+    if(allWa2.has(campSkill))return new Set([campSkill]);
+  }
   return new Set();
 }
 function waHas(sk,name){
@@ -3817,3 +3946,4 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
