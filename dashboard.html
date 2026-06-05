@@ -1834,12 +1834,13 @@ function renderKPIs(f){
   const _isFullScope=(f.length===_allAgents)&&(selCamps.length>=CAMPS.length);
   const _fx=_isFullScope?window._flux:null;  // flux global seulement en périmètre complet
   // Présentés filtrés = somme des présentés des agents du périmètre (entrants distribués)
-  const totRecus=_fx&&_fx.recus
-    ?_fx.recus
-    :Math.max(1,totPres||Math.round(totApp*1.15));   // périmètre filtré : présentés réels des agents
+  // En périmètre filtré : "reçu" = présentés des agents du périmètre. Si aucun présenté → tout à 0
+  // (pas de QS forcé, évite l'affichage trompeur "0/1").
+  const _hasFlux=_fx&&_fx.recus;
+  const totRecus=_hasFlux?_fx.recus:totPres;
   const entrTraites=_fx?(_fx.decroches||0):totDecr;   // décrochés du périmètre
   const totManques=_fx?(_fx.abandons||0):Math.max(0,totPres-totDecr); // présentés non décrochés
-  const qs=Math.min(100,Math.round(((_fx?entrTraites:totDecr)/totRecus)*100));
+  const qs=totRecus>0?Math.min(100,Math.round(((_fx?entrTraites:totDecr)/totRecus)*100)):0;
   // % Réalisé = Σ actes du périmètre / Σ objectifs des agents du périmètre (jamais un dénominateur fixe arbitraire)
   const totObj=f.reduce((s,a)=>s+(a.obj||50),0)||1;
   const pct=Math.min(100,Math.round((totActes/totObj)*100));
@@ -3957,6 +3958,7 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
 
 
 
