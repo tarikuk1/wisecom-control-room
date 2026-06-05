@@ -3163,7 +3163,7 @@ function waSkills(a){
 }
 function waHas(sk,name){
   return sk.has(name)||[...sk].some(function(x){
-    return x.toLowerCase().indexOf(name.toLowerCase())>-1;
+    return false;
   });
 }
 
