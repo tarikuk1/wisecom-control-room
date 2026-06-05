@@ -1198,10 +1198,10 @@ function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
   es.onopen=()=>{badge.innerHTML="● INO à jour";badge.style.background="#081a10";badge.style.color="#30d158";};
-  es.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.cumul_journee_agent)loadAgentsFromAPI().then(()=>{
-  // Affiche indicateur de chargement initial
-  document.getElementById("agent-count").textContent = "Chargement…";
-});}catch{}};
+  // IMPORTANT : le SSE sert UNIQUEMENT d'indicateur de connexion INO.
+  // Il ne déclenche AUCUN rechargement automatique des agents (sinon la sélection
+  // campagne/agents serait écrasée toutes les ~30s). Le rafraîchissement est 100% manuel.
+  es.onmessage=e=>{ /* no-op : pas de loadAgentsFromAPI() ici */ };
   es.onerror=()=>{badge.innerHTML="✕ Hors ligne";badge.style.background="#1e0808";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,8000);};
 }
 
@@ -1824,13 +1824,18 @@ function renderKPIs(f){
   const horsOuv=Math.floor(totApp*.07);
   const reit=Math.floor(totApp*.04);
   const backlog=totalBacklog();
-  // Appels reçus = approximation (entrants + abandons estimés)
-const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,Math.round(totApp*1.15));
-  // Flux entrants réels INO (décrochés vs présentés). Fallback sur l'ancien calcul si flux absent.
-  const _fx=window._flux;
-  const entrTraites=_fx?(_fx.decroches||0):totApp;
-  const totManques=_fx?(_fx.abandons||0):(totRecus-totApp);
-  const qs=Math.round(((_fx?entrTraites:totApp)/totRecus)*100);
+  // Flux : window._flux = flux GLOBAL INO (tous agents). On ne l'utilise QUE si la sélection
+  // couvre tous les agents (aucun filtre campagne/agent actif). Sinon on recalcule sur le périmètre filtré.
+  const _allAgents=agents.length||0;
+  const _isFullScope=(f.length===_allAgents)&&(selCamps.length>=CAMPS.length);
+  const _fx=_isFullScope?window._flux:null;  // flux global seulement en périmètre complet
+  // Présentés filtrés = somme des présentés des agents du périmètre (entrants distribués)
+  const totRecus=_fx&&_fx.recus
+    ?_fx.recus
+    :Math.max(1,totPres||Math.round(totApp*1.15));   // périmètre filtré : présentés réels des agents
+  const entrTraites=_fx?(_fx.decroches||0):totDecr;   // décrochés du périmètre
+  const totManques=_fx?(_fx.abandons||0):Math.max(0,totPres-totDecr); // présentés non décrochés
+  const qs=Math.round(((_fx?entrTraites:totDecr)/totRecus)*100);
   const pct=Math.min(100,Math.round((totActes/600)*100));
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
@@ -1838,10 +1843,10 @@ const totRecus=(window._flux&&window._flux.recus)?window._flux.recus:Math.max(1,
 
 
   const kpis=[
-    {l:"QS",v:qs+"%",sub:`${totApp}/${totRecus} appels`,alert:qs<80,good:qs>=85,gauge:qs},
+    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs},
     {l:"% Réalisé",v:pct+"%",sub:`${totActes} actes`,alert:pct<60,good:pct>=80,gauge:pct},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
-    {l:"Flux reçus",v:totRecus.toLocaleString()},
+    {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés"},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min"},
@@ -3946,4 +3951,5 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
 
