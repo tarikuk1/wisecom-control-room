@@ -3140,26 +3140,15 @@ function waHr(dt){
 
 // Résoudre les compétences d'un agent depuis toutes les sources disponibles
 function waSkills(a){
-  // Source 1 : allSkillsData (depuis bouton Compétences INO)
+  // Source unique FIABLE : compétences INO actives (allSkillsData)
   if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
     return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
   }
-  // Source 2 : skills simplifiés
   if(Array.isArray(a.skills)&&a.skills.length>0){
     return new Set(a.skills.map(function(s){return s.name||s;}));
   }
-  // Source 3 : déduction via QUEUES_MAP depuis les queues INO de l'agent
-  var sk=new Set();
-  var qs=(a.queues||"").split(", ").filter(Boolean);
-  qs.forEach(function(q){
-    Object.keys(QUEUES_MAP).forEach(function(camp){
-      if((QUEUES_MAP[camp]||[]).indexOf(q)>-1) sk.add(camp);
-    });
-    // Ajouter directement les tokens de queue
-    var tok=q.replace(/^Sortant\s+/i,"").split(/[_\s]/)[0];
-    if(tok) sk.add(tok);
-  });
-  return sk;
+  // Aucune deduction par queues (donnees non fiables) -> ensemble vide
+  return new Set();
 }
 function waHas(sk,name){
   return sk.has(name)||[...sk].some(function(x){
@@ -3472,11 +3461,11 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       cFn:function(cd){return cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0).toFixed(1);}
     },{
       lbl:"Actes par heures",bg:"#FFE8F5",col:"#E8006E",bold:true,
-      tot:function(){var th=T.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((tAppIn+tAppOut+tMails)/th).toFixed(2):"–";},
-      vFn:function(){var th=viv.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((vAppIn+vAppOut+vMails)/th).toFixed(2):"–";},
-      fFn:function(){var th=fil.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((fAppIn+fAppOut+fMails)/th).toFixed(2):"–";},
-      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0,th=hp+f+i,ml=(statTCEdits[k]&&statTCEdits[k].mails!=null)?statTCEdits[k].mails:(mailsEdit[a.id]||a.mails_auto||0),ac=(a.decroches||0)+(a.sortants||0)+ml;return th>0?(ac/th).toFixed(2):"–";},
-      cFn:function(cd){var th=cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>0?((cd.appIn+cd.appOut+cd.mails)/th).toFixed(2):"–";}
+      tot:function(){var th=T.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>=0.1?((tAppIn+tAppOut+tMails)/th).toFixed(2):"n.d.";},
+      vFn:function(){var th=viv.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>=0.1?((vAppIn+vAppOut+vMails)/th).toFixed(2):"n.d.";},
+      fFn:function(){var th=fil.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>=0.1?((fAppIn+fAppOut+fMails)/th).toFixed(2):"n.d.";},
+      aFn:function(a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0,th=hp+f+i,ml=(statTCEdits[k]&&statTCEdits[k].mails!=null)?statTCEdits[k].mails:(mailsEdit[a.id]||a.mails_auto||0),ac=(a.decroches||0)+(a.sortants||0)+ml;return th>=0.1?(ac/th).toFixed(2):"n.d.";},
+      cFn:function(cd){var th=cd.agents.reduce(function(s,a){var k=a.login||a.id,hp=(statTCEdits[k]&&statTCEdits[k].hprod!=null)?statTCEdits[k].hprod:(a.hprod||0),f=(statTCEdits[k]&&statTCEdits[k].form)||0,i=(statTCEdits[k]&&statTCEdits[k].incident)||0;return s+hp+f+i;},0);return th>=0.1?((cd.appIn+cd.appOut+cd.mails)/th).toFixed(2):"n.d.";}
     },
   ];
 
