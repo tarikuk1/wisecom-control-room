@@ -3699,24 +3699,7 @@ function waTimeEditPrompt(agentId,field,currentVal){
     z.innerHTML=buildAffectationTable(window._lastWaSorted,ds,tm);
   }
 }
-function statTCEditPrompt(ak,row,currentVal){
-  var labels={form:'Formation/débrief (heures)',incident:'Incident/bug (heures)',hprod:'Heures de prod',mails:'Mails traités'};
-  var v=prompt((labels[row]||row)+' — '+ak+' :', currentVal);
-  if(v===null)return;
-  var num=parseFloat(v.replace(',','.'));
-  statTCEdit(ak,row,isNaN(num)?0:num);
-}
-function statTCEdit(ak,row,val){
-  if(!statTCEdits[ak])statTCEdits[ak]={};
-  statTCEdits[ak][row]=parseFloat(val)||0;
-  if(!window._lastWaSorted)return;
-  var z=document.getElementById('wa-table-stat');
-  if(!z)return;
-  var now=new Date();
-  var ds=now.toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  var tm=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  z.innerHTML=buildStatTCTable(window._lastWaSorted,ds,tm);
-}
+
 function renderWA(){
   waBuildConfig();
   var z=document.getElementById("wa-preview");
