@@ -3747,15 +3747,15 @@ function exportWA_Excel(){
   var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
     '<head><meta charset="UTF-8"><style>'+
     'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px;}'+
-    'td,th{border:2px solid #555;padding:3px 5px;text-align:center;vertical-align:middle;mso-number-format:\"@\";}'+
+    'td,th{border:1.2pt solid #555;mso-border-alt:solid #555 1.0pt;mso-border-top-alt:solid #555 1.0pt;mso-border-bottom-alt:solid #555 1.0pt;mso-border-left-alt:solid #555 1.0pt;mso-border-right-alt:solid #555 1.0pt;padding:3px 5px;text-align:center;vertical-align:middle;mso-number-format:\"@\";}'+
     'th{background:#2F3640;color:#fff;font-weight:700;border:2px solid #333;}'+
     'td:first-child,th:first-child{text-align:left;min-width:120px;}'+
     'tr:nth-child(even) td{background-color:#f9f9f9;}'+
     '</style></head>'+
     '<body><h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Affectation</h2>'+
-    aff.innerHTML+'<br><br>'+
+    aff.innerHTML.replace(/<table/g,'<table border="1" cellspacing="0" cellpadding="3"')+'<br><br>'+
     '<h2 style="color:#E8006E;font-family:Arial;font-size:10px;">Stat TC</h2>'+
-    stat.innerHTML+'</body></html>';
+    stat.innerHTML.replace(/<table/g,'<table border="1" cellspacing="0" cellpadding="3"')+'</body></html>';
   var blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
   var url=URL.createObjectURL(blob);
   var el=document.createElement("a");
