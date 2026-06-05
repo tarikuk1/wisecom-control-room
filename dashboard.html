@@ -1154,6 +1154,19 @@ let slots=[],allQueues=[];
 let redFlagTimers={};
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
+// Compétences réelles présentes chez les agents du périmètre campagne sélectionné.
+// Source : compétences INO réelles des agents (a.skills / a.allSkillsData), filtrées par campagne.
+function getScopedSkills(){
+  if(!agents.length)return [...SKILLS];
+  const inScope=selCamps.length<CAMPS.length?agents.filter(a=>selCamps.includes(a.camp)):agents;
+  const s=new Set();
+  inScope.forEach(a=>{
+    (a.skills||[]).forEach(k=>{if(k)s.add(k.name||k);});
+    (a.allSkillsData||[]).forEach(k=>{if(k&&k.name)s.add(k.name);});
+  });
+  const list=[...s].sort((x,y)=>x.localeCompare(y));
+  return list.length?list:[...SKILLS]; // fallback liste statique si compétences non chargées
+}
 
 function genAgents(){
   return AGENTS_BASE.map(a=>{
@@ -1513,6 +1526,8 @@ function buildAllDropdowns(){
       const agOfCamps=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
       selAgents=agOfCamps.length>0?agOfCamps:agents.map(a=>a.nom);
     }
+    // CASCADE compétences : recalculer le périmètre et tout re-sélectionner
+    selSkills=getScopedSkills();window._prevScopedSkills=selSkills;
     buildAllDropdowns();render();
   });
   // Files : seulement celles des camps sélectionnés
@@ -1524,7 +1539,19 @@ function buildAllDropdowns(){
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
   buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;render();});
-  buildCkDrop("ck-skills","Compétences",SKILLS,selSkills,v=>{selSkills=v;render();});
+  // Compétences : dynamiques selon la campagne sélectionnée (vraies compétences INO des agents du périmètre)
+  const scopedSkills=getScopedSkills();
+  // Nettoyer selSkills des compétences hors périmètre, et ajouter les nouvelles par défaut
+  const _prevAll=window._prevScopedSkills||scopedSkills;
+  if(JSON.stringify(_prevAll)!==JSON.stringify(scopedSkills)){
+    // périmètre changé → tout sélectionner par défaut sur le nouveau périmètre
+    selSkills=[...scopedSkills];
+    window._prevScopedSkills=scopedSkills;
+  }else{
+    selSkills=selSkills.filter(s=>scopedSkills.includes(s));
+    if(selSkills.length===0)selSkills=[...scopedSkills];
+  }
+  buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
   renderSelectionSummary();
 }
@@ -1631,9 +1658,12 @@ function getFiltered(){
     if(!selAgents.includes(a.nom))return false;
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
-    if(selSkills.length<SKILLS.length){
-      if(!Array.isArray(a.skills)||a.skills.length===0){/* skills n.d. : on n'exclut pas */}
-      else if(!a.skills.some(s=>selSkills.includes(s)))return false;
+    // Filtre compétences : basé sur le périmètre dynamique (getScopedSkills)
+    const _scoped=getScopedSkills();
+    if(selSkills.length<_scoped.length){
+      const _agSkills=Array.isArray(a.skills)?a.skills.map(s=>s.name||s):[];
+      if(_agSkills.length===0){/* compétences n.d. : on n'exclut pas (agent sans skill chargé) */}
+      else if(!_agSkills.some(s=>selSkills.includes(s)))return false;
     }
     if(sw.refus&&(a.refus||0)===0)return false;
     if(sw.reit&&(a.reiterants||0)===0)return false;   // isoler agents avec réitérants
@@ -3865,15 +3895,33 @@ function waTimeEditPrompt(agentId,field,currentVal){
   }
 }
 
+function waPeriodLabels(){
+  var dDeb=(document.getElementById("f-date-deb")||{}).value||"";
+  var dFin=(document.getElementById("f-date-fin")||{}).value||dDeb;
+  var hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
+  var hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  var fr=function(iso){if(!iso)return "";var p=iso.split("-");return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):iso;};
+  return {ds:dDeb===dFin?fr(dDeb):(fr(dDeb)+" → "+fr(dFin)),ts:hDeb+"–"+hFin};
+}
 function renderWA(){
   waBuildConfig();
   var z=document.getElementById("wa-preview");
   if(!z)return;
   var ts=document.getElementById("wa-timestamp");
-  var now=new Date();
-  var dateStr=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
-  var timeStr=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  if(ts)ts.textContent="Aperçu · "+dateStr+" "+timeStr;
+  // PÉRIODE = celle des filtres (permet de comparer une date antérieure ou un créneau hors-SVI),
+  // pas l'instant présent. Reflète exactement les données chargées via Actualiser.
+  var _dDeb=(document.getElementById("f-date-deb")||{}).value||"";
+  var _dFin=(document.getElementById("f-date-fin")||{}).value||_dDeb;
+  var _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
+  var _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  var _fmtFr=function(iso){if(!iso)return "";var p=iso.split("-");return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):iso;};
+  var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
+  var timeStr=_hDeb+"–"+_hFin;
+  // Indicateur si on consulte une date passée ou un créneau hors horaires courants
+  var _todayIso=new Date().toISOString().slice(0,10);
+  var _isPast=_dFin&&_dFin<_todayIso;
+  var _periodLabel=_isPast?"Historique":"Période";
+  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+(_isPast?" (comparaison date antérieure)":"");
   if(agents.length===0){
     z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
@@ -3900,9 +3948,7 @@ function exportWA_PDF(){
   var aff=document.getElementById("wa-table-affectation");
   var stat=document.getElementById("wa-table-stat");
   if(!aff){showToast("Générez d'abord l'aperçu dans l'onglet Export WhatsApp.","#ff9f0a");return;}
-  var now=new Date();
-  var ds=now.toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
-  var ts=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  var _pl=waPeriodLabels();var ds=_pl.ds;var ts=_pl.ts;
   var w=window.open("","_blank");
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Export WhatsApp '+ds+'</title>'+
     '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:6px;}'+
@@ -3935,7 +3981,8 @@ function exportWA_Excel(){
   var blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
   var url=URL.createObjectURL(blob);
   var el=document.createElement("a");
-  el.href=url;el.download="Export_WhatsApp_"+now.toISOString().slice(0,10)+".xls";
+  var _dSel=(document.getElementById("f-date-deb")||{}).value||now.toISOString().slice(0,10);
+  el.href=url;el.download="Export_WhatsApp_"+_dSel+".xls";
   document.body.appendChild(el);el.click();
   setTimeout(function(){document.body.removeChild(el);URL.revokeObjectURL(url);},1000);
   showToast("Fichier Excel téléchargé.");
@@ -3958,6 +4005,7 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
 
 
 
