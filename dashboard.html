@@ -1777,6 +1777,8 @@ function getSorted(f){
     const ma=mailsEdit[a.id]??a.mails_auto??0,mb=mailsEdit[b.id]??b.mails_auto??0;
     if(sortCol==="actes"||sortCol==="actesH")return sortDir*((a.appels+ma)-(b.appels+mb));
     if(sortCol==="nom")return sortDir*a.nom.localeCompare(b.nom);
+    if(sortCol==="status")return sortDir*(a.status||"").localeCompare(b.status||"");
+    if(sortCol==="camp")return sortDir*(a.camp||"").localeCompare(b.camp||"");
     if(sortCol==="dmc")return sortDir*(a.dmc-b.dmc);
     if(sortCol==="realise")return sortDir*(a.realise-b.realise);
     return sortDir*((a[sortCol]||0)-(b[sortCol]||0));
