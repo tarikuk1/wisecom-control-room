@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registre d'Astreinte — Wisecom</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
+.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
+.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#555;}
+input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+select:disabled{opacity:.5;cursor:not-allowed;}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
+.btn-pink{background:#E8006E;color:#fff;}
+.btn-pink:disabled{opacity:.5;cursor:not-allowed;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.content{padding:16px 20px;}
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.loading{text-align:center;padding:30px;color:#444;}
+.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.note{font-size:11px;color:#555;line-height:1.6;margin-top:4px;}
+
+.astreinte-row{display:flex;gap:8px;flex-wrap:wrap;}
+.astreinte-cell{flex:1 1 130px;min-width:130px;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:8px 10px;}
+.astreinte-day{font-size:11px;color:#777;margin-bottom:6px;text-transform:capitalize;white-space:nowrap;}
+.astreinte-input{width:100%;background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:6px 8px;font-size:12px;}
+.astreinte-input.empty{border-color:#5c2424;background:#1e0a0a;color:#ff9b9b;}
+.astreinte-input.empty::placeholder{color:#ff6b6b;}
+.astreinte-tag{font-size:10px;color:#E8006E;margin-top:4px;min-height:13px;}
+.cov-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-box{background:#161616;border:1px solid #333;border-radius:10px;padding:20px;max-width:420px;width:90%;}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:8px;}
+.modal-msg{font-size:12px;color:#aaa;line-height:1.5;margin-bottom:16px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;}
+
+@media (max-width:600px){
+  .header,.controls,.content{padding-left:14px;padding-right:14px;}
+  .controls{gap:8px;}
+  .success-toast{left:14px;right:14px;bottom:14px;max-width:none;}
+  .astreinte-cell{flex:1 1 100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div><span class="dot"></span><span class="title">REGISTRE D'ASTREINTE</span></div>
+    <div class="subtitle">Wisecom · INO · Qui couvre l'astreinte, sur quelle campagne, quel jour — pour les campagnes 7/7</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
+    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+  </div>
+</div>
+
+<div class="controls">
+  <label for="a-week">Semaine</label>
+  <button class="btn btn-dark" id="btn-week-prev" title="Semaine précédente">◀</button>
+  <input type="date" id="a-week">
+  <button class="btn btn-dark" id="btn-week-next" title="Semaine suivante">▶</button>
+  <label for="a-add-camp">Ajouter une campagne au registre</label>
+  <select id="a-add-camp"><option value="">Chargement…</option></select>
+  <button class="btn btn-pink" id="btn-add-camp" disabled>+ Suivre</button>
+  <span id="astreinte-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+</div>
+
+<div class="content">
+  <div class="panel">
+    <div class="panel-title"><span>🌙 Registre — qui est d'astreinte cette semaine</span></div>
+    <div id="astreinte-grid">
+      <div class="loading">Chargement du registre…</div>
+    </div>
+    <div class="note">
+      Saisissez le nom de l'agent qui couvre l'astreinte pour chaque jour, pour chaque campagne suivie. Une cellule en rouge signale un jour <b>sans personne d'affecté</b>.
+      Le badge <span style="color:#E8006E;">⇄ agent mutualisé</span> signale un agent également actif sur d'autres campagnes cette semaine — utile pour repérer une éventuelle surcharge avant de confirmer l'affectation.
+      Le registre est partagé entre tous les superviseurs et enregistré automatiquement.
+    </div>
+  </div>
+</div>
+
+<datalist id="agent-suggestions"></datalist>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Action</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-dark" id="modal-cancel">Annuler</button>
+      <button class="btn btn-pink" id="modal-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// URL relative : la page est servie par le même serveur que l'API (Railway en prod, localhost en dev)
+const INO_BASE = "";
+let CAMPS = [];
+let QUEUES_MAP = {};
+let registry = {tracked:[], entries:{}};      // sharedStore.astreintes — {tracked:[camp,...], entries:{"camp|YYYY-MM-DD":"Nom Agent"}}
+let agentRoster = [];                          // noms d'agents connus (suggestions de saisie)
+let agentCampMap = new Map();                   // nom d'agent -> Set(campagnes détectées) — pour le badge "mutualisé"
+let pushTimer = null;
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function dayName(dateStr){
+  const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  return names[new Date(dateStr+"T00:00:00").getDay()];
+}
+// Prochain lundi (les plannings sont préparés une semaine à l'avance)
+function nextMonday(){
+  const d=new Date();
+  const diff=((8-d.getDay())%7)||7;
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+// Ramène n'importe quelle date au lundi de sa semaine (le registre s'organise toujours semaine entière)
+function mondayOf(dateStr){
+  const d=new Date((dateStr||nextMonday())+"T00:00:00");
+  const diff=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-diff);
+  return d.toISOString().slice(0,10);
+}
+function weekDates(monday){
+  const out=[];
+  for(let i=0;i<7;i++)out.push(shiftDateStr(monday,i));
+  return out;
+}
+
+function showToast(msg,color){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  const c=color||"#30d158";
+  t.style.borderColor=c;
+  t.style.color=c;
+  t.style.background=c+"1a";
+  t.style.display="block";
+  setTimeout(()=>t.style.display="none",4500);
+}
+function astreinteStatus(msg,col){
+  const s=document.getElementById("astreinte-status");if(!s)return;
+  s.textContent=msg||"";s.style.color=col||"#888";
+  if(msg)setTimeout(()=>{if(s.textContent===msg)s.textContent="";},3000);
+}
+
+// Modal générique de confirmation (remplace confirm() qui peut être bloqué/auto-rejeté par le navigateur)
+function confirmModal(title,message,okLabel){
+  return new Promise(resolve=>{
+    const ov=document.getElementById("modal-overlay");
+    document.getElementById("modal-title").textContent=title||"Confirmer";
+    document.getElementById("modal-msg").textContent=message||"";
+    document.getElementById("modal-ok").textContent=okLabel||"Confirmer";
+    ov.style.display="flex";
+    setTimeout(()=>document.getElementById("modal-ok").focus(),30);
+    function close(val){ov.style.display="none";document.removeEventListener("keydown",keyH);resolve(val);}
+    document.getElementById("modal-ok").onclick=()=>close(true);
+    document.getElementById("modal-cancel").onclick=()=>close(false);
+    ov.onclick=e=>{if(e.target===ov)close(false);};
+    const keyH=e=>{if(e.key==="Escape")close(false);else if(e.key==="Enter")close(true);};
+    document.addEventListener("keydown",keyH);
+  });
+}
+
+async function loadConfig(){
+  try{
+    const r=await fetch(`${INO_BASE}/api/config`);
+    const d=await r.json();
+    CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
+    QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
+  }catch(e){
+    showToast("⚠ Configuration des campagnes indisponible","#ff9b00");
+  }
+}
+
+// Détection de la campagne d'une queue ou d'un agent — même cascade que dashboard.html / couverture.html
+function detectCampaign(queuesStr){
+  const fq=(queuesStr||"").split(", ").filter(Boolean);
+  for(const c of CAMPS){
+    if((QUEUES_MAP[c]||[]).some(q=>fq.includes(q)))return c;
+  }
+  for(const c of CAMPS){
+    const cl=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+    if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(cl)))return c;
+  }
+  if(fq[0]){
+    const q0=fq[0].toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+    for(const camp of CAMPS){
+      const cl=camp.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+      if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return camp;
+    }
+    const tok=fq[0].replace(/^sortant /i,"").split(/[_ ]/)[0];
+    const found=CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()));
+    return found||fq[0];
+  }
+  return "Autre";
+}
+
+// Campagnes dont la configuration laisse penser qu'elles nécessitent une astreinte
+// (files contenant "astreinte"/"urgence") — simple repère pour orienter le manager, pas une vérité absolue
+function suggestedCamps(){
+  return CAMPS.filter(c=>(QUEUES_MAP[c]||[]).some(q=>/astreinte|urgence/i.test(q)));
+}
+
+// Récupère la liste des agents connus + leurs campagnes détectées (best effort, jour courant) :
+// alimente l'auto-complétion de saisie et le badge "agent mutualisé". Si indisponible, la saisie
+// libre reste pleinement fonctionnelle — ce n'est qu'une aide au remplissage, pas une donnée du registre.
+async function loadAgentRoster(){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
+    const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const names=new Set();
+    agentCampMap=new Map();
+    (d.agents||[]).forEach(a=>{
+      if(!a.nom)return;
+      names.add(a.nom);
+      const fq=(a.queues||"").split(", ").filter(Boolean);
+      const camps=new Set();
+      fq.forEach(q=>{const c=detectCampaign(q);if(c&&c!=="Autre")camps.add(c);});
+      if(camps.size)agentCampMap.set(a.nom,camps);
+    });
+    agentRoster=Array.from(names).sort((a,b)=>a.localeCompare(b,"fr"));
+    document.getElementById("agent-suggestions").innerHTML=
+      agentRoster.map(n=>`<option value="${esc(n)}">`).join("");
+  }catch(e){
+    // Suggestions indisponibles — pas bloquant, la saisie libre fonctionne toujours
+  }
+}
+function isMutualise(name){
+  const c=agentCampMap.get(name);
+  return !!(c&&c.size>1);
+}
+
+async function loadStore(){
+  try{
+    const r=await fetch(`${INO_BASE}/api/store`);
+    const d=await r.json();
+    const a=d&&d.astreintes;
+    if(a&&typeof a==="object"){
+      registry={
+        tracked:Array.isArray(a.tracked)?a.tracked.filter(c=>typeof c==="string"):[],
+        entries:(a.entries&&typeof a.entries==="object")?{...a.entries}:{}
+      };
+    }
+  }catch(e){
+    showToast("⚠ Registre indisponible — vérifiez la connexion","#ff9b00");
+  }
+}
+function pushRegistry(){
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>{
+    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:registry})})
+      .then(r=>r.json()).then(d=>{
+        astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#ff3b30"));
+  },600);
+}
+
+function addTracked(camp){
+  if(!camp||registry.tracked.includes(camp))return;
+  registry.tracked.push(camp);
+  pushRegistry();
+  renderAll();
+}
+function removeTracked(camp){
+  registry.tracked=registry.tracked.filter(c=>c!==camp);
+  pushRegistry();
+  renderAll();
+}
+function commitEntry(inp){
+  const camp=inp.dataset.camp,date=inp.dataset.date;
+  const v=inp.value.trim();
+  const key=camp+"|"+date;
+  if(v)registry.entries[key]=v;else delete registry.entries[key];
+  inp.value=v;
+  inp.classList.toggle("empty",!v);
+  const tag=inp.parentElement.querySelector(".astreinte-tag");
+  if(tag)tag.textContent=(v&&isMutualise(v))?"⇄ agent mutualisé":"";
+  const card=inp.closest(".astreinte-camp");
+  if(card)updateCoverageBadge(card,camp);
+  pushRegistry();
+}
+function updateCoverageBadge(card,camp){
+  const monday=mondayOf(document.getElementById("a-week").value);
+  const dates=weekDates(monday);
+  const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
+  const badge=card.querySelector(".cov-badge");
+  if(!badge)return;
+  const col=covered===7?"#30d158":(covered===0?"#ff3b30":"#ff9f0a");
+  badge.textContent=`${covered}/7 jours couverts`;
+  badge.style.background=col+"22";badge.style.color=col;badge.style.borderColor=col;
+}
+
+function renderAddSelect(){
+  const sel=document.getElementById("a-add-camp");
+  const btn=document.getElementById("btn-add-camp");
+  const avail=CAMPS.filter(c=>!registry.tracked.includes(c));
+  sel.innerHTML='<option value="">— Choisir —</option>'+avail.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  sel.disabled=!avail.length;
+  btn.disabled=!avail.length;
+}
+
+function renderGrid(){
+  const wrap=document.getElementById("astreinte-grid");
+  if(!registry.tracked.length){
+    const sugg=suggestedCamps();
+    const hint=sugg.length
+      ?`Par exemple, <b>${sugg.map(esc).join("</b> et <b>")}</b> dispose${sugg.length>1?"nt":""} de files d'astreinte/urgence dans la configuration des campagnes — un bon point de départ pour le registre.`
+      :"";
+    wrap.innerHTML=`<div class="empty-hint">Choisissez une campagne nécessitant une astreinte (7/7, nuits, urgences…) dans le sélecteur ci-dessus, puis cliquez sur « + Suivre » pour démarrer son registre.${hint?"<br>"+hint:""}</div>`;
+    return;
+  }
+  const monday=mondayOf(document.getElementById("a-week").value);
+  const dates=weekDates(monday);
+  wrap.innerHTML="";
+  registry.tracked.forEach(camp=>{
+    const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
+    const col=covered===7?"#30d158":(covered===0?"#ff3b30":"#ff9f0a");
+    const card=document.createElement("div");
+    card.className="panel astreinte-camp";
+    card.style.marginBottom="12px";
+    card.dataset.camp=camp;
+    card.innerHTML=`
+      <div class="panel-title">
+        <span>🌙 <b style="color:#E8006E;">${esc(camp)}</b></span>
+        <span style="display:flex;gap:10px;align-items:center;">
+          <span class="cov-badge" style="background:${col}22;color:${col};border:1px solid ${col};">${covered}/7 jours couverts</span>
+          <button class="btn btn-dark" data-untrack="1">Retirer du registre</button>
+        </span>
+      </div>
+      <div class="astreinte-row">
+        ${dates.map(d=>{
+          const name=registry.entries[camp+"|"+d]||"";
+          const mut=name&&isMutualise(name);
+          return `<div class="astreinte-cell">
+            <div class="astreinte-day">${esc(dayName(d))} ${esc(fmtDate(d))}</div>
+            <input type="text" list="agent-suggestions" class="astreinte-input${name?"":" empty"}" data-camp="${esc(camp)}" data-date="${d}" placeholder="Non assigné" value="${esc(name)}">
+            <div class="astreinte-tag">${mut?"⇄ agent mutualisé":""}</div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    card.querySelectorAll(".astreinte-input").forEach(inp=>inp.addEventListener("change",()=>commitEntry(inp)));
+    card.querySelector("[data-untrack]").addEventListener("click",async()=>{
+      const ok=await confirmModal("Retirer du registre",`Retirer « ${camp} » du registre d'astreinte ? Les affectations déjà saisies sont conservées et réapparaîtront si vous suivez de nouveau cette campagne.`,"Retirer");
+      if(!ok)return;
+      removeTracked(camp);
+      showToast(`« ${camp} » retiré du registre`,"#ccc");
+    });
+    wrap.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderAddSelect();
+  renderGrid();
+}
+
+function setWeek(dateStr){
+  document.getElementById("a-week").value=mondayOf(dateStr);
+  renderGrid();
+}
+
+// Connexion SSE — indicateur de disponibilité INO uniquement
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  const es=new EventSource("/events");
+  es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+}
+
+// Init
+const weekInput=document.getElementById("a-week");
+weekInput.value=nextMonday();
+weekInput.addEventListener("change",e=>{
+  if(e.target.value)e.target.value=mondayOf(e.target.value);
+  renderGrid();
+});
+document.getElementById("btn-week-prev").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,-7)));
+document.getElementById("btn-week-next").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,7)));
+document.getElementById("btn-add-camp").addEventListener("click",()=>{
+  const sel=document.getElementById("a-add-camp");
+  const camp=sel.value;
+  if(!camp)return;
+  addTracked(camp);
+  sel.value="";
+  showToast(`« ${camp} » ajouté au registre d'astreinte`,"#30d158");
+});
+
+(async function init(){
+  await loadConfig();
+  await Promise.all([loadAgentRoster(),loadStore()]);
+  renderAll();
+})();
+connectSSE();
+</script>
+</body>
+</html>
