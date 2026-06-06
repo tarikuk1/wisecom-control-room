@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning de la Semaine — Wisecom</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
+.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
+.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#555;}
+input[type=date],input[type=text],input[type=time]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+input[type=time]{padding:4px 6px;font-size:11px;width:76px;color:#fff;}
+input[type=time]:disabled{opacity:.35;}
+select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
+.btn-pink{background:#E8006E;color:#fff;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.content{padding:16px 20px;}
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
+.tbl td{padding:8px 10px;border-bottom:1px solid #1a1a1a;vertical-align:top;}
+.tbl tr:hover td{background:#141414;}
+.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.note{font-size:11px;color:#555;line-height:1.6;margin-top:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#1a1a1a;border:1px solid #333;border-radius:20px;padding:4px 10px 4px 12px;font-size:11px;color:#ccc;}
+.chip-suggest{cursor:pointer;border-color:#E8006E55;}
+.chip-suggest:hover{background:#E8006E22;}
+
+.agent-row-name{display:flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap;}
+.tag-btn{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:2px 6px;font-size:12px;cursor:pointer;color:#777;line-height:1;}
+.tag-btn.active{background:#3d2e1a;border-color:#ff9f0a;color:#ff9f0a;}
+.tag-mutualise{font-size:11px;color:#0a84ff;border:1px solid #0a84ff55;border-radius:6px;padding:2px 6px;}
+.shift-cell{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:150px;}
+.shift-times{display:flex;align-items:center;gap:4px;color:#888;}
+.shift-off-label{font-size:11px;color:#888;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;}
+.shift-tags{font-size:10px;min-height:13px;color:#E8006E;}
+.total-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#1a1a1a;color:#ccc;border:1px solid #333;white-space:nowrap;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-box{background:#161616;border:1px solid #333;border-radius:10px;padding:20px;max-width:420px;width:90%;}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:8px;}
+.modal-msg{font-size:12px;color:#aaa;line-height:1.5;margin-bottom:16px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;}
+
+@media (max-width:600px){
+  .header,.controls,.content{padding-left:14px;padding-right:14px;}
+  .controls{gap:8px;}
+  .success-toast{left:14px;right:14px;bottom:14px;max-width:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div><span class="dot"></span><span class="title">PLANNING DE LA SEMAINE</span></div>
+    <div class="subtitle">Wisecom · INO · Construire et ajuster le planning hebdomadaire, agent par agent, campagne par campagne</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
+    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+  </div>
+</div>
+
+<div class="controls">
+  <label for="p-camp">Campagne</label>
+  <select id="p-camp"><option value="">Chargement…</option></select>
+  <label for="p-week">Semaine</label>
+  <button class="btn btn-dark" id="btn-week-prev" title="Semaine précédente">◀</button>
+  <input type="date" id="p-week">
+  <button class="btn btn-dark" id="btn-week-next" title="Semaine suivante">▶</button>
+  <span id="planning-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+</div>
+
+<div class="content">
+
+  <div class="panel">
+    <div class="panel-title"><span>👥 Agents du planning — <span id="planning-camp-label" style="color:#E8006E;font-weight:700;">–</span></span></div>
+    <div id="roster-tools"><div class="empty-hint">Choisissez une campagne pour gérer ses agents.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <span>🗓️ Planning hebdomadaire</span>
+      <span id="planning-period" style="color:#666;"></span>
+    </div>
+    <div id="planning-table-wrap" style="overflow-x:auto;">
+      <div class="empty-hint">Choisissez une campagne et la semaine à préparer pour afficher et construire son planning.</div>
+    </div>
+    <div class="note">
+      Renseignez l'heure de début et de fin de chaque créneau, ou cochez « Repos » pour un jour non travaillé.
+      <b style="color:#ff9f0a;">🎓</b> signale un agent en formation cette semaine (cliquez pour activer/désactiver) ·
+      <b style="color:#0a84ff;">⇄</b> un agent mutualisé, actif sur d'autres campagnes ·
+      <b style="color:#E8006E;">🌙</b> un jour où l'agent est déjà inscrit au registre d'astreinte pour une campagne suivie.
+      Le total hebdomadaire est calculé automatiquement à partir des créneaux saisis. Le planning est partagé entre superviseurs et enregistré automatiquement.
+    </div>
+  </div>
+
+</div>
+
+<datalist id="agent-suggestions"></datalist>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Action</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-dark" id="modal-cancel">Annuler</button>
+      <button class="btn btn-pink" id="modal-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+const INO_BASE = "";
+let CAMPS = [];
+let QUEUES_MAP = {};
+let planning = {};                              // sharedStore.planning — {"camp|weekStart": {roster:[{nom,training}], shifts:{"agent|date":{start,end}|{off:true}}}}
+let astreintes = {tracked:[], entries:{}};       // lecture seule — croisement pour le badge 🌙
+let agentRoster = [];
+let agentCampMap = new Map();
+let pushTimer = null;
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function dayName(dateStr){
+  const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  return names[new Date(dateStr+"T00:00:00").getDay()];
+}
+function nextMonday(){
+  const d=new Date();
+  const diff=((8-d.getDay())%7)||7;
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+function mondayOf(dateStr){
+  const d=new Date((dateStr||nextMonday())+"T00:00:00");
+  const diff=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-diff);
+  return d.toISOString().slice(0,10);
+}
+function weekDates(monday){
+  const out=[];
+  for(let i=0;i<7;i++)out.push(shiftDateStr(monday,i));
+  return out;
+}
+function timeToMinutes(t){
+  const m=/^(\d{1,2}):(\d{2})$/.exec(t||"");
+  return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):0;
+}
+function fmtHours(min){
+  if(!min||min<=0)return "0h";
+  const h=Math.floor(min/60),m=min%60;
+  return m?`${h}h${String(m).padStart(2,"0")}`:`${h}h`;
+}
+
+function showToast(msg,color){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  const c=color||"#30d158";
+  t.style.borderColor=c;t.style.color=c;t.style.background=c+"1a";
+  t.style.display="block";
+  setTimeout(()=>t.style.display="none",4500);
+}
+function planningStatus(msg,col){
+  const s=document.getElementById("planning-status");if(!s)return;
+  s.textContent=msg||"";s.style.color=col||"#888";
+  if(msg)setTimeout(()=>{if(s.textContent===msg)s.textContent="";},3000);
+}
+function confirmModal(title,message,okLabel){
+  return new Promise(resolve=>{
+    const ov=document.getElementById("modal-overlay");
+    document.getElementById("modal-title").textContent=title||"Confirmer";
+    document.getElementById("modal-msg").textContent=message||"";
+    document.getElementById("modal-ok").textContent=okLabel||"Confirmer";
+    ov.style.display="flex";
+    setTimeout(()=>document.getElementById("modal-ok").focus(),30);
+    function close(val){ov.style.display="none";document.removeEventListener("keydown",keyH);resolve(val);}
+    document.getElementById("modal-ok").onclick=()=>close(true);
+    document.getElementById("modal-cancel").onclick=()=>close(false);
+    ov.onclick=e=>{if(e.target===ov)close(false);};
+    const keyH=e=>{if(e.key==="Escape")close(false);else if(e.key==="Enter")close(true);};
+    document.addEventListener("keydown",keyH);
+  });
+}
+
+async function loadConfig(){
+  try{
+    const r=await fetch(`${INO_BASE}/api/config`);
+    const d=await r.json();
+    CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
+    QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
+  }catch(e){
+    showToast("⚠ Configuration des campagnes indisponible","#ff9b00");
+  }
+  const sel=document.getElementById("p-camp");
+  sel.innerHTML='<option value="">— Choisir une campagne —</option>'+CAMPS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+}
+
+// Détection de la campagne d'une queue ou d'un agent — même cascade que dashboard.html / couverture.html / astreinte.html
+function detectCampaign(queuesStr){
+  const fq=(queuesStr||"").split(", ").filter(Boolean);
+  for(const c of CAMPS){
+    if((QUEUES_MAP[c]||[]).some(q=>fq.includes(q)))return c;
+  }
+  for(const c of CAMPS){
+    const cl=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+    if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(cl)))return c;
+  }
+  if(fq[0]){
+    const q0=fq[0].toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+    for(const camp of CAMPS){
+      const cl=camp.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+      if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return camp;
+    }
+    const tok=fq[0].replace(/^sortant /i,"").split(/[_ ]/)[0];
+    const found=CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()));
+    return found||fq[0];
+  }
+  return "Autre";
+}
+
+// Roster d'agents connus + campagnes détectées (best effort, jour courant) : alimente l'auto-complétion
+// et les badges "mutualisé"/"suggestions". Si indisponible, la saisie manuelle reste pleinement utilisable.
+async function loadAgentRoster(){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
+    const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    const names=new Set();
+    agentCampMap=new Map();
+    (d.agents||[]).forEach(a=>{
+      if(!a.nom)return;
+      names.add(a.nom);
+      const fq=(a.queues||"").split(", ").filter(Boolean);
+      const camps=new Set();
+      fq.forEach(q=>{const c=detectCampaign(q);if(c&&c!=="Autre")camps.add(c);});
+      if(camps.size)agentCampMap.set(a.nom,camps);
+    });
+    agentRoster=Array.from(names).sort((a,b)=>a.localeCompare(b,"fr"));
+    document.getElementById("agent-suggestions").innerHTML=agentRoster.map(n=>`<option value="${esc(n)}">`).join("");
+  }catch(e){ /* suggestions indisponibles — pas bloquant */ }
+}
+function isMutualise(name){
+  const c=agentCampMap.get(name);
+  return !!(c&&c.size>1);
+}
+// Cherche, pour un agent et une date donnés, si une campagne suivie au registre d'astreinte
+// l'a inscrit comme couvrant ce jour-là — renvoie le nom de la campagne ou null
+function onCallCampaign(agentName,date){
+  for(const camp of (astreintes.tracked||[])){
+    if(astreintes.entries[camp+"|"+date]===agentName)return camp;
+  }
+  return null;
+}
+
+async function loadStore(){
+  try{
+    const r=await fetch(`${INO_BASE}/api/store`);
+    const d=await r.json();
+    if(d&&d.planning&&typeof d.planning==="object")planning={...d.planning};
+    const a=d&&d.astreintes;
+    if(a&&typeof a==="object"){
+      astreintes={
+        tracked:Array.isArray(a.tracked)?a.tracked:[],
+        entries:(a.entries&&typeof a.entries==="object")?a.entries:{}
+      };
+    }
+  }catch(e){
+    showToast("⚠ Planning indisponible — vérifiez la connexion","#ff9b00");
+  }
+}
+function pushPlanning(){
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>{
+    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"planning",value:planning})})
+      .then(r=>r.json()).then(d=>{
+        planningStatus(d&&d.ok?"Planning enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+      }).catch(()=>planningStatus("Échec de l'enregistrement (réseau)","#ff3b30"));
+  },600);
+}
+
+function entryKey(camp,monday){return camp+"|"+monday;}
+function getEntry(camp,monday){return planning[entryKey(camp,monday)];}
+function ensureEntry(camp,monday){
+  const k=entryKey(camp,monday);
+  if(!planning[k])planning[k]={roster:[],shifts:{}};
+  return planning[k];
+}
+function currentCamp(){return document.getElementById("p-camp").value;}
+function currentMonday(){return mondayOf(document.getElementById("p-week").value);}
+
+function weekTotalMinutes(agent,dates,entry){
+  let total=0;
+  dates.forEach(d=>{
+    const s=entry.shifts[agent+"|"+d];
+    if(s&&s.start&&s.end){
+      const a=timeToMinutes(s.start),b=timeToMinutes(s.end);
+      if(b>a)total+=(b-a);
+    }
+  });
+  return total;
+}
+
+function addAgent(name){
+  name=(name||"").trim();
+  if(!name)return;
+  const camp=currentCamp();if(!camp)return;
+  const entry=ensureEntry(camp,currentMonday());
+  if(entry.roster.some(r=>r.nom===name)){showToast(`« ${name} » figure déjà dans ce planning`,"#ff9b00");return;}
+  entry.roster.push({nom:name,training:false});
+  pushPlanning();
+  renderGrid();
+  showToast(`« ${name} » ajouté au planning`,"#30d158");
+}
+async function removeAgent(name){
+  const camp=currentCamp();
+  const ok=await confirmModal("Retirer l'agent du planning",`Retirer « ${name} » du planning de ${camp} pour cette semaine ? Ses créneaux déjà saisis sont conservés et réapparaîtront si vous le réajoutez.`,"Retirer");
+  if(!ok)return;
+  const entry=ensureEntry(camp,currentMonday());
+  entry.roster=entry.roster.filter(r=>r.nom!==name);
+  pushPlanning();
+  renderGrid();
+  showToast(`« ${name} » retiré du planning`,"#ccc");
+}
+function toggleTraining(name){
+  const entry=ensureEntry(currentCamp(),currentMonday());
+  const r=entry.roster.find(r=>r.nom===name);
+  if(!r)return;
+  r.training=!r.training;
+  pushPlanning();
+  renderGrid();
+}
+function commitShiftFromCell(cell){
+  const agent=cell.dataset.agent,date=cell.dataset.date;
+  const startI=cell.querySelector(".t-start"),endI=cell.querySelector(".t-end"),offI=cell.querySelector(".t-off");
+  const entry=ensureEntry(currentCamp(),currentMonday());
+  const key=agent+"|"+date;
+  if(offI.checked){
+    entry.shifts[key]={off:true};
+  }else if(startI.value&&endI.value){
+    entry.shifts[key]={start:startI.value,end:endI.value};
+  }else{
+    delete entry.shifts[key];
+  }
+  startI.disabled=offI.checked;endI.disabled=offI.checked;
+  const tr=cell.closest("tr");
+  const badge=tr&&tr.querySelector(".total-badge");
+  if(badge)badge.textContent=fmtHours(weekTotalMinutes(agent,weekDates(currentMonday()),entry));
+  pushPlanning();
+}
+
+function renderRosterTools(camp,roster){
+  const box=document.getElementById("roster-tools");
+  if(!camp){box.innerHTML='<div class="empty-hint">Choisissez une campagne pour gérer ses agents.</div>';return;}
+  const rosterNames=new Set(roster.map(r=>r.nom));
+  const suggestions=agentRoster.filter(n=>(agentCampMap.get(n)||new Set()).has(camp)&&!rosterNames.has(n));
+  box.innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;${suggestions.length?"margin-bottom:10px;":""}">
+      <input type="text" id="p-add-input" list="agent-suggestions" placeholder="Nom de l'agent">
+      <button class="btn btn-pink" id="p-add-btn">+ Ajouter au planning</button>
+    </div>
+    ${suggestions.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;color:#555;">Suggestions détectées sur ${esc(camp)} :</span>
+      ${suggestions.map(n=>`<button class="chip chip-suggest" data-suggest="${esc(n)}">${esc(n)} +</button>`).join("")}
+    </div>`:""}
+  `;
+  document.getElementById("p-add-btn").addEventListener("click",()=>{
+    const inp=document.getElementById("p-add-input");
+    addAgent(inp.value);
+    inp.value="";
+  });
+  box.querySelectorAll("[data-suggest]").forEach(btn=>btn.addEventListener("click",()=>addAgent(btn.dataset.suggest)));
+}
+
+function agentRowHTML(r,dates,entry){
+  const mut=isMutualise(r.nom);
+  const cells=dates.map(d=>{
+    const s=entry.shifts[r.nom+"|"+d];
+    const off=!!(s&&s.off);
+    const start=(s&&s.start)||"";
+    const end=(s&&s.end)||"";
+    const onCall=onCallCampaign(r.nom,d);
+    return `<td><div class="shift-cell" data-agent="${esc(r.nom)}" data-date="${d}">
+      <div class="shift-times">
+        <input type="time" class="t-start" value="${esc(start)}" ${off?"disabled":""}>
+        <span>–</span>
+        <input type="time" class="t-end" value="${esc(end)}" ${off?"disabled":""}>
+      </div>
+      <label class="shift-off-label"><input type="checkbox" class="t-off" ${off?"checked":""}> Repos</label>
+      <div class="shift-tags">${onCall?`🌙 astreinte ${esc(onCall)}`:""}</div>
+    </div></td>`;
+  }).join("");
+  return `<tr>
+    <td>
+      <div class="agent-row-name">
+        <span>${esc(r.nom)}</span>
+        <button class="tag-btn${r.training?" active":""}" data-action="training" title="Marquer/démarquer comme agent en formation">🎓</button>
+        ${mut?`<span class="tag-mutualise" title="Agent également actif sur d'autres campagnes">⇄ mutualisé</span>`:""}
+        <button class="tag-btn" data-action="remove" title="Retirer du planning">✕</button>
+      </div>
+    </td>
+    ${cells}
+    <td><span class="total-badge">${esc(fmtHours(weekTotalMinutes(r.nom,dates,entry)))}</span></td>
+  </tr>`;
+}
+
+function renderGrid(){
+  const camp=currentCamp();
+  const monday=currentMonday();
+  const wrap=document.getElementById("planning-table-wrap");
+  const dates=weekDates(monday);
+
+  document.getElementById("planning-camp-label").textContent=camp||"–";
+  document.getElementById("planning-period").textContent=camp?`${fmtDate(dates[0])} → ${fmtDate(dates[6])}`:"";
+
+  if(!camp){
+    wrap.innerHTML='<div class="empty-hint">Choisissez une campagne et la semaine à préparer pour afficher et construire son planning.</div>';
+    renderRosterTools("",[]);
+    return;
+  }
+  const entry=getEntry(camp,monday);
+  const roster=entry?entry.roster:[];
+  renderRosterTools(camp,roster);
+
+  if(!roster.length){
+    wrap.innerHTML=`<div class="empty-hint">Aucun agent dans le planning de <b>${esc(camp)}</b> pour cette semaine. Ajoutez-en un ci-dessus, ou choisissez parmi les suggestions détectées.</div>`;
+    return;
+  }
+  const e=ensureEntry(camp,monday);
+  const thead=`<tr><th>Agent</th>${dates.map(d=>`<th>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th>Total semaine</th></tr>`;
+  const tbody=roster.map(r=>agentRowHTML(r,dates,e)).join("");
+  wrap.innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+
+  wrap.querySelectorAll(".shift-cell").forEach(cell=>{
+    const startI=cell.querySelector(".t-start"),endI=cell.querySelector(".t-end"),offI=cell.querySelector(".t-off");
+    const commit=()=>commitShiftFromCell(cell);
+    startI.addEventListener("change",commit);
+    endI.addEventListener("change",commit);
+    offI.addEventListener("change",commit);
+  });
+  wrap.querySelectorAll('[data-action="training"]').forEach(btn=>btn.addEventListener("click",e=>{
+    toggleTraining(e.target.closest("tr").querySelector(".agent-row-name span").textContent);
+  }));
+  wrap.querySelectorAll('[data-action="remove"]').forEach(btn=>btn.addEventListener("click",e=>{
+    removeAgent(e.target.closest("tr").querySelector(".agent-row-name span").textContent);
+  }));
+}
+
+function setWeek(dateStr){
+  document.getElementById("p-week").value=mondayOf(dateStr);
+  renderGrid();
+}
+
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  const es=new EventSource("/events");
+  es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+}
+
+// Init
+const weekInput=document.getElementById("p-week");
+weekInput.value=nextMonday();
+weekInput.addEventListener("change",e=>{
+  if(e.target.value)e.target.value=mondayOf(e.target.value);
+  renderGrid();
+});
+document.getElementById("btn-week-prev").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,-7)));
+document.getElementById("btn-week-next").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,7)));
+document.getElementById("p-camp").addEventListener("change",renderGrid);
+
+(async function init(){
+  await loadConfig();
+  await Promise.all([loadAgentRoster(),loadStore()]);
+  renderGrid();
+})();
+connectSSE();
+</script>
+</body>
+</html>
