@@ -7,41 +7,41 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.subtitle{font-size:11px;color:#999;margin-top:2px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#555;}
-input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
-select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+.controls{background:#fff;border-bottom:1px solid #dedede;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#777;}
+input[type=date]{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
 select:disabled{opacity:.5;cursor:not-allowed;}
 .btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
 .btn-pink{background:#E8006E;color:#fff;}
 .btn-pink:disabled{opacity:.5;cursor:not-allowed;}
-.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.btn-dark{background:#fafafa;color:#161616;border:1px solid #dedede;}
 .content{padding:16px 20px;}
-.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.loading{text-align:center;padding:30px;color:#444;}
-.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.note{font-size:11px;color:#555;line-height:1.6;margin-top:4px;}
+.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.loading{text-align:center;padding:30px;color:#999;}
+.empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.note{font-size:11px;color:#777;line-height:1.6;margin-top:4px;}
 
 .astreinte-row{display:flex;gap:8px;flex-wrap:wrap;}
-.astreinte-cell{flex:1 1 130px;min-width:130px;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:8px 10px;}
+.astreinte-cell{flex:1 1 130px;min-width:130px;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:8px 10px;}
 .astreinte-day{font-size:11px;color:#777;margin-bottom:6px;text-transform:capitalize;white-space:nowrap;}
-.astreinte-input{width:100%;background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:6px 8px;font-size:12px;}
-.astreinte-input.empty{border-color:#5c2424;background:#1e0a0a;color:#ff9b9b;}
-.astreinte-input.empty::placeholder{color:#ff6b6b;}
+.astreinte-input{width:100%;background:#fff;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;}
+.astreinte-input.empty{border-color:#ffd0d0;background:#fff5f5;color:#dc2626;}
+.astreinte-input.empty::placeholder{color:#e57373;}
 .astreinte-tag{font-size:10px;color:#E8006E;margin-top:4px;min-height:13px;}
 .cov-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
-.modal-box{background:#161616;border:1px solid #333;border-radius:10px;padding:20px;max-width:420px;width:90%;}
+.modal-box{background:#fff;border:1px solid #dedede;border-radius:10px;padding:20px;max-width:420px;width:90%;}
 .modal-title{font-size:14px;font-weight:700;margin-bottom:8px;}
-.modal-msg{font-size:12px;color:#aaa;line-height:1.5;margin-bottom:16px;}
+.modal-msg{font-size:12px;color:#777;line-height:1.5;margin-bottom:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
 
 @media (max-width:600px){
@@ -145,7 +145,7 @@ function weekDates(monday){
 function showToast(msg,color){
   const t=document.getElementById("toast");
   t.textContent=msg;
-  const c=color||"#30d158";
+  const c=color||"#1a8f44";
   t.style.borderColor=c;
   t.style.color=c;
   t.style.background=c+"1a";
@@ -183,7 +183,7 @@ async function loadConfig(){
     CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
     QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
   }catch(e){
-    showToast("⚠ Configuration des campagnes indisponible","#ff9b00");
+    showToast("⚠ Configuration des campagnes indisponible","#b45309");
   }
 }
 
@@ -259,7 +259,7 @@ async function loadStore(){
       };
     }
   }catch(e){
-    showToast("⚠ Registre indisponible — vérifiez la connexion","#ff9b00");
+    showToast("⚠ Registre indisponible — vérifiez la connexion","#b45309");
   }
 }
 function pushRegistry(){
@@ -268,7 +268,7 @@ function pushRegistry(){
     fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:registry})})
       .then(r=>r.json()).then(d=>{
         astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#ff3b30"));
+      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626"));
   },600);
 }
 
@@ -302,7 +302,7 @@ function updateCoverageBadge(card,camp){
   const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
   const badge=card.querySelector(".cov-badge");
   if(!badge)return;
-  const col=covered===7?"#30d158":(covered===0?"#ff3b30":"#ff9f0a");
+  const col=covered===7?"#1a8f44":(covered===0?"#dc2626":"#b45309");
   badge.textContent=`${covered}/7 jours couverts`;
   badge.style.background=col+"22";badge.style.color=col;badge.style.borderColor=col;
 }
@@ -331,7 +331,7 @@ function renderGrid(){
   wrap.innerHTML="";
   registry.tracked.forEach(camp=>{
     const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
-    const col=covered===7?"#30d158":(covered===0?"#ff3b30":"#ff9f0a");
+    const col=covered===7?"#1a8f44":(covered===0?"#dc2626":"#b45309");
     const card=document.createElement("div");
     card.className="panel astreinte-camp";
     card.style.marginBottom="12px";
@@ -360,7 +360,7 @@ function renderGrid(){
       const ok=await confirmModal("Retirer du registre",`Retirer « ${camp} » du registre d'astreinte ? Les affectations déjà saisies sont conservées et réapparaîtront si vous suivez de nouveau cette campagne.`,"Retirer");
       if(!ok)return;
       removeTracked(camp);
-      showToast(`« ${camp} » retiré du registre`,"#ccc");
+      showToast(`« ${camp} » retiré du registre`,"#777");
     });
     wrap.appendChild(card);
   });
@@ -381,7 +381,7 @@ function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
   es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
-  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};
 }
 
 // Init
@@ -399,7 +399,7 @@ document.getElementById("btn-add-camp").addEventListener("click",()=>{
   if(!camp)return;
   addTracked(camp);
   sel.value="";
-  showToast(`« ${camp} » ajouté au registre d'astreinte`,"#30d158");
+  showToast(`« ${camp} » ajouté au registre d'astreinte`,"#1a8f44");
 });
 
 (async function init(){

@@ -393,56 +393,56 @@ function makeAdmin(login){
 <title>Administration — Wisecom Control Room</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;}
-.topbar{background:#111;border-bottom:1px solid #1e1e1e;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;}
+.topbar{background:#fff;border-bottom:1px solid #dedede;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.08em;}
 .dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 12px #E8006E;}
 .nav{display:flex;gap:10px;align-items:center;}
-.nav a{color:#888;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;transition:all .15s;}
+.nav a{color:#777;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #dedede;transition:all .15s;}
 .nav a:hover,.nav a.active{color:#E8006E;border-color:#E8006E55;}
 .wrap{max-width:900px;margin:0 auto;padding:28px 20px;}
-.section{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:22px;margin-bottom:18px;}
-.section-title{font-size:13px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:8px;}
+.section{background:#fff;border:1px solid #dedede;border-radius:12px;padding:22px;margin-bottom:18px;}
+.section-title{font-size:13px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #dedede;display:flex;align-items:center;gap:8px;}
 .field{margin-bottom:14px;}
-.field label{display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
-.field input{width:100%;background:#161616;color:#f0f0f0;border:1px solid #2a2a2a;border-radius:7px;padding:9px 12px;font-size:12px;outline:none;transition:border .15s;}
+.field label{display:block;font-size:10px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.field input{width:100%;background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:7px;padding:9px 12px;font-size:12px;outline:none;transition:border .15s;}
 .field input:focus{border-color:#E8006E55;}
 .row{display:flex;gap:10px;}
 .row .field{flex:1;}
 .btn{border:none;border-radius:7px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
 .btn-pink{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
 .btn-pink:hover{box-shadow:0 4px 12px rgba(232,0,110,.4);}
-.btn-danger{background:#2a0808;color:#ff3b30;border:1px solid #3a1010;}
-.btn-danger:hover{background:#3a1010;}
-.btn-ghost{background:#1a1a1a;color:#888;border:1px solid #2a2a2a;}
+.btn-danger{background:#fff5f5;color:#dc2626;border:1px solid #ffd0d0;}
+.btn-danger:hover{background:#ffe0e0;}
+.btn-ghost{background:#fafafa;color:#777;border:1px solid #dedede;}
 .users-table{width:100%;border-collapse:collapse;}
-.users-table th{text-align:left;font-size:10px;color:#555;font-weight:600;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid #1e1e1e;}
-.users-table td{padding:10px;border-bottom:1px solid #141414;font-size:12px;}
+.users-table th{text-align:left;font-size:10px;color:#999;font-weight:600;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid #dedede;}
+.users-table td{padding:10px;border-bottom:1px solid #efefef;font-size:12px;}
 .badge-role{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;}
-.badge-admin{background:#1a0810;color:#E8006E;border:1px solid #E8006E44;}
-.badge-user{background:#161616;color:#666;border:1px solid #2a2a2a;}
+.badge-admin{background:#ffe0ef;color:#E8006E;border:1px solid #E8006E44;}
+.badge-user{background:#efefef;color:#777;border:1px solid #dedede;}
 .alert{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:12px;display:none;}
-.alert-ok{background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);color:#30d158;}
-.alert-err{background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);color:#ff6b6b;}
+.alert-ok{background:#f0fff5;border:1px solid #bfead0;color:#1a8f44;}
+.alert-err{background:#fff5f5;border:1px solid #ffd0d0;color:#dc2626;}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:0;}
-.stat-card{background:#161616;border:1px solid #1e1e1e;border-radius:9px;padding:14px;}
-.stat-label{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px;}
+.stat-card{background:#fafafa;border:1px solid #dedede;border-radius:9px;padding:14px;}
+.stat-label{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px;}
 .stat-value{font-size:22px;font-weight:800;color:#E8006E;}
-.stat-sub{font-size:10px;color:#555;margin-top:3px;}
+.stat-sub{font-size:10px;color:#999;margin-top:3px;}
 </style></head>
 <body>
 <div class="topbar">
-  <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#555;font-weight:400;font-size:11px">/ Administration</span></div>
+  <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#999;font-weight:400;font-size:11px">/ Administration</span></div>
   <div class="nav">
-    <span style="font-size:11px;color:#555">Connecté : <b style="color:#E8006E">${login}</b></span>
+    <span style="font-size:11px;color:#999">Connecté : <b style="color:#E8006E">${login}</b></span>
     <a href="/">← Dashboard</a>
-    <a href="/logout" style="color:#ff3b30;border-color:#3a1010">Déconnexion</a>
+    <a href="/logout" style="color:#dc2626;border-color:#ffd0d0">Déconnexion</a>
   </div>
 </div>
 <div class="wrap">
   <div id="stats-section" class="section">
     <div class="section-title">📊 Statistiques système</div>
-    <div class="stat-grid" id="stat-grid"><div style="color:#555;font-size:11px">Chargement…</div></div>
+    <div class="stat-grid" id="stat-grid"><div style="color:#999;font-size:11px">Chargement…</div></div>
   </div>
   <div class="section">
     <div class="section-title">👥 Gestion des utilisateurs</div>
@@ -456,7 +456,7 @@ body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-seri
     </div>
     <table class="users-table" id="users-table">
       <thead><tr><th>#</th><th>Login</th><th>Rôle</th><th>Actions</th></tr></thead>
-      <tbody id="users-tbody"><tr><td colspan="4" style="color:#555;padding:14px 10px;font-size:11px">Chargement…</td></tr></tbody>
+      <tbody id="users-tbody"><tr><td colspan="4" style="color:#999;padding:14px 10px;font-size:11px">Chargement…</td></tr></tbody>
     </table>
   </div>
   <div class="section">
@@ -484,11 +484,11 @@ async function loadStats(){
     const r=await fetch('/api/admin/stats');const d=await r.json();
     const g=document.getElementById('stat-grid');
     g.innerHTML='<div class="stat-card"><div class="stat-label">Sessions actives</div><div class="stat-value">'+(d.sessions||0)+'</div><div class="stat-sub">Sessions ouvertes</div></div>'+
-      '<div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:'+(d.inoOk?'#30d158':'#ff3b30')+'">'+(d.inoOk?'✓ OUI':'✕ NON')+'</div><div class="stat-sub">Token bearer</div></div>'+
+      '<div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:'+(d.inoOk?'#1a8f44':'#dc2626')+'">'+(d.inoOk?'✓ OUI':'✕ NON')+'</div><div class="stat-sub">Token bearer</div></div>'+
       '<div class="stat-card"><div class="stat-label">Appels du jour</div><div class="stat-value">'+(d.stats&&d.stats.totalAppels||0)+'</div><div class="stat-sub">Via API INO</div></div>'+
       '<div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">'+Math.floor(d.uptime/3600)+'h'+Math.floor((d.uptime%3600)/60)+'m</div><div class="stat-sub">Depuis le démarrage</div></div>'+
       '<div class="stat-card"><div class="stat-label">Dernière MAJ</div><div class="stat-value" style="font-size:12px">'+(d.lastEvent?new Date(d.lastEvent).toLocaleTimeString('fr-FR'):'–')+'</div><div class="stat-sub">Webhook INO</div></div>';
-  }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#ff3b30;font-size:11px">Erreur chargement stats</div>';}
+  }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#dc2626;font-size:11px">Erreur chargement stats</div>';}
 }
 async function loadUsers(){
   try{
@@ -497,7 +497,7 @@ async function loadUsers(){
       '<td style="color:#555">'+(i+1)+'</td>'+
       '<td style="font-weight:600">'+u.login+'</td>'+
       '<td><span class="badge-role '+(u.role==='admin'?'badge-admin':'badge-user')+'">'+u.role+'</span></td>'+
-      '<td>'+(u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':'<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser(\''+u.login+'\')">Supprimer</button>')+'</td>'+
+      '<td>'+(u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':'<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser(\\''+u.login+'\\')">Supprimer</button>')+'</td>'+
     '</tr>').join('');
     document.getElementById('users-tbody').innerHTML=rows||'<tr><td colspan="4" style="color:#555;font-size:11px">Aucun utilisateur</td></tr>';
   }catch(e){}

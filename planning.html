@@ -7,48 +7,48 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.subtitle{font-size:11px;color:#999;margin-top:2px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#555;}
-input[type=date],input[type=text],input[type=time]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
-input[type=time]{padding:4px 6px;font-size:11px;width:76px;color:#fff;}
+.controls{background:#fff;border-bottom:1px solid #dedede;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#777;}
+input[type=date],input[type=text],input[type=time]{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+input[type=time]{padding:4px 6px;font-size:11px;width:76px;color:#161616;}
 input[type=time]:disabled{opacity:.35;}
-select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
 .btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
 .btn-pink{background:#E8006E;color:#fff;}
-.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.btn-dark{background:#fafafa;color:#161616;border:1px solid #dedede;}
 .content{padding:16px 20px;}
-.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
-.tbl td{padding:8px 10px;border-bottom:1px solid #1a1a1a;vertical-align:top;}
-.tbl tr:hover td{background:#141414;}
-.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.note{font-size:11px;color:#555;line-height:1.6;margin-top:12px;}
-.chip{display:inline-flex;align-items:center;gap:6px;background:#1a1a1a;border:1px solid #333;border-radius:20px;padding:4px 10px 4px 12px;font-size:11px;color:#ccc;}
+.tbl th{padding:8px 10px;color:#999;font-weight:600;text-align:left;border-bottom:1px solid #dedede;background:#fafafa;white-space:nowrap;}
+.tbl td{padding:8px 10px;border-bottom:1px solid #efefef;vertical-align:top;}
+.tbl tr:hover td{background:#fff8fc;}
+.empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.note{font-size:11px;color:#777;line-height:1.6;margin-top:12px;}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fafafa;border:1px solid #dedede;border-radius:20px;padding:4px 10px 4px 12px;font-size:11px;color:#444;}
 .chip-suggest{cursor:pointer;border-color:#E8006E55;}
-.chip-suggest:hover{background:#E8006E22;}
+.chip-suggest:hover{background:#E8006E1a;}
 
 .agent-row-name{display:flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap;}
-.tag-btn{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:2px 6px;font-size:12px;cursor:pointer;color:#777;line-height:1;}
-.tag-btn.active{background:#3d2e1a;border-color:#ff9f0a;color:#ff9f0a;}
-.tag-mutualise{font-size:11px;color:#0a84ff;border:1px solid #0a84ff55;border-radius:6px;padding:2px 6px;}
+.tag-btn{background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:2px 6px;font-size:12px;cursor:pointer;color:#777;line-height:1;}
+.tag-btn.active{background:#fff3e0;border-color:#ff9f0a;color:#b45309;}
+.tag-mutualise{font-size:11px;color:#0066cc;border:1px solid #0066cc55;border-radius:6px;padding:2px 6px;}
 .shift-cell{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:150px;}
-.shift-times{display:flex;align-items:center;gap:4px;color:#888;}
-.shift-off-label{font-size:11px;color:#888;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;}
+.shift-times{display:flex;align-items:center;gap:4px;color:#777;}
+.shift-off-label{font-size:11px;color:#777;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;}
 .shift-tags{font-size:10px;min-height:13px;color:#E8006E;}
-.total-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#1a1a1a;color:#ccc;border:1px solid #333;white-space:nowrap;}
+.total-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fafafa;color:#161616;border:1px solid #dedede;white-space:nowrap;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
-.modal-box{background:#161616;border:1px solid #333;border-radius:10px;padding:20px;max-width:420px;width:90%;}
+.modal-box{background:#fff;border:1px solid #dedede;border-radius:10px;padding:20px;max-width:420px;width:90%;}
 .modal-title{font-size:14px;font-weight:700;margin-bottom:8px;}
-.modal-msg{font-size:12px;color:#aaa;line-height:1.5;margin-bottom:16px;}
+.modal-msg{font-size:12px;color:#777;line-height:1.5;margin-bottom:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
 
 @media (max-width:600px){
@@ -98,8 +98,8 @@ select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;pad
     </div>
     <div class="note">
       Renseignez l'heure de début et de fin de chaque créneau, ou cochez « Repos » pour un jour non travaillé.
-      <b style="color:#ff9f0a;">🎓</b> signale un agent en formation cette semaine (cliquez pour activer/désactiver) ·
-      <b style="color:#0a84ff;">⇄</b> un agent mutualisé, actif sur d'autres campagnes ·
+      <b style="color:#b45309;">🎓</b> signale un agent en formation cette semaine (cliquez pour activer/désactiver) ·
+      <b style="color:#0066cc;">⇄</b> un agent mutualisé, actif sur d'autres campagnes ·
       <b style="color:#E8006E;">🌙</b> un jour où l'agent est déjà inscrit au registre d'astreinte pour une campagne suivie.
       Le total hebdomadaire est calculé automatiquement à partir des créneaux saisis. Le planning est partagé entre superviseurs et enregistré automatiquement.
     </div>
@@ -169,7 +169,7 @@ function fmtHours(min){
 function showToast(msg,color){
   const t=document.getElementById("toast");
   t.textContent=msg;
-  const c=color||"#30d158";
+  const c=color||"#1a8f44";
   t.style.borderColor=c;t.style.color=c;t.style.background=c+"1a";
   t.style.display="block";
   setTimeout(()=>t.style.display="none",4500);
@@ -203,7 +203,7 @@ async function loadConfig(){
     CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
     QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
   }catch(e){
-    showToast("⚠ Configuration des campagnes indisponible","#ff9b00");
+    showToast("⚠ Configuration des campagnes indisponible","#b45309");
   }
   const sel=document.getElementById("p-camp");
   sel.innerHTML='<option value="">— Choisir une campagne —</option>'+CAMPS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
@@ -280,7 +280,7 @@ async function loadStore(){
       };
     }
   }catch(e){
-    showToast("⚠ Planning indisponible — vérifiez la connexion","#ff9b00");
+    showToast("⚠ Planning indisponible — vérifiez la connexion","#b45309");
   }
 }
 function pushPlanning(){
@@ -289,7 +289,7 @@ function pushPlanning(){
     fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"planning",value:planning})})
       .then(r=>r.json()).then(d=>{
         planningStatus(d&&d.ok?"Planning enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>planningStatus("Échec de l'enregistrement (réseau)","#ff3b30"));
+      }).catch(()=>planningStatus("Échec de l'enregistrement (réseau)","#dc2626"));
   },600);
 }
 
@@ -320,11 +320,11 @@ function addAgent(name){
   if(!name)return;
   const camp=currentCamp();if(!camp)return;
   const entry=ensureEntry(camp,currentMonday());
-  if(entry.roster.some(r=>r.nom===name)){showToast(`« ${name} » figure déjà dans ce planning`,"#ff9b00");return;}
+  if(entry.roster.some(r=>r.nom===name)){showToast(`« ${name} » figure déjà dans ce planning`,"#b45309");return;}
   entry.roster.push({nom:name,training:false});
   pushPlanning();
   renderGrid();
-  showToast(`« ${name} » ajouté au planning`,"#30d158");
+  showToast(`« ${name} » ajouté au planning`,"#1a8f44");
 }
 async function removeAgent(name){
   const camp=currentCamp();
@@ -334,7 +334,7 @@ async function removeAgent(name){
   entry.roster=entry.roster.filter(r=>r.nom!==name);
   pushPlanning();
   renderGrid();
-  showToast(`« ${name} » retiré du planning`,"#ccc");
+  showToast(`« ${name} » retiré du planning`,"#777");
 }
 function toggleTraining(name){
   const entry=ensureEntry(currentCamp(),currentMonday());
@@ -469,7 +469,7 @@ function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
   es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
-  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};
 }
 
 // Init

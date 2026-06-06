@@ -7,34 +7,34 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.subtitle{font-size:11px;color:#999;margin-top:2px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#555;}
-input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
-select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+.controls{background:#fff;border-bottom:1px solid #dedede;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#777;}
+input[type=date]{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
 select:disabled{opacity:.5;cursor:not-allowed;}
 .btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
 .btn-pink{background:#E8006E;color:#fff;}
 .btn-pink:disabled{opacity:.5;cursor:wait;}
-.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.btn-dark{background:#fafafa;color:#161616;border:1px solid #dedede;}
 .content{padding:16px 20px;}
-.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
-.tbl td{padding:7px 10px;border-bottom:1px solid #1a1a1a;vertical-align:middle;white-space:nowrap;}
-.tbl tr:hover td{background:#141414;}
-.loading{text-align:center;padding:30px;color:#444;}
-.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.signal{display:flex;gap:10px;align-items:flex-start;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#ccc;}
+.tbl th{padding:8px 10px;color:#999;font-weight:500;text-align:left;border-bottom:1px solid #dedede;white-space:nowrap;background:#fafafa;}
+.tbl td{padding:7px 10px;border-bottom:1px solid #efefef;vertical-align:middle;white-space:nowrap;}
+.tbl tr:hover td{background:#fff8fc;}
+.loading{text-align:center;padding:30px;color:#999;}
+.empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.signal{display:flex;gap:10px;align-items:flex-start;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#444;}
 .signal-icon{font-size:15px;flex-shrink:0;}
-.signal-alert{border-color:#5c1e1e;background:#1e0a0a;}
-.signal-ok{border-color:#1e5c30;background:#0a1e12;color:#a8d8b8;}
+.signal-alert{border-color:#ffd0d0;background:#fff5f5;}
+.signal-ok{border-color:#bfead0;background:#f0fff5;color:#1a8f44;}
 .legend-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:4px;}
 
 @media (max-width:600px){
@@ -89,10 +89,10 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     </div>
     <div style="margin-top:12px;font-size:11px;color:#555;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
       <span>Légende :</span>
-      <span><span class="legend-swatch" style="background:#30d15833;border:1px solid #30d158;"></span>charge normale</span>
-      <span><span class="legend-swatch" style="background:#ff9f0a33;border:1px solid #ff9f0a;"></span>tension modérée (≥ 15% au-dessus de la normale)</span>
-      <span><span class="legend-swatch" style="background:#ff3b3033;border:1px solid #ff3b30;"></span>tension forte (≥ 50%) ou aucun agent détecté sur le créneau</span>
-      <span><span class="legend-swatch" style="background:#33333350;border:1px solid #333;"></span>pas d'activité habituelle sur ce créneau</span>
+      <span><span class="legend-swatch" style="background:#1a8f4433;border:1px solid #1a8f44;"></span>charge normale</span>
+      <span><span class="legend-swatch" style="background:#b4530933;border:1px solid #b45309;"></span>tension modérée (≥ 15% au-dessus de la normale)</span>
+      <span><span class="legend-swatch" style="background:#dc262633;border:1px solid #dc2626;"></span>tension forte (≥ 50%) ou aucun agent détecté sur le créneau</span>
+      <span><span class="legend-swatch" style="background:#99999950;border:1px solid #999;"></span>pas d'activité habituelle sur ce créneau</span>
     </div>
   </div>
 
@@ -132,7 +132,7 @@ function nextMonday(){
 function showToast(msg,color){
   const t=document.getElementById("toast");
   t.textContent=msg;
-  const c=color||"#30d158";
+  const c=color||"#1a8f44";
   t.style.borderColor=c;
   t.style.color=c;
   t.style.background=c+"1a";
@@ -147,7 +147,7 @@ async function loadConfig(){
     CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
     QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
   }catch(e){
-    showToast("⚠ Configuration des campagnes indisponible — détection approximative","#ff9b00");
+    showToast("⚠ Configuration des campagnes indisponible — détection approximative","#b45309");
   }
   const sel=document.getElementById("r-camp");
   sel.innerHTML=CAMPS.length?CAMPS.map(c=>`<option value="${c}">${c}</option>`).join(""):'<option value="">Aucune campagne disponible</option>';
@@ -223,7 +223,7 @@ function tensionLevel(cell,baseline){
   if(ratio>=1.15)return "moderate";
   return "normal";
 }
-const TENSION_COLOR={none:"#3a3a3a",unknown:"#555",normal:"#30d158",moderate:"#ff9f0a",high:"#ff3b30",critical:"#ff3b30"};
+const TENSION_COLOR={none:"#999",unknown:"#777",normal:"#1a8f44",moderate:"#b45309",high:"#dc2626",critical:"#dc2626"};
 
 async function loadDay(date){
   if(dayCache.has(date))return dayCache.get(date);
@@ -242,8 +242,8 @@ async function loadRadar(){
   const offsetDays=parseInt(document.getElementById("r-offset").value,10);
   const stEl=document.getElementById("radar-status");
   const btn=document.getElementById("btn-radar-load");
-  if(!camp){showToast("⚠ Choisissez une campagne d'abord","#ff9b00");return;}
-  if(!weekStart){showToast("⚠ Choisissez la semaine à préparer","#ff9b00");return;}
+  if(!camp){showToast("⚠ Choisissez une campagne d'abord","#b45309");return;}
+  if(!weekStart){showToast("⚠ Choisissez la semaine à préparer","#b45309");return;}
 
   loading=true;
   btn.disabled=true;
@@ -271,7 +271,7 @@ async function loadRadar(){
   }catch(e){
     const msg=e&&e.message||String(e);
     stEl.textContent="⚠ Génération interrompue — "+msg;
-    showToast("⚠ Échec de la génération du radar — "+msg,"#ff3b30");
+    showToast("⚠ Échec de la génération du radar — "+msg,"#dc2626");
   }finally{
     loading=false;
     btn.disabled=false;
@@ -303,7 +303,7 @@ function renderHeatmap(){
     tbody+="</tr>";
   }
   document.getElementById("radar-table-wrap").innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
-    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#ccc;">${camp}</b> sur la période : <b style="color:#ccc;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> — survolez une cellule pour le détail.</div>`;
+    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> — survolez une cellule pour le détail.</div>`;
 }
 
 function renderRadarSynthesis(){
@@ -344,7 +344,7 @@ function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
   es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
-  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};
 }
 
 // Init
