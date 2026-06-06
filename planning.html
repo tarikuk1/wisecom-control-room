@@ -98,8 +98,9 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
     </div>
     <div class="note">
       Renseignez l'heure de début et de fin de chaque créneau, ou cochez « Repos » pour un jour non travaillé.
+      Lors de l'ajout d'un agent, la liste de suggestions propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui) — à défaut de compétences chargées, l'ensemble des agents connus est proposé.
       <b style="color:#b45309;">🎓</b> signale un agent en formation cette semaine (cliquez pour activer/désactiver) ·
-      <b style="color:#0066cc;">⇄</b> un agent mutualisé, actif sur d'autres campagnes ·
+      <b style="color:#0066cc;">⇄</b> un agent mutualisé, qualifié sur d'autres campagnes ·
       <b style="color:#E8006E;">🌙</b> un jour où l'agent est déjà inscrit au registre d'astreinte pour une campagne suivie.
       Le total hebdomadaire est calculé automatiquement à partir des créneaux saisis. Le planning est partagé entre superviseurs et enregistré automatiquement.
     </div>
@@ -232,27 +233,46 @@ function detectCampaign(queuesStr){
   return "Autre";
 }
 
-// Roster d'agents connus + campagnes détectées (best effort, jour courant) : alimente l'auto-complétion
-// et les badges "mutualisé"/"suggestions". Si indisponible, la saisie manuelle reste pleinement utilisable.
+// À partir d'une liste d'agents et d'un extracteur de "queues/compétences" par agent,
+// construit la liste globale de noms et la map nom -> Set(campagnes) (suggestions ciblées + badge "mutualisé").
+function buildAgentRosters(list,skillsOf){
+  const names=new Set();
+  const campMap=new Map();
+  list.forEach(a=>{
+    const nom=(a.nom||"").trim();
+    if(!nom)return;
+    names.add(nom);
+    const camps=new Set();
+    skillsOf(a).forEach(sk=>{const c=detectCampaign(sk);if(c&&c!=="Autre")camps.add(c);});
+    if(camps.size)campMap.set(nom,camps);
+  });
+  return{names:Array.from(names).sort((a,b)=>a.localeCompare(b,"fr")),campMap};
+}
+
+// Roster d'agents connus + campagnes pour lesquelles ils ont la compétence : alimente l'auto-complétion
+// et les suggestions « tous les agents qualifiés sur la campagne » + le badge "mutualisé".
+// Source primaire : compétences INO (/api/skills, couvre tous les agents qualifiés, actifs ou non
+// aujourd'hui) ; repli sur l'activité du jour si les compétences ne sont pas chargées.
+// Si tout échoue, la saisie manuelle reste pleinement utilisable — ce n'est qu'une aide.
 async function loadAgentRoster(){
   try{
-    const today=new Date().toISOString().slice(0,10);
-    const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
+    const r=await fetch(`${INO_BASE}/api/skills`);
     const d=await r.json();
-    if(d.error)throw new Error(d.error);
-    const names=new Set();
-    agentCampMap=new Map();
-    (d.agents||[]).forEach(a=>{
-      if(!a.nom)return;
-      names.add(a.nom);
-      const fq=(a.queues||"").split(", ").filter(Boolean);
-      const camps=new Set();
-      fq.forEach(q=>{const c=detectCampaign(q);if(c&&c!=="Autre")camps.add(c);});
-      if(camps.size)agentCampMap.set(a.nom,camps);
-    });
-    agentRoster=Array.from(names).sort((a,b)=>a.localeCompare(b,"fr"));
-    document.getElementById("agent-suggestions").innerHTML=agentRoster.map(n=>`<option value="${esc(n)}">`).join("");
-  }catch(e){ /* suggestions indisponibles — pas bloquant */ }
+    const list=d&&d.ok&&d.agents?Object.values(d.agents):[];
+    if(!list.length)throw new Error(d&&d.error||"compétences non chargées");
+    const built=buildAgentRosters(list,a=>Array.isArray(a.skills)?a.skills:[]);
+    agentRoster=built.names;agentCampMap=built.campMap;
+  }catch(e){
+    try{
+      const today=new Date().toISOString().slice(0,10);
+      const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
+      const d=await r.json();
+      if(d.error)throw new Error(d.error);
+      const built=buildAgentRosters(d.agents||[],a=>(a.queues||"").split(", ").filter(Boolean));
+      agentRoster=built.names;agentCampMap=built.campMap;
+    }catch(e2){ /* suggestions indisponibles — pas bloquant, la saisie manuelle reste utilisable */ }
+  }
+  document.getElementById("agent-suggestions").innerHTML=agentRoster.map(n=>`<option value="${esc(n)}">`).join("");
 }
 function isMutualise(name){
   const c=agentCampMap.get(name);
@@ -374,7 +394,7 @@ function renderRosterTools(camp,roster){
       <button class="btn btn-pink" id="p-add-btn">+ Ajouter au planning</button>
     </div>
     ${suggestions.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-      <span style="font-size:11px;color:#555;">Suggestions détectées sur ${esc(camp)} :</span>
+      <span style="font-size:11px;color:#555;">Agents qualifiés sur ${esc(camp)} (compétence INO) :</span>
       ${suggestions.map(n=>`<button class="chip chip-suggest" data-suggest="${esc(n)}">${esc(n)} +</button>`).join("")}
     </div>`:""}
   `;
