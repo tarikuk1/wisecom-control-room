@@ -12,7 +12,16 @@
    Source unique : modifier ici affecte tout le dashboard
    ─────────────────────────────────────────────────────── */
 :root{
-  /* Couleurs primaires */
+  /* Couleurs primaires — règle d'usage (pour rester cohérent à mesure
+     que l'outil grandit) :
+       --c-pink      → état actif / sélectionné / accent par défaut
+                        (la valeur "de repos" de la marque)
+       --c-pink-dark → survol ou pression d'un élément déjà --c-pink
+                        (assombrit = "en cours d'interaction")
+       --c-pink-hi   → highlight ponctuel à forte visibilité
+                        (badge, alerte, libellé à scanner en premier —
+                        n'éclaircit QUE pour des accents isolés, jamais
+                        de grandes surfaces de texte)               */
   --c-pink:       #E8006E;
   --c-pink-dark:  #c2005a;
   --c-pink-hi:    #f5479e;
@@ -380,10 +389,13 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
 
 /* KPI grid */
 /* ── KPI CARDS ────────────────────────────────────────────
-   Variants: .kpi-card (standard), .kpi-card.hero (dominant)
+   Variants: .kpi-card (standard), .kpi-card.priority (à surveiller
+   en premier — accent discret), .kpi-card.hero (dominant)
    États: .good (vert), .alert (rouge), :hover
    Tokens: --s-2, --s-4, --r-md (12px override), --fs-kpi
-   Usage: grille flex-wrap, 1 card hero max par vue
+   Usage: grille flex-wrap, 1 card hero max par vue (le hero reste
+   l'exception qui capte l'œil ; .priority hiérarchise sans
+   saturer — quelques indicateurs-clés à scanner avant les autres)
    ─────────────────────────────────────────────────────── */
 .kpi-grid{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:16px;}
 .kpi-card{background:#141414;border:1px solid var(--s-3);border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;}
@@ -391,6 +403,8 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
 .kpi-card.hero .kpi-value{font-size:var(--fs-kpi-hero)!important;}
 .kpi-card.hero .kpi-label{color:var(--c-pink);font-size:var(--fs-sm);}
 .kpi-card.hero:hover{border-color:rgba(232,0,110,.45);box-shadow:var(--shadow-pink);transform:translateY(-1px);}
+.kpi-card.priority{border-left:3px solid var(--c-pink);}
+.kpi-card.priority .kpi-label{color:var(--c-pink-hi);}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
 body.light .kpi-card{background:var(--s-light-1);border-color:#e8e8e8;}
 .kpi-card.alert{border-color:var(--c-pink);background:linear-gradient(135deg,#1a0810,#141414);}
@@ -897,13 +911,13 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
       <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
       <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel">📊</button>
-      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF">📄</button>
+      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊</button>
+      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄</button>
       <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       <div class="btn-sep"></div>
-      <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test">⚡</button>
-      <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration">⚙</a>
-      <a href="#" class="btn btn-logout" title="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
+      <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
+      <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
+      <a href="#" class="btn btn-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
     </div>
   </div>
 
@@ -939,7 +953,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         <option value="">— Sélectionner une vue —</option>
       </select>
       <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
-      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
+      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
       <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
 
     </div>
@@ -2020,12 +2034,12 @@ function renderKPIs(f){
 
 
   const kpis=[
-    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs},
-    {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct},
+    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true},
+    {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
     {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés"},
     {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
-    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%"},
+    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%",priority:true},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min"},
     {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)"},
     {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
@@ -2037,7 +2051,7 @@ function renderKPIs(f){
   ];
 
   document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
-    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}" role="region" aria-label="${k.l} : ${typeof k.v==='number'?k.v:String(k.v).replace(/<[^>]+>/g,'')}">
+    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.priority?' priority':''}" role="region" aria-label="${k.l} : ${typeof k.v==='number'?k.v:String(k.v).replace(/<[^>]+>/g,'')}">
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
@@ -2679,7 +2693,7 @@ function renderSkills(){
         } else if(skillEntry){
           // INACTIVE : cercle gris creux + bouton activation discret
           return '<td style="text-align:center;padding:6px 12px;background:rgba(150,150,150,.04)">'
-            +'<button class="sk-inactive skill-act-btn" data-eid="'+eid+'" title="Configurée mais INACTIVE — cliquer pour activer">○</button>'
+            +'<button class="sk-inactive skill-act-btn" data-eid="'+eid+'" title="Configurée mais INACTIVE — cliquer pour activer" aria-label="Compétence configurée mais inactive — activer">○</button>'
             +(skillScore!==100&&skillScore!=null?'<span class="sk-ratio" style="color:#aaa">'+skillScore+'%</span>':'')
             +'</td>';
         } else {
