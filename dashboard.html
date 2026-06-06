@@ -1156,16 +1156,23 @@ let redFlagTimers={};
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
 // Compétences réelles présentes chez les agents du périmètre campagne sélectionné.
 // Source : compétences INO réelles des agents (a.skills / a.allSkillsData), filtrées par campagne.
+// Compétences réellement portées par les agents du périmètre campagne.
+// Source EXCLUSIVE : compétences INO réelles des agents (a.skills / a.allSkillsData).
+// Si les compétences ne sont pas chargées, on renvoie [] → le filtre affiche un état explicite
+// "Compétences non chargées" plutôt qu'une liste globale trompeuse non liée à la campagne.
 function getScopedSkills(){
-  if(!agents.length)return [...SKILLS];
+  if(!agents.length)return [];
   const inScope=selCamps.length<CAMPS.length?agents.filter(a=>selCamps.includes(a.camp)):agents;
   const s=new Set();
   inScope.forEach(a=>{
     (a.skills||[]).forEach(k=>{if(k)s.add(k.name||k);});
     (a.allSkillsData||[]).forEach(k=>{if(k&&k.name)s.add(k.name);});
   });
-  const list=[...s].sort((x,y)=>x.localeCompare(y));
-  return list.length?list:[...SKILLS]; // fallback liste statique si compétences non chargées
+  return [...s].sort((x,y)=>x.localeCompare(y));
+}
+// Indique si les compétences INO ont été chargées (au moins un agent en a)
+function skillsLoaded(){
+  return agents.some(a=>(Array.isArray(a.skills)&&a.skills.length>0)||(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0));
 }
 
 function genAgents(){
@@ -1539,19 +1546,31 @@ function buildAllDropdowns(){
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
   buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;render();});
-  // Compétences : dynamiques selon la campagne sélectionnée (vraies compétences INO des agents du périmètre)
+  // Compétences : UNIQUEMENT les compétences INO réelles des agents du périmètre campagne.
   const scopedSkills=getScopedSkills();
-  // Nettoyer selSkills des compétences hors périmètre, et ajouter les nouvelles par défaut
-  const _prevAll=window._prevScopedSkills||scopedSkills;
-  if(JSON.stringify(_prevAll)!==JSON.stringify(scopedSkills)){
-    // périmètre changé → tout sélectionner par défaut sur le nouveau périmètre
-    selSkills=[...scopedSkills];
-    window._prevScopedSkills=scopedSkills;
+  const _loaded=skillsLoaded();
+  if(!_loaded){
+    // Compétences INO pas encore chargées → état explicite, pas de liste globale trompeuse
+    const wrap=document.getElementById("ck-skills");
+    if(wrap){
+      wrap.innerHTML='<button type="button" onclick="refreshSkills&&refreshSkills()" '
+        +'style="width:100%;background:var(--s-2);border:1px dashed var(--s-4);border-radius:8px;'
+        +'padding:7px 10px;color:var(--t-disabled);font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
+        +'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span></button>';
+    }
+    selSkills=[]; window._prevScopedSkills=[];
   }else{
-    selSkills=selSkills.filter(s=>scopedSkills.includes(s));
-    if(selSkills.length===0)selSkills=[...scopedSkills];
+    // Synchroniser selSkills sur le périmètre réel
+    const _prevAll=window._prevScopedSkills;
+    if(!_prevAll||JSON.stringify(_prevAll)!==JSON.stringify(scopedSkills)){
+      selSkills=[...scopedSkills];          // périmètre changé → tout sélectionner
+      window._prevScopedSkills=scopedSkills;
+    }else{
+      selSkills=selSkills.filter(s=>scopedSkills.includes(s));
+      if(selSkills.length===0)selSkills=[...scopedSkills];
+    }
+    buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;render();});
   }
-  buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;render();});
   buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
   renderSelectionSummary();
 }
@@ -1651,24 +1670,23 @@ async function deletePreset(){
 
 // Filtrage
 function getFiltered(){
+  // Calculé UNE SEULE FOIS hors de la boucle (évite O(n²) qui figeait l'UI)
+  const _scoped=getScopedSkills();
+  const _skillFilterActive=skillsLoaded()&&selSkills.length>0&&selSkills.length<_scoped.length;
   return agents.filter(a=>{
     if(hideDeconnecte&&(a.status==="Déconnecté"||(a.status===null&&(a.decroches||0)===0&&(a.sortants||0)===0)))return false;
-    // Camp connu dans selCamps OU camp inconnu (on ne filtre pas les agents sans camp référencé)
     if(selCamps.length<CAMPS.length&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
     if(!selAgents.includes(a.nom))return false;
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
-    // Filtre compétences : basé sur le périmètre dynamique (getScopedSkills)
-    const _scoped=getScopedSkills();
-    if(selSkills.length<_scoped.length){
+    // Filtre compétences : seulement si les compétences INO sont chargées ET sélection partielle
+    if(_skillFilterActive){
       const _agSkills=Array.isArray(a.skills)?a.skills.map(s=>s.name||s):[];
-      if(_agSkills.length===0){/* compétences n.d. : on n'exclut pas (agent sans skill chargé) */}
-      else if(!_agSkills.some(s=>selSkills.includes(s)))return false;
+      if(_agSkills.length>0&&!_agSkills.some(s=>selSkills.includes(s)))return false;
     }
     if(sw.refus&&(a.refus||0)===0)return false;
-    if(sw.reit&&(a.reiterants||0)===0)return false;   // isoler agents avec réitérants
+    if(sw.reit&&(a.reiterants||0)===0)return false;
     if(sw.inactif&&(a.inactifs||0)<3)return false;
-    // sw.horsOuv non filtrable : donnée Hors SVI non exposée par INO au niveau agent
     return true;
   });
 }
@@ -4005,6 +4023,7 @@ function confirmLogout(){
 </main>
 </body>
 </html>
+
 
 
 
