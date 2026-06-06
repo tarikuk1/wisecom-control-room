@@ -957,7 +957,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
       <!-- Tendance vs semaine(s) antérieure(s) -->
       <span class="ctrl-label">Tendance</span>
-      <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure" style="min-width:170px;">
+      <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure, de S-1 à S-5" style="min-width:170px;">
         <option value="0">📊 Comparer à…</option>
         <option value="1">vs S-1 (semaine précéd.)</option>
         <option value="2">vs S-2 (il y a 2 sem.)</option>
@@ -965,7 +965,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         <option value="4">vs S-4 (il y a 4 sem.)</option>
         <option value="5">vs S-5 (il y a 5 sem.)</option>
       </select>
-      <span id="cmp-status" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
+      <span id="cmp-status" aria-live="polite" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
 
       <div class="ctrl-vsep"></div>
 
@@ -1635,13 +1635,19 @@ async function loadCmpRef(){
   const rd=shiftDateStr(d,-7*n),rdFin=shiftDateStr(dFin,-7*n);
   const lbl=fmtCmpLabel(rd,rdFin);
   const key=`${n}|${rd}|${rdFin}|${hDeb}|${hFin}`;
+  // L'utilisateur a pu changer de profondeur (ou désactiver) pendant le chargement :
+  // on n'écrase alors plus l'affichage avec une référence devenue obsolète
+  // (le cache, lui, reste utile : une période passée ne change jamais).
+  const stale=()=>cmpWeeksOffset!==n;
   if(cmpRefCache.has(key)){
-    cmpRef=cmpRefCache.get(key);
-    if(stEl)stEl.textContent="vs "+lbl+(cmpRef.empty?` (aucune donnée ${tag})`:"");
+    const summary=cmpRefCache.get(key);
+    if(stale())return;
+    cmpRef=summary;
+    if(stEl)stEl.textContent="vs "+lbl+(summary.empty?` (aucune donnée ${tag})`:"");
     render();
     return;
   }
-  if(stEl)stEl.textContent=`Chargement de la référence ${tag}…`;
+  if(!stale()&&stEl)stEl.textContent=`Chargement de la référence ${tag}…`;
   try{
     const res=await fetch(`/agents-day?date=${rd}&dateFin=${rdFin}&hDeb=${hDeb}&hFin=${hFin}`);
     const data=await res.json();
@@ -1650,9 +1656,11 @@ async function loadCmpRef(){
     summary.empty=rawAgents.length===0;
     summary.label=lbl;
     cmpRefCache.set(key,summary);
+    if(stale())return;
     cmpRef=summary;
     if(stEl)stEl.textContent="vs "+lbl+(summary.empty?` (aucune donnée ${tag})`:"");
   }catch(e){
+    if(stale())return;
     cmpRef=null;
     if(stEl)stEl.textContent=`Référence ${tag} indisponible`;
     showToast(`Comparaison ${tag} indisponible — `+(e&&e.message||e),"#ff9b00",6000);
