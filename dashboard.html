@@ -185,6 +185,11 @@ body.light .btn-logout{border-color:#ffcccc;color:#cc0000;}
 .btn-ghost:hover{background:var(--s-3);border-color:var(--s-4);color:var(--t-secondary);}
 body.light .btn-ghost{color:var(--t-muted);border-color:transparent;}
 body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);color:var(--t-disabled);}
+/* Boutons-icônes (raccourcis vers les autres pages) : agrandis + contrastés pour rester lisibles */
+.btn-icon-link{font-size:18px;line-height:1;padding:7px 12px;background:var(--s-3);border:1px solid var(--s-4);color:var(--t-secondary);}
+.btn-icon-link:hover{background:var(--s-4);border-color:var(--t-disabled);color:var(--c-white);}
+body.light .btn-icon-link{background:var(--s-light-2);border-color:var(--s-light-border);color:var(--s-4);}
+body.light .btn-icon-link:hover{background:#e0e0e0;border-color:var(--t-secondary);color:var(--s-1);}
 
 /* ── BARRE DE CONTRÔLES ────────────────────────── */
 /* 2 rangées : Ligne A (période + période-heure + vues) / Ligne B (filtres + isoler) */
@@ -923,12 +928,12 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄</button>
       <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       <div class="btn-sep"></div>
-      <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
-      <a href="/executif" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Tableau de bord exécutif — tendances 4 semaines par campagne" aria-label="Tableau de bord exécutif">📊</a>
-      <a href="/couverture" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture">📡</a>
-      <a href="/astreinte" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Registre d'astreinte — qui couvre l'astreinte, sur quelle campagne, quel jour" aria-label="Registre d'astreinte">🌙</a>
-      <a href="/planning" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Planning de la semaine — construire et ajuster le planning, agent par agent" aria-label="Planning de la semaine">🗓️</a>
-      <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
+      <button class="btn btn-ghost btn-icon-link" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
+      <a href="/executif" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Tableau de bord exécutif — tendances 4 semaines par campagne" aria-label="Tableau de bord exécutif">📊</a>
+      <a href="/couverture" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture">📡</a>
+      <a href="/astreinte" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Registre d'astreinte — qui couvre l'astreinte, sur quelle campagne, quel jour" aria-label="Registre d'astreinte">🌙</a>
+      <a href="/planning" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Planning de la semaine — construire et ajuster le planning, agent par agent" aria-label="Planning de la semaine">🗓️</a>
+      <a href="/admin" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
       <a href="#" class="btn btn-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
     </div>
   </div>
