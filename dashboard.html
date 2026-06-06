@@ -1593,10 +1593,56 @@ function buildSwitches(){
 
 function toggleSw(k){sw[k]=!sw[k];buildSwitches();render();}
 
+// === Persistance partagée serveur ===========================================
+// Les réglages superviseurs (seuils QS/backlog, ajustements manuels mails/heures,
+// colonnes WhatsApp, presets) vivaient uniquement en localStorage : chaque poste avait
+// sa propre copie, d'où des incohérences d'un superviseur à l'autre (ex: A règle le
+// seuil QS à 85 %, B voit toujours 80 %). Le serveur fait désormais autorité :
+// - pushStore() pousse chaque sauvegarde locale vers /api/store (en plus du cache local
+//   localStorage, qui reste la copie instantanée pour un rendu sans latence réseau) ;
+// - pullStore() récupère une fois au chargement la dernière version connue du serveur,
+//   l'applique au cache local puis re-rend les vues concernées. Une seule fois : au-delà,
+//   on risquerait d'écraser une saisie en cours du superviseur.
+function pushStore(key,value){
+  try{fetch('/api/store',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,value})}).catch(()=>{});}catch(e){}
+}
+async function pullStore(){
+  try{
+    const r=await fetch('/api/store');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d.criteres&&typeof d.criteres==='object'&&Object.keys(d.criteres).length){
+      try{localStorage.setItem(CRITERES_KEY,JSON.stringify(d.criteres));}catch(e){}
+      if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
+    }
+    if(d.backlog&&typeof d.backlog==='object'&&Object.keys(d.backlog).length){
+      try{localStorage.setItem(BACKLOG_KEY,JSON.stringify(d.backlog));}catch(e){}
+      renderBacklog();renderKPIs(getFiltered());
+    }
+    if(d.presets&&typeof d.presets==='object'&&Object.keys(d.presets).length){
+      try{localStorage.setItem(PRESET_KEY,JSON.stringify(d.presets));}catch(e){}
+      refreshPresetSelect();
+    }
+    if(d.mailsEdit&&typeof d.mailsEdit==='object'&&Object.keys(d.mailsEdit).length){
+      Object.assign(mailsEdit,d.mailsEdit);
+      render();
+    }
+    if(d.waCols&&typeof d.waCols==='object'){
+      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls;
+      if(Array.isArray(d.waCols.mails)&&d.waCols.mails.length)waActiveMails=d.waCols.mails;
+      if(d.waCols.time&&typeof d.waCols.time==='object')waTimeEdits=d.waCols.time;
+      if(d.waCols.email&&typeof d.waCols.email==='object')waEmailEdits=d.waCols.email;
+      if(d.waCols.stc&&typeof d.waCols.stc==='object')Object.assign(statTCEdits,d.waCols.stc);
+      try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits,email:waEmailEdits,stc:statTCEdits}));}catch(e){}
+    }
+  }catch(e){}
+}
+// =============================================================================
+
 // Vues sauvegardées (presets) — stockage local navigateur, aucune écriture INO
 const PRESET_KEY="wisecom_control_room_presets_v1";
 function loadPresets(){try{return JSON.parse(localStorage.getItem(PRESET_KEY))||{};}catch{return{};}}
-function savePresets(p){try{localStorage.setItem(PRESET_KEY,JSON.stringify(p));return true;}catch(e){return false;}}
+function savePresets(p){try{localStorage.setItem(PRESET_KEY,JSON.stringify(p));pushStore('presets',p);return true;}catch(e){return false;}}
 
 // Modal générique (remplace prompt/confirm qui peuvent être bloqués/annulés silencieusement)
 function showModal({title,message,inputDefault,inputPlaceholder,withInput,okLabel,cancelLabel}){
@@ -2455,7 +2501,7 @@ document.addEventListener("keydown",e=>{
 // === Backlog mails par campagne — saisie manuelle superviseur ===
 const BACKLOG_KEY="wisecom_backlog_per_camp_v1";
 function loadBacklog(){try{return JSON.parse(localStorage.getItem(BACKLOG_KEY))||{};}catch{return{};}}
-function saveBacklog(b){try{localStorage.setItem(BACKLOG_KEY,JSON.stringify(b));return true;}catch{return false;}}
+function saveBacklog(b){try{localStorage.setItem(BACKLOG_KEY,JSON.stringify(b));pushStore('backlog',b);return true;}catch{return false;}}
 function totalBacklog(){const b=loadBacklog();return Object.values(b).reduce((s,v)=>s+(parseInt(v)||0),0);}
 function setBacklog(camp,val){
   const b=loadBacklog();
@@ -2747,6 +2793,7 @@ function renderStaffingBanner(){
 function doSort(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}render();}
 function updateMails(id,val){
   mailsEdit[id]=Math.max(0,parseInt(val)||0);
+  pushStore('mailsEdit',mailsEdit);
   // Recalcul immédiat de l'agent concerné
   const a=agents.find(x=>x.id===id);
   if(a){
@@ -3130,6 +3177,7 @@ function saveCriteres(){
   });
   try{
     localStorage.setItem(CRITERES_KEY,JSON.stringify(data));
+    pushStore('criteres',data);
     showToast('Critères enregistrés.','#30d158');
     // Mettre à jour les objectifs agents
     const crit=data;
@@ -3745,7 +3793,11 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 // ══════════════════════════════════════════════════════════════════
 //  RENDU + EXPORTS
 // ══════════════════════════════════════════════════════════════════
-function waSaveCols(){try{localStorage.setItem('wisecom_wa_cols',JSON.stringify({calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits,email:waEmailEdits,stc:statTCEdits}));}catch(e){}}
+function waSaveCols(){
+  const v={calls:waActiveCalls,mails:waActiveMails,time:waTimeEdits,email:waEmailEdits,stc:statTCEdits};
+  try{localStorage.setItem('wisecom_wa_cols',JSON.stringify(v));}catch(e){}
+  pushStore('waCols',v);
+}
 function waAllCamps(){var all=Object.keys(WA_CAMP_COLORS);(agents||[]).forEach(function(a){if(a.camp&&!all.includes(a.camp))all.push(a.camp);});return all.sort();}
 function waAddCamp(c,t){if(t==='calls'&&!waActiveCalls.includes(c))waActiveCalls.push(c);if(t==='mails'&&!waActiveMails.includes(c))waActiveMails.push(c);waSaveCols();waBuildConfig();renderWA();}
 function waRemoveCamp(c,t){if(t==='calls')waActiveCalls=waActiveCalls.filter(function(x){return x!==c;});if(t==='mails')waActiveMails=waActiveMails.filter(function(x){return x!==c;});waSaveCols();waBuildConfig();renderWA();}
@@ -4033,6 +4085,9 @@ function confirmLogout(){
   });
 }
 
+// Synchronisation des réglages partagés depuis le serveur (une seule fois au chargement —
+// cf. commentaire détaillé près de la définition de pullStore)
+pullStore();
 
 </script>
 </main>

@@ -34,6 +34,39 @@ function parisHour(d){return parseInt(_parisHourFmt.format(d),10)%24;}
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // ────────────────────────────────────────────────────────────────────────────
+
+// ── Persistance partagée des réglages superviseurs (seuils, backlog, ajustements
+// manuels mails/heures, colonnes WhatsApp, presets) — un fichier JSON local sert de
+// source commune à tous les superviseurs (au lieu du localStorage, propre à chaque
+// navigateur, qui causait des incohérences d'un poste à l'autre).
+// DATA_DIR est configurable par variable d'environnement : pour survivre aux
+// redéploiements Railway (filesystem éphémère par défaut), monter un volume persistant
+// et fixer DATA_DIR sur son point de montage. Sans volume, le fichier survit aux
+// redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
+const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
+const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets"];
+let sharedStore={};
+try{
+  fs.mkdirSync(DATA_DIR,{recursive:true});
+  if(fs.existsSync(STORE_FILE))sharedStore=JSON.parse(fs.readFileSync(STORE_FILE,"utf8"))||{};
+  console.log("[store] "+Object.keys(sharedStore).length+" clé(s) chargée(s) depuis "+STORE_FILE);
+}catch(e){console.error("[store] Lecture impossible, démarrage à vide :",e.message);}
+let _storeWriteTimer=null;
+function persistStore(){
+  // Écriture différée + atomique (fichier temporaire puis renommage) : évite de bloquer
+  // l'event loop à chaque sauvegarde et de corrompre le fichier en cas d'écritures rapprochées.
+  clearTimeout(_storeWriteTimer);
+  _storeWriteTimer=setTimeout(()=>{
+    try{
+      const tmp=STORE_FILE+".tmp";
+      fs.writeFileSync(tmp,JSON.stringify(sharedStore));
+      fs.renameSync(tmp,STORE_FILE);
+    }catch(e){console.error("[store] Écriture impossible :",e.message);}
+  },1000);
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 let bToken=null,bExp=0,sseClients=[],lastPayload=null,statsCache={};
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
@@ -771,6 +804,27 @@ const server=http.createServer(async(req,res)=>{
       // On inclut error:true pour que le dashboard puisse afficher une alerte
       res.end(JSON.stringify({agents:[],slots:[],flux:{recus:0,decroches:0,abandons:0,sortants:0},error:msg,date,dateFin}));
     });return;
+  }
+  // Réglages superviseurs partagés (seuils QS/backlog, ajustements mails/heures, presets...) :
+  // un superviseur authentifié peut lire l'état courant et y écrire — ce ne sont pas des
+  // réglages sensibles (pas d'admin requis), seulement une persistance commune à fiabiliser.
+  if(url==="/api/store"&&req.method==="GET"){
+    res.writeHead(200,{"Content-Type":"application/json"});
+    return res.end(JSON.stringify(sharedStore));
+  }
+  if(url==="/api/store"&&req.method==="POST"){
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",()=>{
+      try{
+        const{key,value}=JSON.parse(body);
+        if(!STORE_KEYS.includes(key)){res.writeHead(400,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Clé inconnue : "+key}));}
+        sharedStore[key]=value;
+        persistStore();
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true}));
+      }catch(e){res.writeHead(400,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"JSON invalide"}));}
+    });
+    return;
   }
   // [SÉCURITÉ] Routes admin : exiger le rôle admin (pas seulement une session valide)
   if(url.startsWith("/api/admin/")){
