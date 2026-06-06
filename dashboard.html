@@ -505,8 +505,13 @@ body.light .toast{background:var(--c-white);box-shadow:0 4px 12px rgba(0,0,0,.15
 
 /* Stat mini */
 .stat-mini{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px;}
+/* .trend-up / .trend-down qualifient un SENS d'évolution (favorable / défavorable pour l'activité),
+   pas un sens arithmétique brut — la flèche ▲▼ à l'intérieur porte le sens réel du delta. */
 .trend-up{color:var(--c-green);}
 .trend-down{color:var(--c-pink);}
+.kpi-delta{display:inline-block;font-size:9px;font-weight:var(--fw-bold);letter-spacing:.02em;margin-top:3px;padding:1px 6px;border-radius:var(--r-sm);background:rgba(127,127,127,.12);white-space:nowrap;}
+.kpi-delta-neutral{color:var(--t-muted);}
+#cmp-weeks-sel.active{border-color:var(--c-pink);color:var(--c-pink);font-weight:var(--fw-bold);}
 
 /* Bouton RAFRAÎCHIR (Fetch API INO) */
 .btn-refresh{background:linear-gradient(135deg,#FF005C,var(--c-pink-dark));color:var(--c-white);font-weight:var(--fw-bold);letter-spacing:.02em;box-shadow:0 0 0 1px rgba(255,0,92,.35);}
@@ -950,6 +955,20 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
       <div class="ctrl-vsep"></div>
 
+      <!-- Tendance vs semaine(s) antérieure(s) -->
+      <span class="ctrl-label">Tendance</span>
+      <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure" style="min-width:170px;">
+        <option value="0">📊 Comparer à…</option>
+        <option value="1">vs S-1 (semaine précéd.)</option>
+        <option value="2">vs S-2 (il y a 2 sem.)</option>
+        <option value="3">vs S-3 (il y a 3 sem.)</option>
+        <option value="4">vs S-4 (il y a 4 sem.)</option>
+        <option value="5">vs S-5 (il y a 5 sem.)</option>
+      </select>
+      <span id="cmp-status" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
+
+      <div class="ctrl-vsep"></div>
+
       <!-- Vues sauvegardées -->
       <span class="ctrl-label">Vue</span>
       <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
@@ -1390,6 +1409,9 @@ async function refreshFromINO(){
     const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Timeout 30s')),30000));
     await Promise.all([Promise.race([loadAgentsFromAPI(),timeout]),minDelay]);
     ok=true;
+    // Si la tendance vs S-1…S-5 est activée, rafraîchir la référence sur la nouvelle période
+    // (fire-and-forget : ne doit jamais bloquer/faire échouer le chargement principal)
+    if(cmpWeeksOffset>0)loadCmpRef();
     // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
     // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
   }catch(e){ok=false;console.error('[refreshFromINO]',e&&e.message||e);}
@@ -1544,6 +1566,107 @@ async function loadAgentsFromAPI(){
     // On laisse remonter l'erreur pour que refreshFromINO affiche l'état KO (pas de masquage silencieux)
     throw e;
   }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// TENDANCE vs S-1…S-5 : compare la période affichée aux mêmes jours,
+// 1 à 5 semaines plus tôt (mêmes données INO réelles, décalées de 7×N jours).
+// On ne calcule QUE des métriques qui sont des FAITS historiques bruts
+// (flux, QS, DMC, actes/h) — jamais le "% Réalisé", qui dépend d'objectifs
+// configurés AUJOURD'HUI et n'a donc pas de référence comparable les
+// semaines passées (cibles potentiellement différentes → comparaison trompeuse).
+// ───────────────────────────────────────────────────────────────────
+let cmpWeeksOffset=0;       // 0 = désactivé, 1..5 = nombre de semaines en arrière
+const cmpRefCache=new Map(); // clé "N|date|dateFin|hDeb|hFin" → résumé (jamais invalidé : passé immuable)
+let cmpRef=null;            // résumé de la période de référence courante, ou null
+
+function shiftDateStr(s,days){
+  const d=new Date(s+"T00:00:00");
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function fmtCmpLabel(rd,rdFin){
+  const f=s=>new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});
+  return rd===rdFin?f(rd):(f(rd)+" → "+f(rdFin));
+}
+// Résumé calculé directement depuis les agents BRUTS renvoyés par /agents-day (sans
+// enrichissement campagne/objectif côté client — non pertinent pour une référence passée).
+function computeCmpSummary(rawAgents,flux){
+  const arr=Array.isArray(rawAgents)?rawAgents:[];
+  const totDecr=arr.reduce((s,a)=>s+(a.appelsIn||0),0);
+  const totSort=arr.reduce((s,a)=>s+(a.appelsOut||0),0);
+  const totDuree=arr.reduce((s,a)=>s+(a.duree||0),0);
+  const avgDmc=totDecr>0?Math.round(totDuree/totDecr):0;
+  const totHP=arr.reduce((s,a)=>{
+    if(a.premiereAction&&a.derniereAction){
+      const presH=(new Date(a.derniereAction)-new Date(a.premiereAction))/3600000;
+      return s+(presH>0?presH:0);
+    }
+    return s+(a.duree>0?a.duree/3600/0.75:0);
+  },0)||1;
+  const actesH=+((totDecr+totSort)/totHP).toFixed(1);
+  const fx=flux||{};
+  const totRecus=fx.recus||0;
+  return{
+    qs:totRecus>0?Math.min(100,Math.round(((fx.decroches||0)/totRecus)*100)):0,
+    totRecus,totApp:totDecr,totManques:fx.abandons||0,avgDmc,actesH
+  };
+}
+// betterWhenUp: true si une hausse est une bonne nouvelle, false si c'est une mauvaise nouvelle,
+// null si la métrique est purement informative (volume) — pas de jugement de valeur porté.
+function cmpDelta(cur,ref,betterWhenUp,fmt){
+  if(ref==null||cur==null||isNaN(cur)||isNaN(ref))return"";
+  const diff=cur-ref;
+  const arrow=diff>0?"▲":diff<0?"▼":"≈";
+  let cls="kpi-delta-neutral";
+  if(diff!==0&&betterWhenUp!=null)cls=(betterWhenUp?diff>0:diff<0)?"trend-up":"trend-down";
+  const refLabel=cmpWeeksOffset>1?`il y a ${cmpWeeksOffset} semaines (S-${cmpWeeksOffset})`:"la semaine précédente (S-1)";
+  return`<span class="kpi-delta ${cls}" title="Référence : mêmes jours, ${refLabel}">${arrow} ${fmt(Math.abs(diff))}</span>`;
+}
+async function loadCmpRef(){
+  const n=cmpWeeksOffset;
+  const d=document.getElementById("f-date-deb")?.value;
+  const dFin=document.getElementById("f-date-fin")?.value||d;
+  const hDeb=document.getElementById("f-h-deb")?.value||"08:00";
+  const hFin=document.getElementById("f-h-fin")?.value||"20:00";
+  const stEl=document.getElementById("cmp-status");
+  if(!d||n<1){cmpRef=null;return;}
+  const tag="S-"+n;
+  const rd=shiftDateStr(d,-7*n),rdFin=shiftDateStr(dFin,-7*n);
+  const lbl=fmtCmpLabel(rd,rdFin);
+  const key=`${n}|${rd}|${rdFin}|${hDeb}|${hFin}`;
+  if(cmpRefCache.has(key)){
+    cmpRef=cmpRefCache.get(key);
+    if(stEl)stEl.textContent="vs "+lbl+(cmpRef.empty?` (aucune donnée ${tag})`:"");
+    render();
+    return;
+  }
+  if(stEl)stEl.textContent=`Chargement de la référence ${tag}…`;
+  try{
+    const res=await fetch(`/agents-day?date=${rd}&dateFin=${rdFin}&hDeb=${hDeb}&hFin=${hFin}`);
+    const data=await res.json();
+    const rawAgents=Array.isArray(data.agents)?data.agents:[];
+    const summary=computeCmpSummary(rawAgents,data.flux);
+    summary.empty=rawAgents.length===0;
+    summary.label=lbl;
+    cmpRefCache.set(key,summary);
+    cmpRef=summary;
+    if(stEl)stEl.textContent="vs "+lbl+(summary.empty?` (aucune donnée ${tag})`:"");
+  }catch(e){
+    cmpRef=null;
+    if(stEl)stEl.textContent=`Référence ${tag} indisponible`;
+    showToast(`Comparaison ${tag} indisponible — `+(e&&e.message||e),"#ff9b00",6000);
+  }
+  render();
+}
+function setCmpWeeks(val){
+  const n=parseInt(val,10)||0;
+  cmpWeeksOffset=n;
+  const sel=document.getElementById("cmp-weeks-sel");
+  if(sel)sel.classList.toggle("active",n>0);
+  const stEl=document.getElementById("cmp-status");
+  if(n>0){loadCmpRef();}
+  else{cmpRef=null;if(stEl)stEl.textContent="";render();}
 }
 
 // État persistant des dropdowns (ouvert/fermé + query de recherche)
@@ -2036,17 +2159,29 @@ function renderKPIs(f){
   const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
 
 
+  // Tendance vs S-1 : uniquement les métriques qui sont des faits historiques bruts
+  // (le "% Réalisé" dépend d'objectifs configurés AUJOURD'HUI → non comparable à S-1).
+  const _cmp=(cmpWeeksOffset>0&&cmpRef&&!cmpRef.empty)?cmpRef:null;
+  const fmtSecDelta=s=>{const m=Math.floor(s/60),sc=Math.round(s%60);return m>0?(m+"min"+(sc?" "+sc+"s":"")):(sc+"s");};
+  const fmtInt=d=>d.toLocaleString("fr-FR");
+
   const kpis=[
-    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true},
+    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true,
+     cmp:_cmp?cmpDelta(qs,_cmp.qs,true,d=>d+(d===1?" pt":" pts")):""},
     {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
-    {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés"},
-    {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300},
-    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%",priority:true},
-    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min"},
+    {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés",
+     cmp:_cmp?cmpDelta(totRecus,_cmp.totRecus,null,fmtInt):""},
+    {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300,
+     cmp:_cmp?cmpDelta(totApp,_cmp.totApp,true,fmtInt):""},
+    {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%",priority:true,
+     cmp:_cmp?cmpDelta(totManques,_cmp.totManques,false,fmtInt):""},
+    {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min",
+     cmp:_cmp?cmpDelta(avgDmc,_cmp.avgDmc,false,fmtSecDelta):""},
     {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)"},
     {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
-    {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Voix + mails / heure prod",hero:true},
+    {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Voix + mails / heure prod",hero:true,
+     cmp:_cmp?cmpDelta(actesH,_cmp.actesH,true,d=>d.toFixed(1)):""},
     {l:"100 % KO",v:totKo,alert:totKo>40},
     {l:"Hors SVI",v:horsOuv==null?"n.d.":horsOuv,alert:horsOuv!=null&&horsOuv>30,sub:horsOuv==null?"Non exposé par INO":""},
     {l:"Réitérants",v:reit,alert:reit>20,sub:"Qualif. INO réelles"},
@@ -2058,6 +2193,7 @@ function renderKPIs(f){
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
+      ${k.cmp?`<div>${k.cmp}</div>`:""}
       ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
       <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
     </div>`).join("");
