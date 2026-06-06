@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agents Journée — Wisecom</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -44,6 +45,16 @@ input[type=text]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radi
 .loading{text-align:center;padding:40px;color:#444;}
 .success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;}
 .note-cell{font-size:11px;color:#555;font-style:italic;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+@media (max-width:600px){
+  .header,.controls,.content{padding-left:14px;padding-right:14px;}
+  .controls{gap:8px;}
+  .controls input[type=text]{width:100%;flex:1 1 160px;}
+  .controls input[type=date],.controls select{flex:1 1 120px;}
+  .summary{gap:8px;}
+  .card{flex-basis:calc(50% - 8px);min-width:0;}
+  .success-toast{left:14px;right:14px;bottom:14px;}
+}
 </style>
 </head>
 <body>

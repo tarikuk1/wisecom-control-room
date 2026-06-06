@@ -734,6 +734,74 @@ body.light [style*="background:var(--s-2)"][style*="color:#"],
 body.light [style*="background:var(--s-5)"][style*="color:#"],
 body.light [style*="background:#0a0a0a"][style*="color:#"],
 body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !important;}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablette & smartphone
+   On adapte la mise en page existante (reflow, tailles, priorités
+   d'affichage) plutôt que de maintenir une maquette mobile séparée.
+   Le défilement horizontal du tableau (.tbl-wrap) reste le filet
+   de sécurité pour la donnée dense sur petit écran.
+   ════════════════════════════════════════════════════════════ */
+@media (max-width:900px){
+  /* Bandeau filtres très dense : figé en sticky il occuperait la
+     majorité d'un écran de téléphone — on le laisse défiler. */
+  header.sticky{position:static;}
+
+  .topbar{flex-wrap:wrap;height:auto;min-height:48px;padding:8px 14px;row-gap:6px;}
+  .topbar-center{order:3;flex:0 1 100%;justify-content:flex-start;}
+  .topbar-right{flex:0 1 100%;flex-wrap:wrap;flex-shrink:1;}
+
+  .ctrl-row-a,.ctrl-row-b{padding:7px 14px;}
+  .ck-btn{min-width:90px;max-width:140px;}
+  .preset-select{min-width:0;flex:1 1 150px;}
+  select#f-pas{width:auto;}
+
+  .col-panel{width:300px;max-width:88vw;}
+  .modal-box{min-width:0;width:90vw;max-width:480px;}
+  .chart-box{width:98vw;height:92vh;}
+
+  /* 5 onglets ne tiennent pas sur un écran étroit : défilement
+     horizontal plutôt que troncature silencieuse */
+  [role="tablist"]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  [role="tablist"]>div:first-child{flex-shrink:0;}
+}
+
+@media (max-width:560px){
+  body{font-size:12px;}
+  .brand-sub{display:none;}
+  #last-update{display:none;}
+  .topbar-right .btn{padding:6px 8px;font-size:var(--fs-sm);min-height:32px;}
+  .btn-refresh{padding:6px 12px;}
+  .btn-sep{margin:0 1px;}
+
+  .kpi-grid{gap:6px;}
+  .kpi-card{flex-basis:calc(50% - 6px);min-width:0;}
+  .kpi-card.hero{flex-basis:100%;}
+  .kpi-value{font-size:18px;}
+
+  .tab{padding:10px 14px;font-size:var(--fs-md);}
+  #agent-count{display:none;}
+
+  .tbl{font-size:var(--fs-sm);}
+  .tbl th,.tbl td{padding:6px 7px;}
+  .tbl-wrap,.tbl-wrap *{-webkit-overflow-scrolling:touch;}
+
+  .two-col>.panel{flex-basis:100%;min-width:0;}
+  .wa-edit-grid{grid-template-columns:1fr;}
+  #wa-edit-panel{width:92vw;}
+
+  /* Dropdowns multi-sélection (.ck-dropdown) : ancrés à gauche de leur bouton,
+     ils débordent de l'écran quand le bouton est proche du bord droit (ex: Statut)
+     ou que les libellés sont longs et insécables (ex: noms de files INO_MOBILE_…).
+     Sur petit écran on les transforme en panneau centré plein-largeur (pattern
+     "feuille") : indépendant de la position du bouton, jamais de débordement. */
+  .ck-item{overflow-wrap:anywhere;}
+  .ck-dropdown{
+    position:fixed;left:12px;right:12px;width:auto;min-width:0;max-width:none;
+    top:50%;transform:translateY(-50%);max-height:72vh;
+  }
+  .ck-list{max-height:calc(72vh - 110px);}
+}
 </style>
 </head>
 <body class="light">
