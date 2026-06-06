@@ -225,6 +225,14 @@ function tensionLevel(cell,baseline){
 }
 const TENSION_COLOR={none:"#999",unknown:"#777",normal:"#1a8f44",moderate:"#b45309",high:"#dc2626",critical:"#dc2626"};
 
+// Staffing recommandé = volume projeté ÷ charge/agent habituelle, arrondi au supérieur
+// (ex. 8 appels prévus avec une charge habituelle de 3,5 appels/agent → 3 agents, pas 8).
+function recommendedAgents(vol,baseline){
+  if(vol<=0)return 0;
+  if(!baseline||baseline<=0)return null;
+  return Math.max(1,Math.ceil(vol/baseline));
+}
+
 async function loadDay(date){
   if(dayCache.has(date))return dayCache.get(date);
   const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=08:00&hFin=20:00`);
@@ -297,7 +305,9 @@ function renderHeatmap(){
       const level=tensionLevel(cell,baseline);
       const color=TENSION_COLOR[level];
       const display=cell.vol===0?"–":(cell.charge===null?"⚠":cell.charge.toFixed(1));
-      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}`;
+      const reco=recommendedAgents(cell.vol,baseline);
+      const recoTxt=reco==null?"":` · Agents recommandés pour ce volume au rythme habituel (${baseline.toFixed(1)} appels/agent) : ${reco}`;
+      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}${recoTxt}`;
       tbody+=`<td style="text-align:center;background:${color}1a;color:${color};font-weight:700;" title="${title}">${display}</td>`;
     });
     tbody+="</tr>";
@@ -330,9 +340,21 @@ function renderRadarSynthesis(){
   tense.sort((a,b)=>b.ratio-a.ratio);
   const html=tense.slice(0,5).map(t=>{
     const lbl=`${dayName(t.d.date)} ${fmtDate(t.d.date)}, ${hourLabel(t.h)}`;
-    const txt=t.level==="critical"
-      ? `<b>${lbl}</b> : volume attendu (~${t.cell.vol} appel(s), d'après le ${fmtDate(t.d.refDate)}) <b>sans aucun agent ${camp} détecté</b> sur ce créneau dans la référence — vérifiez qu'une présence est bien prévue à cette heure.`
-      : `<b>${lbl}</b> : charge projetée à ~${t.cell.charge} appels/agent, soit <b>${Math.round((t.ratio-1)*100)}% au-dessus</b> de la normale pour ${camp} (réf. ${baseline.toFixed(1)} appels/agent) — pensez à renforcer ce créneau ou à éviter d'y placer un agent en formation.`;
+    let txt;
+    if(t.level==="critical"){
+      txt=`<b>${lbl}</b> : volume attendu (~${t.cell.vol} appel(s), d'après le ${fmtDate(t.d.refDate)}) <b>sans aucun agent ${camp} détecté</b> sur ce créneau dans la référence — vérifiez qu'une présence est bien prévue à cette heure.`;
+    }else{
+      const reco=recommendedAgents(t.cell.vol,baseline);
+      let conseil;
+      if(reco==null){
+        conseil="pensez à renforcer ce créneau ou à éviter d'y placer un agent en formation.";
+      }else if(reco>t.cell.agents){
+        conseil=`pour absorber ces ~${t.cell.vol} appel(s) au rythme habituel de ${camp} (${baseline.toFixed(1)} appels/agent), il faut environ <b>${reco} agent(s)</b> sur ce créneau — soit ${reco-t.cell.agents} de plus que les ${t.cell.agents} détecté(s) en référence (pas ${t.cell.vol} : le volume d'appels n'est pas un effectif).`;
+      }else{
+        conseil=`l'effectif de référence (${t.cell.agents} agent(s)) suffit en théorie à absorber ces ~${t.cell.vol} appel(s) au rythme habituel — la tension semble due à un creux ponctuel d'effectif ce jour-là plutôt qu'à un sous-dimensionnement structurel.`;
+      }
+      txt=`<b>${lbl}</b> : charge projetée à ~${t.cell.charge} appels/agent, soit <b>${Math.round((t.ratio-1)*100)}% au-dessus</b> de la normale pour ${camp} (réf. ${baseline.toFixed(1)} appels/agent) — ${conseil}`;
+    }
     return `<div class="signal signal-alert"><span class="signal-icon">⚠</span><span>${txt}</span></div>`;
   }).join("");
   box.innerHTML=html;
