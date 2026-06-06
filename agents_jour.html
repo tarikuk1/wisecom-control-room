@@ -110,7 +110,8 @@ input[type=text]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radi
 <div class="success-toast" id="toast"></div>
 
 <script>
-const INO_BASE = "http://localhost:3000";
+// URL relative : la page est servie par le même serveur que l'API (Railway en prod, localhost en dev)
+const INO_BASE = "";
 let allAgents = [];
 let sortKey = "total";
 let sortDir = -1;
@@ -285,7 +286,7 @@ function showToast(msg){
 // SSE pour mise à jour auto
 function connectSSE(){
   const badge=document.getElementById("sse-badge");
-  const es=new EventSource("http://localhost:3000/events");
+  const es=new EventSource("/events");
   es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
   es.onmessage=()=>{ loadData(); };
   es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};

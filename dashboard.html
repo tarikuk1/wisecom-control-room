@@ -1046,7 +1046,8 @@ const P="#E8006E";
   _reset();
 })();
 const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
-const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Backoffice"];
+// Liste alignée sur queues_config.js (source unique de vérité, servie aussi via /api/config)
+const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
 // CONTRATS supprimé — non disponible INO
 const STATUSES=["Actif","Traitement","Post-appel","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
@@ -1151,7 +1152,6 @@ const COL_DEFS=[
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
 let slots=[],allQueues=[];
-let redFlagTimers={};
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
 // Compétences réelles présentes chez les agents du périmètre campagne sélectionné.
@@ -1334,6 +1334,12 @@ async function loadAgentsFromAPI(){
       if(ac)ac.textContent="Erreur API INO — "+data.error;
       return; // ne pas throw, sinon le badge passe en erreur systématique
     }
+    // Échecs partiels de récupération INO (ex: timeout sur certains jours d'une plage multi-jours) :
+    // à signaler explicitement, sinon ces jours apparaîtraient à tort comme "sans appel" (mode honnête)
+    if(Array.isArray(data.joursEchec)&&data.joursEchec.length>0){
+      const _jrsTxt=data.joursEchec.map(j=>{const p=String(j).split("-");return p.length===3?(p[2]+"/"+p[1]):j;}).join(", ");
+      showToast("⚠ Données incomplètes — échec de récupération INO pour : "+_jrsTxt+". Réessayez le rafraîchissement.","warn",8000);
+    }
     if(data.agents&&data.agents.length>0){
       // MODE INO RÉEL : on bascule en mode honnête, plus rien de simulé
       inoLive=true;
@@ -1387,7 +1393,9 @@ async function loadAgentsFromAPI(){
         // 5. % de réalisé = (appels + mails) / objectif
         const realise=obj>0?Math.min(100,Math.round(((total+m)/obj)*100)):0;
         const appelsDecH=hprod>0?+((a.appelsOut||0)/hprod).toFixed(1):0; // App./h = Appels sortants / H.Prod
-        const lastVoix=redFlagTimers[a.id]||Date.now()-(rnd(0,3)*60000);
+        // Dernière activité voix réelle = dernier appel connu d'INO (derniereAction). Pas de simulation :
+        // si l'agent n'a aucun appel sur la période, pas de référence → pas d'alerte Red Flag possible.
+        const lastVoix=a.derniereAction?new Date(a.derniereAction).getTime():null;
         // Occupation = duree communication / (présence * 50min/h)
         // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
         let presenceSec=0;
@@ -1985,17 +1993,21 @@ function renderAlerts(f){
   // Smart routing par campagne
   const campStats={};
   f.forEach(a=>{
-    if(!campStats[a.camp])campStats[a.camp]={agents:[],appels:0,hprod:0};
+    if(!campStats[a.camp])campStats[a.camp]={agents:[],appels:0,hprod:0,decroches:0,presentes:0};
     campStats[a.camp].agents.push(a);
     campStats[a.camp].appels+=a.appels;
     campStats[a.camp].hprod+=a.hprod;
+    campStats[a.camp].decroches+=(a.decroches||0);
+    campStats[a.camp].presentes+=(a.presentes||0);
   });
 
   Object.entries(campStats).forEach(([camp,stat])=>{
-    const qs=stat.appels>0?Math.round((stat.appels/(stat.appels*1.2))*100):100;
+    // QS (taux de décroché) = mêmes données réelles et même formule que le KPI "QS" global
+    // (decroches/presentes) — pas de valeur inventée ; "n.d." si aucun appel présenté.
+    const qs=stat.presentes>0?Math.round((stat.decroches/stat.presentes)*100):null;
     const appH=stat.hprod>0?+(stat.appels/stat.hprod).toFixed(1):0;
     const cc=crit[camp]||{qs_min:80,qs_max:95,alert_no_agent:false,backlog_min:10,backlog_max:90,backlog_val:0};
-    const enTension=qs<(cc.qs_min||80)||appH<8;
+    const enTension=(qs!==null&&qs<(cc.qs_min||80))||appH<8;
     // Alerte backlog
     const backlog=cc.backlog_val||0;
     const backlogAlert=backlog>(cc.backlog_max||90);
@@ -2040,10 +2052,10 @@ function renderAlerts(f){
     }
     // Tension : uniquement pendant les heures d'ouverture du service
     if(enTension&&serviceOuvert&&agentsDispo>0){
-      const tendance=appH<8?"📉 volume faible":"📈 pic d'appels";
+      const tendance=appH<8?"📉 volume faible":"📈 QS sous le seuil";
       html+=`<div class="smart-alert">
         <span class="smart-badge">⚠ attention</span>
-        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs}% · ${appH} app/h · service ${plageLbl}).</span>
+        <span class="smart-text">Tension détectée sur <b style="color:${P}">${camp}</b> (${tendance} · QS ${qs!==null?qs+"%":nd(null)} · ${appH} app/h · service ${plageLbl}).</span>
       </div>`;
     }
   });
@@ -2408,20 +2420,17 @@ function renderChart(){
   const zo=document.getElementById("chart-zoom-content");
   if(zo&&document.getElementById("chart-overlay").style.display!=="none"){zo.innerHTML=svg;}
 
-  // Bloc Qualifications : labels et barres agrandis et lisibles
-  const totals=QUALIFS.map(q=>({q,v:rnd(5,80)}));
-  const tot=totals.reduce((s,o)=>s+o.v,0)||1;
-  document.getElementById("qualif-chart").innerHTML=totals.map(({q,v})=>{
-    const pct=Math.round((v/tot)*100);
-    const isKo=q==="100 % KO";
+  // Bloc Qualifications : la répartition fine par catégorie (KO / Hors SVI / Sans suite / Rappel /
+  // RDV pris / Intéressé...) n'est PAS distinguable de manière fiable au niveau agent depuis
+  // /call/in/histories (seuls quelques compteurs agrégés et partiels remontent — cf. tagQualif
+  // côté serveur). Mode honnête : "n.d." plutôt qu'une estimation/simulation trompeuse.
+  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
     return`<div style="margin-bottom:11px">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;align-items:baseline">
-        <span style="color:${isKo?P:"var(--qual-label,#ddd)"};font-weight:${isKo?700:500}">${q}</span>
-        <span style="color:var(--qual-val,#888);font-size:11px"><b style="color:var(--qual-label,#ddd)">${v}</b> · ${pct}%</span>
+        <span style="color:var(--qual-label,#ddd);font-weight:500">${q}</span>
+        <span style="font-size:11px">${nd(null)}</span>
       </div>
-      <div style="height:9px;background:var(--qual-bg,#1e1e1e);border-radius:5px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${isKo?P:"linear-gradient(90deg,#888,#aaa)"};border-radius:5px;transition:width .3s"></div>
-      </div>
+      <div style="height:9px;background:var(--qual-bg,#1e1e1e);border-radius:5px;overflow:hidden"></div>
     </div>`;
   }).join("");
 }
@@ -3144,11 +3153,13 @@ function renderCriteres(){
   const body=document.getElementById('criteres-body');if(!body)return;
   const campStats={};
   agents.forEach(a=>{
-    if(!campStats[a.camp])campStats[a.camp]={agents:0,connectes:0,app:0,hp:0};
+    if(!campStats[a.camp])campStats[a.camp]={agents:0,connectes:0,app:0,hp:0,decroches:0,presentes:0};
     campStats[a.camp].agents++;
     if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campStats[a.camp].connectes++;
     campStats[a.camp].app+=a.appels;
     campStats[a.camp].hp+=a.hprod;
+    campStats[a.camp].decroches+=(a.decroches||0);
+    campStats[a.camp].presentes+=(a.presentes||0);
   });
   let html='<div style="margin-bottom:20px">'
     +'<div style="font-size:13px;font-weight:700;color:#ccc;margin-bottom:4px">Paramétrage des garde-fous par campagne</div>'
@@ -3160,9 +3171,11 @@ function renderCriteres(){
     if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
     // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
     Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
-    const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0};
-    const qs=cs.app>0?Math.round(cs.app/(cs.app*1.18)*100):0;
-    const qs_alert=qs>0&&(qs<s.qs_min||qs>s.qs_max);
+    const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0,decroches:0,presentes:0};
+    // QS (taux de décroché) = mêmes données réelles et même formule que le KPI "QS" global
+    // (decroches/presentes) — pas de valeur inventée ; "n.d." si aucun appel présenté.
+    const qs=cs.presentes>0?Math.round((cs.decroches/cs.presentes)*100):null;
+    const qs_alert=qs!==null&&(qs<s.qs_min||qs>s.qs_max);
     const no_agent_alert=s.alert_no_agent&&cs.connectes===0&&cs.agents>0;
     html+='<div class="camp-card">'
       +'<div class="camp-card-header">'
@@ -3172,7 +3185,7 @@ function renderCriteres(){
           +(qs_alert?'<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS '+qs+'%</span>':'')
           +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">Aucun agent connecté en ce moment.</span>':'')
         +'</div>'
-        +'<span style="font-size:10px;color:#444">QS actuel : '+(qs>0?qs+'%':'–')+'</span>'
+        +'<span style="font-size:10px;color:#444">QS actuel : '+(qs!==null?qs+'%':nd(null))+'</span>'
       +'</div>'
       +'<div class="kpi-param-grid">'
         +'<div class="param-group">'
@@ -3310,12 +3323,14 @@ function mmss2(s){
   var m=Math.floor(s/60),sc=Math.round(s%60);
   return m+"min "+String(sc).padStart(2,"0")+"s";
 }
+var _parisHourFmt=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
+function parisHour(d){return parseInt(_parisHourFmt.format(d),10)%24;}
 function waHr(dt){
   if(!dt)return"";
   try{
     var d=new Date(dt);
-    // Ajuster UTC+2 (CEST)
-    return String(d.getUTCHours()+2).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");
+    // Heure France (CET/CEST gérés automatiquement, indépendamment du fuseau du navigateur)
+    return String(parisHour(d)).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");
   }catch(e){return"";}
 }
 

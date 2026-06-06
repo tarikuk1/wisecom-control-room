@@ -25,10 +25,14 @@ function setCookie(res,n,v,age=TTL/1000){
 function isRL(ip){const now=Date.now();if(!loginAttempts[ip])loginAttempts[ip]=[];loginAttempts[ip]=loginAttempts[ip].filter(t=>now-t<RATE_W);return loginAttempts[ip].length>=RATE_MAX;}
 function recAttempt(ip){if(!loginAttempts[ip])loginAttempts[ip]=[];loginAttempts[ip].push(Date.now());}
 function secH(res){res.setHeader("X-Content-Type-Options","nosniff");res.setHeader("X-Frame-Options","DENY");}
+// Heure locale Europe/Paris (CET/CEST gérés automatiquement par l'environnement ICU de Node,
+// quel que soit le fuseau du serveur — Railway tourne en UTC). Les offsets FR sont toujours
+// en heures pleines : les minutes UTC restent valables telles quelles.
+const _parisHourFmt=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
+function parisHour(d){return parseInt(_parisHourFmt.format(d),10)%24;}
 
-// ── Configuration campagnes (source: queues_config.js) ──────────────────
-const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
-const QUEUES_MAP={Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération","Vivest_Interne","Sortant Vivest","Sortant Verspieren"],Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"],Antargaz:["Antargaz","Antargaz_Client","Antargaz_Sortant"],Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],Elvetis:["Elvetis_RQ","Elvetis_SAV"],"Alcéane":["Alcéane astreinte","Alcéane interne","Alcéane_Locataires","Alcéane_Urgence","Alceane"],"MG Motor":["MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession","MG_Application Ismart","MG Motor","MG Motor Enquete","Sortant MG Motot"],Filippi:["Filippi_Hertz Ajaccio_Réservation","Filippi_Hertz Ajaccio_Assistance","Filippi_Hertz Bastia_Réservation","Filippi_Hertz Bastia_Assistance","Filippi_Hertz Bastia_Ville","Filippi_Hertz Calvi_Réservation","Filippi_Hertz Calvi_Assistance","Filippi_Hertz Figari_Réservation","Filippi_Hertz Figari_Assistance","Filippi_Sixt_Ajaccio_Réservation","Filippi_Sixt_Ajaccio_Assistance","Filippi_Sixt_Bastia_Réservation","Filippi_Sixt_Bastia_Assistance","Filippi_Sixt_Figari_Réservation","Filippi_Sixt_Figari_Assistance"],"Nature & Découvertes":["Nature & Découvertes","Nature & Découvertes_Réitération"],Delsey:["Delsey_Site FR","Delsey_Site EN","Delsey_Plateforme internet FR","Delsey_Autres Sites FR","Sortant Delsey FR"],LMB:["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Parent d'enfant"],Afnor:["Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi","Afnor_RQ_planif_audit_suivi_Réitération","Afnor_RQ_renouvellement_certificat","Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION","AFNOR Sortant"],SOS:["SOS _ MA","SOS _ MA _ Réitération"],LGR:["LGR-SC","LGR-Réitération","LGR Boutique"],LMDW:["LMDW_FR","Sortant LMDW"],LBE:["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)"],M123:["M123_FR","M123_Boutique","Sortant Maison 123 VIP"],Equisign:["Equisign","Equisign _ Réitération"],Eiffage:["Eiffage","Eiffage Réitération","Sortant Eiffage"],Apex:["Apex _ La route des langues","Apex _ Séjours Home Abroad"],Monetize:["Monetize FR"]};
+// ── Configuration campagnes — source unique : queues_config.js ──────────
+const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // ────────────────────────────────────────────────────────────────────────────
 let bToken=null,bExp=0,sseClients=[],lastPayload=null,statsCache={};
 
@@ -138,14 +142,23 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Pour plusieurs jours : séquentiel entre jours (rate-limit INO), mais IN+OUT parallèles
   let riH=[], roH=[];
   let joursActifs=0;
+  // Jours pour lesquels la récupération INO a échoué (timeout/5xx/réseau) — à ne JAMAIS confondre
+  // avec un jour réellement sans appel : on les remonte explicitement au dashboard (mode honnête).
+  const joursEchec=[];
+  // Marqueur d'échec distinct de {} pour ne pas traiter une requête en erreur comme "0 historique"
+  const ECHEC=Symbol("echec");
+  const onEchec=e=>({[ECHEC]:(e&&e.message)||String(e)});
   for(const jr of jours){
     const avant=riH.length+roH.length;
+    let echecJour=null;
     try{
       // Appel principal (limit 2000)
       const [ri1,ro1]=await Promise.all([
-        apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({})),
-        apiReq("POST","/call/out/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({}))
+        apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(onEchec),
+        apiReq("POST","/call/out/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(onEchec)
       ]);
+      if(ri1&&ri1[ECHEC])echecJour=ri1[ECHEC];
+      if(ro1&&ro1[ECHEC])echecJour=echecJour||ro1[ECHEC];
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
       // Pagination : si on a atteint la limite, découper par demi-journée et compléter
@@ -163,15 +176,21 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
         for(const t of tranches){
           await new Promise(r=>setTimeout(r,200)); // petit délai entre tranches
           const [rip,rop]=await Promise.all([
-            apiReq("POST","/call/in/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(()=>({})),
-            apiReq("POST","/call/out/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(()=>({}))
+            apiReq("POST","/call/in/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(onEchec),
+            apiReq("POST","/call/out/histories",{startDate:t.s,endDate:t.e,limit:2000},token).catch(onEchec)
           ]);
+          if(rip&&rip[ECHEC])echecJour=rip[ECHEC];
+          if(rop&&rop[ECHEC])echecJour=echecJour||rop[ECHEC];
           if(rip&&rip.histories)riH=riH.concat(rip.histories);
           if(rop&&rop.histories)roH=roH.concat(rop.histories);
         }
         console.log("[PAGINATION] "+jr+" — total après découpage: "+riH.length+" IN, "+roH.length+" OUT");
       }
-    }catch(e){console.error('[fetchAgentsDay]',jr,e.message);}
+    }catch(e){echecJour=e.message;}
+    if(echecJour){
+      console.error('[fetchAgentsDay] échec récupération INO pour '+jr+' :',echecJour);
+      joursEchec.push(jr);
+    }
     if((riH.length+roH.length)>avant)joursActifs++;
     if(jours.length>1)await new Promise(r=>setTimeout(r,500));
   }
@@ -183,18 +202,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   function slotKey(dt){
     if(!dt)return null;
     const d=new Date(dt);if(isNaN(d))return null;
-    // Heure France (UTC+2 en été, UTC+1 en hiver) — Railway est en UTC
-    const hUtc=d.getUTCHours();
-    const offset=isDST(d)?2:1;
-    const hFr=(hUtc+offset)%24;
+    // Heure France (gère CET/CEST automatiquement, quel que soit le fuseau du serveur — Railway est en UTC)
+    const hFr=parisHour(d);
     const m=d.getUTCMinutes()<30?"00":"30";
     return String(hFr).padStart(2,"0")+":"+m;
-  }
-  function isDST(d){
-    // Heure d'été France: dernier dimanche mars → dernier dimanche octobre
-    const jan=new Date(d.getFullYear(),0,1).getTimezoneOffset();
-    const jul=new Date(d.getFullYear(),6,1).getTimezoneOffset();
-    return d.getTimezoneOffset()<Math.max(jan,jul);
   }
   // Qualifications agrégées par agent (h.status contient le résultat : KO, Refus, Réitérant, etc.)
   function tagQualif(a,status){
@@ -219,7 +230,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(_dtP){
       const _dP=new Date(_dtP);
       if(!isNaN(_dP)){
-        const _hFr=(_dP.getUTCHours()+(isDST(_dP)?2:1))%24;
+        const _hFr=parisHour(_dP);
         if(_hFr<hDeb||_hFr>=hFin)return; // hors plage → ignoré partout (flux + slots + agents)
       }
     }
@@ -254,7 +265,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(dt>agents[k].derniereAction)agents[k].derniereAction=dt;
     if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
     tagQualif(agents[k],h.status);
-    if(dt){const _d=new Date(dt);const hh=_d.getUTCHours()+2;const idx=hh-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
+    if(dt){const _d=new Date(dt);const idx=parisHour(_d)-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
     const sk=slotKey(dt);
     if(sk){
       if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0,queues:{}};
@@ -329,7 +340,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     };
   }).sort((a,b)=>b.total-a.total);
 
-  return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs,
+  return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs,joursEchec,
     flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants}};
 }
 
@@ -724,10 +735,9 @@ const server=http.createServer(async(req,res)=>{
     }
     return;
   }
-  // Config publique — expose CAMPS, QUEUES_MAP, SKILLS au dashboard
-  // Permet à terme de charger la config depuis queues_config.js sans rebuild HTML
+  // Config publique — expose CAMPS, QUEUES_MAP, SKILLS au dashboard (source unique : queues_config.js)
   if(url==="/api/config"){
-    const cfg={CAMPS,QUEUES_MAP,SKILLS:["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"]};
+    const cfg={CAMPS,QUEUES_MAP,SKILLS};
     res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"public,max-age=300"});
     return res.end(JSON.stringify(cfg));
   }
