@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control Room — Wisecom</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -126,6 +127,7 @@ body.light .topbar{background:var(--c-white);}
   gap:var(--sp-3);
 }
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand-mark{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--c-pink);color:var(--c-white);font-weight:var(--fw-black);font-size:14px;letter-spacing:0;box-shadow:0 0 10px rgba(232,0,110,.35);flex-shrink:0;}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--c-pink);box-shadow:0 0 10px var(--c-pink),0 0 20px rgba(232,0,110,.3);flex-shrink:0;animation:pulse 2s infinite;}
 /* ── ANIMATIONS ───────────────────────────────────────────
    pulse(2s) · slideIn(150ms) · blink(1s) · fadeIn(200ms)
@@ -891,6 +893,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   <div class="topbar">
 
     <div class="logo">
+      <div class="brand-mark" aria-hidden="true">W</div>
       <div class="dot"></div>
       <div>
         <div class="brand">CONTROL ROOM</div>

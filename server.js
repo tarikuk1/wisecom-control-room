@@ -7,6 +7,17 @@ let SECURITY_CODE=process.env.SECURITY_CODE||"286828";
 const USERS_RAW=process.env.USERS||"tarik:Wisecom2026!,admin:ControlRoom2026!";
 const USERS=Object.fromEntries(USERS_RAW.split(",").map(u=>{const[l,...r]=u.trim().split(":");return[l.toLowerCase(),r.join(":")];}));
 
+// Favicon — petit phare stylisé (clin d'œil "tour de contrôle"), sert toutes les pages
+const FAVICON_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<rect width="64" height="64" rx="14" fill="#0c0c0c"/>
+<path d="M30 21 L5 12 L30 25 Z" fill="#E8006E" opacity=".45"/>
+<path d="M34 21 L59 12 L34 25 Z" fill="#E8006E" opacity=".45"/>
+<path d="M24 16 L40 16 L32 7 Z" fill="#f5479e"/>
+<rect x="25" y="16" width="14" height="9" rx="2" fill="#E8006E"/>
+<path d="M26 57 L29.5 25 L34.5 25 L38 57 Z" fill="#fff"/>
+<rect x="24" y="57" width="16" height="4" rx="1.5" fill="#cfcfcf"/>
+</svg>`;
+
 const sessions={},pending={},loginAttempts={};
 const TTL=10*60*1000,PTTL=5*60*1000,RATE_W=15*60*1000,RATE_MAX=5; // TTL=10min d\u0027inactivité (glissant)
 
@@ -552,6 +563,7 @@ const server=http.createServer(async(req,res)=>{
   const ip=req.headers["x-forwarded-for"]||req.socket.remoteAddress||"unknown";
 
   // Routes publiques
+  if(url==="/favicon.ico"||url==="/favicon.svg"){res.writeHead(200,{"Content-Type":"image/svg+xml","Cache-Control":"public, max-age=86400"});return res.end(FAVICON_SVG);}
   if(url==="/login"&&req.method==="GET"){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(makeLogin(false,false));}
   if(url==="/login"&&req.method==="POST"){
     let body="";req.on("data",c=>body+=c);
