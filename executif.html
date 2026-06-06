@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau Exécutif — Wisecom</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
+.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
+.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#555;}
+input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+select:disabled{opacity:.5;cursor:not-allowed;}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
+.btn-pink{background:#E8006E;color:#fff;}
+.btn-pink:disabled{opacity:.5;cursor:wait;}
+.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.content{padding:16px 20px;}
+.summary{display:flex;gap:10px;flex-wrap:wrap;}
+.card{background:#161616;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;flex:1;min-width:140px;}
+.card-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.card-value{font-size:24px;font-weight:700;color:#fff;}
+.card-sub{font-size:11px;color:#444;margin-top:2px;}
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
+.tbl td{padding:7px 10px;border-bottom:1px solid #1a1a1a;vertical-align:middle;white-space:nowrap;}
+.tbl tr:hover td{background:#141414;}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.badge-gray{background:#1a1a1a;color:#666;}
+.loading{text-align:center;padding:30px;color:#444;}
+.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.delta-good{color:#30d158;font-weight:600;}
+.delta-bad{color:#ff3b30;font-weight:600;}
+.delta-neutral{color:#888;}
+.delta-na{color:#444;}
+.signal{display:flex;gap:10px;align-items:flex-start;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#ccc;}
+.signal-icon{font-size:15px;flex-shrink:0;}
+.signal-alert{border-color:#5c1e1e;background:#1e0a0a;}
+.signal-warn{border-color:#5c4a1e;background:#1e160a;}
+.signal-info{border-color:#1e3a5c;background:#0a141e;}
+.signal-ok{border-color:#1e5c30;background:#0a1e12;color:#a8d8b8;}
+
+@media (max-width:600px){
+  .header,.controls,.content{padding-left:14px;padding-right:14px;}
+  .controls{gap:8px;}
+  .summary{gap:8px;}
+  .card{flex-basis:calc(50% - 8px);min-width:0;}
+  .success-toast{left:14px;right:14px;bottom:14px;max-width:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div><span class="dot"></span><span class="title">TABLEAU DE BORD EXÉCUTIF</span></div>
+    <div class="subtitle">Wisecom · INO · Tendances 4 semaines par campagne · Pilotage staffing & formation</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
+    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+  </div>
+</div>
+
+<div class="controls">
+  <label for="ref-date">Semaine de référence (date de fin)</label>
+  <input type="date" id="ref-date" min="2022-01-01">
+  <span style="font-size:11px;color:#444;max-width:320px;">4 semaines glissantes de 7 jours, alignées sur cette date</span>
+  <button class="btn btn-pink" id="btn-load">🔄 Charger les tendances 4 semaines</button>
+  <span id="trend-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+</div>
+
+<div class="content">
+
+  <div class="panel">
+    <div class="panel-title"><span>📌 KPIs exécutifs — semaine de référence</span><span id="kpi-period" style="color:#666;"></span></div>
+    <div class="summary" id="kpis"><div class="empty-hint">Choisissez une date de référence puis cliquez sur « Charger les tendances 4 semaines » pour afficher les indicateurs de pilotage.<br>⏳ L'agrégation sur 4 semaines interroge INO jour par jour et peut prendre une à deux minutes.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <span>📊 Tendance 4 semaines — <span id="trend-camp-label" style="color:#E8006E;font-weight:700;">–</span></span>
+      <select id="f-camp" disabled aria-label="Choisir la campagne à analyser"><option value="">Chargez les données pour choisir une campagne…</option></select>
+    </div>
+    <div id="trend-table-wrap" style="overflow-x:auto;"><div class="empty-hint">Aucune donnée chargée pour le moment.</div></div>
+    <div id="signals" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><span>🏁 Comparatif cross-campagnes <span id="cross-period" style="color:#666;font-weight:400;"></span></span></div>
+    <div style="overflow-x:auto;">
+    <table class="tbl" id="cross-table">
+      <thead>
+        <tr><th>Campagne</th><th>Volume traité</th><th>QS</th><th>DMC moy.</th><th>Agents actifs</th><th>Charge / agent</th></tr>
+      </thead>
+      <tbody id="cross-tbody"><tr><td colspan="6" class="loading">Aucune donnée chargée</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><span>🧭 Synthèse & signaux de pilotage</span></div>
+    <div id="narrative"><div class="empty-hint">La synthèse automatique cross-campagnes apparaîtra ici une fois les 4 semaines chargées.</div></div>
+  </div>
+
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// URL relative : la page est servie par le même serveur que l'API (Railway en prod, localhost en dev)
+const INO_BASE = "";
+let CAMPS = [];
+let QUEUES_MAP = {};
+let weeksData = null;     // {ref, weeks:[{start,end,empty,byCamp:[...],totals:{...}}, ...]} — ordre chronologique S-3 → réf.
+let selectedCamp = null;
+let loading = false;
+const weekCache = new Map(); // clé "start|end" -> semaine agrégée (immuable une fois la semaine entièrement passée)
+
+function fmtMMSS(s){const v=Math.round(s||0);const m=Math.floor(v/60);return`${String(m).padStart(2,"0")}:${String(v%60).padStart(2,"0")}`;}
+function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
+function fmtDateLong(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function pctSigned(cur,prev){if(!(prev>0))return"n.d.";const p=(cur-prev)/prev*100;return(p>0?"+":"")+p.toFixed(0)+"%";}
+
+// Sparkline SVG inline — repris du même motif que dashboard.html (tendance verte si ↑, rose si ↓)
+function sparkSVG(data){
+  if(!Array.isArray(data)||data.length===0)return'<span style="color:#444;font-size:10px">n.d.</span>';
+  if(data.every(v=>v===0))return'<span style="color:#333;font-size:9px">─</span>';
+  const w=72,h=20,max=Math.max(...data,1),n=data.length;
+  if(n===1){
+    const y=(h-(data[0]/max)*h).toFixed(1);
+    return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle" aria-hidden="true" focusable="false" role="img"><circle cx="${w/2}" cy="${y}" r="2" fill="#E8006E"/></svg>`;
+  }
+  const pts=data.map((v,i)=>`${(i/(n-1)*w).toFixed(1)},${(h-(v/max)*h).toFixed(1)}`).join(" ");
+  const last=data[n-1],prev=data[n-2]||last;
+  const col=last>=prev?"#30d158":"#E8006E";
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle" aria-hidden="true" focusable="false" role="img">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Pastille d'écart générique : flèche + valeur formatée + couleur sémantique (vert=favorable, rose=défavorable)
+function trendDelta(cur,prev,betterUp,fmtAbsDiff){
+  if(cur==null||prev==null||isNaN(cur)||isNaN(prev))return'<span class="delta-na">n.d.</span>';
+  const diff=cur-prev;
+  if(diff===0)return'<span class="delta-neutral">≈ stable</span>';
+  const up=diff>0;
+  const cls=(betterUp==null)?"delta-neutral":((betterUp?up:!up)?"delta-good":"delta-bad");
+  return`<span class="${cls}">${up?"▲":"▼"} ${fmtAbsDiff(Math.abs(diff),prev)}</span>`;
+}
+
+async function loadConfig(){
+  try{
+    const r=await fetch(`${INO_BASE}/api/config`);
+    const d=await r.json();
+    CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
+    QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
+  }catch(e){
+    showToast("⚠ Configuration des campagnes indisponible — détection approximative","#ff9b00");
+  }
+}
+
+// Détection de la campagne principale d'un agent à partir de ses files INO brutes —
+// même cascade que dashboard.html (correspondance exacte → préfixe normalisé → sous-chaîne → 1er token)
+function detectCampaign(queuesStr){
+  const fq=(queuesStr||"").split(", ").filter(Boolean);
+  for(const c of CAMPS){
+    if((QUEUES_MAP[c]||[]).some(q=>fq.includes(q)))return c;
+  }
+  for(const c of CAMPS){
+    const cl=c.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+    if(fq.some(q=>q.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"").startsWith(cl)))return c;
+  }
+  if(fq[0]){
+    const q0=fq[0].toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+    for(const camp of CAMPS){
+      const cl=camp.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+      if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return camp;
+    }
+    const tok=fq[0].replace(/^sortant /i,"").split(/[_ ]/)[0];
+    const found=CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()));
+    return found||fq[0];
+  }
+  return "Autre";
+}
+
+// Agrège les agents bruts d'une semaine par campagne principale détectée
+function aggregateByCampaign(rawAgents){
+  const map=new Map();
+  rawAgents.forEach(a=>{
+    const camp=detectCampaign(a.queues);
+    if(!map.has(camp))map.set(camp,{camp,volTraite:0,volPresente:0,volSortant:0,duree:0,agentIds:new Set()});
+    const m=map.get(camp);
+    m.volTraite+=a.appelsIn||0;
+    m.volPresente+=a.appelsPresentes||0;
+    m.volSortant+=a.appelsOut||0;
+    m.duree+=a.duree||0;
+    if(((a.appelsIn||0)+(a.appelsOut||0))>0)m.agentIds.add(a.id);
+  });
+  return[...map.values()].map(m=>{
+    const nbAgents=m.agentIds.size;
+    return{
+      camp:m.camp,
+      volTraite:m.volTraite,
+      volPresente:m.volPresente,
+      volSortant:m.volSortant,
+      nbAgents,
+      qs:m.volPresente>0?Math.round(m.volTraite/m.volPresente*1000)/10:null,
+      dmc:m.volTraite>0?Math.round(m.duree/m.volTraite):0,
+      chargeParAgent:nbAgents>0?Math.round(m.volTraite/nbAgents*10)/10:0
+    };
+  }).sort((a,b)=>b.volTraite-a.volTraite);
+}
+
+// Fenêtre glissante de 7 jours se terminant n×7 jours avant la date de référence (n=0 → semaine de réf., n=3 → S-3)
+function weekRange(ref,n){
+  const end=shiftDateStr(ref,-7*n);
+  const start=shiftDateStr(end,-6);
+  return{start,end};
+}
+
+async function loadWeek(start,end,cacheable){
+  const key=`${start}|${end}`;
+  if(cacheable&&weekCache.has(key))return weekCache.get(key);
+  const res=await fetch(`${INO_BASE}/agents-day?date=${start}&dateFin=${end}`);
+  if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
+  const data=await res.json();
+  if(data.error)throw new Error(data.error);
+  const rawAgents=Array.isArray(data.agents)?data.agents:[];
+  const byCamp=aggregateByCampaign(rawAgents);
+  const totals={
+    volTraite:rawAgents.reduce((s,a)=>s+(a.appelsIn||0),0),
+    volPresente:rawAgents.reduce((s,a)=>s+(a.appelsPresentes||0),0),
+    volSortant:rawAgents.reduce((s,a)=>s+(a.appelsOut||0),0),
+    duree:rawAgents.reduce((s,a)=>s+(a.duree||0),0),
+    nbAgents:new Set(rawAgents.filter(a=>((a.appelsIn||0)+(a.appelsOut||0))>0).map(a=>a.id)).size
+  };
+  totals.qs=totals.volPresente>0?Math.round(totals.volTraite/totals.volPresente*1000)/10:null;
+  totals.dmc=totals.volTraite>0?Math.round(totals.duree/totals.volTraite):0;
+  const week={start,end,empty:rawAgents.length===0,byCamp,totals};
+  if(cacheable)weekCache.set(key,week);
+  return week;
+}
+
+async function loadTrend(){
+  if(loading)return;
+  const ref=document.getElementById("ref-date").value;
+  const stEl=document.getElementById("trend-status");
+  const btn=document.getElementById("btn-load");
+  if(!ref){showToast("⚠ Choisissez une date de référence d'abord","#ff9b00");return;}
+  const todayStr=new Date().toISOString().slice(0,10);
+  loading=true;
+  btn.disabled=true;
+  const prevLabel=btn.textContent;
+  btn.textContent="⏳ Chargement…";
+  try{
+    const ranges=[3,2,1,0].map(n=>weekRange(ref,n)); // ordre chronologique : S-3 (plus ancienne) → semaine de référence
+    const weeks=[];
+    for(let i=0;i<ranges.length;i++){
+      const{start,end}=ranges[i];
+      // Une semaine n'est immuable (donc cacheable sans risque) que si elle est entièrement passée
+      const cacheable=end<todayStr;
+      const fromCache=cacheable&&weekCache.has(`${start}|${end}`);
+      stEl.textContent=`Chargement semaine ${i+1}/4 (${fmtDate(start)} → ${fmtDate(end)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
+      const w=await loadWeek(start,end,cacheable);
+      weeks.push(w);
+    }
+    weeksData={ref,weeks};
+    stEl.textContent=`✓ Période chargée : ${fmtDate(weeks[0].start)} → ${fmtDate(weeks[3].end)} (4 semaines glissantes)`;
+    populateCampSelect();
+    renderAll();
+    showToast("✓ Tendances 4 semaines chargées avec succès");
+  }catch(e){
+    const msg=e&&e.message||String(e);
+    stEl.textContent="⚠ Chargement interrompu — "+msg;
+    showToast("⚠ Échec du chargement des tendances — "+msg,"#ff3b30");
+  }finally{
+    loading=false;
+    btn.disabled=false;
+    btn.textContent=prevLabel;
+  }
+}
+
+function populateCampSelect(){
+  if(!weeksData)return;
+  const sel=document.getElementById("f-camp");
+  const latest=weeksData.weeks[weeksData.weeks.length-1];
+  const order=latest.byCamp.map(c=>c.camp);
+  const all=new Set();
+  weeksData.weeks.forEach(w=>w.byCamp.forEach(c=>all.add(c.camp)));
+  const sorted=[...all].sort((a,b)=>{
+    const ia=order.indexOf(a),ib=order.indexOf(b);
+    if(ia===-1&&ib===-1)return a.localeCompare(b);
+    if(ia===-1)return 1;
+    if(ib===-1)return-1;
+    return ia-ib;
+  });
+  if(!sorted.length){
+    sel.disabled=true;
+    sel.innerHTML='<option value="">Aucune campagne active sur la période</option>';
+    selectedCamp=null;
+    return;
+  }
+  const keepPrev=selectedCamp&&sorted.includes(selectedCamp);
+  sel.disabled=false;
+  sel.innerHTML=sorted.map(c=>`<option value="${c}">${c}</option>`).join("");
+  selectedCamp=keepPrev?selectedCamp:sorted[0];
+  sel.value=selectedCamp;
+}
+
+function renderAll(){
+  if(!weeksData)return;
+  renderKPIs();
+  renderTrend();
+  renderCross();
+  renderNarrative();
+}
+
+function renderKPIs(){
+  const weeks=weeksData.weeks;
+  const cur=weeks[3].totals,prev=weeks[2].totals;
+  document.getElementById("kpi-period").textContent=`${fmtDateLong(weeks[3].start)} → ${fmtDateLong(weeks[3].end)}`;
+  const qsColor=cur.qs==null?"#888":cur.qs>=85?"#30d158":cur.qs<80?"#ff3b30":"#fff";
+  const chargeAgent=cur.nbAgents>0?(cur.volTraite/cur.nbAgents).toFixed(1):"–";
+  document.getElementById("kpis").innerHTML=`
+    <div class="card"><div class="card-label">Volume traité</div><div class="card-value">${cur.volTraite}</div><div class="card-sub">${trendDelta(cur.volTraite,prev.volTraite,true,(d,p)=>d+(p>0?` (${(d/p*100).toFixed(0)}%)`:""))} vs sem. préc.</div></div>
+    <div class="card"><div class="card-label">QS globale</div><div class="card-value" style="color:${qsColor}">${cur.qs!=null?cur.qs+"%":"–"}</div><div class="card-sub">${trendDelta(cur.qs,prev.qs,true,d=>d.toFixed(1)+" pt")} vs sem. préc.</div></div>
+    <div class="card"><div class="card-label">DMC moyen</div><div class="card-value">${fmtMMSS(cur.dmc)}</div><div class="card-sub">${trendDelta(cur.dmc,prev.dmc,false,d=>fmtMMSS(d))} vs sem. préc.</div></div>
+    <div class="card"><div class="card-label">Agents actifs</div><div class="card-value" style="color:#E8006E;">${cur.nbAgents}</div><div class="card-sub">${trendDelta(cur.nbAgents,prev.nbAgents,null,d=>String(d))} vs sem. préc.</div></div>
+    <div class="card"><div class="card-label">Charge / agent</div><div class="card-value">${chargeAgent}</div><div class="card-sub">appels traités par agent actif</div></div>
+  `;
+}
+
+function renderTrend(){
+  const weeks=weeksData.weeks;
+  const camp=selectedCamp;
+  document.getElementById("trend-camp-label").textContent=camp||"–";
+  if(!camp){
+    document.getElementById("trend-table-wrap").innerHTML='<div class="empty-hint">Aucune campagne active détectée sur cette période.</div>';
+    document.getElementById("signals").innerHTML="";
+    return;
+  }
+  const rows=weeks.map(w=>w.byCamp.find(x=>x.camp===camp)||{camp,volTraite:0,volPresente:0,volSortant:0,nbAgents:0,qs:null,dmc:0,chargeParAgent:0});
+  const lbl=i=>{const off=3-i;return off===0?"Sem. réf.":`S-${off}`;};
+  const metrics=[
+    {name:"Volume traité",vals:rows.map(r=>r.volTraite),fmt:v=>String(v),betterUp:true,diff:(d,p)=>d+(p>0?` (${(d/p*100).toFixed(0)}%)`:"")},
+    {name:"QS",vals:rows.map(r=>r.qs),fmt:v=>v==null?"–":v+"%",betterUp:true,diff:d=>d.toFixed(1)+" pt"},
+    {name:"DMC moyen",vals:rows.map(r=>r.dmc),fmt:v=>fmtMMSS(v),betterUp:false,diff:d=>fmtMMSS(d)},
+    {name:"Agents actifs",vals:rows.map(r=>r.nbAgents),fmt:v=>String(v),betterUp:null,diff:d=>String(d)},
+    {name:"Charge / agent",vals:rows.map(r=>r.chargeParAgent),fmt:v=>v.toFixed(1),betterUp:null,diff:d=>d.toFixed(1)}
+  ];
+  const thead=`<tr><th>Métrique</th>${weeks.map((w,i)=>`<th title="${fmtDateLong(w.start)} → ${fmtDateLong(w.end)}">${lbl(i)}<br><span style="font-weight:400;color:#555;font-size:10px;">${fmtDate(w.start)}–${fmtDate(w.end)}</span></th>`).join("")}<th>Tendance</th><th>Δ vs sem. préc.</th></tr>`;
+  const tbody=metrics.map(m=>{
+    const cells=m.vals.map(v=>`<td>${m.fmt(v)}</td>`).join("");
+    const last=m.vals[3],prev=m.vals[2];
+    const delta=trendDelta(last,prev,m.betterUp,(d,p)=>m.diff(d,prev));
+    return`<tr><td><b>${m.name}</b></td>${cells}<td>${sparkSVG(m.vals.map(v=>v||0))}</td><td>${delta}</td></tr>`;
+  }).join("");
+  document.getElementById("trend-table-wrap").innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+  renderSignals(rows);
+}
+
+// Génère des signaux de pilotage (staffing / formation) à partir des 4 points de tendance de la campagne sélectionnée
+function renderSignals(rows){
+  const vol=rows.map(r=>r.volTraite);
+  const qs=rows.map(r=>r.qs);
+  const dmc=rows.map(r=>r.dmc);
+  const charge=rows.map(r=>r.chargeParAgent);
+  const nbAg=rows.map(r=>r.nbAgents);
+  const signals=[];
+
+  const allPos=vol.every(v=>v>0);
+  if(allPos&&vol[1]>vol[0]*1.1&&vol[2]>vol[1]*1.1&&vol[3]>vol[2]*1.1){
+    signals.push({icon:"📈",cls:"signal-warn",txt:`Hausse continue du volume traité sur les 4 dernières semaines (${vol[0]} → ${vol[3]} appels, ${pctSigned(vol[3],vol[0])}) — un pic est probable : anticiper un renfort de staffing ou des heures supplémentaires sur cette campagne.`});
+  }else if(allPos&&vol[1]<vol[0]*0.9&&vol[2]<vol[1]*0.9&&vol[3]<vol[2]*0.9){
+    signals.push({icon:"📉",cls:"signal-info",txt:`Baisse continue du volume traité sur les 4 dernières semaines (${vol[0]} → ${vol[3]} appels, ${pctSigned(vol[3],vol[0])}) — opportunité de redéployer une partie des effectifs vers d'autres campagnes.`});
+  }
+  if(qs[0]!=null&&qs[3]!=null&&(qs[3]-qs[0])<=-5){
+    signals.push({icon:"⚠",cls:"signal-alert",txt:`Dégradation de la qualité de service de ${(qs[0]-qs[3]).toFixed(1)} pts entre S-3 et la semaine de référence (${qs[0]}% → ${qs[3]}%) — un point formation/coaching ciblé est recommandé.`});
+  }
+  if(charge[0]>0&&charge[3]>charge[0]*1.15&&nbAg[3]<=nbAg[0]){
+    signals.push({icon:"⚠",cls:"signal-alert",txt:`La charge par agent augmente (${charge[0]} → ${charge[3]} appels/agent) sans renfort d'effectif (${nbAg[0]} → ${nbAg[3]} agents) — risque de surcharge à anticiper côté staffing.`});
+  }
+  if(dmc[0]>0&&(dmc[3]-dmc[0])>=30){
+    signals.push({icon:"ℹ",cls:"signal-info",txt:`La durée moyenne de communication s'allonge (${fmtMMSS(dmc[0])} → ${fmtMMSS(dmc[3])}) — à vérifier : complexité croissante des dossiers, besoin de formation ou de scripts d'aide.`});
+  }
+  if(signals.length===0){
+    signals.push({icon:"✓",cls:"signal-ok",txt:"Tendance globalement stable sur les 4 dernières semaines — aucun signal de management particulier détecté pour cette campagne."});
+  }
+  document.getElementById("signals").innerHTML=signals.map(s=>`<div class="signal ${s.cls}"><span class="signal-icon">${s.icon}</span><span>${s.txt}</span></div>`).join("");
+}
+
+function renderCross(){
+  const latest=weeksData.weeks[weeksData.weeks.length-1];
+  document.getElementById("cross-period").textContent=`(${fmtDateLong(latest.start)} → ${fmtDateLong(latest.end)})`;
+  const rows=latest.byCamp.filter(c=>c.volTraite>0||c.volPresente>0);
+  if(!rows.length){
+    document.getElementById("cross-tbody").innerHTML='<tr><td colspan="6" class="loading">Aucune activité détectée sur cette période</td></tr>';
+    return;
+  }
+  document.getElementById("cross-tbody").innerHTML=rows.map(c=>{
+    const qsColor=c.qs==null?"#666":c.qs>=85?"#30d158":c.qs<80?"#ff3b30":"#E8006E";
+    const qsBadge=c.qs==null?'<span class="badge badge-gray">n.d.</span>':`<span class="badge" style="background:${qsColor}1a;color:${qsColor};">${c.qs}%${c.qs<80?" ⚠":c.qs>=90?" ✓":""}</span>`;
+    return`<tr>
+      <td><b>${c.camp}</b></td>
+      <td>${c.volTraite}</td>
+      <td>${qsBadge}</td>
+      <td>${fmtMMSS(c.dmc)}</td>
+      <td>${c.nbAgents}</td>
+      <td>${c.chargeParAgent.toFixed(1)}</td>
+    </tr>`;
+  }).join("");
+}
+
+// Synthèse narrative cross-campagnes : compare la semaine la plus ancienne (S-3) à la semaine de référence
+function renderNarrative(){
+  const weeks=weeksData.weeks;
+  const oldest=weeks[0],latest=weeks[weeks.length-1];
+  const campsBoth=oldest.byCamp.map(c=>c.camp).filter(c=>latest.byCamp.some(x=>x.camp===c));
+  const deltas=campsBoth.map(camp=>{
+    const o=oldest.byCamp.find(x=>x.camp===camp);
+    const l=latest.byCamp.find(x=>x.camp===camp);
+    return{
+      camp,o,l,
+      volChange:o.volTraite>0?(l.volTraite-o.volTraite)/o.volTraite*100:null,
+      qsChange:(o.qs!=null&&l.qs!=null)?(l.qs-o.qs):null
+    };
+  });
+  const byVol=deltas.filter(d=>d.volChange!=null).sort((a,b)=>b.volChange-a.volChange);
+  const topGrower=byVol[0],topDecliner=byVol[byVol.length-1];
+  const byQs=deltas.filter(d=>d.qsChange!=null).sort((a,b)=>a.qsChange-b.qsChange);
+  const worstQs=byQs[0];
+
+  const sentences=[];
+  sentences.push(`Sur les 4 dernières semaines (du ${fmtDateLong(oldest.start)} au ${fmtDateLong(latest.end)}), le volume global traité est passé de <b>${oldest.totals.volTraite}</b> à <b>${latest.totals.volTraite}</b> appels (${pctSigned(latest.totals.volTraite,oldest.totals.volTraite)}), pour une QS de <b>${latest.totals.qs!=null?latest.totals.qs+"%":"n.d."}</b> sur la semaine de référence.`);
+  if(topGrower&&topGrower.volChange>=10){
+    sentences.push(`📈 <b>${topGrower.camp}</b> affiche la plus forte progression (${pctSigned(topGrower.l.volTraite,topGrower.o.volTraite)}, de ${topGrower.o.volTraite} à ${topGrower.l.volTraite} appels) — un pic est à anticiper : prévoir un renfort de staffing sur cette campagne.`);
+  }
+  if(topDecliner&&topDecliner.volChange<=-10&&(!topGrower||topDecliner.camp!==topGrower.camp)){
+    sentences.push(`📉 <b>${topDecliner.camp}</b> recule le plus fortement (${pctSigned(topDecliner.l.volTraite,topDecliner.o.volTraite)}, de ${topDecliner.o.volTraite} à ${topDecliner.l.volTraite} appels) — opportunité de redéployer une partie des ressources vers les campagnes en hausse.`);
+  }
+  if(worstQs&&worstQs.qsChange<=-5){
+    sentences.push(`⚠ La qualité de service se dégrade le plus sur <b>${worstQs.camp}</b> (${worstQs.qsChange.toFixed(1)} pts, de ${worstQs.o.qs}% à ${worstQs.l.qs}%) — un point formation ciblé est recommandé sur cette équipe.`);
+  }
+  if(sentences.length===1){
+    sentences.push("Aucune variation marquante détectée entre la première et la dernière semaine de la période — situation globalement stable, pas d'action prioritaire à signaler.");
+  }
+  document.getElementById("narrative").innerHTML=sentences.map(s=>`<p style="margin-bottom:8px;line-height:1.6;color:#ccc;">${s}</p>`).join("");
+}
+
+function showToast(msg,color){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  const c=color||"#30d158";
+  t.style.borderColor=c;
+  t.style.color=c;
+  t.style.background=c+"1a";
+  t.style.display="block";
+  setTimeout(()=>t.style.display="none",4500);
+}
+
+// Connexion SSE — indicateur de disponibilité INO uniquement (pas de rechargement auto :
+// l'agrégation 4 semaines est coûteuse et doit rester déclenchée explicitement par l'utilisateur)
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  const es=new EventSource("/events");
+  es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+}
+
+// Init
+const todayStr=new Date().toISOString().slice(0,10);
+const refInput=document.getElementById("ref-date");
+refInput.value=todayStr;
+refInput.max=todayStr;
+refInput.addEventListener("change",()=>{
+  document.getElementById("trend-status").textContent="";
+});
+document.getElementById("btn-load").addEventListener("click",loadTrend);
+document.getElementById("f-camp").addEventListener("change",e=>{selectedCamp=e.target.value;renderTrend();});
+
+loadConfig();
+connectSSE();
+</script>
+</body>
+</html>
