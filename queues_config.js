@@ -19,7 +19,8 @@
 const CAMPS = [
   "Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis",
   "Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB",
-  "Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize","HMF"
+  "Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize","HMF",
+  "CNPA","Verspieren","Groupama","GS1","MNZ"
 ];
 
 const QUEUES_MAP = {
@@ -88,6 +89,12 @@ const QUEUES_MAP = {
   Apex:     ["Apex _ La route des langues","Apex _ Séjours Home Abroad"],
   Monetize: ["Monetize FR"],
   HMF:      ["HMF-BOURGOIN JALLIEU-DERUAZ AUTO"],
+  // Campagnes ajoutées 10/06/2026 — noms de files à confirmer via /admin > Analyser les files INO
+  CNPA:       ["CNPA_Signalement","CNPA_Standard","CNPA_Client","CNPA"],
+  Verspieren: ["VERSPIEREN","VERSPIEREN_Client","VERSPIEREN_Standard","VERSPIEREN_Assistance","Verspieren"],
+  Groupama:   ["Groupama","Groupama_Client","Groupama_Standard"],
+  GS1:        ["GS1","GS1_Client","GS1_Standard"],
+  MNZ:        ["MNZ","MNZ_FR","MNZ_Client"],
 };
 
 const SKILLS = [

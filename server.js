@@ -73,7 +73,7 @@ const CAMP_HOURS_DEFAULT = {
   Elvetis:              _wkJR("09:00","18:00"),
   Equisign:             _wkJR("09:30","18:00"),
   Evoriel:              _wkJR("09:00","17:00"),
-  Filippi:              _wkJR("09:00","19:00","08:00","19:00","09:00","19:00"),
+  Filippi:              _wkJR("09:00","19:00","08:00","19:00","08:00","19:00"),
   HMF:                  _wkJR("08:30","19:00","09:00","17:00"),
   LBE:                  _wkJR("08:30","18:30"),
   LGR:                  _wkJR("09:00","19:00","10:00","19:00"),
@@ -87,6 +87,12 @@ const CAMP_HOURS_DEFAULT = {
   SOS:                  _wkJR("09:00","18:00"),
   Vivest:               null,  // H24
   Voltalis:             _wkJR("08:00","20:00","10:00","18:00","10:00","18:00"),
+  // Campagnes ajoutées 10/06/2026 (source : onglet Horaire Excel)
+  CNPA:       _wkJR("09:00","18:00","10:00","17:00"),
+  Verspieren: _wkJR("09:00","18:00"),
+  Groupama:   _wkJR("10:00","18:00"),
+  GS1:        _wkJR("09:00","18:00"),  // 09-13h + 14-18h, simplifié en 09-18h
+  MNZ:        _wkJR("09:00","17:00"),
 };
 
 // Campagne d'une queue — même cascade que detectCampaign() côté client (dashboard/planning/astreinte)
