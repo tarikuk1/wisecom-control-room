@@ -1159,13 +1159,15 @@ const P="#E8006E";
   });
   _reset();
 })();
-const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
-// Liste alignée sur queues_config.js (source unique de vérité, servie aussi via /api/config)
-const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
+// CAMPS / QUEUES_MAP / SKILLS : valeurs de repli. La source unique de vérité est
+// queues_config.js côté serveur, chargée au démarrage via /api/config (voir boot()).
+// Déclarés en 'let' pour être écrasés par la config serveur à l'init.
+let CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
+let SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
 // CONTRATS supprimé — non disponible INO
 const STATUSES=["Actif","Traitement","Post-appel","Déconnecté"];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
-const QUEUES_MAP={
+let QUEUES_MAP={
   // Mapping exact basé sur les queues INO réelles (semaine 26-30/05/2026)
   Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],
   ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],
@@ -3385,19 +3387,33 @@ function exportPDF(){
   showToast("PDF ouvert. Lancez l'impression depuis la fenêtre.");
 }
 
-// Init
-const todayStr=new Date().toISOString().slice(0,10);
-document.getElementById("f-date-fin").value=todayStr;
-document.getElementById("f-date-deb").value=todayStr;
-agents=genAgents();
-slots=genSlots();
-selQueues=getAllQueues();
-buildAllDropdowns();
-buildSwitches();
-render();
-setBadge("ready");
-connectSSE();
-refreshPresetSelect();
+// Init — charge d'abord la config serveur (queues_config.js via /api/config) pour que
+// le dashboard utilise EXACTEMENT le même mapping campagnes/files que les rapports serveur
+// (fluxCampagnes, exécutif, planning). Évite la désync historique entre les deux configs.
+(async function boot(){
+  try{
+    const cfg=await fetch('/api/config').then(r=>r.ok?r.json():null);
+    if(cfg&&Array.isArray(cfg.CAMPS)&&cfg.CAMPS.length){
+      CAMPS=cfg.CAMPS;
+      if(cfg.QUEUES_MAP&&typeof cfg.QUEUES_MAP==='object')QUEUES_MAP=cfg.QUEUES_MAP;
+      if(Array.isArray(cfg.SKILLS)&&cfg.SKILLS.length)SKILLS=cfg.SKILLS;
+      // Re-dérive les sélections par défaut sur la config fraîche
+      selCamps=[...CAMPS];selSkills=[...SKILLS];
+    }
+  }catch(e){/* repli silencieux sur la config inline si /api/config indisponible */}
+  const todayStr=new Date().toISOString().slice(0,10);
+  document.getElementById("f-date-fin").value=todayStr;
+  document.getElementById("f-date-deb").value=todayStr;
+  agents=genAgents();
+  slots=genSlots();
+  selQueues=getAllQueues();
+  buildAllDropdowns();
+  buildSwitches();
+  render();
+  setBadge("ready");
+  connectSSE();
+  refreshPresetSelect();
+})();
 // Bornage calendrier sur l'historique réellement disponible dans INO
 
 
