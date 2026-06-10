@@ -245,8 +245,13 @@ function detectCampaign(queuesStr){
   return "Autre";
 }
 
-// Agrège les agents bruts d'une semaine par campagne principale détectée
-function aggregateByCampaign(rawAgents){
+// Agrège les agents bruts d'une semaine par campagne principale détectée.
+// fluxCamps (serveur) : flux EN FILE par campagne — abandons inclus, hors horaires exclus,
+// appels pris par des agents mutualisés inclus. C'est la même lecture que l'écran RA INO.
+// Quand la file est disponible, la QS et les volumes entrants viennent d'elle ; les lignes
+// agents ne servent plus qu'aux effectifs, à la DMC et à la charge par agent.
+// (La QS agents — décrochés/présentés — ignore les abandons de file et surestime massivement.)
+function aggregateByCampaign(rawAgents,fluxCamps){
   const map=new Map();
   rawAgents.forEach(a=>{
     const camp=detectCampaign(a.queues);
@@ -258,17 +263,28 @@ function aggregateByCampaign(rawAgents){
     m.duree+=a.duree||0;
     if(((a.appelsIn||0)+(a.appelsOut||0))>0)m.agentIds.add(a.id);
   });
+  // Campagnes avec du trafic en file mais aucun agent rattaché (mutualisation totale)
+  Object.entries(fluxCamps||{}).forEach(([c,v])=>{
+    if(!map.has(c)&&((v.decroches||0)+(v.abandons||0)+(v.sortants||0))>0)
+      map.set(c,{camp:c,volTraite:0,volPresente:0,volSortant:0,duree:0,agentIds:new Set()});
+  });
   return[...map.values()].map(m=>{
     const nbAgents=m.agentIds.size;
+    const fx=(fluxCamps||{})[m.camp];
+    const hasFx=!!fx&&((fx.decroches||0)+(fx.abandons||0))>0;
+    const volTraite=hasFx?(fx.decroches||0):m.volTraite;
+    const volPresente=hasFx?((fx.decroches||0)+(fx.abandons||0)):m.volPresente;
+    const volSortant=(hasFx&&fx.sortants!=null)?fx.sortants:m.volSortant;
     return{
       camp:m.camp,
-      volTraite:m.volTraite,
-      volPresente:m.volPresente,
-      volSortant:m.volSortant,
+      volTraite,
+      volPresente,
+      volSortant,
       nbAgents,
-      qs:m.volPresente>0?Math.round(m.volTraite/m.volPresente*1000)/10:null,
+      qs:volPresente>0?Math.round(volTraite/volPresente*1000)/10:null,
+      // DMC : toujours sur les données agents (durée de comm / appels décrochés par les agents)
       dmc:m.volTraite>0?Math.round(m.duree/m.volTraite):0,
-      chargeParAgent:nbAgents>0?Math.round(m.volTraite/nbAgents*10)/10:0
+      chargeParAgent:nbAgents>0?Math.round(volTraite/nbAgents*10)/10:0
     };
   }).sort((a,b)=>b.volTraite-a.volTraite);
 }
@@ -288,16 +304,26 @@ async function loadWeek(start,end,cacheable){
   const data=await res.json();
   if(data.error)throw new Error(data.error);
   const rawAgents=Array.isArray(data.agents)?data.agents:[];
-  const byCamp=aggregateByCampaign(rawAgents);
+  const fluxCamps=(data.fluxCampagnes&&typeof data.fluxCampagnes==="object")?data.fluxCampagnes:null;
+  const byCamp=aggregateByCampaign(rawAgents,fluxCamps);
+  // Totaux : lecture file si le serveur la fournit (abandons inclus, hors horaires exclus),
+  // sinon repli sur les lignes agents (anciens caches / serveur antérieur).
+  const agTraite=rawAgents.reduce((s,a)=>s+(a.appelsIn||0),0);
+  const agPresente=rawAgents.reduce((s,a)=>s+(a.appelsPresentes||0),0);
+  const agSortant=rawAgents.reduce((s,a)=>s+(a.appelsOut||0),0);
+  let fxDec=0,fxAb=0,fxSort=0;
+  if(fluxCamps)Object.values(fluxCamps).forEach(v=>{fxDec+=v.decroches||0;fxAb+=v.abandons||0;fxSort+=v.sortants||0;});
+  const hasFx=(fxDec+fxAb)>0;
   const totals={
-    volTraite:rawAgents.reduce((s,a)=>s+(a.appelsIn||0),0),
-    volPresente:rawAgents.reduce((s,a)=>s+(a.appelsPresentes||0),0),
-    volSortant:rawAgents.reduce((s,a)=>s+(a.appelsOut||0),0),
+    volTraite:hasFx?fxDec:agTraite,
+    volPresente:hasFx?(fxDec+fxAb):agPresente,
+    volSortant:hasFx?fxSort:agSortant,
     duree:rawAgents.reduce((s,a)=>s+(a.duree||0),0),
     nbAgents:new Set(rawAgents.filter(a=>((a.appelsIn||0)+(a.appelsOut||0))>0).map(a=>a.id)).size
   };
   totals.qs=totals.volPresente>0?Math.round(totals.volTraite/totals.volPresente*1000)/10:null;
-  totals.dmc=totals.volTraite>0?Math.round(totals.duree/totals.volTraite):0;
+  // DMC : durée de comm agents / appels décrochés par les agents (la file n'a pas de durée)
+  totals.dmc=agTraite>0?Math.round(totals.duree/agTraite):0;
   const week={start,end,empty:rawAgents.length===0,byCamp,totals};
   if(cacheable)weekCache.set(key,week);
   return week;
