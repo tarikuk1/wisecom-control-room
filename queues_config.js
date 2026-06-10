@@ -20,7 +20,10 @@ const CAMPS = [
   "Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis",
   "Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB",
   "Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize","HMF",
-  "CNPA","Verspieren","Groupama","GS1","MNZ"
+  "CNPA","Verspieren","Groupama","GS1","MNZ",
+  // Clients confirmés dans les Smart Routings INO (relevé 10/06/2026, 83 routings)
+  // NB : « Grande récré » = LGR (déjà présent), « maison du Wiskey » = LMDW, « La maison bleue » = LMB
+  "Amazon","Evaneos","Kaufman","Médiatel","FairMoove","Hyundai"
 ];
 
 const QUEUES_MAP = {
@@ -52,9 +55,9 @@ const QUEUES_MAP = {
     "Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"
   ],
   Antargaz: ["Antargaz","Antargaz_Client","Antargaz_Sortant"],
-  Omoda:    ["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
+  Omoda:    ["Omoda-Jaecoo","Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
   Elvetis:  ["Elvetis_RQ","Elvetis_SAV"],
-  "Alcéane": ["Alcéane astreinte","Alcéane interne","Alcéane_Locataires","Alcéane_Urgence","Alceane"],
+  "Alcéane": ["Alcéane","Alcéane Astreinte","Alcéane astreinte","Alcéane interne","Alcéane_Locataires","Alcéane_Urgence","Alceane"],
   "MG Motor": [
     "MG_Autre demande","MG_Information véhicule","MG_Véhicule en concession",
     "MG_Application Ismart","MG Motor","MG Motor Enquete","Sortant MG Motot"
@@ -73,28 +76,36 @@ const QUEUES_MAP = {
     "Delsey_Site FR","Delsey_Site EN","Delsey_Plateforme internet FR",
     "Delsey_Autres Sites FR","Sortant Delsey FR"
   ],
-  LMB:  ["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Autre demande_Réitération","LMB_Parent d'enfant"],
+  LMB:  ["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Autre demande_Réitération","LMB_Parent d'enfant","La maison bleue"],
   Afnor: [
-    "Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi",
+    "Afnor","Afnor_Renouvellement_Qualliopi","Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi",
     "Afnor_RQ_planif_audit_suivi_Réitération","Afnor_RQ_renouvellement_certificat",
     "Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION","AFNOR Sortant"
   ],
   SOS:      ["SOS _ MA","SOS _ MA _ Réitération"],
-  LGR:      ["LGR-SC","LGR-Réitération","LGR Boutique"],
-  LMDW:     ["LMDW_FR","Sortant LMDW"],
-  LBE:      ["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)"],
-  M123:     ["M123_FR","M123_EN","M123_Boutique","Sortant Maison 123 VIP"],
+  LGR:      ["LGR-SC","LGR-Réitération","LGR Boutique","Grande récré","Grande récré Boutique"],
+  LMDW:     ["LMDW_FR","Sortant LMDW","maison du Wiskey FR"],
+  LBE:      ["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)","LBE _ Offre et souscription","LBE _ Facture et règlement","LBE _ Autres"],
+  M123:     ["M123_FR","M123_EN","M123_Boutique","Sortant Maison 123 VIP","Maison 123","Maison 123 Boutiques"],
   Equisign: ["Equisign","Equisign _ Réitération"],
   Eiffage:  ["Eiffage","Eiffage Réitération","Sortant Eiffage"],
   Apex:     ["Apex _ La route des langues","Apex _ Séjours Home Abroad"],
   Monetize: ["Monetize FR"],
-  HMF:      ["HMF-BOURGOIN JALLIEU-DERUAZ AUTO"],
-  // Campagnes ajoutées 10/06/2026 — noms de files à confirmer via /admin > Analyser les files INO
-  CNPA:       ["CNPA_Signalement","CNPA_Standard","CNPA_Client","CNPA"],
-  Verspieren: ["VERSPIEREN","VERSPIEREN_Client","VERSPIEREN_Standard","VERSPIEREN_Assistance","Verspieren"],
-  Groupama:   ["Groupama","Groupama_Client","Groupama_Standard"],
-  GS1:        ["GS1","GS1_Client","GS1_Standard"],
-  MNZ:        ["MNZ","MNZ_FR","MNZ_Client"],
+  HMF:      ["HMF-BOURGOIN JALLIEU-DERUAZ AUTO","HMF - Hotline et RC B2B","Débordement Concessions HMF"],
+  // Campagnes confirmées dans les Smart Routings INO (relevé 10/06/2026)
+  CNPA:       ["CNPA"],
+  Verspieren: ["VERSPIEREN","Verspieren","Sortant Verspieren"],
+  Groupama:   ["Groupama"],
+  GS1:        ["GS1"],
+  MNZ:        ["MNZ","MNZ_FR"],
+  // Nouveaux clients relevés dans les Smart Routings INO (noms de routing ; le mapping
+  // exact des files d'attente sera affiné via /admin > Analyser les files INO)
+  Amazon:        ["Amazon_FR","Amazon_DE","Amazon_ES","Amazon_IT","Amazon_UK"],
+  Evaneos:       ["Evaneos"],
+  Kaufman:       ["Kaufman"],
+  "Médiatel":    ["Médiatel"],
+  FairMoove:     ["FairMoove invest","FairMoove"],
+  Hyundai:       ["STANDARD HYUNDAI FRANCE","Hyundai"],
 };
 
 const SKILLS = [
