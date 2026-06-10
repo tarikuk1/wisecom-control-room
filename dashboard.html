@@ -2171,15 +2171,24 @@ function renderKPIs(f){
   // couvre tous les agents (aucun filtre campagne/agent actif). Sinon on recalcule sur le périmètre filtré.
   const _allAgents=agents.length||0;
   const _isFullScope=(f.length===_allAgents)&&(selCamps.length>=CAMPS.length);
+  // Périmètre "campagnes seules" : filtre campagne actif SANS sous-filtre agent → on peut
+  // utiliser les flux de file des campagnes sélectionnées (abandons inclus + appels pris
+  // par des agents mutualisés rattachés à une autre campagne). Le calcul agents
+  // (décrochés/présentés) sous-estime les abandons et surestime la QS.
+  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&selCamps.length<CAMPS.length
+    &&agents.filter(a=>selCamps.includes(a.camp)).every(a=>selAgents.includes(a.nom));
   // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
   // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
   // moins le hors-plage). Repli sur le flux global brut si le serveur ne les fournit pas.
-  const _fxHours=(_isFullScope&&window._fluxCamps)?(()=>{
-    let dec=0,ab=0,hh=0;
-    Object.values(window._fluxCamps).forEach(c=>{dec+=c.decroches||0;ab+=c.abandons||0;hh+=c.horsHoraires||0;});
-    return (dec+ab)>0?{recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh}:null;
+  const _fxHours=((_isFullScope||_isCampScope)&&window._fluxCamps)?(()=>{
+    let dec=0,ab=0,hh=0,so=0;
+    Object.entries(window._fluxCamps).forEach(([c,v])=>{
+      if(_isCampScope&&!selCamps.includes(c))return;
+      dec+=v.decroches||0;ab+=v.abandons||0;hh+=v.horsHoraires||0;so+=v.sortants||0;
+    });
+    return (dec+ab)>0?{recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh,sortants:so}:null;
   })():null;
-  const _fx=_fxHours||(_isFullScope?window._flux:null);  // flux global seulement en périmètre complet
+  const _fx=_fxHours||(_isFullScope?window._flux:null);  // flux file : périmètre complet ou campagnes seules
   // Présentés filtrés = somme des présentés des agents du périmètre (entrants distribués)
   // En périmètre filtré : "reçu" = présentés des agents du périmètre. Si aucun présenté → tout à 0
   // (pas de QS forcé, évite l'affichage trompeur "0/1").
@@ -2189,8 +2198,11 @@ function renderKPIs(f){
   const totManques=_fx?(_fx.abandons||0):Math.max(0,totPres-totDecr); // présentés non décrochés
   const qs=totRecus>0?Math.min(100,Math.round(((_fx?entrTraites:totDecr)/totRecus)*100)):0;
   // % Réalisé = Σ actes du périmètre / Σ objectifs des agents du périmètre (jamais un dénominateur fixe arbitraire)
+  // En lecture file (périmètre complet ou campagnes seules), actes = traités file + sortants file + mails :
+  // la production d'une campagne inclut les appels pris par des agents mutualisés d'autres campagnes.
   const totObj=f.reduce((s,a)=>s+(a.obj||50),0)||1;
-  const pct=Math.min(100,Math.round((totActes/totObj)*100));
+  const actesReal=_fx?((_fx.decroches||0)+(_fx.sortants||0)+totM):totActes;
+  const pct=Math.min(100,Math.round((actesReal/totObj)*100));
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
   const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
@@ -2203,31 +2215,45 @@ function renderKPIs(f){
   const fmtInt=d=>d.toLocaleString("fr-FR");
 
   const kpis=[
-    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`+(_fxHours&&_fxHours.horsHoraires?` · ${_fxHours.horsHoraires} hors horaires exclus`:""):`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true,
-     cmp:_cmp?cmpDelta(qs,_cmp.qs,true,d=>d+(d===1?" pt":" pts")):""},
-    {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true},
-    {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
-    {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_isFullScope?"File globale INO":"Présentés agents filtrés",
-     cmp:_cmp?cmpDelta(totRecus,_cmp.totRecus,null,fmtInt):""},
-    {l:"Flux traités",v:totApp.toLocaleString(),good:totApp>300,
-     cmp:_cmp?cmpDelta(totApp,_cmp.totApp,true,fmtInt):""},
+    {l:"QS",v:qs+"%",sub:_hasFlux?`${entrTraites}/${totRecus} appels (file)`+(_fxHours&&_fxHours.horsHoraires?` · ${_fxHours.horsHoraires} hors horaires exclus`:""):`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true,
+     cmp:_cmp?cmpDelta(qs,_cmp.qs,true,d=>d+(d===1?" pt":" pts")):"",
+     def:"Qualité de Service — part des appels entrants traités.\n\nFormule : Appels traités / (Appels traités + Appels abandonnés) × 100, calculée au niveau de la file d'attente — mêmes données que l'écran RA INO. Cette lecture file s'applique au périmètre complet ET au filtre par campagne(s) : elle inclut les abandons de file et les appels pris par des agents mutualisés.\n\nLes appels reçus hors des horaires d'ouverture de chaque campagne (configurés dans ⚙ Critères & KPI) sont exclus du calcul ; leur nombre est affiché sous la valeur.\n\nSi un filtre AGENT est actif (sous-ensemble d'agents) : repli sur Décrochés / Présentés des agents du périmètre — les abandons de file ne sont pas attribuables à un agent précis.\n\nLecture : ≥ 85 % bonne maîtrise · < 80 % attention."},
+    {l:"% Réalisé",v:pct+"%",sub:`${actesReal} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true,
+     def:"Avancement de la production du jour par rapport à l'objectif d'actes de l'équipe.\n\nFormule : (Σ Actes réalisés / Σ Objectifs des agents du périmètre) × 100.\n• Actes = appels traités + appels sortants + mails saisis. En périmètre complet ou filtre campagne seul, les appels viennent de la FILE INO (incluant ceux pris par des agents mutualisés) ; avec un filtre agent actif, ce sont les actes des agents sélectionnés.\n• Objectif d'un agent = « Objectif d'appels » de sa campagne, configurable dans ⚙ Critères & KPI (défaut : 50 actes/jour/agent).\n\nExemple : 6 agents × 50 actes d'objectif = 300 ; 313 appels traités file + sortants + mails → plafonné à 100 %.\n\nATTENTION : si l'objectif d'une campagne n'a pas été personnalisé, le défaut de 50 s'applique — réglez les objectifs réels par campagne pour fiabiliser ce KPI.\n\nLecture : ≥ 80 % bonne maîtrise · < 60 % attention."},
+    {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal,
+     def:"Part du temps de présence passée en communication, en moyenne sur les agents du périmètre.\n\nFormule : moyenne des taux d'occupation individuels (seuls les agents avec occupation mesurable sont comptés).\nOccupation d'un agent = Temps de communication / (Présence estimée × 50 min/h) — la règle des 50 min/h tolère 10 min non communicantes par heure (pauses, wrap-up).\n\nLecture : ≥ 85 % bonne maîtrise · < 70 % attention."},
+    {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_hasFlux?(_isFullScope?"File globale INO":"File INO · campagnes sélectionnées"):"Présentés agents filtrés",
+     cmp:_cmp?cmpDelta(totRecus,_cmp.totRecus,null,fmtInt):"",
+     def:"Volume d'appels entrants reçus sur la période.\n\nPérimètre complet ou filtre campagne seul : file INO = appels traités + abandonnés des campagnes du périmètre (appels hors horaires d'ouverture exclus).\nFiltre agent actif : somme des appels présentés aux agents sélectionnés.\n\nSource : API INO /call/in/histories."},
+    {l:"Flux traités",v:entrTraites.toLocaleString(),good:entrTraites>300,
+     cmp:_cmp?cmpDelta(entrTraites,_cmp.totApp,true,fmtInt):"",
+     def:"Appels entrants effectivement décrochés par les agents du périmètre.\n\nFormule : Σ décrochés (agentDuration > 0). Les appels sortants ne sont pas comptés ici (voir App. sortants/h).\n\nSource : API INO /call/in/histories."},
     {l:"Flux manqués",v:totManques,alert:totManques>80,sub:Math.round((totManques/totRecus)*100)+"%",priority:true,
-     cmp:_cmp?cmpDelta(totManques,_cmp.totManques,false,fmtInt):""},
+     cmp:_cmp?cmpDelta(totManques,_cmp.totManques,false,fmtInt):"",
+     def:"Appels entrants perdus.\n\nPérimètre complet ou filtre campagne seul : abandons de file INO — l'appelant raccroche avant d'être mis en relation (hors horaires exclus).\nFiltre agent actif : présentés − décrochés des agents sélectionnés.\n\nLe pourcentage affiché = manqués / reçus. Alerte si > 80 appels."},
     {l:"DMC moyenne",v:mmss(avgDmc),alert:avgDmc>=240,good:avgDmc<180,sub:"Cible ≤ 4 min",
-     cmp:_cmp?cmpDelta(avgDmc,_cmp.avgDmc,false,fmtSecDelta):""},
-    {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)"},
-    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod"},
+     cmp:_cmp?cmpDelta(avgDmc,_cmp.avgDmc,false,fmtSecDelta):"",
+     def:"Durée Moyenne de Communication, pondérée par le volume d'appels de chaque agent.\n\nFormule : Σ (DMC agent × décrochés agent) / Σ décrochés.\nSource : agentDuration INO.\n\nLecture : cible ≤ 4 min · bonne maîtrise < 3 min."},
+    {l:"DMT moyenne",v:mmss(avgDmc+avgAcw),alert:(avgDmc+avgAcw)>=300,good:(avgDmc+avgAcw)<210,sub:"DMC + post-appel (ACW)",
+     def:"Durée Moyenne de Traitement = communication + travail post-appel.\n\nFormule : DMC moyenne + ACW moyen estimé.\n\nATTENTION : l'ACW est une estimation (gap entre deux appels successifs, voir la définition de la colonne Post-appel ACW du tableau) — le DMT est donc indicatif, pas une mesure exacte.\n\nLecture : alerte ≥ 5 min · bonne maîtrise < 3 min 30."},
+    {l:"App. sortants/h",v:appelsH,good:appelsH>=5,alert:appelsH<2,sub:"Sortants / H. prod",
+     def:"Cadence d'appels sortants par heure de production.\n\nFormule : Σ appels sortants / Σ heures de production du périmètre.\n\nLecture : ≥ 5/h bonne maîtrise · < 2/h attention."},
     {l:"Actes/h",v:actesH,good:actesH>=15,alert:actesH<8,sub:"Voix + mails / heure prod",hero:true,
-     cmp:_cmp?cmpDelta(actesH,_cmp.actesH,true,d=>d.toFixed(1)):""},
-    {l:"100 % KO",v:totKo,alert:totKo>40},
-    {l:"Hors SVI",v:horsOuv==null?"n.d.":horsOuv,alert:horsOuv!=null&&horsOuv>30,sub:horsOuv==null?"Non exposé par INO":""},
-    {l:"Réitérants",v:reit,alert:reit>20,sub:"Qualif. INO réelles"},
-    {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Pas de backlog saisi"},
+     cmp:_cmp?cmpDelta(actesH,_cmp.actesH,true,d=>d.toFixed(1)):"",
+     def:"Productivité horaire globale de l'équipe.\n\nFormule : Σ Actes (appels décrochés + sortants + mails saisis) / Σ heures de production.\n\nLecture : ≥ 15/h bonne maîtrise · < 8/h attention."},
+    {l:"100 % KO",v:totKo,alert:totKo>40,
+     def:"Appels présentés aux agents mais non décrochés (agentDuration = 0).\n\nATTENTION : n'inclut pas les abandons de file (l'agent n'a jamais sonné) — ceux-ci sont comptés dans Flux manqués.\n\nAlerte si > 40."},
+    {l:"Hors SVI",v:horsOuv==null?"n.d.":horsOuv,alert:horsOuv!=null&&horsOuv>30,sub:horsOuv==null?"Non exposé par INO":"",
+     def:"Appels reçus en dehors du SVI.\n\nATTENTION : non exposé par l'API INO histories — affiché n.d. (aucune estimation, pour ne pas induire en erreur)."},
+    {l:"Réitérants",v:reit,alert:reit>20,sub:"Qualif. INO réelles",
+     def:"Appels qualifiés « réitérant » par les agents — un même appelant qui rappelle plusieurs fois.\n\nSource : qualifications réelles INO (h.status) — jamais estimé.\n\nAlerte si > 20."},
+    {l:"Backlog Mails",v:backlog,alert:backlog>30,sub:backlog>0?"Saisie superviseur":"Pas de backlog saisi",
+     def:"Stock de mails restant à traiter — saisie manuelle par le superviseur (panneau Backlog Mails).\n\nAlerte si > 30."},
   ];
 
   document.getElementById("kpi-grid").innerHTML=kpis.map(k=>`
     <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.priority?' priority':''}" role="region" aria-label="${k.l} : ${typeof k.v==='number'?k.v:String(k.v).replace(/<[^>]+>/g,'')}">
-      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-label">${k.l}${k.def?`<span data-show-def="${k.l}" data-def-text="${k.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" style="margin-left:4px;font-size:10px;color:#aaa;cursor:pointer;font-weight:normal" title="Voir définition et formule">ⓘ</span>`:""}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
       ${k.cmp?`<div>${k.cmp}</div>`:""}
@@ -3223,16 +3249,6 @@ function exportSkillsPDF(){
       <span>Page <span class="pageno"></span></span>
     </div>
     <script>setTimeout(()=>window.print(),350);<\/script>
-    
-<!-- Modal définition colonne -->
-<div class="col-def-overlay" id="col-def-overlay" onclick="closeColDef(event)">
-  <div class="col-def-box">
-    <div class="col-def-label">Définition & formule</div>
-    <div class="col-def-title" id="col-def-title"></div>
-    <div class="col-def-text" id="col-def-text"></div>
-    <div class="col-def-close"><button onclick="document.getElementById('col-def-overlay').classList.remove('open')">Fermer ×</button></div>
-  </div>
-</div>
 </body></html>`;
   const w=window.open("","_blank");
   if(!w){alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site.");return;}
@@ -4389,6 +4405,15 @@ pullStore();
 
 </script>
 </main>
+<!-- Modal définition colonne / KPI -->
+<div class="col-def-overlay" id="col-def-overlay" onclick="closeColDef(event)">
+  <div class="col-def-box">
+    <div class="col-def-label">Définition & formule</div>
+    <div class="col-def-title" id="col-def-title"></div>
+    <div class="col-def-text" id="col-def-text"></div>
+    <div class="col-def-close"><button onclick="document.getElementById('col-def-overlay').classList.remove('open')">Fermer ×</button></div>
+  </div>
+</div>
 </body>
 </html>
 
