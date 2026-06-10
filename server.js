@@ -118,6 +118,9 @@ function persistStore(){
 // ────────────────────────────────────────────────────────────────────────────
 
 let bToken=null,bExp=0,sseClients=[],lastPayload=null,statsCache={};
+// Cache de l'inventaire des files INO (/api/admin/queues) — l'analyse balaye 7 jours
+// d'historiques (14 appels INO), trop coûteuse pour être relancée à chaque clic.
+let _queuesCache=null,_queuesCacheAt=0;
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
@@ -529,6 +532,17 @@ body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',system-ui,sans-seri
     <button class="btn btn-pink" onclick="resetPwd()">Réinitialiser</button>
   </div>
   <div class="section">
+    <div class="section-title">📞 Files INO &amp; mapping campagnes</div>
+    <div style="font-size:11px;color:#777;margin-bottom:14px;line-height:1.6">
+      Recense toutes les files d'attente vues dans les historiques INO des 7 derniers jours
+      et les confronte au mapping campagnes du dashboard (queues_config.js).
+      Les files <b style="color:#dc2626">non mappées</b> tombent dans le bucket «&nbsp;Autre&nbsp;» :
+      leurs appels ne sont comptés dans aucune campagne et faussent les QS.
+    </div>
+    <button class="btn btn-pink" onclick="loadQueues()">Analyser les files INO (≈ 30 s)</button>
+    <div id="queues-box" style="margin-top:14px"></div>
+  </div>
+  <div class="section">
     <div class="section-title">🔐 Code de sécurité 2FA</div>
     <div id="code-alert-box" class="alert"></div>
     <div style="font-size:11px;color:#777;margin-bottom:14px;line-height:1.6">Le code à 6 chiffres demandé après la connexion. Modification réservée aux administrateurs. Prend effet immédiatement pour toutes les prochaines connexions.</div>
@@ -601,6 +615,36 @@ async function resetPwd(){
   const d=await r.json();
   if(d.ok){showAlert(d.message,true);document.getElementById('reset-login').value='';document.getElementById('reset-pwd').value='';}
   else showAlert(d.error||'Erreur',false);
+}
+async function loadQueues(){
+  const box=document.getElementById('queues-box');
+  box.innerHTML='<div style="color:#999;font-size:11px">⏳ Analyse en cours — balayage des historiques INO sur 7 jours, jusqu\\'à 30 s…</div>';
+  try{
+    const r=await fetch('/api/admin/queues');const d=await r.json();
+    if(!d.ok){box.innerHTML='<div style="color:#dc2626;font-size:11px">✕ '+(d.error||'Erreur')+'</div>';return;}
+    const badge=function(m){
+      if(m==='exact')return '<span class="badge-role badge-user" style="background:#f0fff5;color:#1a8f44;border-color:#bfead0">exact</span>';
+      if(m==='heuristique')return '<span class="badge-role badge-user" style="background:#fff8e6;color:#b07800;border-color:#f0dca0">heuristique</span>';
+      return '<span class="badge-role badge-user" style="background:#fff5f5;color:#dc2626;border-color:#ffd0d0">non mappée</span>';
+    };
+    const rows=d.queues.map(function(q){
+      return '<tr'+(q.mapping==='non mappée'?' style="background:#fff8f8"':'')+'>'+
+        '<td style="font-weight:600">'+q.queue+'</td>'+
+        '<td>'+(q.campagne||'<span style="color:#dc2626;font-weight:700">→ Autre</span>')+'</td>'+
+        '<td>'+badge(q.mapping)+'</td>'+
+        '<td style="text-align:right">'+q.volume.toLocaleString('fr-FR')+'</td>'+
+        '<td style="color:#777">'+(q.dernierAppel||'–')+(q.declaree?' · déclarée':'')+'</td>'+
+      '</tr>';
+    }).join('');
+    box.innerHTML='<div style="font-size:11px;color:#777;margin-bottom:10px">'+
+        'Période analysée : <b>'+d.periode+'</b> · '+d.total+' files détectées · '+
+        '<b style="color:'+(d.nonMappees>0?'#dc2626':'#1a8f44')+'">'+d.nonMappees+' non mappée(s)</b>'+
+        (d.sourceDeclaree?' · liste déclarée : '+d.sourceDeclaree:' · liste déclarée INO indisponible (historiques seuls)')+
+        (d.cache?' · <span style="color:#999">(cache 10 min)</span>':'')+
+      '</div>'+
+      '<table class="users-table"><thead><tr><th>File INO</th><th>Campagne</th><th>Mapping</th><th style="text-align:right">Appels 7 j</th><th>Dernier appel</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table>';
+  }catch(e){box.innerHTML='<div style="color:#dc2626;font-size:11px">✕ '+e.message+'</div>';}
 }
 loadStats();loadUsers();setInterval(loadStats,15000);
 </script></body></html>`;
@@ -941,6 +985,64 @@ const server=http.createServer(async(req,res)=>{
       res.writeHead(200,{"Content-Type":"application/json"});
       res.end(JSON.stringify({ok:true,count:Object.keys(m).length,agents:m}));
     }).catch(e=>{res.writeHead(500);res.end(JSON.stringify({error:e.message}));});
+    return;
+  }
+  // Inventaire des files INO : tente les endpoints de liste déclarée, puis balaye les
+  // historiques d'appels des 7 derniers jours pour recenser toutes les files actives.
+  // Chaque file est confrontée à QUEUES_MAP pour repérer celles qui tombent dans "Autre"
+  // (mapping manquant → stats de campagne faussées). Réservé admin, cache 10 min.
+  if(url==="/api/admin/queues"){
+    (async()=>{
+      try{
+        if(_queuesCache&&Date.now()-_queuesCacheAt<600000){
+          res.writeHead(200,{"Content-Type":"application/json"});
+          return res.end(JSON.stringify(Object.assign({cache:true},_queuesCache)));
+        }
+        const token=await getToken();
+        if(!token){res.writeHead(502);return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        let declared=null,declaredSrc=null;
+        for(const p of ["/queue/list","/cc/queue/list","/call/queue/list"]){
+          try{
+            const r=await apiReqFull("GET",p,null,token);
+            if(r.status===200){
+              const arr=Array.isArray(r.body)?r.body:(r.body&&(r.body.queues||r.body.data||r.body.list));
+              if(Array.isArray(arr)&&arr.length){declared=arr;declaredSrc=p;break;}
+            }
+          }catch(e){}
+        }
+        const seen={};
+        const days=[];for(let i=0;i<7;i++)days.push(new Date(Date.now()-i*86400000).toISOString().slice(0,10));
+        for(const jr of days){
+          const[ci,co]=await Promise.all([
+            apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({})),
+            apiReq("POST","/call/out/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token).catch(()=>({}))
+          ]);
+          [...(ci&&ci.histories||[]),...(co&&co.histories||[])].forEach(h=>{
+            const q=h.queue&&h.queue.queueName;if(!q)return;
+            if(!seen[q])seen[q]={queue:q,volume:0,dernierAppel:null};
+            seen[q].volume++;
+            if(!seen[q].dernierAppel||jr>seen[q].dernierAppel)seen[q].dernierAppel=jr;
+          });
+        }
+        (declared||[]).forEach(d=>{
+          const q=(d&&(d.queueName||d.name||d.label))||(typeof d==="string"?d:null);if(!q)return;
+          if(!seen[q])seen[q]={queue:q,volume:0,dernierAppel:null,declaree:true};
+          else seen[q].declaree=true;
+        });
+        const rows=Object.values(seen).map(r=>{
+          const exact=CAMPS.find(c=>(QUEUES_MAP[c]||[]).includes(r.queue))||null;
+          const camp=exact||detectCampaignSrv(r.queue);
+          return Object.assign({},r,{campagne:camp,mapping:exact?"exact":(camp?"heuristique":"non mappée")});
+        }).sort((a,b)=>(a.campagne||"zzz").localeCompare(b.campagne||"zzz")||b.volume-a.volume);
+        _queuesCache={ok:true,periode:days[6]+" → "+days[0],sourceDeclaree:declaredSrc,total:rows.length,nonMappees:rows.filter(r=>r.mapping==="non mappée").length,queues:rows};
+        _queuesCacheAt=Date.now();
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify(_queuesCache));
+      }catch(e){
+        res.writeHead(500,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:false,error:e.message}));
+      }
+    })();
     return;
   }
   if(url==="/api/admin/users"&&req.method==="GET"){
