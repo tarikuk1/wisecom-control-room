@@ -41,10 +41,49 @@ function secH(res){res.setHeader("X-Content-Type-Options","nosniff");res.setHead
 // en heures pleines : les minutes UTC restent valables telles quelles.
 const _parisHourFmt=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
 function parisHour(d){return parseInt(_parisHourFmt.format(d),10)%24;}
+const _parisDayFmt=new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short"});
+const _JOUR_KEYS={Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sat:"sam"};
+function parisJour(d){return _JOUR_KEYS[_parisDayFmt.format(d)]||"lun";}
+// Minute du jour en heure France (les offsets FR sont en heures pleines → minutes UTC inchangées)
+function parisMinOfDay(d){return parisHour(d)*60+d.getUTCMinutes();}
 
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // ────────────────────────────────────────────────────────────────────────────
+
+// Campagne d'une queue — même cascade que detectCampaign() côté client (dashboard/planning/astreinte)
+// pour que l'attribution serveur des flux par campagne coïncide avec celle des agents côté client.
+function detectCampaignSrv(queueName){
+  if(!queueName)return null;
+  for(const c of CAMPS){if((QUEUES_MAP[c]||[]).includes(queueName))return c;}
+  const normP=s=>s.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+  for(const c of CAMPS){if(normP(queueName).startsWith(normP(c)))return c;}
+  const q0=queueName.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+  for(const c of CAMPS){
+    const cl=c.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+    if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return c;
+  }
+  const tok=queueName.replace(/^sortant /i,"").split(/[_ ]/)[0];
+  return CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()))||null;
+}
+
+// Horaires d'ouverture par campagne — mêmes règles et mêmes défauts que isCampOpen() du dashboard
+// (critères partagés sharedStore.criteres : h24, jours{lun..dim:{on,o,f}}, repli h_ouv/h_ferm).
+// Sert à exclure des statistiques les appels reçus hors horaires d'ouverture du service.
+function _toMinSrv(t){const p=String(t||"").split(":");return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);}
+function isCampOpenAt(camp,d){
+  const cc=(sharedStore.criteres&&sharedStore.criteres[camp])||{};
+  if(cc.h24)return true;
+  const min=parisMinOfDay(d);
+  if(cc.jours&&typeof cc.jours==="object"){
+    const jd=cc.jours[parisJour(d)];
+    if(jd){
+      if(!jd.on)return false;
+      return min>=_toMinSrv(jd.o||cc.h_ouv||"09:00")&&min<_toMinSrv(jd.f||cc.h_ferm||"18:00");
+    }
+  }
+  return min>=_toMinSrv(cc.h_ouv||"08:00")&&min<_toMinSrv(cc.h_ferm||"20:00");
+}
 
 // ── Persistance partagée des réglages superviseurs (seuils, backlog, ajustements
 // manuels mails/heures, colonnes WhatsApp, presets) — un fichier JSON local sert de
@@ -56,7 +95,7 @@ const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -267,6 +306,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Compteurs globaux de flux ENTRANTS réels (présentés/décrochés/abandonnés) — indépendants des agents
   // car un appel abandonné n'a pas d'agent rattaché et serait sinon ignoré.
   let fluxRecusIn=0, fluxDecroches=0, fluxAbandons=0, fluxSortants=0;
+  // Flux par CAMPAGNE (présentés/décrochés/abandonnés/sortants), restreints aux horaires
+  // d'ouverture configurés dans les critères de chaque campagne — les appels hors horaires
+  // sont comptés à part (horsHoraires) et exclus des stats. Indispensable pour une QS par
+  // campagne fiable : les abandons en file n'ont pas d'agent et n'apparaissent que dans les queues.
+  const fluxCamps={};
   function proc(h,type){
     // [PLAGE HORAIRE] Ne JAMAIS comptabiliser les appels hors de la plage [hDeb,hFin] sélectionnée.
     // L'heure est convertie en heure France (Railway tourne en UTC).
@@ -281,6 +325,21 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     // Comptage GLOBAL des flux réels (avant filtre agent) — un abandon n'a pas d'agent
     const _st=String(h.status||"").toLowerCase();
     const _isAband=_st.includes("aband");
+    // Attribution par campagne (via la queue de l'appel) avec exclusion des horaires de fermeture
+    {
+      const _qn=(h.queue&&h.queue.queueName)||"";
+      const _camp=detectCampaignSrv(_qn)||"Autre";
+      if(!fluxCamps[_camp])fluxCamps[_camp]={presentes:0,decroches:0,abandons:0,sortants:0,horsHoraires:0};
+      const _fc=fluxCamps[_camp];
+      const _dObj=_dtP?new Date(_dtP):null;
+      const _open=(_dObj&&!isNaN(_dObj))?isCampOpenAt(_camp,_dObj):true;
+      if(!_open){_fc.horsHoraires++;}
+      else if(type==="in"){
+        _fc.presentes++;
+        if(_isAband)_fc.abandons++;
+        else if(h.agent&&h.agent.id)_fc.decroches++;
+      }else{_fc.sortants++;}
+    }
     if(type==="in"){
       fluxRecusIn++;                         // tout appel entrant présenté
       if(_isAband)fluxAbandons++;            // présenté mais non décroché
@@ -385,7 +444,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   }).sort((a,b)=>b.total-a.total);
 
   return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs,joursEchec,
-    flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants}};
+    flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants},
+    fluxCampagnes:fluxCamps};
 }
 
 function makeAdmin(login){
@@ -393,56 +453,57 @@ function makeAdmin(login){
 <title>Administration — Wisecom Control Room</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;}
-.topbar{background:#111;border-bottom:1px solid #1e1e1e;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;}
+.topbar{background:#fff;border-bottom:1px solid #dedede;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px;letter-spacing:.08em;}
 .dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 12px #E8006E;}
 .nav{display:flex;gap:10px;align-items:center;}
-.nav a{color:#888;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;transition:all .15s;}
+.nav a{color:#777;text-decoration:none;font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #dedede;transition:all .15s;}
 .nav a:hover,.nav a.active{color:#E8006E;border-color:#E8006E55;}
 .wrap{max-width:900px;margin:0 auto;padding:28px 20px;}
-.section{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:22px;margin-bottom:18px;}
-.section-title{font-size:13px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:8px;}
+.section{background:#fff;border:1px solid #dedede;border-radius:12px;padding:22px;margin-bottom:18px;}
+.section-title{font-size:13px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #dedede;display:flex;align-items:center;gap:8px;}
 .field{margin-bottom:14px;}
-.field label{display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
-.field input{width:100%;background:#161616;color:#f0f0f0;border:1px solid #2a2a2a;border-radius:7px;padding:9px 12px;font-size:12px;outline:none;transition:border .15s;}
+.field label{display:block;font-size:10px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.field input{width:100%;background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:7px;padding:9px 12px;font-size:12px;outline:none;transition:border .15s;}
 .field input:focus{border-color:#E8006E55;}
 .row{display:flex;gap:10px;}
 .row .field{flex:1;}
 .btn{border:none;border-radius:7px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
 .btn-pink{background:linear-gradient(135deg,#E8006E,#c0005a);color:#fff;}
 .btn-pink:hover{box-shadow:0 4px 12px rgba(232,0,110,.4);}
-.btn-danger{background:#2a0808;color:#ff3b30;border:1px solid #3a1010;}
-.btn-danger:hover{background:#3a1010;}
-.btn-ghost{background:#1a1a1a;color:#888;border:1px solid #2a2a2a;}
+.btn-danger{background:#fff5f5;color:#dc2626;border:1px solid #ffd0d0;}
+.btn-danger:hover{background:#ffe0e0;}
+.btn-ghost{background:#fafafa;color:#777;border:1px solid #dedede;}
 .users-table{width:100%;border-collapse:collapse;}
-.users-table th{text-align:left;font-size:10px;color:#555;font-weight:600;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid #1e1e1e;}
-.users-table td{padding:10px;border-bottom:1px solid #141414;font-size:12px;}
+.users-table th{text-align:left;font-size:10px;color:#999;font-weight:600;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid #dedede;}
+.users-table td{padding:10px;border-bottom:1px solid #efefef;font-size:12px;}
 .badge-role{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:700;}
-.badge-admin{background:#1a0810;color:#E8006E;border:1px solid #E8006E44;}
-.badge-user{background:#161616;color:#666;border:1px solid #2a2a2a;}
+.badge-admin{background:#ffe0ef;color:#E8006E;border:1px solid #E8006E44;}
+.badge-user{background:#efefef;color:#777;border:1px solid #dedede;}
 .alert{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:12px;display:none;}
-.alert-ok{background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.25);color:#30d158;}
-.alert-err{background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);color:#ff6b6b;}
+.alert-ok{background:#f0fff5;border:1px solid #bfead0;color:#1a8f44;}
+.alert-err{background:#fff5f5;border:1px solid #ffd0d0;color:#dc2626;}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:0;}
-.stat-card{background:#161616;border:1px solid #1e1e1e;border-radius:9px;padding:14px;}
-.stat-label{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px;}
+.stat-card{background:#fafafa;border:1px solid #dedede;border-radius:9px;padding:14px;}
+.stat-label{font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px;}
 .stat-value{font-size:22px;font-weight:800;color:#E8006E;}
-.stat-sub{font-size:10px;color:#555;margin-top:3px;}
+.stat-sub{font-size:10px;color:#999;margin-top:3px;}
 </style></head>
 <body>
 <div class="topbar">
-  <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#555;font-weight:400;font-size:11px">/ Administration</span></div>
+  <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#999;font-weight:400;font-size:11px">/ Administration</span></div>
   <div class="nav">
-    <span style="font-size:11px;color:#555">Connecté : <b style="color:#E8006E">${login}</b></span>
+    <span style="font-size:11px;color:#999">Connecté : <b style="color:#E8006E">${login}</b></span>
+    <a href="/notice">📖 Notice d'utilisation</a>
     <a href="/">← Dashboard</a>
-    <a href="/logout" style="color:#ff3b30;border-color:#3a1010">Déconnexion</a>
+    <a href="/logout" style="color:#dc2626;border-color:#ffd0d0">Déconnexion</a>
   </div>
 </div>
 <div class="wrap">
   <div id="stats-section" class="section">
     <div class="section-title">📊 Statistiques système</div>
-    <div class="stat-grid" id="stat-grid"><div style="color:#555;font-size:11px">Chargement…</div></div>
+    <div class="stat-grid" id="stat-grid"><div style="color:#999;font-size:11px">Chargement…</div></div>
   </div>
   <div class="section">
     <div class="section-title">👥 Gestion des utilisateurs</div>
@@ -456,7 +517,7 @@ body{background:#0a0a0a;color:#f0f0f0;font-family:'Segoe UI',system-ui,sans-seri
     </div>
     <table class="users-table" id="users-table">
       <thead><tr><th>#</th><th>Login</th><th>Rôle</th><th>Actions</th></tr></thead>
-      <tbody id="users-tbody"><tr><td colspan="4" style="color:#555;padding:14px 10px;font-size:11px">Chargement…</td></tr></tbody>
+      <tbody id="users-tbody"><tr><td colspan="4" style="color:#999;padding:14px 10px;font-size:11px">Chargement…</td></tr></tbody>
     </table>
   </div>
   <div class="section">
@@ -484,11 +545,11 @@ async function loadStats(){
     const r=await fetch('/api/admin/stats');const d=await r.json();
     const g=document.getElementById('stat-grid');
     g.innerHTML='<div class="stat-card"><div class="stat-label">Sessions actives</div><div class="stat-value">'+(d.sessions||0)+'</div><div class="stat-sub">Sessions ouvertes</div></div>'+
-      '<div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:'+(d.inoOk?'#30d158':'#ff3b30')+'">'+(d.inoOk?'✓ OUI':'✕ NON')+'</div><div class="stat-sub">Token bearer</div></div>'+
+      '<div class="stat-card"><div class="stat-label">INO Connecté</div><div class="stat-value" style="color:'+(d.inoOk?'#1a8f44':'#dc2626')+'">'+(d.inoOk?'✓ OUI':'✕ NON')+'</div><div class="stat-sub">Token bearer</div></div>'+
       '<div class="stat-card"><div class="stat-label">Appels du jour</div><div class="stat-value">'+(d.stats&&d.stats.totalAppels||0)+'</div><div class="stat-sub">Via API INO</div></div>'+
       '<div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">'+Math.floor(d.uptime/3600)+'h'+Math.floor((d.uptime%3600)/60)+'m</div><div class="stat-sub">Depuis le démarrage</div></div>'+
       '<div class="stat-card"><div class="stat-label">Dernière MAJ</div><div class="stat-value" style="font-size:12px">'+(d.lastEvent?new Date(d.lastEvent).toLocaleTimeString('fr-FR'):'–')+'</div><div class="stat-sub">Webhook INO</div></div>';
-  }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#ff3b30;font-size:11px">Erreur chargement stats</div>';}
+  }catch(e){document.getElementById('stat-grid').innerHTML='<div style="color:#dc2626;font-size:11px">Erreur chargement stats</div>';}
 }
 async function loadUsers(){
   try{
@@ -497,7 +558,7 @@ async function loadUsers(){
       '<td style="color:#555">'+(i+1)+'</td>'+
       '<td style="font-weight:600">'+u.login+'</td>'+
       '<td><span class="badge-role '+(u.role==='admin'?'badge-admin':'badge-user')+'">'+u.role+'</span></td>'+
-      '<td>'+(u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':'<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser(\''+u.login+'\')">Supprimer</button>')+'</td>'+
+      '<td>'+(u.login==='tarik'||u.login==='admin'?'<span style="color:#444;font-size:10px">Compte système</span>':'<button class="btn btn-danger" style="font-size:10px;padding:4px 10px" onclick="deleteUser(\\''+u.login+'\\')">Supprimer</button>')+'</td>'+
     '</tr>').join('');
     document.getElementById('users-tbody').innerHTML=rows||'<tr><td colspan="4" style="color:#555;font-size:11px">Aucun utilisateur</td></tr>';
   }catch(e){}
@@ -739,11 +800,25 @@ const server=http.createServer(async(req,res)=>{
       const token=await getToken();
       if(!token){res.writeHead(502,{"Content-Type":"application/json"});res.end(JSON.stringify({error:"Token indisponible"}));return;}
       const[ci,co]=await Promise.all([
-        apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token),
-        apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token)
+        apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token),
+        apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token)
       ]);
-      const inH=(ci&&ci.histories)||[];
-      const outH=(co&&co.histories)||[];
+      let inH=(ci&&ci.histories)||[];
+      let outH=(co&&co.histories)||[];
+      // Pagination : si la limite est atteinte, redécouper par demi-journée (sinon les stats
+      // du jour seraient tronquées et les compteurs par file faux — même garde-fou que fetchAgentsDay)
+      if(inH.length===2000||outH.length===2000){
+        inH=[];outH=[];
+        const tranches=[["00:00:00","05:59:59"],["06:00:00","11:59:59"],["12:00:00","17:59:59"],["18:00:00","23:59:59"]];
+        for(const[s,e]of tranches){
+          const[rip,rop]=await Promise.all([
+            apiReq("POST","/call/in/histories",{startDate:date+" "+s,endDate:date+" "+e,limit:2000},token).catch(()=>null),
+            apiReq("POST","/call/out/histories",{startDate:date+" "+s,endDate:date+" "+e,limit:2000},token).catch(()=>null)
+          ]);
+          if(rip&&rip.histories)inH=inH.concat(rip.histories);
+          if(rop&&rop.histories)outH=outH.concat(rop.histories);
+        }
+      }
       // Agréger par file d'attente
       const qMap={};
       inH.forEach(h=>{
@@ -920,6 +995,7 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/executif"){const p=path.join(__dirname,"executif.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/couverture"){const p=path.join(__dirname,"couverture.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/astreinte"){const p=path.join(__dirname,"astreinte.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
+  if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   res.writeHead(404,{"Content-Type":"text/html"});res.end(make404());
 });

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notice d'utilisation — Wisecom Control Room</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;}
+.header{background:#fff;border-bottom:1px solid #dedede;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10;}
+.title{font-weight:800;font-size:15px;letter-spacing:.05em;}
+.subtitle{font-size:11px;color:#999;margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
+.btn{border:1px solid #dedede;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;background:#fafafa;color:#161616;text-decoration:none;display:inline-block;}
+.btn:hover{border-color:#E8006E55;color:#E8006E;}
+.wrap{max-width:980px;margin:0 auto;padding:24px 20px 60px;}
+.toc{background:#fff;border:1px solid #dedede;border-radius:10px;padding:18px 22px;margin-bottom:20px;}
+.toc-title{font-size:12px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+.toc ol{margin-left:20px;}
+.toc li{margin-bottom:4px;}
+.toc a{color:#444;text-decoration:none;font-size:12px;}
+.toc a:hover{color:#E8006E;}
+section{background:#fff;border:1px solid #dedede;border-radius:10px;padding:22px;margin-bottom:18px;scroll-margin-top:80px;}
+h2{font-size:15px;color:#E8006E;font-weight:800;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #efefef;display:flex;align-items:center;gap:8px;}
+h3{font-size:13px;color:#161616;font-weight:700;margin:16px 0 6px;}
+p,li{font-size:12px;color:#444;}
+ul{margin:6px 0 10px 22px;}
+.tip{background:#fdeef5;border:1px solid #f5b8d3;border-radius:8px;padding:10px 14px;font-size:11px;color:#a3105e;margin:10px 0;}
+.kbd{display:inline-block;background:#fafafa;border:1px solid #dedede;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;color:#161616;white-space:nowrap;}
+.icon-legend{display:grid;grid-template-columns:36px 1fr;gap:4px 10px;margin:8px 0 4px;align-items:baseline;}
+.icon-legend b{font-size:14px;text-align:center;}
+.foot{font-size:10px;color:#999;text-align:center;margin-top:30px;}
+@media print{.header .btn{display:none}body{background:#fff}section,.toc{border:none;padding:10px 0}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div><span class="dot"></span><span class="title">NOTICE D'UTILISATION</span></div>
+    <div class="subtitle">Wisecom · Control Room INO · Guide des pages et fonctionnalités</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button>
+    <a href="/" class="btn">← Tour de contrôle</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="toc">
+  <div class="toc-title">Sommaire</div>
+  <ol>
+    <li><a href="#connexion">Connexion & sécurité (2FA)</a></li>
+    <li><a href="#dashboard">Tour de contrôle (page principale)</a></li>
+    <li><a href="#agents-jour">Agents du jour</a></li>
+    <li><a href="#executif">Tableau de bord exécutif 📊</a></li>
+    <li><a href="#couverture">Radar de couverture 📡</a></li>
+    <li><a href="#astreinte">Registre d'astreinte 🌙</a></li>
+    <li><a href="#planning">Planning de la semaine 🗓️ (exports, vue globale, pôles)</a></li>
+    <li><a href="#admin">Administration ⚙</a></li>
+    <li><a href="#legende">Légende des icônes & badges</a></li>
+  </ol>
+</div>
+
+<section id="connexion">
+  <h2>1. Connexion & sécurité (2FA)</h2>
+  <p>L'accès au Control Room se fait en deux étapes : identifiant + mot de passe, puis saisie du <b>code de sécurité à 6 chiffres</b> (2FA) commun à l'équipe. Ce code est modifiable par un administrateur depuis la page <a href="/admin">Administration</a>. Le bouton « Déconnexion » met fin à la session en cours.</p>
+</section>
+
+<section id="dashboard">
+  <h2>2. Tour de contrôle (page principale)</h2>
+  <p>C'est la vue temps réel de l'activité : agents connectés, appels, statuts, files d'attente. Les données arrivent en continu depuis INO (badge « ● INO connecté » en haut de page).</p>
+  <h3>Bandeau staffing</h3>
+  <p>En haut, le bandeau récapitule par campagne le nombre d'agents et les alertes. Si l'option est activée dans les critères (voir ci-dessous), un badge <b>🌙 astreinte</b> y indique la couverture d'astreinte de la semaine : vert = 7 jours sur 7 couverts, orange = couverture partielle, rouge = aucun jour couvert.</p>
+  <h3>Filtres & tri</h3>
+  <p>Filtrez par campagne, statut ou agent ; cliquez sur les en-têtes de colonnes pour trier. Un clic sur l'intitulé d'une colonne affiche sa définition et sa formule de calcul.</p>
+  <h3>Critères & KPI par campagne</h3>
+  <p>Le panneau « Critères & KPI » permet, campagne par campagne, de régler les objectifs et les alertes (QS cible, backlog, alerte « aucun agent », jours/horaires surveillés…). C'est aussi là que s'active l'affichage du badge 🌙 astreinte d'une campagne dans le bandeau staffing — disponible dès que la campagne est suivie dans le <a href="/astreinte">registre d'astreinte</a>. Cliquez sur « Enregistrer » pour appliquer : les réglages sont partagés entre superviseurs.</p>
+  <h3>Exports</h3>
+  <ul>
+    <li><b>Excel / CSV</b> : exporte le tableau des agents tel que filtré et trié.</li>
+    <li><b>PDF</b> : version imprimable du tableau (la fenêtre qui s'ouvre propose « Imprimer / Enregistrer en PDF »).</li>
+    <li><b>Matrice de compétences (PDF)</b> : cartographie agents × compétences INO.</li>
+    <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager (aperçu, PDF ou Excel).</li>
+  </ul>
+  <div class="tip">💡 Si la fenêtre d'export PDF ne s'ouvre pas, autorisez les pop-ups pour ce site dans votre navigateur.</div>
+  <h3>Pages liées (boutons en haut à droite)</h3>
+  <p>📊 Exécutif · 📡 Couverture · 🌙 Astreinte · 🗓️ Planning · ⚙ Administration · 📖 cette notice. Chaque page s'ouvre dans un nouvel onglet.</p>
+</section>
+
+<section id="agents-jour">
+  <h2>3. Agents du jour</h2>
+  <p>Vue détaillée de l'activité d'une journée donnée, agent par agent : choisissez la date et la plage horaire, puis consultez les volumes, durées et statuts. Un export CSV du tableau est disponible.</p>
+</section>
+
+<section id="executif">
+  <h2>4. Tableau de bord exécutif 📊</h2>
+  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
+  <h3>Comparateur jours & campagnes 🆚</h3>
+  <p>Le panneau « Comparateur » permet de confronter <b>un ou plusieurs jours</b> (ajoutez chaque date puis « + Ajouter ce jour ») sur <b>une ou plusieurs campagnes</b> (cochez celles à comparer — toutes les campagnes actives sont proposées). Cliquez sur « Comparer » :</p>
+  <ul>
+    <li>La <b>matrice</b> affiche, pour la métrique choisie (volume traité, QS, DMC, agents actifs, charge/agent), une ligne par campagne et une colonne par jour ; la meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
+    <li>Les onglets au-dessus de la matrice changent de métrique instantanément.</li>
+    <li>Le « détail complet » (dépliable) liste toutes les valeurs jour × campagne.</li>
+  </ul>
+</section>
+
+<section id="couverture">
+  <h2>5. Radar de couverture 📡</h2>
+  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif planifié est inférieur au besoin estimé.</p>
+</section>
+
+<section id="astreinte">
+  <h2>6. Registre d'astreinte 🌙</h2>
+  <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte. La liste de choix propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui).</p>
+  <ul>
+    <li>Le registre est <b>partagé entre superviseurs</b> et enregistré automatiquement.</li>
+    <li>Les affectations apparaissent en croisement sur le <a href="/planning">Planning</a> (tag 🌙 sur le jour concerné) et peuvent être affichées en badge dans le bandeau staffing de la Tour de contrôle (à activer dans Critères & KPI).</li>
+  </ul>
+</section>
+
+<section id="planning">
+  <h2>7. Planning de la semaine 🗓️</h2>
+  <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents (les suggestions proposent tous les agents qualifiés sur la compétence de la campagne), puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ». Le total hebdomadaire se calcule automatiquement et tout est enregistré et partagé en continu.</p>
+  <h3>Vue globale « ALL »</h3>
+  <p>Dans le sélecteur de campagne, sous « Vues groupées », l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes actives pour la semaine choisie — une visibilité globale en lecture seule (l'édition se fait toujours campagne par campagne).</p>
+  <h3>Pôles (regroupements nommés)</h3>
+  <p>Le bouton <span class="kbd">🗂️ Pôles</span> ouvre le panneau de regroupement : donnez un nom (ex. « Pôle Multi »), cochez au moins 2 campagnes, puis « + Créer le pôle ». Le pôle apparaît dans le sélecteur sous « Vues groupées » : sélectionnez-le pour voir côte à côte les plannings de ses campagnes, et pour les exporter en un clic. Les pôles sont partagés entre superviseurs ; la suppression d'un pôle n'affecte pas les campagnes elles-mêmes.</p>
+  <h3>Exports PDF & Excel</h3>
+  <ul>
+    <li><span class="kbd">📄 Export PDF</span> : ouvre une version imprimable A4 paysage du planning affiché (une campagne, un pôle ou toutes les campagnes) — cliquez sur « Imprimer / Enregistrer en PDF ».</li>
+    <li><span class="kbd">📊 Export Excel</span> : télécharge un fichier .xls du même contenu, un tableau par campagne.</li>
+  </ul>
+  <div class="tip">💡 Sélectionnez d'abord ce que vous voulez exporter (une campagne, un pôle ou « Toutes les campagnes ») et la bonne semaine : l'export porte exactement sur la vue affichée.</div>
+</section>
+
+<section id="admin">
+  <h2>8. Administration ⚙</h2>
+  <p>Réservée aux administrateurs :</p>
+  <ul>
+    <li><b>Statistiques système</b> : sessions actives, clients temps réel, état de la connexion INO, volumes du jour.</li>
+    <li><b>Gestion des utilisateurs</b> : création et suppression de comptes superviseurs.</li>
+    <li><b>Réinitialisation de mot de passe</b> d'un compte existant.</li>
+    <li><b>Code de sécurité 2FA</b> : changement du code à 6 chiffres demandé à la connexion (effet immédiat pour les connexions suivantes).</li>
+  </ul>
+</section>
+
+<section id="legende">
+  <h2>9. Légende des icônes & badges</h2>
+  <div class="icon-legend">
+    <b>🎓</b><span>Agent en formation cette semaine (cliquable dans le planning pour activer/désactiver).</span>
+    <b>⇄</b><span>Agent mutualisé — qualifié sur plusieurs campagnes.</span>
+    <b>🌙</b><span>Astreinte : jour couvert par l'agent au registre d'astreinte ; en badge campagne, couverture de la semaine (vert 7/7 · orange partielle · rouge 0/7).</span>
+    <b>📊</b><span>Tableau de bord exécutif.</span>
+    <b>📡</b><span>Radar de couverture.</span>
+    <b>🗓️</b><span>Planning de la semaine.</span>
+    <b>🗂️</b><span>Pôles — regroupements de campagnes nommés.</span>
+    <b>⚙</b><span>Administration.</span>
+    <b>📖</b><span>Cette notice.</span>
+  </div>
+</section>
+
+<div class="foot">Wisecom · Control Room INO · Notice d'utilisation — document interne</div>
+
+</div>
+</body>
+</html>

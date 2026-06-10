@@ -185,6 +185,11 @@ body.light .btn-logout{border-color:#ffcccc;color:#cc0000;}
 .btn-ghost:hover{background:var(--s-3);border-color:var(--s-4);color:var(--t-secondary);}
 body.light .btn-ghost{color:var(--t-muted);border-color:transparent;}
 body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);color:var(--t-disabled);}
+/* Boutons-icônes (raccourcis vers les autres pages) : agrandis + contrastés pour rester lisibles */
+.btn-icon-link{font-size:18px;line-height:1;padding:7px 12px;background:var(--s-3);border:1px solid var(--s-4);color:var(--t-secondary);}
+.btn-icon-link:hover{background:var(--s-4);border-color:var(--t-disabled);color:var(--c-white);}
+body.light .btn-icon-link{background:var(--s-light-2);border-color:var(--s-light-border);color:var(--s-4);}
+body.light .btn-icon-link:hover{background:#e0e0e0;border-color:var(--t-secondary);color:var(--s-1);}
 
 /* ── BARRE DE CONTRÔLES ────────────────────────── */
 /* 2 rangées : Ligne A (période + période-heure + vues) / Ligne B (filtres + isoler) */
@@ -923,12 +928,13 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄</button>
       <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       <div class="btn-sep"></div>
-      <button class="btn btn-ghost" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
-      <a href="/executif" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Tableau de bord exécutif — tendances 4 semaines par campagne" aria-label="Tableau de bord exécutif">📊</a>
-      <a href="/couverture" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture">📡</a>
-      <a href="/astreinte" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Registre d'astreinte — qui couvre l'astreinte, sur quelle campagne, quel jour" aria-label="Registre d'astreinte">🌙</a>
-      <a href="/planning" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Planning de la semaine — construire et ajuster le planning, agent par agent" aria-label="Planning de la semaine">🗓️</a>
-      <a href="/admin" target="_blank" class="btn btn-ghost" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
+      <button class="btn btn-ghost btn-icon-link" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
+      <a href="/executif" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Tableau de bord exécutif — tendances 4 semaines par campagne" aria-label="Tableau de bord exécutif">📊</a>
+      <a href="/couverture" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture">📡</a>
+      <a href="/astreinte" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Registre d'astreinte — qui couvre l'astreinte, sur quelle campagne, quel jour" aria-label="Registre d'astreinte">🌙</a>
+      <a href="/planning" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Planning de la semaine — construire et ajuster le planning, agent par agent" aria-label="Planning de la semaine">🗓️</a>
+      <a href="/admin" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
+      <a href="/notice" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation">📖</a>
       <a href="#" class="btn btn-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
     </div>
   </div>
@@ -1236,6 +1242,7 @@ function nd(v,suffix){
 function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
+let astreintesTracked=new Set(),astreintesEntries={};   // registre d'astreinte partagé (lecture seule ici) — pour le badge 🌙 KPI par campagne
 var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={}, waEmailEdits={};
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
@@ -1458,6 +1465,10 @@ async function loadAgentsFromAPI(){
       slots=Array.isArray(data.slots)?data.slots:[];
       window._nbJours=data.joursActifs||data.nbJours||1;
       window._flux=data.flux||null;
+      // Flux par campagne (serveur) : présentés/décrochés/abandonnés EN FILE, restreints aux
+      // horaires d'ouverture de chaque campagne — source fiable pour la QS par campagne
+      // (les abandons sans agent n'existent pas dans les lignes agents).
+      window._fluxCamps=data.fluxCampagnes||null;
       const _oldSk=Object.fromEntries((agents||[]).filter(x=>x.id).map(x=>[x.id,{a:x.allSkillsData,s:x.skillsData,sk:x.skills}]));
     agents=data.agents.map(a=>{
         const total=a.appelsIn+a.appelsOut;
@@ -1847,6 +1858,12 @@ async function pullStore(){
       Object.assign(mailsEdit,d.mailsEdit);
       render();
     }
+    if(d.astreintes&&typeof d.astreintes==='object'){
+      astreintesTracked=new Set(Array.isArray(d.astreintes.tracked)?d.astreintes.tracked:[]);
+      astreintesEntries=(d.astreintes.entries&&typeof d.astreintes.entries==='object')?d.astreintes.entries:{};
+      renderStaffingBanner();
+      if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
+    }
     if(d.waCols&&typeof d.waCols==='object'){
       if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls;
       if(Array.isArray(d.waCols.mails)&&d.waCols.mails.length)waActiveMails=d.waCols.mails;
@@ -2154,7 +2171,15 @@ function renderKPIs(f){
   // couvre tous les agents (aucun filtre campagne/agent actif). Sinon on recalcule sur le périmètre filtré.
   const _allAgents=agents.length||0;
   const _isFullScope=(f.length===_allAgents)&&(selCamps.length>=CAMPS.length);
-  const _fx=_isFullScope?window._flux:null;  // flux global seulement en périmètre complet
+  // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
+  // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
+  // moins le hors-plage). Repli sur le flux global brut si le serveur ne les fournit pas.
+  const _fxHours=(_isFullScope&&window._fluxCamps)?(()=>{
+    let dec=0,ab=0,hh=0;
+    Object.values(window._fluxCamps).forEach(c=>{dec+=c.decroches||0;ab+=c.abandons||0;hh+=c.horsHoraires||0;});
+    return (dec+ab)>0?{recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh}:null;
+  })():null;
+  const _fx=_fxHours||(_isFullScope?window._flux:null);  // flux global seulement en périmètre complet
   // Présentés filtrés = somme des présentés des agents du périmètre (entrants distribués)
   // En périmètre filtré : "reçu" = présentés des agents du périmètre. Si aucun présenté → tout à 0
   // (pas de QS forcé, évite l'affichage trompeur "0/1").
@@ -2178,7 +2203,7 @@ function renderKPIs(f){
   const fmtInt=d=>d.toLocaleString("fr-FR");
 
   const kpis=[
-    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`:`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true,
+    {l:"QS",v:qs+"%",sub:_isFullScope?`${entrTraites}/${totRecus} appels (file)`+(_fxHours&&_fxHours.horsHoraires?` · ${_fxHours.horsHoraires} hors horaires exclus`:""):`${totDecr}/${totRecus} présentés agents`,alert:qs<80,good:qs>=85,gauge:qs,priority:true,
      cmp:_cmp?cmpDelta(qs,_cmp.qs,true,d=>d+(d===1?" pt":" pts")):""},
     {l:"% Réalisé",v:pct+"%",sub:`${totActes} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal},
@@ -2281,9 +2306,13 @@ function renderAlerts(f){
   });
 
   Object.entries(campStats).forEach(([camp,stat])=>{
-    // QS (taux de décroché) = mêmes données réelles et même formule que le KPI "QS" global
-    // (decroches/presentes) — pas de valeur inventée ; "n.d." si aucun appel présenté.
-    const qs=stat.presentes>0?Math.round((stat.decroches/stat.presentes)*100):null;
+    // QS = décrochés / (décrochés + abandonnés) AU NIVEAU FILE (mêmes données que l'écran RA,
+    // horaires d'ouverture appliqués) — les abandons en file n'ont pas d'agent et seraient
+    // invisibles dans les lignes agents. Repli sur le calcul agents si flux indisponibles.
+    const _fc=window._fluxCamps&&window._fluxCamps[camp];
+    const _fcPres=_fc?(_fc.decroches||0)+(_fc.abandons||0):0;
+    const qs=_fcPres>0?Math.round((_fc.decroches/_fcPres)*100)
+      :(stat.presentes>0?Math.round((stat.decroches/stat.presentes)*100):null);
     const appH=stat.hprod>0?+(stat.appels/stat.hprod).toFixed(1):0;
     const cc=crit[camp]||{qs_min:80,qs_max:95,alert_no_agent:false,backlog_min:10,backlog_max:90,backlog_val:0};
     const enTension=(qs!==null&&qs<(cc.qs_min||80))||appH<8;
@@ -2956,6 +2985,16 @@ function renderSelectionSummary(){
       :'<span style="color:#ff9f0a;font-size:9px;margin-left:4px">◌ Simulation</span>');
 }
 
+// Astreinte suivie pour une campagne + jours couverts cette semaine (registre partagé, lecture seule)
+function astreinteStatus(camp){
+  if(!astreintesTracked.has(camp))return{tracked:false,covered:0};
+  const now=new Date();
+  const monday=shiftDateStr(now.toISOString().slice(0,10),-((now.getDay()+6)%7));
+  let covered=0;
+  for(let i=0;i<7;i++){if(astreintesEntries[camp+'|'+shiftDateStr(monday,i)])covered++;}
+  return{tracked:true,covered};
+}
+
 // ── Bandeau staffing par campagne (sous tableau Agents) ──────────────────
 function renderStaffingBanner(){
   const el=document.getElementById('staffing-banner');
@@ -3004,12 +3043,18 @@ function renderStaffingBanner(){
     const countColor=alertZero?'#ff3b30':(d.actifs>0?'#30d158':'var(--t-secondary)');
     const badge=alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent actif">⚠ ALERTE</span>':
       (alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Compétences non chargées">ⓘ</span>':'');
+    // Badge 🌙 astreinte — affiché seulement si activé pour cette campagne dans Critères & KPI
+    // ET que le registre d'astreinte la suit effectivement (donnée partagée, lecture seule)
+    const ast=astreinteStatus(camp);
+    const astBadge=(crit[camp]&&crit[camp].astreinte_display&&ast.tracked)
+      ?`<span style="color:${ast.covered===7?'#30d158':(ast.covered===0?'#ff3b30':'#ff9f0a')};font-size:9px;margin-left:1px" title="Astreinte suivie pour ${camp} — ${ast.covered}/7 jours couverts cette semaine">🌙 ${ast.covered}/7</span>`
+      :'';
     html+=`<div style="background:${bg};border:${border};border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default"
       title="${camp} — ${d.actifs} actifs / ${d.total} agents${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
       <span style="font-size:10px;color:var(--t-secondary)">${camp}</span>
       <span style="font-size:11px;font-weight:700;color:${countColor}">${d.actifs}</span>
       <span style="font-size:9px;color:var(--t-disabled)">/${d.total}</span>
-      ${badge}
+      ${badge}${astBadge}
     </div>`;
   });
   // Total global
@@ -3398,6 +3443,7 @@ function saveCriteres(){
       backlog_min:parseInt(document.getElementById('backlog-min-'+c)?.value||10),
       backlog_max:parseInt(document.getElementById('backlog-max-'+c)?.value||90),
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
+      astreinte_display:document.getElementById('astreinte-display-'+c)?.checked||false,
       obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
       h24:document.getElementById('h24-'+c)?.checked||false,
       jours:(function(){var o={};['lun','mar','mer','jeu','ven','sam','dim'].forEach(function(j){
@@ -3448,16 +3494,30 @@ function renderCriteres(){
     +'</div>';
   CAMPS.forEach(function(c){
     const _defJours={lun:{on:true,o:'09:00',f:'18:00'},mar:{on:true,o:'09:00',f:'18:00'},mer:{on:true,o:'09:00',f:'18:00'},jeu:{on:true,o:'09:00',f:'18:00'},ven:{on:true,o:'09:00',f:'18:00'},sam:{on:false,o:'09:00',f:'18:00'},dim:{on:false,o:'09:00',f:'18:00'}};
-    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours))},saved[c]||{});
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
     if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
     // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
     Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
     const cs=campStats[c]||{agents:0,connectes:0,app:0,hp:0,decroches:0,presentes:0};
-    // QS (taux de décroché) = mêmes données réelles et même formule que le KPI "QS" global
-    // (decroches/presentes) — pas de valeur inventée ; "n.d." si aucun appel présenté.
-    const qs=cs.presentes>0?Math.round((cs.decroches/cs.presentes)*100):null;
+    // QS = décrochés / (décrochés + abandonnés) AU NIVEAU FILE — mêmes données et même
+    // formule que l'écran RA (traités/(traités+abandonnés)), restreintes aux horaires
+    // d'ouverture de la campagne (appels hors plage exclus côté serveur). Les abandons en
+    // file n'ayant pas d'agent, le calcul agents (decroches/presentes) surestimait la QS ;
+    // il ne sert plus que de repli quand les flux par campagne ne sont pas disponibles.
+    const _fcc=window._fluxCamps&&window._fluxCamps[c];
+    const _fccPres=_fcc?(_fcc.decroches||0)+(_fcc.abandons||0):0;
+    const qs=_fccPres>0?Math.round((_fcc.decroches/_fccPres)*100)
+      :(cs.presentes>0?Math.round((cs.decroches/cs.presentes)*100):null);
+    const qsDetail=_fccPres>0
+      ?(_fcc.decroches+' traités · '+_fcc.abandons+' abandonnés'+(_fcc.horsHoraires?' · '+_fcc.horsHoraires+' hors horaires exclus':''))
+      :(cs.presentes>0?cs.decroches+'/'+cs.presentes+' présentés agents':'');
     const qs_alert=qs!==null&&(qs<s.qs_min||qs>s.qs_max);
     const no_agent_alert=s.alert_no_agent&&cs.connectes===0&&cs.agents>0;
+    // Astreinte : statut lecture seule issu du registre partagé (page Astreinte)
+    const ast=astreinteStatus(c);
+    const astStatusTxt=ast.tracked
+      ?('Astreinte suivie pour cette campagne — '+ast.covered+'/7 jour(s) couverts cette semaine.')
+      :'Cette campagne n\'est pas suivie dans le registre d\'astreinte (page Astreinte).';
     html+='<div class="camp-card">'
       +'<div class="camp-card-header">'
         +'<div style="display:flex;align-items:center;gap:12px">'
@@ -3466,7 +3526,7 @@ function renderCriteres(){
           +(qs_alert?'<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS '+qs+'%</span>':'')
           +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">Aucun agent connecté en ce moment.</span>':'')
         +'</div>'
-        +'<span style="font-size:10px;color:#444">QS actuel : '+(qs!==null?qs+'%':nd(null))+'</span>'
+        +'<span style="font-size:10px;color:#444">QS actuel : '+(qs!==null?qs+'%':nd(null))+(qsDetail?' <span style="color:#777">('+qsDetail+')</span>':'')+'</span>'
       +'</div>'
       +'<div class="kpi-param-grid">'
         +'<div class="param-group">'
@@ -3502,6 +3562,11 @@ function renderCriteres(){
           +'</div>'
           +'<div class="alert-trigger"><input type="checkbox" aria-label="Alerte aucun agent" id="alert-no-agent-'+c+'"'+(s.alert_no_agent?' checked':'')+'>'
           +'<label for="alert-no-agent-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Alerte si 0 agent avec la compétence '+c+' est connecté</label></div>'
+          +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--s-3)">'
+            +'<div style="font-size:10px;color:'+(ast.tracked?'#888':'#555')+';margin-bottom:6px">🌙 ASTREINTE — '+astStatusTxt+'</div>'
+            +'<div class="alert-trigger"><input type="checkbox" aria-label="Afficher le badge astreinte" id="astreinte-display-'+c+'"'+(s.astreinte_display?' checked':'')+(ast.tracked?'':' disabled')+'>'
+            +'<label for="astreinte-display-'+c+'" style="font-size:11px;color:'+(ast.tracked?'#ccc':'#555')+';cursor:'+(ast.tracked?'pointer':'default')+'">Afficher le badge 🌙 astreinte de '+c+' dans le bandeau staffing'+(ast.tracked?'':' (disponible une fois la campagne suivie dans le registre d\'astreinte)')+'</label></div>'
+          +'</div>'
         +'</div>'
       +'</div>'
       +((qs_alert||no_agent_alert)?('<div class="criteres-alert">'

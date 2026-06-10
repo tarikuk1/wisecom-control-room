@@ -7,47 +7,59 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
+.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#444;margin-top:2px;}
+.subtitle{font-size:11px;color:#999;margin-top:2px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#111;border-bottom:1px solid #1e1e1e;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#555;}
-input[type=date]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
-select{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;}
+.controls{background:#fafafa;border-bottom:1px solid #e8e8e8;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.controls label{font-size:11px;color:#999;}
+input[type=date]{background:#fff;color:#333;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+select{background:#fff;color:#333;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
 select:disabled{opacity:.5;cursor:not-allowed;}
 .btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
 .btn-pink{background:#E8006E;color:#fff;}
 .btn-pink:disabled{opacity:.5;cursor:wait;}
-.btn-dark{background:#1a1a1a;color:#ccc;border:1px solid #333;}
+.btn-dark{background:#efefef;color:#444;border:1px solid #ccc;}
 .content{padding:16px 20px;}
 .summary{display:flex;gap:10px;flex-wrap:wrap;}
-.card{background:#161616;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;flex:1;min-width:140px;}
-.card-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
-.card-value{font-size:24px;font-weight:700;color:#fff;}
-.card-sub{font-size:11px;color:#444;margin-top:2px;}
-.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#666;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card{background:#fff;border:1px solid #dedede;border-radius:10px;padding:12px 16px;flex:1;min-width:140px;}
+.card-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.card-value{font-size:24px;font-weight:700;color:#161616;}
+.card-sub{font-size:11px;color:#999;margin-top:2px;}
+.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
+.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:8px 10px;color:#555;font-weight:500;text-align:left;border-bottom:1px solid #222;white-space:nowrap;}
-.tbl td{padding:7px 10px;border-bottom:1px solid #1a1a1a;vertical-align:middle;white-space:nowrap;}
-.tbl tr:hover td{background:#141414;}
+.tbl th{padding:8px 10px;color:#999;font-weight:600;text-align:left;border-bottom:1px solid #dedede;background:#fafafa;white-space:nowrap;}
+.tbl td{padding:7px 10px;border-bottom:1px solid #efefef;vertical-align:middle;white-space:nowrap;}
+.tbl tr:hover td{background:#fff8fc;}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
-.badge-gray{background:#1a1a1a;color:#666;}
-.loading{text-align:center;padding:30px;color:#444;}
-.empty-hint{color:#555;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#0a1e12;border:1px solid #30d158;color:#30d158;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.delta-good{color:#30d158;font-weight:600;}
-.delta-bad{color:#ff3b30;font-weight:600;}
+.badge-gray{background:#efefef;color:#777;}
+.loading{text-align:center;padding:30px;color:#999;}
+.empty-hint{color:#999;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.delta-good{color:#1a8f44;font-weight:600;}
+.delta-bad{color:#dc2626;font-weight:600;}
 .delta-neutral{color:#888;}
-.delta-na{color:#444;}
-.signal{display:flex;gap:10px;align-items:flex-start;background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#ccc;}
+.delta-na{color:#bbb;}
+.signal{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #dedede;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#444;}
 .signal-icon{font-size:15px;flex-shrink:0;}
-.signal-alert{border-color:#5c1e1e;background:#1e0a0a;}
-.signal-warn{border-color:#5c4a1e;background:#1e160a;}
-.signal-info{border-color:#1e3a5c;background:#0a141e;}
-.signal-ok{border-color:#1e5c30;background:#0a1e12;color:#a8d8b8;}
+.signal-alert{border-color:#ffd0d0;background:#fff5f5;}
+.signal-warn{border-color:#ffe0b0;background:#fffaf0;}
+.signal-info{border-color:#cfe2ff;background:#f0f6ff;}
+.signal-ok{border-color:#bfead0;background:#f0fff5;color:#1a8f44;}
+
+/* Comparateur jours × campagnes */
+.cmp-chip{display:inline-flex;align-items:center;gap:6px;background:#fdeef5;border:1px solid #f5b8d3;color:#a3105e;border-radius:14px;padding:4px 6px 4px 12px;font-size:11px;font-weight:600;}
+.cmp-chip button{border:none;background:none;color:#a3105e;cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;}
+.cmp-chip button:hover{color:#E8006E;}
+.cmp-camp-check{display:flex;align-items:center;gap:6px;font-size:12px;color:#444;cursor:pointer;}
+.cmp-camp-check input{accent-color:#E8006E;}
+.cmp-metric-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.cmp-metric-tab{border:1px solid #dedede;background:#fafafa;color:#666;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:600;}
+.cmp-metric-tab.active{background:#E8006E;color:#fff;border-color:#E8006E;}
+.cmp-cell-best{background:#eafff1;color:#1a8f44;font-weight:700;}
+.cmp-cell-worst{background:#fff0f0;color:#dc2626;font-weight:700;}
 
 @media (max-width:600px){
   .header,.controls,.content{padding-left:14px;padding-right:14px;}
@@ -107,6 +119,31 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     </div>
   </div>
 
+  <div class="panel" id="compare-panel">
+    <div class="panel-title"><span>🆚 Comparateur — jours &amp; campagnes</span></div>
+    <div style="font-size:11px;color:#888;margin-bottom:14px;">Sélectionnez un ou plusieurs jours et une ou plusieurs campagnes (parmi toutes les campagnes actives) pour comparer leurs indicateurs côte à côte.</div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="min-width:230px;">
+        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📅 Jours à comparer</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+          <input type="date" id="cmp-day-input" min="2022-01-01">
+          <button class="btn btn-dark" id="cmp-add-day">+ Ajouter</button>
+        </div>
+        <div id="cmp-days-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:26px;"></div>
+      </div>
+      <div style="min-width:260px;flex:1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:11px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📋 Campagnes à comparer</span>
+          <button class="btn btn-dark" id="cmp-toggle-camps" style="font-size:10px;padding:3px 9px;">Tout désélectionner</button>
+        </div>
+        <div id="cmp-camps-checks" style="display:flex;flex-wrap:wrap;gap:8px 18px;"><span style="font-size:11px;color:#bbb;">Chargement des campagnes…</span></div>
+      </div>
+    </div>
+    <button class="btn btn-pink" id="cmp-run">🔍 Comparer</button>
+    <span id="cmp-status" aria-live="polite" style="font-size:11px;color:#888;margin-left:10px;"></span>
+    <div id="cmp-results" style="margin-top:16px;"><div class="empty-hint">Ajoutez des jours et choisissez des campagnes, puis cliquez sur « Comparer » pour afficher le tableau comparatif.</div></div>
+  </div>
+
   <div class="panel">
     <div class="panel-title"><span>🧭 Synthèse & signaux de pilotage</span></div>
     <div id="narrative"><div class="empty-hint">La synthèse automatique cross-campagnes apparaîtra ici une fois les 4 semaines chargées.</div></div>
@@ -126,6 +163,19 @@ let selectedCamp = null;
 let loading = false;
 const weekCache = new Map(); // clé "start|end" -> semaine agrégée (immuable une fois la semaine entièrement passée)
 
+// État du comparateur jours × campagnes (indépendant de weeksData — interroge INO jour par jour à la demande)
+let cmpDays = [];        // jours sélectionnés "YYYY-MM-DD", triés chronologiquement
+let cmpData = null;      // {days:[...], camps:[...], dayData:Map<jour, semaine agrégée d'1 jour>} une fois la comparaison lancée
+let cmpMetric = "volTraite";
+let cmpLoading = false;
+const CMP_METRICS = [
+  {key:"volTraite",     label:"Volume traité",   fmt:v=>String(v),               betterUp:true},
+  {key:"qs",            label:"QS",              fmt:v=>v==null?"n.d.":v+"%",    betterUp:true},
+  {key:"dmc",           label:"DMC moyen",       fmt:v=>fmtMMSS(v),              betterUp:false},
+  {key:"nbAgents",      label:"Agents actifs",   fmt:v=>String(v),               betterUp:null},
+  {key:"chargeParAgent",label:"Charge / agent",  fmt:v=>v.toFixed(1),            betterUp:null}
+];
+
 function fmtMMSS(s){const v=Math.round(s||0);const m=Math.floor(v/60);return`${String(m).padStart(2,"0")}:${String(v%60).padStart(2,"0")}`;}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
 function fmtDateLong(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});}
@@ -143,7 +193,7 @@ function sparkSVG(data){
   }
   const pts=data.map((v,i)=>`${(i/(n-1)*w).toFixed(1)},${(h-(v/max)*h).toFixed(1)}`).join(" ");
   const last=data[n-1],prev=data[n-2]||last;
-  const col=last>=prev?"#30d158":"#E8006E";
+  const col=last>=prev?"#1a8f44":"#E8006E";
   return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle" aria-hidden="true" focusable="false" role="img">
     <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
   </svg>`;
@@ -166,8 +216,9 @@ async function loadConfig(){
     CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
     QUEUES_MAP=d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object"?d.QUEUES_MAP:{};
   }catch(e){
-    showToast("⚠ Configuration des campagnes indisponible — détection approximative","#ff9b00");
+    showToast("⚠ Configuration des campagnes indisponible — détection approximative","#b45309");
   }
+  renderCmpCampChecks();
 }
 
 // Détection de la campagne principale d'un agent à partir de ses files INO brutes —
@@ -257,7 +308,7 @@ async function loadTrend(){
   const ref=document.getElementById("ref-date").value;
   const stEl=document.getElementById("trend-status");
   const btn=document.getElementById("btn-load");
-  if(!ref){showToast("⚠ Choisissez une date de référence d'abord","#ff9b00");return;}
+  if(!ref){showToast("⚠ Choisissez une date de référence d'abord","#b45309");return;}
   const todayStr=new Date().toISOString().slice(0,10);
   loading=true;
   btn.disabled=true;
@@ -283,7 +334,7 @@ async function loadTrend(){
   }catch(e){
     const msg=e&&e.message||String(e);
     stEl.textContent="⚠ Chargement interrompu — "+msg;
-    showToast("⚠ Échec du chargement des tendances — "+msg,"#ff3b30");
+    showToast("⚠ Échec du chargement des tendances — "+msg,"#dc2626");
   }finally{
     loading=false;
     btn.disabled=false;
@@ -318,6 +369,126 @@ function populateCampSelect(){
   sel.value=selectedCamp;
 }
 
+// ============================================================
+// COMPARATEUR — un ou plusieurs jours × une ou plusieurs campagnes
+// (sur toutes les campagnes actives ; indépendant des 4 semaines de tendance)
+// ============================================================
+
+function renderCmpChips(){
+  const wrap=document.getElementById("cmp-days-chips");
+  if(!wrap)return;
+  if(!cmpDays.length){wrap.innerHTML='<span style="font-size:11px;color:#bbb;">Aucun jour sélectionné — ajoutez-en au moins un ci-dessus.</span>';return;}
+  wrap.innerHTML=cmpDays.map(d=>`<span class="cmp-chip">${fmtDateLong(d)}<button data-day="${d}" aria-label="Retirer ${fmtDateLong(d)}" title="Retirer ce jour">✕</button></span>`).join("");
+}
+
+function renderCmpCampChecks(){
+  const wrap=document.getElementById("cmp-camps-checks");
+  if(!wrap)return;
+  if(!CAMPS.length){wrap.innerHTML='<span style="font-size:11px;color:#bbb;">Aucune campagne disponible.</span>';return;}
+  wrap.innerHTML=CAMPS.map(c=>`<label class="cmp-camp-check"><input type="checkbox" class="cmp-camp-cb" value="${c}" checked>${c}</label>`).join("");
+}
+
+function addCmpDay(){
+  const inp=document.getElementById("cmp-day-input");
+  const v=inp.value;
+  if(!v)return;
+  if(cmpDays.includes(v)){showToast("ℹ Ce jour est déjà dans la comparaison","#666");return;}
+  cmpDays.push(v);
+  cmpDays.sort();
+  renderCmpChips();
+}
+
+function getCmpRow(day,camp){
+  const w=cmpData.dayData.get(day);
+  if(!w)return null;
+  return w.byCamp.find(x=>x.camp===camp)||{camp,volTraite:0,volPresente:0,volSortant:0,nbAgents:0,qs:null,dmc:0,chargeParAgent:0};
+}
+
+async function runCompare(){
+  if(cmpLoading)return;
+  const stEl=document.getElementById("cmp-status");
+  const btn=document.getElementById("cmp-run");
+  if(!cmpDays.length){showToast("⚠ Ajoutez au moins un jour à comparer","#b45309");return;}
+  const camps=Array.from(document.querySelectorAll(".cmp-camp-cb:checked")).map(cb=>cb.value);
+  if(!camps.length){showToast("⚠ Sélectionnez au moins une campagne à comparer","#b45309");return;}
+  const todayStr2=new Date().toISOString().slice(0,10);
+  cmpLoading=true;btn.disabled=true;
+  const prevLabel=btn.textContent;
+  try{
+    const dayData=new Map();
+    for(let i=0;i<cmpDays.length;i++){
+      const d=cmpDays[i];
+      const cacheable=d<todayStr2;
+      const fromCache=cacheable&&weekCache.has(`${d}|${d}`);
+      stEl.textContent=`Chargement jour ${i+1}/${cmpDays.length} (${fmtDate(d)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
+      btn.textContent="⏳ Comparaison…";
+      const w=await loadWeek(d,d,cacheable);
+      dayData.set(d,w);
+    }
+    cmpData={days:[...cmpDays],camps,dayData};
+    stEl.textContent=`✓ Comparaison chargée — ${cmpDays.length} jour(s) × ${camps.length} campagne(s)`;
+    renderCompare();
+    showToast("✓ Comparaison mise à jour");
+  }catch(e){
+    const msg=e&&e.message||String(e);
+    stEl.textContent="⚠ Comparaison interrompue — "+msg;
+    showToast("⚠ Échec de la comparaison — "+msg,"#dc2626");
+  }finally{
+    cmpLoading=false;btn.disabled=false;btn.textContent=prevLabel;
+  }
+}
+
+function renderCompare(){
+  const wrap=document.getElementById("cmp-results");
+  if(!wrap)return;
+  if(!cmpData){wrap.innerHTML='<div class="empty-hint">Ajoutez des jours et choisissez des campagnes, puis cliquez sur « Comparer » pour afficher le tableau comparatif.</div>';return;}
+  const{days,camps}=cmpData;
+  const m=CMP_METRICS.find(x=>x.key===cmpMetric)||CMP_METRICS[0];
+  const tabsHtml=CMP_METRICS.map(mt=>`<button class="cmp-metric-tab${mt.key===m.key?" active":""}" data-metric="${mt.key}">${mt.label}</button>`).join("");
+  const theadCols=days.map(d=>{
+    const wd=new Date(d+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short"});
+    return `<th title="${fmtDateLong(d)}">${fmtDate(d)}<br><span style="font-weight:400;color:#999;font-size:9px;text-transform:capitalize;">${wd}</span></th>`;
+  }).join("");
+  const bodyRows=camps.map(camp=>{
+    const vals=days.map(d=>{const r=getCmpRow(d,camp);return r?r[m.key]:null;});
+    const numeric=vals.filter(v=>v!=null&&!isNaN(v));
+    const max=numeric.length?Math.max(...numeric):null;
+    const min=numeric.length?Math.min(...numeric):null;
+    const cells=vals.map(v=>{
+      let cls="";
+      if(v!=null&&max!==min&&m.betterUp!=null){
+        if(v===max)cls=m.betterUp?"cmp-cell-best":"cmp-cell-worst";
+        else if(v===min)cls=m.betterUp?"cmp-cell-worst":"cmp-cell-best";
+      }
+      return `<td class="${cls}">${v==null?"n.d.":m.fmt(v)}</td>`;
+    }).join("");
+    return `<tr><td><b>${camp}</b></td>${cells}</tr>`;
+  }).join("");
+  const legend=m.betterUp!=null?'<span style="color:#1a8f44;font-weight:700;">■</span> meilleure valeur de la ligne &nbsp; <span style="color:#dc2626;font-weight:700;">■</span> la moins bonne &nbsp;·&nbsp; ':"";
+  const matrixHtml=`<table class="tbl"><thead><tr><th>Campagne</th>${theadCols}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+
+  let detailRows="";
+  days.forEach(d=>{
+    camps.forEach(camp=>{
+      const r=getCmpRow(d,camp);
+      if(!r)return;
+      detailRows+=`<tr><td>${fmtDateLong(d)}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
+    });
+  });
+  const detailHtml=`<details style="margin-top:16px;">
+    <summary style="cursor:pointer;font-size:11px;color:#888;">📋 Détail complet — tous les indicateurs, jour par jour (${days.length*camps.length} ligne${days.length*camps.length>1?"s":""})</summary>
+    <div style="overflow-x:auto;margin-top:8px;"><table class="tbl"><thead><tr><th>Jour</th><th>Campagne</th><th>Volume traité</th><th>QS</th><th>DMC moy.</th><th>Agents actifs</th><th>Charge / agent</th></tr></thead><tbody>${detailRows}</tbody></table></div>
+  </details>`;
+
+  wrap.innerHTML=`
+    <div class="cmp-metric-tabs">${tabsHtml}</div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px;">${legend}Cellules : <b>${m.label}</b> — campagnes en lignes, jours sélectionnés en colonnes.</div>
+    <div style="overflow-x:auto;">${matrixHtml}</div>
+    ${detailHtml}
+  `;
+  wrap.querySelectorAll(".cmp-metric-tab").forEach(t=>t.addEventListener("click",e=>{cmpMetric=e.currentTarget.dataset.metric;renderCompare();}));
+}
+
 function renderAll(){
   if(!weeksData)return;
   renderKPIs();
@@ -330,7 +501,7 @@ function renderKPIs(){
   const weeks=weeksData.weeks;
   const cur=weeks[3].totals,prev=weeks[2].totals;
   document.getElementById("kpi-period").textContent=`${fmtDateLong(weeks[3].start)} → ${fmtDateLong(weeks[3].end)}`;
-  const qsColor=cur.qs==null?"#888":cur.qs>=85?"#30d158":cur.qs<80?"#ff3b30":"#fff";
+  const qsColor=cur.qs==null?"#888":cur.qs>=85?"#1a8f44":cur.qs<80?"#dc2626":"#161616";
   const chargeAgent=cur.nbAgents>0?(cur.volTraite/cur.nbAgents).toFixed(1):"–";
   document.getElementById("kpis").innerHTML=`
     <div class="card"><div class="card-label">Volume traité</div><div class="card-value">${cur.volTraite}</div><div class="card-sub">${trendDelta(cur.volTraite,prev.volTraite,true,(d,p)=>d+(p>0?` (${(d/p*100).toFixed(0)}%)`:""))} vs sem. préc.</div></div>
@@ -409,7 +580,7 @@ function renderCross(){
     return;
   }
   document.getElementById("cross-tbody").innerHTML=rows.map(c=>{
-    const qsColor=c.qs==null?"#666":c.qs>=85?"#30d158":c.qs<80?"#ff3b30":"#E8006E";
+    const qsColor=c.qs==null?"#666":c.qs>=85?"#1a8f44":c.qs<80?"#dc2626":"#E8006E";
     const qsBadge=c.qs==null?'<span class="badge badge-gray">n.d.</span>':`<span class="badge" style="background:${qsColor}1a;color:${qsColor};">${c.qs}%${c.qs<80?" ⚠":c.qs>=90?" ✓":""}</span>`;
     return`<tr>
       <td><b>${c.camp}</b></td>
@@ -455,13 +626,13 @@ function renderNarrative(){
   if(sentences.length===1){
     sentences.push("Aucune variation marquante détectée entre la première et la dernière semaine de la période — situation globalement stable, pas d'action prioritaire à signaler.");
   }
-  document.getElementById("narrative").innerHTML=sentences.map(s=>`<p style="margin-bottom:8px;line-height:1.6;color:#ccc;">${s}</p>`).join("");
+  document.getElementById("narrative").innerHTML=sentences.map(s=>`<p style="margin-bottom:8px;line-height:1.6;color:#444;">${s}</p>`).join("");
 }
 
 function showToast(msg,color){
   const t=document.getElementById("toast");
   t.textContent=msg;
-  const c=color||"#30d158";
+  const c=color||"#1a8f44";
   t.style.borderColor=c;
   t.style.color=c;
   t.style.background=c+"1a";
@@ -475,7 +646,7 @@ function connectSSE(){
   const badge=document.getElementById("sse-badge");
   const es=new EventSource("/events");
   es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
-  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#ff3b30";es.close();setTimeout(connectSSE,10000);};
+  es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};
 }
 
 // Init
@@ -488,6 +659,27 @@ refInput.addEventListener("change",()=>{
 });
 document.getElementById("btn-load").addEventListener("click",loadTrend);
 document.getElementById("f-camp").addEventListener("change",e=>{selectedCamp=e.target.value;renderTrend();});
+
+// Comparateur jours × campagnes
+const cmpDayInput=document.getElementById("cmp-day-input");
+cmpDayInput.max=todayStr;
+document.getElementById("cmp-add-day").addEventListener("click",addCmpDay);
+document.getElementById("cmp-days-chips").addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-day]");
+  if(!btn)return;
+  cmpDays=cmpDays.filter(d=>d!==btn.dataset.day);
+  renderCmpChips();
+});
+let cmpAllChecked=true;
+document.getElementById("cmp-toggle-camps").addEventListener("click",e=>{
+  cmpAllChecked=!cmpAllChecked;
+  document.querySelectorAll(".cmp-camp-cb").forEach(cb=>{cb.checked=cmpAllChecked;});
+  e.currentTarget.textContent=cmpAllChecked?"Tout désélectionner":"Tout sélectionner";
+});
+document.getElementById("cmp-run").addEventListener("click",runCompare);
+// Pré-remplissage utile : aujourd'hui vs. même jour la semaine précédente
+cmpDays=[shiftDateStr(todayStr,-7),todayStr];
+renderCmpChips();
 
 loadConfig();
 connectSSE();
