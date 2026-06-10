@@ -2981,6 +2981,8 @@ function render(){
   renderTable(s);
   renderChart();
   renderQueueStatus(); // grille files : suit la sélection campagnes (cache, sans appel INO)
+  // Tableaux WhatsApp : re-générer si déjà affichés pour suivre les filtres (mode tour de contrôle)
+  if(document.getElementById('wa-table-affectation'))renderWA();
   renderSkills();
   renderBacklog();
   renderStaffingBanner();
@@ -4530,23 +4532,46 @@ function renderWA(){
   var _todayIso=new Date().toISOString().slice(0,10);
   var _isPast=_dFin&&_dFin<_todayIso;
   var _periodLabel=_isPast?"Historique":"Période";
-  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+(_isPast?" (comparaison date antérieure)":"");
   if(agents.length===0){
+    if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr;
     z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
   }
-  var sorted=[...agents].sort(function(a,b){
+  // ── PÉRIMÈTRE = filtres globaux (campagnes / agents / statut / compétences) ──
+  // Mode tour de contrôle : les critères sélectionnés en haut déterminent TOUTES
+  // les données affichées, y compris les tableaux WhatsApp. Même filtre que le
+  // tableau principal (getFiltered).
+  var scope=getFiltered();
+  // Filtre FILES si sélection partielle : agent retenu s'il a traité au moins une file sélectionnée
+  if(Array.isArray(selQueues)&&Array.isArray(allQueues)&&allQueues.length>0&&selQueues.length>0&&selQueues.length<allQueues.length){
+    scope=scope.filter(function(a){
+      var agQ=(a.queues||"").split(", ").filter(Boolean);
+      return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
+    });
+  }
+  var _campScopeActive=selCamps.length<CAMPS.length;
+  var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
+  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
+  if(scope.length===0){
+    z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucun agent dans le périmètre sélectionné ('+_scopeLabel+').<br><br>Élargissez les filtres Campagnes / Agents / Statut pour afficher les tableaux.</div>';
+    return;
+  }
+  var sorted=[...scope].sort(function(a,b){
     return (b.decroches+b.sortants)-(a.decroches+a.sortants);
   });
-  // Conserver la liste complète AVANT filtrage WA pour les alertes staffing (tableau 3)
+  // Liste complète du périmètre AVANT filtrage compétences WA → alertes staffing (tableau 3)
   window._lastAllAgents=sorted;
-  // Exclure les agents sans compétence sur les campagnes WA
-  var allWaCamps=waActiveCalls.concat(waActiveMails);
-  sorted=sorted.filter(function(a){
-    var sk=waSkills(a);
-    if(sk.size===0) return false; // aucune compétence connue → exclure
-    return allWaCamps.some(function(s){return waHas(sk,s);});
-  });
+  // Exclure les agents sans compétence sur les campagnes WA — UNIQUEMENT en vue
+  // globale. Si l'utilisateur a restreint les campagnes, sa sélection EST le
+  // critère : on affiche tous les agents du périmètre.
+  if(!_campScopeActive){
+    var allWaCamps=waActiveCalls.concat(waActiveMails);
+    sorted=sorted.filter(function(a){
+      var sk=waSkills(a);
+      if(sk.size===0) return false; // aucune compétence connue → exclure
+      return allWaCamps.some(function(s){return waHas(sk,s);});
+    });
+  }
   window._lastWaSorted=sorted;
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
