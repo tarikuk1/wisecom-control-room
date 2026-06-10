@@ -56,7 +56,7 @@ const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});

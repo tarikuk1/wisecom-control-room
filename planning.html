@@ -51,6 +51,15 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 .modal-msg{font-size:12px;color:#777;line-height:1.5;margin-bottom:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
 
+.group-camp-block{margin-bottom:18px;}
+.group-camp-block:last-child{margin-bottom:0;}
+.group-camp-title{font-size:12px;font-weight:700;color:#E8006E;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.pole-chip{display:inline-flex;align-items:center;gap:8px;background:#fafafa;border:1px solid #dedede;border-radius:20px;padding:5px 6px 5px 12px;font-size:11px;color:#444;margin:4px 6px 4px 0;}
+.pole-chip button{border:none;background:none;color:#dc2626;cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;}
+.pole-chip button:hover{color:#a30000;}
+.pole-camp-check{display:flex;align-items:center;gap:5px;font-size:11px;color:#444;cursor:pointer;}
+.pole-camp-check input{accent-color:#E8006E;}
+
 @media (max-width:600px){
   .header,.controls,.content{padding-left:14px;padding-right:14px;}
   .controls{gap:8px;}
@@ -74,14 +83,31 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 <div class="controls">
   <label for="p-camp">Campagne</label>
   <select id="p-camp"><option value="">Chargement…</option></select>
+  <button class="btn btn-dark" id="btn-poles-toggle" title="Regrouper plusieurs campagnes sous un nom (ex. Pôle Multi)">🗂️ Pôles</button>
   <label for="p-week">Semaine</label>
   <button class="btn btn-dark" id="btn-week-prev" title="Semaine précédente">◀</button>
   <input type="date" id="p-week">
   <button class="btn btn-dark" id="btn-week-next" title="Semaine suivante">▶</button>
   <span id="planning-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+  <button class="btn btn-dark" id="btn-export-pdf" title="Exporter le planning affiché (PDF, impression)">📄 Export PDF</button>
+  <button class="btn btn-dark" id="btn-export-xls" title="Exporter le planning affiché (Excel)">📊 Export Excel</button>
 </div>
 
 <div class="content">
+
+  <div class="panel" id="poles-panel" style="display:none;">
+    <div class="panel-title"><span>🗂️ Pôles — regrouper plusieurs campagnes sous un nom commun</span></div>
+    <div id="poles-list"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #efefef;">
+      <div style="font-size:11px;color:#777;margin-bottom:8px;">Créer un nouveau pôle :</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <input type="text" id="pole-name-input" placeholder="Nom du pôle (ex. Pôle Multi)">
+      </div>
+      <div id="pole-camp-checks" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;"></div>
+      <button class="btn btn-pink" id="pole-create-btn">+ Créer le pôle</button>
+    </div>
+    <div class="note">Un pôle regroupe plusieurs campagnes actives sous un nom commun (ex. « Pôle Multi »). Il apparaît ensuite dans le sélecteur de campagne, sous « Vues groupées » : sélectionnez-le pour afficher côte à côte (lecture seule) les plannings de toutes ses campagnes pour la semaine choisie, et pour les exporter en un clic. La vue « 🌐 Toutes les campagnes » offre la même visibilité globale sur l'ensemble des campagnes actives.</div>
+  </div>
 
   <div class="panel">
     <div class="panel-title"><span>👥 Agents du planning — <span id="planning-camp-label" style="color:#E8006E;font-weight:700;">–</span></span></div>
@@ -129,6 +155,7 @@ let CAMPS = [];
 let QUEUES_MAP = {};
 let planning = {};                              // sharedStore.planning — {"camp|weekStart": {roster:[{nom,training}], shifts:{"agent|date":{start,end}|{off:true}}}}
 let astreintes = {tracked:[], entries:{}};       // lecture seule — croisement pour le badge 🌙
+let poles = [];                                 // sharedStore.poles — [{name, camps:[...]}] regroupements nommés (ex. "Pôle Multi")
 let agentRoster = [];
 let agentCampMap = new Map();
 let pushTimer = null;
@@ -206,8 +233,36 @@ async function loadConfig(){
   }catch(e){
     showToast("⚠ Configuration des campagnes indisponible","#b45309");
   }
+  populateCampSelect();
+}
+
+// Le sélecteur de campagne propose, en plus des campagnes individuelles, des "vues groupées" :
+// la vue globale "Toutes les campagnes" et les pôles définis par les superviseurs (regroupements nommés).
+function populateCampSelect(){
   const sel=document.getElementById("p-camp");
-  sel.innerHTML='<option value="">— Choisir une campagne —</option>'+CAMPS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  const cur=sel.value;
+  let html='<option value="">— Choisir une campagne —</option>'+CAMPS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  html+='<optgroup label="Vues groupées (lecture seule + export)">'
+      +'<option value="__ALL__">🌐 Toutes les campagnes (vue globale)</option>'
+      +poles.map(p=>`<option value="__POLE__${esc(p.name)}">🗂️ ${esc(p.name)} (${p.camps.length} campagnes)</option>`).join("")
+      +'</optgroup>';
+  sel.innerHTML=html;
+  if(Array.from(sel.options).some(o=>o.value===cur))sel.value=cur;
+}
+function isGroupView(val){return val==="__ALL__"||(typeof val==="string"&&val.indexOf("__POLE__")===0);}
+function groupCamps(val){
+  if(val==="__ALL__")return CAMPS.slice();
+  if(val.indexOf("__POLE__")===0){
+    const name=val.slice(8);
+    const p=poles.find(pp=>pp.name===name);
+    return p?p.camps.filter(c=>CAMPS.includes(c)):[];
+  }
+  return [];
+}
+function groupLabel(val){
+  if(val==="__ALL__")return "Toutes les campagnes";
+  if(val.indexOf("__POLE__")===0)return val.slice(8);
+  return "";
 }
 
 // Détection de la campagne d'une queue ou d'un agent — même cascade que dashboard.html / couverture.html / astreinte.html
@@ -299,9 +354,53 @@ async function loadStore(){
         entries:(a.entries&&typeof a.entries==="object")?a.entries:{}
       };
     }
+    if(d&&Array.isArray(d.poles))poles=d.poles.filter(p=>p&&p.name&&Array.isArray(p.camps)&&p.camps.length);
   }catch(e){
     showToast("⚠ Planning indisponible — vérifiez la connexion","#b45309");
   }
+  populateCampSelect();
+  renderPolesPanel();
+}
+function pushPoles(){
+  fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"poles",value:poles})})
+    .then(r=>r.json()).then(d=>{ if(!(d&&d.ok))showToast("Échec de l'enregistrement du pôle","#dc2626"); })
+    .catch(()=>showToast("Échec de l'enregistrement du pôle (réseau)","#dc2626"));
+}
+function renderPolesPanel(){
+  const list=document.getElementById("poles-list");
+  if(!list)return;
+  if(!poles.length){
+    list.innerHTML='<div class="empty-hint" style="padding:14px;">Aucun pôle défini pour l\'instant. Regroupez plusieurs campagnes ci-dessous pour leur donner un nom commun (ex. « Pôle Multi »).</div>';
+  }else{
+    list.innerHTML=poles.map(p=>`<span class="pole-chip"><b>${esc(p.name)}</b><span style="color:#999;">${p.camps.map(esc).join(" · ")}</span><button data-del-pole="${esc(p.name)}" title="Supprimer ce pôle">✕</button></span>`).join("");
+    list.querySelectorAll("[data-del-pole]").forEach(btn=>btn.addEventListener("click",()=>deletePole(btn.dataset.delPole)));
+  }
+  const checks=document.getElementById("pole-camp-checks");
+  if(checks)checks.innerHTML=CAMPS.map(c=>`<label class="pole-camp-check"><input type="checkbox" class="pole-camp-cb" value="${esc(c)}"> ${esc(c)}</label>`).join("");
+}
+function createPole(){
+  const nameInp=document.getElementById("pole-name-input");
+  const name=nameInp.value.trim();
+  if(!name){showToast("Indiquez un nom de pôle.","#b45309");return;}
+  if(poles.some(p=>p.name.toLowerCase()===name.toLowerCase())){showToast(`Un pôle nommé « ${name} » existe déjà.`,"#b45309");return;}
+  const camps=Array.from(document.querySelectorAll(".pole-camp-cb:checked")).map(cb=>cb.value);
+  if(camps.length<2){showToast("Sélectionnez au moins 2 campagnes à regrouper.","#b45309");return;}
+  poles.push({name,camps});
+  pushPoles();
+  nameInp.value="";
+  renderPolesPanel();
+  populateCampSelect();
+  showToast(`Pôle « ${name} » créé`,"#1a8f44");
+}
+async function deletePole(name){
+  const ok=await confirmModal("Supprimer ce pôle",`Supprimer le pôle « ${name} » ? Les campagnes qu'il regroupe ne seront pas affectées — seul le regroupement disparaît.`,"Supprimer");
+  if(!ok)return;
+  poles=poles.filter(p=>p.name!==name);
+  pushPoles();
+  renderPolesPanel();
+  populateCampSelect();
+  renderGrid();
+  showToast(`Pôle « ${name} » supprimé`,"#777");
 }
 function pushPlanning(){
   clearTimeout(pushTimer);
@@ -320,7 +419,13 @@ function ensureEntry(camp,monday){
   if(!planning[k])planning[k]={roster:[],shifts:{}};
   return planning[k];
 }
-function currentCamp(){return document.getElementById("p-camp").value;}
+function currentCampValue(){return document.getElementById("p-camp").value;}
+// Les vues groupées (ALL / pôles) ne correspondent à aucune campagne unique éditable —
+// currentCamp() renvoie alors "" pour que les fonctions d'édition (ajout/retrait d'agent, créneaux…) ne s'y appliquent pas.
+function currentCamp(){
+  const v=currentCampValue();
+  return isGroupView(v)?"":v;
+}
 function currentMonday(){return mondayOf(document.getElementById("p-week").value);}
 
 function weekTotalMinutes(agent,dates,entry){
@@ -439,11 +544,20 @@ function agentRowHTML(r,dates,entry){
 }
 
 function renderGrid(){
-  const camp=currentCamp();
+  const campVal=currentCampValue();
   const monday=currentMonday();
   const wrap=document.getElementById("planning-table-wrap");
   const dates=weekDates(monday);
 
+  if(isGroupView(campVal)){
+    document.getElementById("planning-camp-label").textContent=(campVal==="__ALL__"?"🌐 ":"🗂️ ")+groupLabel(campVal);
+    document.getElementById("planning-period").textContent=`${fmtDate(dates[0])} → ${fmtDate(dates[6])}`;
+    renderRosterTools("",[]);
+    renderGroupGrids(campVal,monday,dates,wrap);
+    return;
+  }
+
+  const camp=campVal;
   document.getElementById("planning-camp-label").textContent=camp||"–";
   document.getElementById("planning-period").textContent=camp?`${fmtDate(dates[0])} → ${fmtDate(dates[6])}`:"";
 
@@ -480,6 +594,145 @@ function renderGrid(){
   }));
 }
 
+// Vue groupée (ALL ou pôle) : empile les plannings de chaque campagne du regroupement,
+// en lecture seule (l'édition se fait campagne par campagne via le sélecteur).
+function renderGroupGrids(val,monday,dates,wrap){
+  const camps=groupCamps(val);
+  if(!camps.length){
+    wrap.innerHTML='<div class="empty-hint">Ce regroupement ne contient aucune campagne pour le moment. Gérez les pôles via le bouton « 🗂️ Pôles » dans la barre d\'outils.</div>';
+    return;
+  }
+  wrap.innerHTML='<div class="note" style="margin:0 0 16px;">Vue groupée en lecture seule — sélectionnez une campagne précise pour modifier son planning. Utilisez les boutons « Export PDF / Excel » pour obtenir une vue imprimable ou un fichier de l\'ensemble du regroupement.</div>'
+    +camps.map(camp=>{
+      const entry=getEntry(camp,monday);
+      const roster=entry?entry.roster:[];
+      if(!roster.length){
+        return `<div class="group-camp-block"><div class="group-camp-title">${esc(camp)} <span style="color:#999;font-weight:400;">— aucun agent planifié cette semaine</span></div></div>`;
+      }
+      const thead=`<tr><th>Agent</th>${dates.map(d=>`<th>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th>Total semaine</th></tr>`;
+      const tbody=roster.map(r=>{
+        const cells=dates.map(d=>{
+          const s=entry.shifts[r.nom+"|"+d];
+          const off=!!(s&&s.off);
+          const txt=off?"Repos":(s&&s.start&&s.end)?`${esc(s.start)} – ${esc(s.end)}`:"–";
+          const onCall=onCallCampaign(r.nom,d);
+          const onCallTag=onCall?` <span style="color:#E8006E;" title="Astreinte ${esc(onCall)}">🌙</span>`:"";
+          return `<td>${txt}${onCallTag}</td>`;
+        }).join("");
+        return `<tr><td><span class="agent-row-name"><span>${esc(r.nom)}</span>${r.training?'<span class="tag-btn active" style="cursor:default;">🎓</span>':""}${isMutualise(r.nom)?'<span class="tag-mutualise">⇄ mutualisé</span>':""}</span></td>${cells}<td><span class="total-badge">${esc(fmtHours(weekTotalMinutes(r.nom,dates,entry)))}</span></td></tr>`;
+      }).join("");
+      return `<div class="group-camp-block">
+        <div class="group-camp-title">${esc(camp)} <span style="color:#999;font-weight:400;">— ${roster.length} agent${roster.length>1?"s":""}</span></div>
+        <table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+      </div>`;
+    }).join("");
+}
+
+// HTML d'un tableau de planning "propre" (sans contrôles interactifs), réutilisé par les exports PDF et Excel.
+function planningTableHTML(camp,dates,entry){
+  const roster=entry?entry.roster:[];
+  if(!roster.length)return `<p style="color:#999;font-size:11px;margin:4px 0 18px;">Aucun agent planifié pour ${esc(camp)} cette semaine.</p>`;
+  const thead=`<tr><th>Agent</th>${dates.map(d=>`<th>${esc(dayName(d))}<br>${esc(fmtDate(d))}</th>`).join("")}<th>Total</th></tr>`;
+  const tbody=roster.map(r=>{
+    const cells=dates.map(d=>{
+      const s=entry.shifts[r.nom+"|"+d];
+      const off=!!(s&&s.off);
+      const txt=off?"Repos":(s&&s.start&&s.end)?`${esc(s.start)} – ${esc(s.end)}`:"–";
+      const onCall=onCallCampaign(r.nom,d);
+      return `<td>${txt}${onCall?'<br><span style="color:#E8006E;font-size:9px;">🌙 astreinte</span>':""}</td>`;
+    }).join("");
+    return `<tr><td>${esc(r.nom)}${r.training?" 🎓":""}${isMutualise(r.nom)?" ⇄":""}</td>${cells}<td><b>${esc(fmtHours(weekTotalMinutes(r.nom,dates,entry)))}</b></td></tr>`;
+  }).join("");
+  return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+// Détermine ce qu'il faut exporter à partir de la sélection courante : une campagne, ou
+// l'ensemble des campagnes d'une vue groupée (ALL / pôle) — "le ou les plannings" demandés.
+function exportSelection(){
+  const val=currentCampValue();
+  if(isGroupView(val)){
+    const camps=groupCamps(val);
+    return camps.length?{label:groupLabel(val),camps}:null;
+  }
+  return val?{label:val,camps:[val]}:null;
+}
+
+function exportPlanningPDF(){
+  const sel=exportSelection();
+  if(!sel){showToast("Choisissez une campagne, une vue globale ou un pôle à exporter.","#b45309");return;}
+  const monday=currentMonday();
+  const dates=weekDates(monday);
+  const dateStr=new Date().toLocaleDateString("fr-FR");
+  const sections=sel.camps.map(camp=>`<div class="camp-section"><h2>${esc(camp)}</h2>${planningTableHTML(camp,dates,getEntry(camp,monday))}</div>`).join("");
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Planning — ${esc(sel.label)} — ${fmtDate(dates[0])} au ${fmtDate(dates[6])}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Segoe UI',Arial,sans-serif;color:#222;background:#fff;padding:24px;font-size:11px}
+      .header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #E8006E;padding-bottom:10px;margin-bottom:18px;padding-right:230px}
+      @media print{.header{padding-right:0}}
+      h1{font-size:18px;color:#E8006E;font-weight:800;letter-spacing:.02em}
+      .meta{font-size:10px;color:#666}
+      .camp-section{margin-bottom:22px}
+      .camp-section h2{font-size:13px;color:#E8006E;margin-bottom:8px;border-left:4px solid #E8006E;padding-left:8px}
+      table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:6px}
+      thead th{background:#fff0f6;color:#222;padding:7px 6px;text-align:center;font-weight:700;border-bottom:2px solid #E8006E;font-size:9px}
+      thead th:first-child{text-align:left}
+      tbody td{padding:6px;text-align:center;border-bottom:1px solid #eee}
+      tbody td:first-child{text-align:left;font-weight:600}
+      .print-btn{position:fixed;top:16px;right:16px;background:linear-gradient(135deg,#FF005C,#c0005a);color:#fff;border:none;border-radius:6px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(255,0,92,.3)}
+      .footer{margin-top:18px;padding-top:10px;border-top:1px solid #eee;font-size:9px;color:#888}
+      @media print{
+        .print-btn{display:none}
+        body{padding:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        thead{display:table-header-group}
+        tr{page-break-inside:avoid}
+        .camp-section{page-break-inside:avoid}
+      }
+      @page{size:A4 landscape;margin:12mm}
+    </style></head><body>
+    <button class="print-btn" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <div class="header">
+      <div><h1>Planning de la semaine</h1><div class="meta">${esc(sel.label)} · Wisecom · INO</div></div>
+      <div class="meta">Semaine du ${fmtDate(dates[0])} au ${fmtDate(dates[6])} · Édité le ${dateStr}</div>
+    </div>
+    ${sections}
+    <div class="footer">Wisecom · Planning de la semaine · Document généré automatiquement — usage interne</div>
+    <script>setTimeout(()=>window.print(),350);<\/script>
+    </body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Le navigateur a bloqué la fenêtre d'impression. Autorise les pop-ups pour ce site.");return;}
+  w.document.write(html);w.document.close();
+}
+
+function exportPlanningExcel(){
+  const sel=exportSelection();
+  if(!sel){showToast("Choisissez une campagne, une vue globale ou un pôle à exporter.","#b45309");return;}
+  const monday=currentMonday();
+  const dates=weekDates(monday);
+  const sections=sel.camps.map(camp=>
+    `<h2 style="color:#E8006E;font-family:Arial;font-size:12px;margin:14px 0 6px;">${esc(camp)}</h2>`
+    +planningTableHTML(camp,dates,getEntry(camp,monday)).replace(/<table>/,'<table border="1" cellspacing="0" cellpadding="4">')
+  ).join("");
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
+    +'<head><meta charset="UTF-8"><style>'
+    +'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;}'
+    +'td,th{border:1pt solid #555;padding:4px 7px;text-align:center;vertical-align:middle;mso-number-format:"@";}'
+    +'th{background:#2F3640;color:#fff;font-weight:700;}'
+    +'td:first-child,th:first-child{text-align:left;min-width:130px;}'
+    +'tr:nth-child(even) td{background-color:#f9f9f9;}'
+    +'</style></head><body>'
+    +`<h1 style="color:#E8006E;font-family:Arial;font-size:14px;">Planning — ${esc(sel.label)} — semaine du ${fmtDate(dates[0])} au ${fmtDate(dates[6])}</h1>`
+    +sections+'</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const el=document.createElement("a");
+  el.href=url;el.download=`Planning_${sel.label.replace(/[^\wÀ-ſ-]+/g,"_")}_${monday}.xls`;
+  document.body.appendChild(el);el.click();
+  setTimeout(()=>{document.body.removeChild(el);URL.revokeObjectURL(url);},1000);
+  showToast("Fichier Excel téléchargé.");
+}
+
 function setWeek(dateStr){
   document.getElementById("p-week").value=mondayOf(dateStr);
   renderGrid();
@@ -502,6 +755,15 @@ weekInput.addEventListener("change",e=>{
 document.getElementById("btn-week-prev").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,-7)));
 document.getElementById("btn-week-next").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,7)));
 document.getElementById("p-camp").addEventListener("change",renderGrid);
+document.getElementById("btn-export-pdf").addEventListener("click",exportPlanningPDF);
+document.getElementById("btn-export-xls").addEventListener("click",exportPlanningExcel);
+document.getElementById("btn-poles-toggle").addEventListener("click",()=>{
+  const p=document.getElementById("poles-panel");
+  p.style.display=p.style.display==="none"?"block":"none";
+  if(p.style.display==="block")p.scrollIntoView({behavior:"smooth",block:"start"});
+});
+document.getElementById("pole-create-btn").addEventListener("click",createPole);
+document.getElementById("pole-name-input").addEventListener("keydown",e=>{if(e.key==="Enter")createPole();});
 
 (async function init(){
   await loadConfig();
