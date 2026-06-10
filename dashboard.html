@@ -3743,36 +3743,85 @@ function waHas(sk,name){
 // ══════════════════════════════════════════════════════════════════
 //  TABLEAU 1 — AFFECTATION
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+//  TABLEAU 3 — ALERTES STAFFING & FLUX
+//  Source de vérité : flux serveur calibré (window._fluxCamps) — appels INO
+//  réels par campagne, horaires d'ouverture appliqués. Croisé avec le staffing
+//  connecté (agents actifs portant la compétence). Plus de proxy approximatif.
+// ══════════════════════════════════════════════════════════════════
 function waCampSynthesis(sorted){
-  var camps=waActiveCalls.slice();
-  var byCamp={}; camps.forEach(function(c){byCamp[c]={agents:[],count:0};});
-  sorted.forEach(function(a){
-    var sk=waSkills(a);
-    camps.forEach(function(c){ if(sk.has(c)){ byCamp[c].agents.push(a.nom.split(' ').pop()); byCamp[c].count++; } });
-  });
-  // Proxy "production attendue" : flux d'appels presentes par campagne principale
-  var fluxByCamp={};
-  sorted.forEach(function(a){ var c=a.camp||'-'; fluxByCamp[c]=(fluxByCamp[c]||0)+(a.presentes||a.decroches||0); });
-  var skillsLoaded=sorted.some(function(a){return Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;});
-  var totalActif=camps.reduce(function(t,c){return t+byCamp[c].count;},0);
+  var fx=window._fluxCamps||null;
   var CS='border:1px solid #999;padding:5px 8px;';
-  var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
-  h+='<tr><td colspan="3" style="background:#fff;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Synthèse staffing par campagne</td></tr>';
-  if(!skillsLoaded){
-    h+='<tr><td colspan="3" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Compétences INO non chargées — cliquez sur « Compétences INO » pour fiabiliser le staffing.</td></tr>';
-  }
-  h+='<tr><th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th><th style="background:#2F3640;color:#fff;'+CS+'">Staffing actif</th><th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Agents actifs</th></tr>';
-  camps.forEach(function(c){
-    var d=byCamp[c]; var flux=fluxByCamp[c]||0;
-    var alerte=d.count===0; var critique=d.count===0&&flux>0;
-    var rowBg=critique?'#F8C9C9':(alerte?'#FCE4E4':'#fff');
-    var col=d.count===0?'#CC0000':'#1a6b1a';
-    var badge=critique?' ⚠ FLUX SANS STAFFING':(alerte?' ⚠ 0 actif':'');
-    h+='<tr style="background:'+rowBg+';"><td style="'+CS+'font-weight:600;">'+c+'</td>'+
-       '<td style="'+CS+'text-align:center;font-weight:700;color:'+col+';">'+d.count+'<span style="font-weight:400;font-size:9px;">'+badge+'</span></td>'+
-       '<td style="'+CS+'color:#333;max-width:520px;">'+(d.agents.join(', ')||'—')+'</td></tr>';
+  function isActive(a){return a.status==="Traitement"||a.status==="Actif"||a.status==="Post-appel";}
+  // Liste campagnes = union du flux serveur réel + des colonnes compétences suivies
+  var campSet={};
+  if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
+  waActiveCalls.forEach(function(c){campSet[c]=1;});
+  var camps=Object.keys(campSet);
+  // Staffing actif par campagne = agents CONNECTÉS portant la compétence éponyme
+  var staff={};
+  camps.forEach(function(c){staff[c]={count:0,agents:[]};});
+  sorted.forEach(function(a){
+    if(!isActive(a))return;
+    var sk=waSkills(a);
+    camps.forEach(function(c){ if(sk.has(c)){ staff[c].count++; staff[c].agents.push(a.nom.split(' ').pop()); } });
   });
-  h+='<tr style="background:#FFE8F5;"><td style="'+CS+'font-weight:700;color:#E8006E;">TOTAL staffing actif</td><td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+totalActif+'</td><td style="'+CS+'color:#888;">'+camps.length+' campagnes suivies</td></tr>';
+  var skillsLoaded=sorted.some(function(a){return Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;});
+  // Ne garder que les campagnes avec flux réel OU staffing (évite des dizaines de lignes vides)
+  camps=camps.filter(function(c){
+    var f=fx&&fx[c];
+    var hasFlux=f&&((f.presentes||0)>0||(f.sortants||0)>0);
+    return hasFlux||staff[c].count>0;
+  });
+  camps.sort(function(a,b){
+    var fa=(fx&&fx[a]&&fx[a].presentes)||0, fb=(fx&&fx[b]&&fx[b].presentes)||0;
+    return fb-fa || (staff[b].count-staff[a].count) || a.localeCompare(b);
+  });
+  var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
+  h+='<tr><td colspan="7" style="background:#fff;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">⚠ Alertes staffing &amp; flux par campagne'+(fx?' · flux INO réel (horaires d\'ouverture appliqués)':'')+'</td></tr>';
+  if(!fx){
+    h+='<tr><td colspan="7" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Flux serveur non chargé — lancez un rafraîchissement pour calculer les alertes sur les appels réels.</td></tr>';
+  }
+  if(!skillsLoaded){
+    h+='<tr><td colspan="7" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Compétences INO non chargées — staffing approximatif. Cliquez « Compétences INO » pour fiabiliser.</td></tr>';
+  }
+  h+='<tr>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Présentés</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Décrochés</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Abandons</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">QS</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Staffing<br>actif</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">État · Agents actifs</th></tr>';
+  var tPres=0,tDec=0,tAb=0,tStaff=0;
+  camps.forEach(function(c){
+    var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0};
+    var pres=f.presentes||0, dec=f.decroches||0, ab=f.abandons||0, st=staff[c].count;
+    tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;
+    var qs=pres>0?Math.round(dec/pres*100):null;
+    var critique=pres>0&&st===0;                       // flux mais aucun agent staffé
+    var qsBas=pres>=10&&qs!==null&&qs<80&&st>0;          // qualité dégradée malgré staffing
+    var rowBg=critique?'#F8C9C9':(qsBas?'#FFF0CC':(st===0?'#FCE4E4':'#fff'));
+    var etat=critique?'🔴 FLUX SANS STAFFING':(qsBas?'🟠 QS dégradé':(st===0?'🟠 0 actif':'🟢 OK'));
+    var qsCol=qs===null?'#999':(qs<80?'#CC0000':(qs<90?'#B07800':'#1a6b1a'));
+    h+='<tr style="background:'+rowBg+';">'+
+       '<td style="'+CS+'font-weight:600;">'+c+'</td>'+
+       '<td style="'+CS+'text-align:center;">'+(pres||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;">'+(dec||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;color:'+(ab>0?'#CC0000':'#333')+';">'+(ab||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;font-weight:700;color:'+qsCol+';">'+(qs!==null?qs+'%':'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;font-weight:700;color:'+(st===0?'#CC0000':'#1a6b1a')+';">'+st+'</td>'+
+       '<td style="'+CS+'color:#333;max-width:520px;"><b style="font-size:10px">'+etat+'</b>'+(staff[c].agents.length?' · '+staff[c].agents.join(', '):'')+'</td></tr>';
+  });
+  var qsG=tPres>0?Math.round(tDec/tPres*100):null;
+  h+='<tr style="background:#FFE8F5;">'+
+     '<td style="'+CS+'font-weight:700;color:#E8006E;">TOTAL</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;">'+tPres+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;">'+tDec+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#CC0000;">'+tAb+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+(qsG!==null?qsG+'%':'–')+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+tStaff+'</td>'+
+     '<td style="'+CS+'color:#888;">'+camps.length+' campagnes avec flux ou staffing</td></tr>';
   h+='</table>';
   return h;
 }
@@ -3975,7 +4024,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 
   // Nombre de colonnes total
   var nCampCols=camps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
-  var COLS=4+nCampCols; // KPI label + cumul Multi + cumul Vivest + cumul Filippi + campagnes
+  var COLS=2+nCampCols; // KPI label + Cumul Multi (total) + campagnes sélectionnées (agents + cumul)
 
   var h='<div style="margin-top:16px;">';
   h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;">';
@@ -3986,9 +4035,7 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   // ── Header ligne 1 : KPI col + cumulatifs + groupes campagne ──
   h+='<tr>';
   h+=waTh("",                   "#fff","#fff",   1,2);
-  h+=waTh("Cumul<br>Multi",     "#FF7C80","#fff", 1,2);
-  h+=waTh("Cumul<br>Vivest",    "#A9D18E","#222", 1,2);
-  h+=waTh("Cumul<br>Filippi",   "#FFD966","#222", 1,2);
+  h+=waTh("Cumul<br>total",     "#FF7C80","#fff", 1,2);
   camps.forEach(function(camp){
     var n=campData[camp].agents.length;
     var bg=WA_GROUP_COLORS[camp]||"#E0E0E0";
@@ -4090,10 +4137,8 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     h+='<tr>';
     h+='<td style="background:'+kpi.bg+';font-weight:'+(kpi.bold?'700':'600')+';color:'+kpi.col+
        ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+(kpi.editable?'<span style="opacity:.5;margin-right:3px;font-size:7px">✎</span>':'')+kpi.lbl+'</td>';
-    // Cumulatifs
+    // Cumul total (toutes campagnes sélectionnées)
     h+=waTd(kpi.tot(),kpi.bg+"88",kpi.bold,kpi.col);
-    h+=waTd(kpi.vFn(),"#A9D18E44",kpi.bold,kpi.col);
-    h+=waTd(kpi.fFn(),"#FFD96644",kpi.bold,kpi.col);
     // Par campagne
     camps.forEach(function(camp){
       var cd=campData[camp];
