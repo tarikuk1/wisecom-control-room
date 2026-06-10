@@ -7,7 +7,7 @@
  *   - La liste des compétences (SKILLS)
  *
  * Mis à jour manuellement lors de l'ajout/modification d'une campagne ou d'une file INO.
- * Dernière mise à jour : 2026-06-03 (queues INO semaine 26-30/05/2026)
+ * Dernière mise à jour : 2026-06-10 (calibration export INO 10/06/2026)
  *
  * USAGE (Node.js server.js) :
  *   const { CAMPS, QUEUES_MAP, SKILLS } = require('./queues_config.js');
@@ -19,16 +19,17 @@
 const CAMPS = [
   "Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis",
   "Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB",
-  "Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"
+  "Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize","HMF"
 ];
 
 const QUEUES_MAP = {
   Voltalis: [
     "Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération",
-    "Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux",
+    "Voltalis_My Voltalis","Voltalis_My Voltalis_Réitération",
+    "Voltalis NPV OPB","Voltalis NPV Leads digitaux",
     "Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect",
     "Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération",
-    "Voltalis_Contrôle_Reinter","Voltalis_Prospect",
+    "Voltalis_Contrôle_Reinter","Voltalis_Prospect","Voltalis_Transfert_ADM",
     "Sortant Voltalis","Sortant Voltalis Leroy Merlin"
   ],
   ELECTROSUR: [
@@ -71,7 +72,7 @@ const QUEUES_MAP = {
     "Delsey_Site FR","Delsey_Site EN","Delsey_Plateforme internet FR",
     "Delsey_Autres Sites FR","Sortant Delsey FR"
   ],
-  LMB:  ["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Parent d'enfant"],
+  LMB:  ["LMB_Inscription","LMB_Inscription_Réitération","LMB_Autre demande","LMB_Autre demande_Réitération","LMB_Parent d'enfant"],
   Afnor: [
     "Afnor_RQ_auditeur","Afnor_RQ_planification_audit_suivi",
     "Afnor_RQ_planif_audit_suivi_Réitération","Afnor_RQ_renouvellement_certificat",
@@ -81,11 +82,12 @@ const QUEUES_MAP = {
   LGR:      ["LGR-SC","LGR-Réitération","LGR Boutique"],
   LMDW:     ["LMDW_FR","Sortant LMDW"],
   LBE:      ["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)"],
-  M123:     ["M123_FR","M123_Boutique","Sortant Maison 123 VIP"],
+  M123:     ["M123_FR","M123_EN","M123_Boutique","Sortant Maison 123 VIP"],
   Equisign: ["Equisign","Equisign _ Réitération"],
   Eiffage:  ["Eiffage","Eiffage Réitération","Sortant Eiffage"],
   Apex:     ["Apex _ La route des langues","Apex _ Séjours Home Abroad"],
   Monetize: ["Monetize FR"],
+  HMF:      ["HMF-BOURGOIN JALLIEU-DERUAZ AUTO"],
 };
 
 const SKILLS = [
