@@ -435,6 +435,7 @@ body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',system-ui,sans-seri
   <div class="logo"><div class="dot"></div>CONTROL ROOM <span style="color:#999;font-weight:400;font-size:11px">/ Administration</span></div>
   <div class="nav">
     <span style="font-size:11px;color:#999">Connecté : <b style="color:#E8006E">${login}</b></span>
+    <a href="/notice">📖 Notice d'utilisation</a>
     <a href="/">← Dashboard</a>
     <a href="/logout" style="color:#dc2626;border-color:#ffd0d0">Déconnexion</a>
   </div>
@@ -920,6 +921,7 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/executif"){const p=path.join(__dirname,"executif.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/couverture"){const p=path.join(__dirname,"couverture.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/astreinte"){const p=path.join(__dirname,"astreinte.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
+  if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
   res.writeHead(404,{"Content-Type":"text/html"});res.end(make404());
 });
