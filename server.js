@@ -1070,13 +1070,39 @@ const server=http.createServer(async(req,res)=>{
         }
         const token=await getToken();
         if(!token){res.writeHead(502);return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        // Sources de files "déclarées" dans la config INO. On tente plusieurs endpoints :
+        // d'abord le routing voix (= page /maker/app#/flow/voice/routing : la config
+        // officielle des files/routages), puis les listes de files classiques en repli.
+        // Chaque endpoint peut renvoyer un tableau brut ou un objet paginé {items|data|...}.
         let declared=null,declaredSrc=null;
-        for(const p of ["/queue/list","/cc/queue/list","/call/queue/list"]){
+        const _srcEndpoints=[
+          ["GET","/flow/voice/routing?page=1&limit=500",null],
+          ["GET","/flow/voice/routing",null],
+          ["GET","/cc/flow/voice/routing?page=1&limit=500",null],
+          ["POST","/flow/voice/routing/list",{page:1,limit:500}],
+          ["GET","/queue/list",null],
+          ["GET","/cc/queue/list",null],
+          ["GET","/call/queue/list",null],
+        ];
+        const _extractArr=b=>{
+          if(Array.isArray(b))return b;
+          if(b&&typeof b==="object"){
+            for(const k of ["routings","routing","queues","items","results","data","list","rows","content"]){
+              if(Array.isArray(b[k]))return b[k];
+            }
+            // Wrapper paginé du type {data:{items:[...]}}
+            for(const k of ["data","result","payload"]){
+              if(b[k]&&typeof b[k]==="object"){const inner=_extractArr(b[k]);if(inner.length)return inner;}
+            }
+          }
+          return [];
+        };
+        for(const[m,p,bd]of _srcEndpoints){
           try{
-            const r=await apiReqFull("GET",p,null,token);
+            const r=await apiReqFull(m,p,bd,token);
             if(r.status===200){
-              const arr=Array.isArray(r.body)?r.body:(r.body&&(r.body.queues||r.body.data||r.body.list));
-              if(Array.isArray(arr)&&arr.length){declared=arr;declaredSrc=p;break;}
+              const arr=_extractArr(r.body);
+              if(arr.length){declared=arr;declaredSrc=m+" "+p;break;}
             }
           }catch(e){}
         }
@@ -1094,8 +1120,17 @@ const server=http.createServer(async(req,res)=>{
             if(!seen[q].dernierAppel||jr>seen[q].dernierAppel)seen[q].dernierAppel=jr;
           });
         }
+        // Extrait le nom de file d'un objet de config routing (formes variables selon
+        // l'endpoint : chaîne brute, {queueName}, {name}, {label}, ou {queue:{queueName}}).
+        const _qName=d=>{
+          if(typeof d==="string")return d;
+          if(!d||typeof d!=="object")return null;
+          return d.queueName||d.name||d.label||d.title||d.displayName||
+                 (d.queue&&(d.queue.queueName||d.queue.name))||
+                 (d.target&&(d.target.queueName||d.target.name))||null;
+        };
         (declared||[]).forEach(d=>{
-          const q=(d&&(d.queueName||d.name||d.label))||(typeof d==="string"?d:null);if(!q)return;
+          const q=_qName(d);if(!q)return;
           if(!seen[q])seen[q]={queue:q,volume:0,dernierAppel:null,declaree:true};
           else seen[q].declaree=true;
         });
