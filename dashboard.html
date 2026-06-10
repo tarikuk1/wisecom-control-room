@@ -1360,11 +1360,23 @@ function stampUpdate(ok){
   u.textContent=ok?("Données INO "+periode+" · MAJ le "+now):("Échec MAJ · dernière tentative "+now);
   u.style.color=ok?"#30d158":"#ff6b6b";
 }
+// Campagne d'une file côté client — même cascade que detectCampaignSrv (exact → préfixe → inclusion)
+function campOfQueue(qn){
+  if(!qn)return null;
+  for(var i=0;i<CAMPS.length;i++){if((QUEUES_MAP[CAMPS[i]]||[]).includes(qn))return CAMPS[i];}
+  var norm=function(s){return s.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[&\s_-]/g,"");};
+  var q0=norm(qn.replace(/^sortant /i,""));
+  for(var j=0;j<CAMPS.length;j++){if(q0.indexOf(norm(CAMPS[j]))===0)return CAMPS[j];}
+  for(var k=0;k<CAMPS.length;k++){if(q0.indexOf(norm(CAMPS[k]))>=0)return CAMPS[k];}
+  return null;
+}
 // Rafraîchissement EXCLUSIVEMENT manuel (lecture seule INO). Aucun polling automatique.
+// Mode tour de contrôle : la grille suit la sélection campagnes des filtres, et chaque
+// carte confronte le réel à l'instant du rafraîchissement aux objectifs des critères
+// campagne (QS min) → écart affiché en points.
 async function loadQueueStatus(){
   const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
   const grid=document.getElementById("queue-status-grid");
-  const upd=document.getElementById("queue-last-update");
   if(!grid)return; // silencieux si le panel n'est pas visible
   try{
     const res=await fetch("/api/queues-status?date="+d);
@@ -1374,19 +1386,51 @@ async function loadQueueStatus(){
       if(grid)grid.innerHTML='<div style="color:#ff9f0a;font-size:11px;padding:8px">Files : '+( data.error||'indisponible')+'</div>';
       return;
     }
-    const queues=data.queues||[];
+    window._lastQueuesData=data.queues||[]; // cache pour re-rendu instantané au changement de filtre
+    renderQueueStatus();
+  }catch(e){
+    // Silencieux — ne pas bloquer le chargement des agents
+    if(grid)grid.innerHTML='<div style="color:#555;font-size:10px;padding:8px">Files : '+e.message+'</div>';
+  }
+}
+// Rendu de la grille depuis le cache — appelé au rafraîchissement ET à chaque changement
+// de sélection campagnes (le panneau suit les filtres sans nouvel appel INO).
+function renderQueueStatus(){
+  const grid=document.getElementById("queue-status-grid");
+  const upd=document.getElementById("queue-last-update");
+  if(!grid||!window._lastQueuesData)return;
+  {
+    let queues=window._lastQueuesData;
+    // Attribution campagne + filtrage par la sélection active (philosophie : tous les
+    // onglets s'adaptent aux filtres campagnes/horaire/dates)
+    const _filtreActif=selCamps.length<CAMPS.length;
+    queues=queues.map(function(q){return Object.assign({},q,{camp:campOfQueue(q.name)});});
+    if(_filtreActif)queues=queues.filter(function(q){return q.camp&&selCamps.includes(q.camp);});
     if(queues.length===0){
-      grid.innerHTML='<div style="color:#555;font-size:11px;padding:8px">Aucune file active pour cette date.</div>';
+      grid.innerHTML='<div style="color:#555;font-size:11px;padding:8px">'+(_filtreActif?'Aucune file active pour les campagnes sélectionnées à cette date.':'Aucune file active pour cette date.')+'</div>';
+      if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+(_filtreActif?" · filtre campagne actif":"");
       return;
     }
+    const crit=loadCriteres();
     const PK="#E8006E";
     grid.innerHTML=queues.map(function(q){
       const qs=q.qs||0;
       const ta=q.tauxAbandon||0;
-      const qsColor=qs>=90?"#30d158":qs>=80?PK:"#ff3b30";
+      // Objectif QS de la campagne (critères) — repli 80 % si non configuré
+      const cc=(q.camp&&crit[q.camp])||{};
+      const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
+      const ecart=qs-objQS;
+      const atteint=ecart>=0;
+      const qsColor=atteint?"#30d158":(ecart>=-10?"#ff9f0a":"#ff3b30");
       const taColor=ta<=5?"#30d158":ta<=15?PK:"#ff3b30";
-      return '<div style="background:#161616;border:1px solid #2a2a2a;border-radius:9px;padding:12px 14px">'
-        +'<div style="font-size:11px;font-weight:700;color:#ccc;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(q.name||"")+'">'+( q.name||"–")+'</div>'
+      const ecartTxt=(atteint?"+":"−")+Math.abs(ecart)+" pts";
+      const bord=atteint?"#2a2a2a":(ecart>=-10?"#5a3a10":"#5a1a1a");
+      return '<div style="background:#161616;border:1px solid '+bord+';border-radius:9px;padding:12px 14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px">'
+        +'<div style="font-size:11px;font-weight:700;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(q.name||"")+'">'+( q.name||"–")+'</div>'
+        +(q.camp?'<span style="font-size:8px;color:#888;background:#222;border-radius:8px;padding:1px 7px;white-space:nowrap">'+q.camp+'</span>':'')
+        +'</div>'
+        +'<div style="font-size:9px;margin-bottom:8px;color:'+(atteint?"#30d158":qsColor)+'">Obj QS ≥ '+objQS+'% · écart <b>'+ecartTxt+'</b></div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
         +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Reçus</div><div style="font-size:16px;font-weight:800;color:'+PK+'">'+q.recus+'</div></div>'
         +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Décrochés</div><div style="font-size:16px;font-weight:800;color:#30d158">'+q.decroches+'</div></div>'
@@ -1396,10 +1440,7 @@ async function loadQueueStatus(){
         +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">DMC</div><div style="font-size:12px;font-weight:600;color:#888">'+mmss(q.dmc||0)+'</div></div>'
         +'</div></div>';
     }).join("");
-    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR");
-  }catch(e){
-    // Silencieux — ne pas bloquer le chargement des agents
-    if(grid)grid.innerHTML='<div style="color:#555;font-size:10px;padding:8px">Files : '+e.message+'</div>';
+    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
   }
 }
 
@@ -2939,6 +2980,7 @@ function render(){
   updateAlertBadge(getFiltered());
   renderTable(s);
   renderChart();
+  renderQueueStatus(); // grille files : suit la sélection campagnes (cache, sans appel INO)
   renderSkills();
   renderBacklog();
   renderStaffingBanner();
