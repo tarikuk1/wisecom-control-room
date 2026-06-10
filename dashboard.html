@@ -2981,6 +2981,8 @@ function render(){
   renderTable(s);
   renderChart();
   renderQueueStatus(); // grille files : suit la sélection campagnes (cache, sans appel INO)
+  // Tableaux WhatsApp : re-générer si déjà affichés pour suivre les filtres (mode tour de contrôle)
+  if(document.getElementById('wa-table-affectation'))renderWA();
   renderSkills();
   renderBacklog();
   renderStaffingBanner();
@@ -3800,29 +3802,53 @@ function waHas(sk,name){
 // ══════════════════════════════════════════════════════════════════
 //  TABLEAU 3 — ALERTES STAFFING & FLUX
 //  Source de vérité : flux serveur calibré (window._fluxCamps) — appels INO
-//  réels par campagne, horaires d'ouverture appliqués. Croisé avec le staffing
-//  connecté (agents actifs portant la compétence). Plus de proxy approximatif.
+//  réels par campagne, horaires d'ouverture appliqués.
+//  allAgents = liste COMPLÈTE des agents (pas filtrée WA) pour comptage TC réel.
 // ══════════════════════════════════════════════════════════════════
-function waCampSynthesis(sorted){
+function waCampSynthesis(allAgents){
   var fx=window._fluxCamps||null;
   var CS='border:1px solid #999;padding:5px 8px;';
-  // Liste campagnes = union du flux serveur réel + campagnes des TC + colonnes suivies
+  // Liste campagnes = union flux serveur + campagnes des TC + colonnes suivies
+  // Filtrée par selCamps si une sélection est active (mode tour de contrôle)
   var campSet={};
   if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
   waActiveCalls.forEach(function(c){campSet[c]=1;});
-  sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
+  allAgents.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
   var camps=Object.keys(campSet);
-  // Effectif TC par campagne = agents ayant TRAITÉ la campagne sur la période (campagne
-  // principale attribuée par INO via leurs files). En vue période/fin de journée le statut
-  // temps réel n'est plus "actif" : on compte donc qui a travaillé, pas la connexion live.
-  // Cohérent avec le regroupement par campagne du tableau Stat TC.
+  // Filtrer selon selCamps si une sélection active (<35 campagnes)
+  if(typeof selCamps!=='undefined'&&Array.isArray(selCamps)&&selCamps.length<CAMPS.length){
+    camps=camps.filter(function(c){return selCamps.includes(c);});
+  }
+
+  // Build lookup: campaign → Set of lowercase queue names (from QUEUES_MAP)
+  var campQueues={};
+  if(typeof QUEUES_MAP!=='undefined'&&QUEUES_MAP){
+    Object.keys(QUEUES_MAP).forEach(function(c){
+      campQueues[c]=new Set((QUEUES_MAP[c]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+  }
+
+  // TC par campagne : agents ayant traité au moins une queue de la campagne sur la période
+  // Utilise QUEUES_MAP pour le mapping exact queue→campagne (source de vérité)
   var staff={};
   camps.forEach(function(c){staff[c]={count:0,agents:[]};});
-  sorted.forEach(function(a){
-    var c=a.camp;
-    if(c&&staff[c]){ staff[c].count++; staff[c].agents.push(a.nom.split(' ').pop()); }
+  allAgents.forEach(function(a){
+    var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+    camps.forEach(function(c){
+      if(staff[c].agents.indexOf(a.nom)>=0)return; // déjà compté
+      var matched=false;
+      if(campQueues[c]&&campQueues[c].size>0&&agQ.length>0){
+        matched=agQ.some(function(q){return campQueues[c].has(q);});
+      }
+      if(!matched&&a.camp===c)matched=true;
+      if(matched){
+        staff[c].count++;
+        staff[c].agents.push(a.nom);
+      }
+    });
   });
-  // Ne garder que les campagnes avec flux réel OU des TC (évite des dizaines de lignes vides)
+
+  // Ne garder que les campagnes avec flux réel OU des TC
   camps=camps.filter(function(c){
     var f=fx&&fx[c];
     var hasFlux=f&&((f.presentes||0)>0||(f.sortants||0)>0);
@@ -3832,6 +3858,61 @@ function waCampSynthesis(sorted){
     var fa=(fx&&fx[a]&&fx[a].presentes)||0, fb=(fx&&fx[b]&&fx[b].presentes)||0;
     return fb-fa || (staff[b].count-staff[a].count) || a.localeCompare(b);
   });
+
+  // ── Analyse couverture par tranche horaire ──
+  // Pour chaque campagne : trouver les tranches avec appels SANS TC actif
+  function _slotMinParis(isoStr){
+    if(!isoStr)return -1;
+    try{
+      var d=new Date(isoStr);
+      var fr=d.toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+      var p=fr.replace('h',':').split(':');
+      return parseInt(p[0])*60+parseInt(p[1]);
+    }catch(e){return -1;}
+  }
+  function _lbl2min(lbl){if(!lbl)return -1;var p=lbl.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  var globalSlots=typeof slots!=='undefined'?slots:(window.slots||[]);
+  var campSlotAlerts={};
+  if(globalSlots.length>0){
+    camps.forEach(function(c){
+      var cqs=campQueues[c]||new Set();
+      // Tranches avec appels pour cette campagne
+      var callSlots=[];
+      globalSlots.forEach(function(sl){
+        var cnt=0;
+        if(sl.queues&&cqs.size>0){
+          Object.keys(sl.queues).forEach(function(qn){
+            if(cqs.has(qn.toLowerCase().trim()))cnt+=sl.queues[qn];
+          });
+        }
+        if(cnt>0)callSlots.push({lbl:sl.lbl,cnt:cnt});
+      });
+      if(callSlots.length===0){campSlotAlerts[c]=null;return;}
+      // Fenêtre de présence TC pour cette campagne
+      var tcMinStarts=[],tcMinEnds=[];
+      allAgents.forEach(function(a){
+        var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+        var isOnCamp=(cqs.size>0&&agQ.length>0)
+          ?agQ.some(function(q){return cqs.has(q);})
+          :(a.camp===c);
+        if(!isOnCamp||!a.premiereAction)return;
+        var s=_slotMinParis(a.premiereAction);
+        var e=_slotMinParis(a.derniereAction||a.premiereAction);
+        if(s>=0)tcMinStarts.push(s);
+        if(e>=0)tcMinEnds.push(e);
+      });
+      if(tcMinStarts.length===0){
+        campSlotAlerts[c]={noTc:true,callSlots:callSlots};
+        return;
+      }
+      var firstTc=Math.min.apply(null,tcMinStarts);
+      var lastTc=Math.max.apply(null,tcMinEnds);
+      var uncovBefore=callSlots.filter(function(s){return _lbl2min(s.lbl)+30<=firstTc;}).map(function(s){return s.lbl;});
+      var uncovAfter=callSlots.filter(function(s){return _lbl2min(s.lbl)>=lastTc+30;}).map(function(s){return s.lbl;});
+      campSlotAlerts[c]=(uncovBefore.length||uncovAfter.length)?{uncovBefore:uncovBefore,uncovAfter:uncovAfter,firstTc:firstTc,lastTc:lastTc}:null;
+    });
+  }
+
   var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
   h+='<tr><td colspan="7" style="background:#fff;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">⚠ Alertes staffing &amp; flux par campagne'+(fx?' · flux INO réel (horaires d\'ouverture appliqués)':'')+'</td></tr>';
   if(!fx){
@@ -3844,26 +3925,44 @@ function waCampSynthesis(sorted){
      '<th style="background:#2F3640;color:#fff;'+CS+'">Abandons</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">QS</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">TC</th>'+
-     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">État · TC ayant traité</th></tr>';
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;min-width:280px;">État · Couverture</th></tr>';
   var tPres=0,tDec=0,tAb=0,tStaff=0;
   camps.forEach(function(c){
     var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0};
     var pres=f.presentes||0, dec=f.decroches||0, ab=f.abandons||0, st=staff[c].count;
     tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;
     var qs=pres>0?Math.round(dec/pres*100):null;
-    var nonCouvert=pres>0&&st===0;                      // appels reçus mais aucun TC sur la campagne
-    var qsBas=pres>=10&&qs!==null&&qs<80;               // qualité de service dégradée
-    var rowBg=nonCouvert?'#F8C9C9':(qsBas?'#FFF0CC':'#fff');
+    var nonCouvert=pres>0&&st===0;
+    var qsBas=pres>=10&&qs!==null&&qs<80;
+    var sa=campSlotAlerts[c];
+    var hasSlotGap=sa&&(sa.noTc||(sa.uncovBefore&&sa.uncovBefore.length)||(sa.uncovAfter&&sa.uncovAfter.length));
+    var rowBg=nonCouvert?'#F8C9C9':(qsBas||hasSlotGap?'#FFF0CC':'#fff');
     var etat=nonCouvert?'🔴 FLUX NON COUVERT (aucun TC)':(qsBas?'🟠 QS dégradé':'🟢 OK');
     var qsCol=qs===null?'#999':(qs<80?'#CC0000':(qs<90?'#B07800':'#1a6b1a'));
+    // Slot coverage details
+    var slotHtml='';
+    if(sa){
+      if(sa.noTc){
+        slotHtml='<br><span style="color:#CC0000;font-size:9px;">⏰ Toutes tranches sans TC : '+sa.callSlots.map(function(s){return s.lbl;}).join(' ')+'</span>';
+      }else{
+        if(sa.uncovBefore&&sa.uncovBefore.length){
+          slotHtml+='<br><span style="color:#CC0000;font-size:9px;">⏰ Avant arrivée TC : '+sa.uncovBefore.join(' ')+'</span>';
+        }
+        if(sa.uncovAfter&&sa.uncovAfter.length){
+          slotHtml+='<br><span style="color:#CC6600;font-size:9px;">⏰ Après départ TC : '+sa.uncovAfter.join(' ')+'</span>';
+        }
+      }
+    }
+    // Agents list (last-name only, max 6)
+    var agList=staff[c].agents.map(function(n){return n.split(' ').pop();}).slice(0,6).join(', ')+(staff[c].agents.length>6?' +'+( staff[c].agents.length-6):'');
     h+='<tr style="background:'+rowBg+';">'+
        '<td style="'+CS+'font-weight:600;">'+c+'</td>'+
        '<td style="'+CS+'text-align:center;">'+(pres||'–')+'</td>'+
        '<td style="'+CS+'text-align:center;">'+(dec||'–')+'</td>'+
        '<td style="'+CS+'text-align:center;color:'+(ab>0?'#CC0000':'#333')+';">'+(ab||'–')+'</td>'+
        '<td style="'+CS+'text-align:center;font-weight:700;color:'+qsCol+';">'+(qs!==null?qs+'%':'–')+'</td>'+
-       '<td style="'+CS+'text-align:center;font-weight:700;color:'+(st===0?'#CC0000':'#1a6b1a')+';">'+st+'</td>'+
-       '<td style="'+CS+'color:#333;max-width:520px;"><b style="font-size:10px">'+etat+'</b>'+(staff[c].agents.length?' · '+staff[c].agents.join(', '):'')+'</td></tr>';
+       '<td style="'+CS+'text-align:center;font-weight:700;color:'+(st===0&&pres>0?'#CC0000':'#1a6b1a')+';">'+st+'</td>'+
+       '<td style="'+CS+'color:#333;max-width:520px;"><b style="font-size:10px">'+etat+'</b>'+(agList?' · <span style="font-size:9px;color:#555;">'+agList+'</span>':'')+slotHtml+'</td></tr>';
   });
   var qsG=tPres>0?Math.round(tDec/tPres*100):null;
   h+='<tr style="background:#FFE8F5;">'+
@@ -3873,7 +3972,7 @@ function waCampSynthesis(sorted){
      '<td style="'+CS+'text-align:center;font-weight:700;color:#CC0000;">'+tAb+'</td>'+
      '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+(qsG!==null?qsG+'%':'–')+'</td>'+
      '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+tStaff+'</td>'+
-     '<td style="'+CS+'color:#888;">'+camps.length+' campagnes avec flux ou staffing</td></tr>';
+     '<td style="'+CS+'color:#888;">'+camps.length+' campagnes · '+allAgents.length+' TC au total</td></tr>';
   h+='</table>';
   return h;
 }
@@ -4025,7 +4124,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   });
   h+='<td colspan="'+(COLS-11)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
-  return h+waCampSynthesis(sorted);
+  return h+waCampSynthesis(window._lastAllAgents||sorted);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4433,21 +4532,46 @@ function renderWA(){
   var _todayIso=new Date().toISOString().slice(0,10);
   var _isPast=_dFin&&_dFin<_todayIso;
   var _periodLabel=_isPast?"Historique":"Période";
-  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+(_isPast?" (comparaison date antérieure)":"");
   if(agents.length===0){
+    if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr;
     z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
   }
-  var sorted=[...agents].sort(function(a,b){
+  // ── PÉRIMÈTRE = filtres globaux (campagnes / agents / statut / compétences) ──
+  // Mode tour de contrôle : les critères sélectionnés en haut déterminent TOUTES
+  // les données affichées, y compris les tableaux WhatsApp. Même filtre que le
+  // tableau principal (getFiltered).
+  var scope=getFiltered();
+  // Filtre FILES si sélection partielle : agent retenu s'il a traité au moins une file sélectionnée
+  if(Array.isArray(selQueues)&&Array.isArray(allQueues)&&allQueues.length>0&&selQueues.length>0&&selQueues.length<allQueues.length){
+    scope=scope.filter(function(a){
+      var agQ=(a.queues||"").split(", ").filter(Boolean);
+      return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
+    });
+  }
+  var _campScopeActive=selCamps.length<CAMPS.length;
+  var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
+  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
+  if(scope.length===0){
+    z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucun agent dans le périmètre sélectionné ('+_scopeLabel+').<br><br>Élargissez les filtres Campagnes / Agents / Statut pour afficher les tableaux.</div>';
+    return;
+  }
+  var sorted=[...scope].sort(function(a,b){
     return (b.decroches+b.sortants)-(a.decroches+a.sortants);
   });
-  // Exclure les agents sans compétence sur les campagnes WA
-  var allWaCamps=waActiveCalls.concat(waActiveMails);
-  sorted=sorted.filter(function(a){
-    var sk=waSkills(a);
-    if(sk.size===0) return false; // aucune compétence connue → exclure
-    return allWaCamps.some(function(s){return waHas(sk,s);});
-  });
+  // Liste complète du périmètre AVANT filtrage compétences WA → alertes staffing (tableau 3)
+  window._lastAllAgents=sorted;
+  // Exclure les agents sans compétence sur les campagnes WA — UNIQUEMENT en vue
+  // globale. Si l'utilisateur a restreint les campagnes, sa sélection EST le
+  // critère : on affiche tous les agents du périmètre.
+  if(!_campScopeActive){
+    var allWaCamps=waActiveCalls.concat(waActiveMails);
+    sorted=sorted.filter(function(a){
+      var sk=waSkills(a);
+      if(sk.size===0) return false; // aucune compétence connue → exclure
+      return allWaCamps.some(function(s){return waHas(sk,s);});
+    });
+  }
   window._lastWaSorted=sorted;
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
