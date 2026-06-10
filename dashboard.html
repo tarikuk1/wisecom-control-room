@@ -3752,22 +3752,23 @@ function waHas(sk,name){
 function waCampSynthesis(sorted){
   var fx=window._fluxCamps||null;
   var CS='border:1px solid #999;padding:5px 8px;';
-  function isActive(a){return a.status==="Traitement"||a.status==="Actif"||a.status==="Post-appel";}
-  // Liste campagnes = union du flux serveur réel + des colonnes compétences suivies
+  // Liste campagnes = union du flux serveur réel + campagnes des TC + colonnes suivies
   var campSet={};
   if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
   waActiveCalls.forEach(function(c){campSet[c]=1;});
+  sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
   var camps=Object.keys(campSet);
-  // Staffing actif par campagne = agents CONNECTÉS portant la compétence éponyme
+  // Effectif TC par campagne = agents ayant TRAITÉ la campagne sur la période (campagne
+  // principale attribuée par INO via leurs files). En vue période/fin de journée le statut
+  // temps réel n'est plus "actif" : on compte donc qui a travaillé, pas la connexion live.
+  // Cohérent avec le regroupement par campagne du tableau Stat TC.
   var staff={};
   camps.forEach(function(c){staff[c]={count:0,agents:[]};});
   sorted.forEach(function(a){
-    if(!isActive(a))return;
-    var sk=waSkills(a);
-    camps.forEach(function(c){ if(sk.has(c)){ staff[c].count++; staff[c].agents.push(a.nom.split(' ').pop()); } });
+    var c=a.camp;
+    if(c&&staff[c]){ staff[c].count++; staff[c].agents.push(a.nom.split(' ').pop()); }
   });
-  var skillsLoaded=sorted.some(function(a){return Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;});
-  // Ne garder que les campagnes avec flux réel OU staffing (évite des dizaines de lignes vides)
+  // Ne garder que les campagnes avec flux réel OU des TC (évite des dizaines de lignes vides)
   camps=camps.filter(function(c){
     var f=fx&&fx[c];
     var hasFlux=f&&((f.presentes||0)>0||(f.sortants||0)>0);
@@ -3782,27 +3783,24 @@ function waCampSynthesis(sorted){
   if(!fx){
     h+='<tr><td colspan="7" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Flux serveur non chargé — lancez un rafraîchissement pour calculer les alertes sur les appels réels.</td></tr>';
   }
-  if(!skillsLoaded){
-    h+='<tr><td colspan="7" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Compétences INO non chargées — staffing approximatif. Cliquez « Compétences INO » pour fiabiliser.</td></tr>';
-  }
   h+='<tr>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">Présentés</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">Décrochés</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">Abandons</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">QS</th>'+
-     '<th style="background:#2F3640;color:#fff;'+CS+'">Staffing<br>actif</th>'+
-     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">État · Agents actifs</th></tr>';
+     '<th style="background:#2F3640;color:#fff;'+CS+'">TC</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">État · TC ayant traité</th></tr>';
   var tPres=0,tDec=0,tAb=0,tStaff=0;
   camps.forEach(function(c){
     var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0};
     var pres=f.presentes||0, dec=f.decroches||0, ab=f.abandons||0, st=staff[c].count;
     tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;
     var qs=pres>0?Math.round(dec/pres*100):null;
-    var critique=pres>0&&st===0;                       // flux mais aucun agent staffé
-    var qsBas=pres>=10&&qs!==null&&qs<80&&st>0;          // qualité dégradée malgré staffing
-    var rowBg=critique?'#F8C9C9':(qsBas?'#FFF0CC':(st===0?'#FCE4E4':'#fff'));
-    var etat=critique?'🔴 FLUX SANS STAFFING':(qsBas?'🟠 QS dégradé':(st===0?'🟠 0 actif':'🟢 OK'));
+    var nonCouvert=pres>0&&st===0;                      // appels reçus mais aucun TC sur la campagne
+    var qsBas=pres>=10&&qs!==null&&qs<80;               // qualité de service dégradée
+    var rowBg=nonCouvert?'#F8C9C9':(qsBas?'#FFF0CC':'#fff');
+    var etat=nonCouvert?'🔴 FLUX NON COUVERT (aucun TC)':(qsBas?'🟠 QS dégradé':'🟢 OK');
     var qsCol=qs===null?'#999':(qs<80?'#CC0000':(qs<90?'#B07800':'#1a6b1a'));
     h+='<tr style="background:'+rowBg+';">'+
        '<td style="'+CS+'font-weight:600;">'+c+'</td>'+
