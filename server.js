@@ -41,10 +41,49 @@ function secH(res){res.setHeader("X-Content-Type-Options","nosniff");res.setHead
 // en heures pleines : les minutes UTC restent valables telles quelles.
 const _parisHourFmt=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
 function parisHour(d){return parseInt(_parisHourFmt.format(d),10)%24;}
+const _parisDayFmt=new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short"});
+const _JOUR_KEYS={Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sat:"sam"};
+function parisJour(d){return _JOUR_KEYS[_parisDayFmt.format(d)]||"lun";}
+// Minute du jour en heure France (les offsets FR sont en heures pleines → minutes UTC inchangées)
+function parisMinOfDay(d){return parisHour(d)*60+d.getUTCMinutes();}
 
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // ────────────────────────────────────────────────────────────────────────────
+
+// Campagne d'une queue — même cascade que detectCampaign() côté client (dashboard/planning/astreinte)
+// pour que l'attribution serveur des flux par campagne coïncide avec celle des agents côté client.
+function detectCampaignSrv(queueName){
+  if(!queueName)return null;
+  for(const c of CAMPS){if((QUEUES_MAP[c]||[]).includes(queueName))return c;}
+  const normP=s=>s.toLowerCase().replace(/[éè]/g,"e").replace(/[& ]/g,"");
+  for(const c of CAMPS){if(normP(queueName).startsWith(normP(c)))return c;}
+  const q0=queueName.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+  for(const c of CAMPS){
+    const cl=c.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[-_]/g," ");
+    if(q0.includes(cl)||cl.includes(q0.split(" ")[0]))return c;
+  }
+  const tok=queueName.replace(/^sortant /i,"").split(/[_ ]/)[0];
+  return CAMPS.find(cp=>cp.toLowerCase().startsWith(tok.toLowerCase()))||null;
+}
+
+// Horaires d'ouverture par campagne — mêmes règles et mêmes défauts que isCampOpen() du dashboard
+// (critères partagés sharedStore.criteres : h24, jours{lun..dim:{on,o,f}}, repli h_ouv/h_ferm).
+// Sert à exclure des statistiques les appels reçus hors horaires d'ouverture du service.
+function _toMinSrv(t){const p=String(t||"").split(":");return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);}
+function isCampOpenAt(camp,d){
+  const cc=(sharedStore.criteres&&sharedStore.criteres[camp])||{};
+  if(cc.h24)return true;
+  const min=parisMinOfDay(d);
+  if(cc.jours&&typeof cc.jours==="object"){
+    const jd=cc.jours[parisJour(d)];
+    if(jd){
+      if(!jd.on)return false;
+      return min>=_toMinSrv(jd.o||cc.h_ouv||"09:00")&&min<_toMinSrv(jd.f||cc.h_ferm||"18:00");
+    }
+  }
+  return min>=_toMinSrv(cc.h_ouv||"08:00")&&min<_toMinSrv(cc.h_ferm||"20:00");
+}
 
 // ── Persistance partagée des réglages superviseurs (seuils, backlog, ajustements
 // manuels mails/heures, colonnes WhatsApp, presets) — un fichier JSON local sert de
@@ -267,6 +306,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Compteurs globaux de flux ENTRANTS réels (présentés/décrochés/abandonnés) — indépendants des agents
   // car un appel abandonné n'a pas d'agent rattaché et serait sinon ignoré.
   let fluxRecusIn=0, fluxDecroches=0, fluxAbandons=0, fluxSortants=0;
+  // Flux par CAMPAGNE (présentés/décrochés/abandonnés/sortants), restreints aux horaires
+  // d'ouverture configurés dans les critères de chaque campagne — les appels hors horaires
+  // sont comptés à part (horsHoraires) et exclus des stats. Indispensable pour une QS par
+  // campagne fiable : les abandons en file n'ont pas d'agent et n'apparaissent que dans les queues.
+  const fluxCamps={};
   function proc(h,type){
     // [PLAGE HORAIRE] Ne JAMAIS comptabiliser les appels hors de la plage [hDeb,hFin] sélectionnée.
     // L'heure est convertie en heure France (Railway tourne en UTC).
@@ -281,6 +325,21 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     // Comptage GLOBAL des flux réels (avant filtre agent) — un abandon n'a pas d'agent
     const _st=String(h.status||"").toLowerCase();
     const _isAband=_st.includes("aband");
+    // Attribution par campagne (via la queue de l'appel) avec exclusion des horaires de fermeture
+    {
+      const _qn=(h.queue&&h.queue.queueName)||"";
+      const _camp=detectCampaignSrv(_qn)||"Autre";
+      if(!fluxCamps[_camp])fluxCamps[_camp]={presentes:0,decroches:0,abandons:0,sortants:0,horsHoraires:0};
+      const _fc=fluxCamps[_camp];
+      const _dObj=_dtP?new Date(_dtP):null;
+      const _open=(_dObj&&!isNaN(_dObj))?isCampOpenAt(_camp,_dObj):true;
+      if(!_open){_fc.horsHoraires++;}
+      else if(type==="in"){
+        _fc.presentes++;
+        if(_isAband)_fc.abandons++;
+        else if(h.agent&&h.agent.id)_fc.decroches++;
+      }else{_fc.sortants++;}
+    }
     if(type==="in"){
       fluxRecusIn++;                         // tout appel entrant présenté
       if(_isAband)fluxAbandons++;            // présenté mais non décroché
@@ -385,7 +444,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   }).sort((a,b)=>b.total-a.total);
 
   return {agents:list,slots,total:list.length,date,dateFin:(dateFin||date),nbJours:jours.length,joursActifs,joursEchec,
-    flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants}};
+    flux:{recus:fluxDecroches+fluxAbandons,recusBrut:fluxRecusIn,decroches:fluxDecroches,abandons:fluxAbandons,sortants:fluxSortants},
+    fluxCampagnes:fluxCamps};
 }
 
 function makeAdmin(login){
@@ -740,11 +800,25 @@ const server=http.createServer(async(req,res)=>{
       const token=await getToken();
       if(!token){res.writeHead(502,{"Content-Type":"application/json"});res.end(JSON.stringify({error:"Token indisponible"}));return;}
       const[ci,co]=await Promise.all([
-        apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token),
-        apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:1000},token)
+        apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token),
+        apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token)
       ]);
-      const inH=(ci&&ci.histories)||[];
-      const outH=(co&&co.histories)||[];
+      let inH=(ci&&ci.histories)||[];
+      let outH=(co&&co.histories)||[];
+      // Pagination : si la limite est atteinte, redécouper par demi-journée (sinon les stats
+      // du jour seraient tronquées et les compteurs par file faux — même garde-fou que fetchAgentsDay)
+      if(inH.length===2000||outH.length===2000){
+        inH=[];outH=[];
+        const tranches=[["00:00:00","05:59:59"],["06:00:00","11:59:59"],["12:00:00","17:59:59"],["18:00:00","23:59:59"]];
+        for(const[s,e]of tranches){
+          const[rip,rop]=await Promise.all([
+            apiReq("POST","/call/in/histories",{startDate:date+" "+s,endDate:date+" "+e,limit:2000},token).catch(()=>null),
+            apiReq("POST","/call/out/histories",{startDate:date+" "+s,endDate:date+" "+e,limit:2000},token).catch(()=>null)
+          ]);
+          if(rip&&rip.histories)inH=inH.concat(rip.histories);
+          if(rop&&rop.histories)outH=outH.concat(rop.histories);
+        }
+      }
       // Agréger par file d'attente
       const qMap={};
       inH.forEach(h=>{
