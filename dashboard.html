@@ -2658,6 +2658,11 @@ function renderChart(){
     return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
   });
   const displaySlots=filteredSlots;
+  // Filtre campagne actif : au niveau demi-horaire, seuls les ENTRANTS sont ventilables
+  // par campagne (via les files). Sortants/abandons restent des totaux globaux non
+  // attribuables par campagne → on ne les affiche pas en vue filtrée pour ne pas induire
+  // en erreur (sinon « 443 sortants » = global, pas la campagne sélectionnée).
+  const _filtered=(typeof selCamps!=="undefined"&&typeof CAMPS!=="undefined"&&selCamps.length<CAMPS.length);
   // Période sélectionnée (date à date) + volume total affiché
   const _fr=s=>s?s.split("-").reverse().join("/"):"";
   const _dDeb=(document.getElementById("f-date-deb")||{}).value||"";
@@ -2667,11 +2672,14 @@ function renderChart(){
   const _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
   const _volIn=displaySlots.reduce((s,x)=>s+(x.vol||0),0);
   const _volOut=displaySlots.reduce((s,x)=>s+(x.out||0),0);
+  const _volAb=displaySlots.reduce((s,x)=>s+(x.aband||0),0);
   const _multi=(window._nbJours>1);
   const _spanP=document.getElementById("chart-period");
   if(_spanP){
     _spanP.textContent="· "+_periodeLbl+" · "+_hDeb+"–"+_hFin+" · "
-      +(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants"));
+      +(_filtered
+        ?(_volIn+" entrants traités (campagne filtrée)")
+        :(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants")));
   }
   if(!displaySlots.length){
     const msg=inoLive
@@ -2688,10 +2696,10 @@ function renderChart(){
   // Dimensions agrandies + marges pour axes
   const W=970,H=248,PAD={t:26,r:14,b:48,l:42};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
-  const maxV=Math.max(...displaySlots.map(s=>s.vol+s.out),1);
+  const maxV=Math.max(...displaySlots.map(s=>_filtered?(s.vol||0):Math.max(s.vol||0,s.out||0,s.aband||0)),1);
   // Échelle Y "ronde" : prochaine dizaine au-dessus
   const yMax=Math.ceil(maxV/10)*10;
-  const bw=cw/slots.length;
+  const bw=cw/displaySlots.length;
   let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:280px;display:block">
     <style>
       .axis{stroke:var(--axis,#333);stroke-width:1}
@@ -2703,7 +2711,7 @@ function renderChart(){
     </style>`;
   // Bandeau période + volume directement sur le graphique (visible en vue agrandie et à l'export)
   svg+=`<text class="chart-period" x="${PAD.l}" y="11">${_periodeLbl} · ${_hDeb}–${_hFin}</text>`;
-  svg+=`<text class="chart-period" x="${W-PAD.r}" y="11" text-anchor="end" style="fill:#E8006E">${_multi?("\u2248 "+_volIn+" entr./j"):(_volIn+" entrants · "+_volOut+" sortants")}</text>`;
+  svg+=`<text class="chart-period" x="${W-PAD.r}" y="11" text-anchor="end" style="fill:#E8006E">${_filtered?(_volIn+" entrants traités"):(_multi?("\u2248 "+_volIn+" entr./j"):(_volIn+" entrants · "+_volOut+" sortants"))}</text>`;
   // Grille horizontale + labels Y (5 paliers)
   for(let i=0;i<=5;i++){
     const y=PAD.t+ch-(i/5)*ch;
@@ -2714,42 +2722,44 @@ function renderChart(){
   // Axes
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
-  // Barres : entrants traités (rose) + sortants (gris) côte à côte, abandons (rouge) en transparent par-dessus
-  // Couleurs distinctes par thème : entrants traités (rose Wisecom), sortants (bleu acier), abandons (orange-rouge)
-  const C_IN="#E8006E", C_OUT="#3b9eff", C_ABAND="#ff7a18";
-  slots.forEach((s,i)=>{
+  // Barres groupées par tranche : entrants traités / sortants / abandons.
+  // Palette sobre et contrastée ; valeurs en infobulle (survol) plutôt qu'imprimées
+  // sur chaque barre — l'axe Y et les totaux du bandeau suffisent à la lecture.
+  const C_IN="#E8006E", C_OUT="#4C9AFF", C_ABAND="#FF8A3D";
+  displaySlots.forEach((s,i)=>{
     const x=PAD.l+i*bw;
-    const hv=(s.vol/yMax)*ch, ha=(s.aband/yMax)*ch, ho=(s.out/yMax)*ch;
-    // 3 barres fines côte à côte
-    const barW=bw*.26, gap=bw*.07, g2=barW+1;
-    const xIn=x+gap, xOut=x+gap+g2, xAb=x+gap+g2*2;
-    // Entrants traités (rose)
-    svg+=`<rect x="${xIn}" y="${PAD.t+ch-hv}" width="${barW}" height="${hv}" fill="${C_IN}" rx="2">
-      <title>${s.lbl} · ${s.vol} entrants traités</title></rect>`;
-    // Sortants (bleu acier)
-    svg+=`<rect x="${xOut}" y="${PAD.t+ch-ho}" width="${barW}" height="${ho}" fill="${C_OUT}" rx="2">
-      <title>${s.lbl} · ${s.out} sortants</title></rect>`;
-    // Abandons (orange-rouge) — barre dédiée, plus en overlay
-    if(s.aband>0)svg+=`<rect x="${xAb}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="${C_ABAND}" rx="2">
-      <title>${s.lbl} · ${s.aband} abandons</title></rect>`;
-    // Valeurs au-dessus de chaque barre (par type et par tranche)
-    if(s.vol>0)svg+=`<text x="${xIn+barW/2}" y="${PAD.t+ch-hv-3}" text-anchor="middle" style="font-size:8px;fill:${C_IN};font-weight:700;font-family:inherit">${s.vol}</text>`;
-    if(s.out>0)svg+=`<text x="${xOut+barW/2}" y="${PAD.t+ch-ho-3}" text-anchor="middle" style="font-size:8px;fill:${C_OUT};font-weight:700;font-family:inherit">${s.out}</text>`;
-    if(s.aband>0)svg+=`<text x="${xAb+barW/2}" y="${PAD.t+ch-ha-3}" text-anchor="middle" style="font-size:8px;fill:${C_ABAND};font-weight:700;font-family:inherit">${s.aband}</text>`;
-    // Labels heure : tous les 2 (toutes les heures, pas toutes les demi-heures)
+    const vIn=s.vol||0, vOut=s.out||0, vAb=s.aband||0;
+    const hv=(vIn/yMax)*ch, ho=(vOut/yMax)*ch, ha=(vAb/yMax)*ch;
+    // 3 barres fines centrées dans la tranche
+    const barW=bw*.24, gap=bw*.04, group=barW*3+gap*2, x0=x+(bw-group)/2;
+    const xIn=_filtered?(x+(bw-barW)/2):x0, xOut=x0+barW+gap, xAb=x0+(barW+gap)*2;
+    const mk=(xx,hh,col,lbl,val)=>val>0?`<rect x="${xx.toFixed(1)}" y="${(PAD.t+ch-hh).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hh,0).toFixed(1)}" fill="${col}" rx="1.5"><title>${s.lbl} · ${val} ${lbl}</title></rect>`:"";
+    svg+=mk(xIn,hv,C_IN,"entrants traités",vIn);
+    if(!_filtered){
+      svg+=mk(xOut,ho,C_OUT,"sortants",vOut);
+      svg+=mk(xAb,ha,C_ABAND,"abandons",vAb);
+    }
+    // Labels heure : toutes les heures (1 tranche sur 2)
     if(i%2===0){
-      svg+=`<text class="hlbl" x="${x+bw/2}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
+      svg+=`<text class="hlbl" x="${(x+bw/2).toFixed(1)}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
     }
   });
   // Légende sous l'axe X
   const ly=PAD.t+ch+34;
-  svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités</text>
-    <rect x="${PAD.l+140}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
-    <text class="legend" x="${PAD.l+156}" y="${ly}">Sortants</text>
-    <rect x="${PAD.l+235}" y="${ly-9}" width="11" height="11" fill="${C_ABAND}" rx="2"/>
-    <text class="legend" x="${PAD.l+251}" y="${ly}">Abandons</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : ${(window._nbJours>1)?"moyenne/jour":"nb d\u0027appels"} · max ${yMax}</text>`;
+  if(_filtered){
+    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités · ${_volIn}</text>
+    <text class="legend" x="${PAD.l+175}" y="${ly}" style="fill:#9a9a9a">Sortants / abandons : non ventilables par campagne au niveau demi-horaire</text>
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">nb d\u0027appels · max ${yMax}</text>`;
+  } else {
+    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités · ${_volIn}</text>
+    <rect x="${PAD.l+165}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
+    <text class="legend" x="${PAD.l+181}" y="${ly}">Sortants · ${_volOut}</text>
+    <rect x="${PAD.l+295}" y="${ly-9}" width="11" height="11" fill="${C_ABAND}" rx="2"/>
+    <text class="legend" x="${PAD.l+311}" y="${ly}">Abandons · ${_volAb}</text>
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">nb d\u0027appels · max ${yMax}</text>`;
+  }
   svg+="</svg>";
   host.innerHTML=svg;
   // Si la vue agrandie est ouverte, la rafraîchir aussi
@@ -2760,15 +2770,17 @@ function renderChart(){
   // RDV pris / Intéressé...) n'est PAS distinguable de manière fiable au niveau agent depuis
   // /call/in/histories (seuls quelques compteurs agrégés et partiels remontent — cf. tagQualif
   // côté serveur). Mode honnête : "n.d." plutôt qu'une estimation/simulation trompeuse.
-  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
-    return`<div style="margin-bottom:11px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;align-items:baseline">
-        <span style="color:var(--qual-label,#ddd);font-weight:500">${q}</span>
-        <span style="font-size:11px">${nd(null)}</span>
-      </div>
-      <div style="height:9px;background:var(--qual-bg,#1e1e1e);border-radius:5px;overflow:hidden"></div>
-    </div>`;
-  }).join("");
+  // Qualifications non exposées de façon fiable par l'API INO → état honnête et lisible
+  // (catégories en puces discrètes) plutôt que 8 barres vides qui semblent cassées.
+  document.getElementById("qualif-chart").innerHTML=
+    '<div style="border:1px dashed var(--s-4,#3a3a3a);border-radius:10px;padding:18px 16px;text-align:center;background:var(--qual-bg,#141414)">'
+    +'<div style="font-size:22px;margin-bottom:8px;opacity:.85">🏷️</div>'
+    +'<div style="font-size:12px;font-weight:600;color:var(--t-secondary,#ccc);margin-bottom:5px">Répartition non disponible</div>'
+    +'<div style="font-size:11px;color:var(--t-disabled,#888);line-height:1.55;max-width:240px;margin:0 auto 14px">'
+    +'Les qualifications fines ne sont pas remontées par l’API INO au niveau requis. Affichage en mode honnête plutôt qu’une estimation trompeuse.</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">'
+    +QUALIFS.map(function(q){return'<span style="font-size:10px;color:var(--t-disabled,#999);background:var(--s-2,#1e1e1e);border:1px solid var(--s-4,#333);border-radius:12px;padding:3px 9px">'+q+'</span>';}).join('')
+    +'</div></div>';
 }
 
 // Skills
