@@ -51,6 +51,50 @@ function parisMinOfDay(d){return parisHour(d)*60+d.getUTCMinutes();}
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
 // ────────────────────────────────────────────────────────────────────────────
 
+// Horaires d'ouverture de référence par campagne — source : onglet Horaire du fichier
+// de calibration INO (10/06/2026). Structure par jour FR : lun/mar/mer/jeu/ven/sam/dim.
+// Utilisés comme valeur par défaut dans isCampOpenAt() quand aucun critère n'est
+// configuré en production, ET applicables en un clic via /api/admin/apply-hours.
+const _defJR = (o,f) => ({on:true,o,f});
+const _offJR  = ()    => ({on:false,o:"09:00",f:"18:00"});
+const _wkJR   = (o,f,sO,sF,dO,dF) => ({
+  lun:_defJR(o,f),mar:_defJR(o,f),mer:_defJR(o,f),jeu:_defJR(o,f),ven:_defJR(o,f),
+  sam:sO?_defJR(sO,sF):_offJR(), dim:dO?_defJR(dO,dF):_offJR()
+});
+const CAMP_HOURS_DEFAULT = {
+  // Horaire Lun-Ven / Sam / Dim  (null Sam/Dim = fermé)
+  Afnor:                _wkJR("09:00","17:00"),
+  Alcéane:              null,  // H24
+  Antargaz:             _wkJR("09:00","18:00"),
+  Apex:                 _wkJR("09:00","19:00"),
+  Delsey:               _wkJR("09:00","19:00","10:00","18:00"),
+  ELECTROSUR:           _wkJR("08:00","20:00"),
+  Eiffage:              _wkJR("09:00","19:00","10:00","19:00"),
+  Elvetis:              _wkJR("09:00","18:00"),
+  Equisign:             _wkJR("09:30","18:00"),
+  Evoriel:              _wkJR("09:00","17:00"),
+  Filippi:              _wkJR("09:00","19:00","08:00","19:00","08:00","19:00"),
+  HMF:                  _wkJR("08:30","19:00","09:00","17:00"),
+  LBE:                  _wkJR("08:30","18:30"),
+  LGR:                  _wkJR("09:00","19:00","10:00","19:00"),
+  LMB:                  _wkJR("09:00","17:00"),
+  LMDW:                 _wkJR("09:00","19:00","10:00","19:00"),
+  M123:                 _wkJR("09:00","18:00","10:00","18:00"),
+  "MG Motor":           _wkJR("09:00","18:00"),
+  Monetize:             _wkJR("09:00","18:00"),
+  "Nature & Découvertes": _wkJR("09:00","17:00","10:00","17:00"),
+  Omoda:                _wkJR("08:00","19:00"),
+  SOS:                  _wkJR("09:00","18:00"),
+  Vivest:               null,  // H24
+  Voltalis:             _wkJR("08:00","20:00","10:00","18:00","10:00","18:00"),
+  // Campagnes ajoutées 10/06/2026 (source : onglet Horaire Excel)
+  CNPA:       _wkJR("09:00","18:00","10:00","17:00"),
+  Verspieren: _wkJR("09:00","18:00"),
+  Groupama:   _wkJR("10:00","18:00"),
+  GS1:        _wkJR("09:00","18:00"),  // 09-13h + 14-18h, simplifié en 09-18h
+  MNZ:        _wkJR("09:00","17:00"),
+};
+
 // Campagne d'une queue — même cascade que detectCampaign() côté client (dashboard/planning/astreinte)
 // pour que l'attribution serveur des flux par campagne coïncide avec celle des agents côté client.
 function detectCampaignSrv(queueName){
@@ -72,14 +116,19 @@ function detectCampaignSrv(queueName){
 // Sert à exclure des statistiques les appels reçus hors horaires d'ouverture du service.
 function _toMinSrv(t){const p=String(t||"").split(":");return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);}
 function isCampOpenAt(camp,d){
+  // CAMP_HOURS_DEFAULT est la source autoritaire (calibrée le 10/06/2026).
+  // null = H24. Le sharedStore peut forcer h24:true pour les campagnes non listées.
+  const def=CAMP_HOURS_DEFAULT[camp];
+  if(def===null)return true;  // H24 (Alcéane, Vivest)
   const cc=(sharedStore.criteres&&sharedStore.criteres[camp])||{};
   if(cc.h24)return true;
   const min=parisMinOfDay(d);
-  if(cc.jours&&typeof cc.jours==="object"){
-    const jd=cc.jours[parisJour(d)];
+  const jours=def||(cc.jours&&typeof cc.jours==="object"?cc.jours:null);
+  if(jours){
+    const jd=jours[parisJour(d)];
     if(jd){
       if(!jd.on)return false;
-      return min>=_toMinSrv(jd.o||cc.h_ouv||"09:00")&&min<_toMinSrv(jd.f||cc.h_ferm||"18:00");
+      return min>=_toMinSrv(jd.o||"09:00")&&min<_toMinSrv(jd.f||"18:00");
     }
   }
   return min>=_toMinSrv(cc.h_ouv||"08:00")&&min<_toMinSrv(cc.h_ferm||"20:00");
@@ -543,6 +592,16 @@ body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',system-ui,sans-seri
     <div id="queues-box" style="margin-top:14px"></div>
   </div>
   <div class="section">
+    <div class="section-title">⏰ Calibrer les horaires d'ouverture</div>
+    <div style="font-size:11px;color:#777;margin-bottom:14px;line-height:1.6">
+      Applique les horaires officiels (source : onglet <b>Horaire</b> du fichier INO du 10/06/2026)
+      dans la base de données partagée. À relancer après chaque redéploiement Railway si le volume
+      persistant n'est pas monté. Les appels <b>hors horaires d'ouverture</b> sont exclus des QS et flux.
+    </div>
+    <div id="hours-alert" class="alert"></div>
+    <button class="btn btn-pink" onclick="applyHours()">Appliquer les horaires calibrés (${Object.keys(CAMP_HOURS_DEFAULT).length} campagnes)</button>
+  </div>
+  <div class="section">
     <div class="section-title">🔐 Code de sécurité 2FA</div>
     <div id="code-alert-box" class="alert"></div>
     <div style="font-size:11px;color:#777;margin-bottom:14px;line-height:1.6">Le code à 6 chiffres demandé après la connexion. Modification réservée aux administrateurs. Prend effet immédiatement pour toutes les prochaines connexions.</div>
@@ -615,6 +674,17 @@ async function resetPwd(){
   const d=await r.json();
   if(d.ok){showAlert(d.message,true);document.getElementById('reset-login').value='';document.getElementById('reset-pwd').value='';}
   else showAlert(d.error||'Erreur',false);
+}
+async function applyHours(){
+  const box=document.getElementById('hours-alert');
+  box.textContent='⏳ Application en cours…';box.className='alert';box.style.display='block';
+  try{
+    const r=await fetch('/api/admin/apply-hours',{method:'POST'});
+    const d=await r.json();
+    if(d.ok){box.textContent='✓ '+d.applied+' campagne(s) calibrées avec les horaires officiels';box.className='alert alert-ok';}
+    else{box.textContent='✕ '+(d.error||'Erreur');box.className='alert alert-err';}
+  }catch(e){box.textContent='✕ '+e.message;box.className='alert alert-err';}
+  setTimeout(()=>box.style.display='none',6000);
 }
 async function loadQueues(){
   const box=document.getElementById('queues-box');
@@ -1000,13 +1070,39 @@ const server=http.createServer(async(req,res)=>{
         }
         const token=await getToken();
         if(!token){res.writeHead(502);return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        // Sources de files "déclarées" dans la config INO. On tente plusieurs endpoints :
+        // d'abord le routing voix (= page /maker/app#/flow/voice/routing : la config
+        // officielle des files/routages), puis les listes de files classiques en repli.
+        // Chaque endpoint peut renvoyer un tableau brut ou un objet paginé {items|data|...}.
         let declared=null,declaredSrc=null;
-        for(const p of ["/queue/list","/cc/queue/list","/call/queue/list"]){
+        const _srcEndpoints=[
+          ["GET","/flow/voice/routing?page=1&limit=500",null],
+          ["GET","/flow/voice/routing",null],
+          ["GET","/cc/flow/voice/routing?page=1&limit=500",null],
+          ["POST","/flow/voice/routing/list",{page:1,limit:500}],
+          ["GET","/queue/list",null],
+          ["GET","/cc/queue/list",null],
+          ["GET","/call/queue/list",null],
+        ];
+        const _extractArr=b=>{
+          if(Array.isArray(b))return b;
+          if(b&&typeof b==="object"){
+            for(const k of ["routings","routing","queues","items","results","data","list","rows","content"]){
+              if(Array.isArray(b[k]))return b[k];
+            }
+            // Wrapper paginé du type {data:{items:[...]}}
+            for(const k of ["data","result","payload"]){
+              if(b[k]&&typeof b[k]==="object"){const inner=_extractArr(b[k]);if(inner.length)return inner;}
+            }
+          }
+          return [];
+        };
+        for(const[m,p,bd]of _srcEndpoints){
           try{
-            const r=await apiReqFull("GET",p,null,token);
+            const r=await apiReqFull(m,p,bd,token);
             if(r.status===200){
-              const arr=Array.isArray(r.body)?r.body:(r.body&&(r.body.queues||r.body.data||r.body.list));
-              if(Array.isArray(arr)&&arr.length){declared=arr;declaredSrc=p;break;}
+              const arr=_extractArr(r.body);
+              if(arr.length){declared=arr;declaredSrc=m+" "+p;break;}
             }
           }catch(e){}
         }
@@ -1024,8 +1120,17 @@ const server=http.createServer(async(req,res)=>{
             if(!seen[q].dernierAppel||jr>seen[q].dernierAppel)seen[q].dernierAppel=jr;
           });
         }
+        // Extrait le nom de file d'un objet de config routing (formes variables selon
+        // l'endpoint : chaîne brute, {queueName}, {name}, {label}, ou {queue:{queueName}}).
+        const _qName=d=>{
+          if(typeof d==="string")return d;
+          if(!d||typeof d!=="object")return null;
+          return d.queueName||d.name||d.label||d.title||d.displayName||
+                 (d.queue&&(d.queue.queueName||d.queue.name))||
+                 (d.target&&(d.target.queueName||d.target.name))||null;
+        };
         (declared||[]).forEach(d=>{
-          const q=(d&&(d.queueName||d.name||d.label))||(typeof d==="string"?d:null);if(!q)return;
+          const q=_qName(d);if(!q)return;
           if(!seen[q])seen[q]={queue:q,volume:0,dernierAppel:null,declaree:true};
           else seen[q].declaree=true;
         });
@@ -1044,6 +1149,22 @@ const server=http.createServer(async(req,res)=>{
       }
     })();
     return;
+  }
+  if(url==="/api/admin/apply-hours"&&req.method==="POST"){
+    // Applique CAMP_HOURS_DEFAULT dans sharedStore.criteres pour chaque campagne.
+    // Idempotent : peut être relancé après un redéploiement Railway sans risque.
+    if(!sharedStore.criteres)sharedStore.criteres={};
+    const DEFAULTS={qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,astreinte_display:false,obj_appels:50};
+    const changed=[];
+    for(const[camp,hrs]of Object.entries(CAMP_HOURS_DEFAULT)){
+      if(!sharedStore.criteres[camp])sharedStore.criteres[camp]=Object.assign({},DEFAULTS);
+      const cc=sharedStore.criteres[camp];
+      if(hrs===null){if(!cc.h24){cc.h24=true;cc.jours={lun:{on:true,o:"00:00",f:"23:59"},mar:{on:true,o:"00:00",f:"23:59"},mer:{on:true,o:"00:00",f:"23:59"},jeu:{on:true,o:"00:00",f:"23:59"},ven:{on:true,o:"00:00",f:"23:59"},sam:{on:true,o:"00:00",f:"23:59"},dim:{on:true,o:"00:00",f:"23:59"}};changed.push(camp+" → H24");}}
+      else{cc.h24=false;cc.jours=hrs;changed.push(camp);}
+    }
+    persistStore();
+    res.writeHead(200,{"Content-Type":"application/json"});
+    return res.end(JSON.stringify({ok:true,applied:changed.length,campaigns:changed}));
   }
   if(url==="/api/admin/users"&&req.method==="GET"){
     const list=Object.keys(USERS).map(u=>({login:u,role:u==="tarik"||u==="admin"?"admin":"user"}));
