@@ -2674,6 +2674,17 @@ function toggleRow(id){
   if(caret)caret.textContent=open?"▸":"▾";
 }
 
+// Convertit un timestamp ISO en minutes depuis minuit (heure Paris)
+function _parisSlotMin(isoStr){
+  if(!isoStr)return -1;
+  try{
+    var d=new Date(isoStr);
+    var fr=d.toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+    var p=fr.replace('h',':').split(':');
+    return parseInt(p[0])*60+parseInt(p[1]);
+  }catch(e){return -1;}
+}
+
 // Graphiques
 function renderChart(){
   const host=document.getElementById("chart-host");if(!host)return;
@@ -2735,7 +2746,7 @@ function renderChart(){
     return;
   }
   // Dimensions agrandies + marges pour axes
-  const W=970,H=248,PAD={t:26,r:14,b:48,l:42};
+  const W=970,H=258,PAD={t:26,r:14,b:58,l:42};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
   const maxV=Math.max(...displaySlots.map(s=>_filtered?(s.vol||0):Math.max(s.vol||0,s.out||0,s.aband||0)),1);
   // Échelle Y "ronde" : prochaine dizaine au-dessus
@@ -2763,10 +2774,24 @@ function renderChart(){
   // Axes
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
   svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
+  // Précomputer le nombre d'agents actifs par tranche (périmètre = getFiltered())
+  // Basé sur premiereAction → derniereAction de chaque agent
+  const _scopedAgents=typeof getFiltered==='function'?getFiltered():[];
+  const _slotAgentCount=displaySlots.map(function(s){
+    var lbl=s.lbl||"";
+    var p=lbl.split(':');
+    var slotMin=parseInt(p[0])*60+parseInt(p[1]);
+    return _scopedAgents.filter(function(a){
+      if(!a.premiereAction)return false;
+      var start=_parisSlotMin(a.premiereAction);
+      var end=_parisSlotMin(a.derniereAction||a.premiereAction);
+      return start>=0&&end>=0&&start<=(slotMin+29)&&end>=slotMin;
+    }).length;
+  });
+
   // Barres groupées par tranche : entrants traités / sortants / abandons.
-  // Palette sobre et contrastée ; valeurs en infobulle (survol) plutôt qu'imprimées
-  // sur chaque barre — l'axe Y et les totaux du bandeau suffisent à la lecture.
-  const C_IN="#E8006E", C_OUT="#4C9AFF", C_ABAND="#FF8A3D";
+  // "Présentés" = décrochés+abandons affichés en fond pour mise en perspective
+  const C_IN="#E8006E", C_OUT="#4C9AFF", C_ABAND="#FF8A3D", C_PRES="rgba(232,0,110,0.18)";
   displaySlots.forEach((s,i)=>{
     const x=PAD.l+i*bw;
     const vIn=s.vol||0, vOut=s.out||0, vAb=s.aband||0;
@@ -2774,32 +2799,46 @@ function renderChart(){
     // 3 barres fines centrées dans la tranche
     const barW=bw*.24, gap=bw*.04, group=barW*3+gap*2, x0=x+(bw-group)/2;
     const xIn=_filtered?(x+(bw-barW)/2):x0, xOut=x0+barW+gap, xAb=x0+(barW+gap)*2;
+    const vPres=vIn+((!_filtered)?vAb:0); // présentés = décrochés + abandons (en mode filtré, aband déjà dans vIn)
+    const hPres=(vPres/yMax)*ch;
     const mk=(xx,hh,col,lbl,val)=>val>0?`<rect x="${xx.toFixed(1)}" y="${(PAD.t+ch-hh).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hh,0).toFixed(1)}" fill="${col}" rx="1.5"><title>${s.lbl} · ${val} ${lbl}</title></rect>`:"";
-    svg+=mk(xIn,hv,C_IN,"entrants traités",vIn);
+    // Barre de contexte "Présentés" (fond semi-transparent, même largeur que barre entrants)
+    if(vPres>vIn&&vPres>0){svg+=`<rect x="${xIn.toFixed(1)}" y="${(PAD.t+ch-hPres).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hPres,0).toFixed(1)}" fill="${C_PRES}" rx="1.5"><title>${s.lbl} · ${vPres} présentés (dont ${vAb} abandons)</title></rect>`;}
+    svg+=mk(xIn,hv,C_IN,"décrochés",vIn);
     if(!_filtered){
       svg+=mk(xOut,ho,C_OUT,"sortants",vOut);
-      svg+=mk(xAb,ha,C_ABAND,"abandons",vAb);
     }
     // Labels heure : toutes les heures (1 tranche sur 2)
     if(i%2===0){
       svg+=`<text class="hlbl" x="${(x+bw/2).toFixed(1)}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
     }
+    // Nombre d'agents actifs sur cette tranche (small, under label)
+    var _ac=_slotAgentCount[i];
+    if(_ac>0){
+      svg+=`<text style="font-size:8px;fill:#4C9AFF;font-family:inherit;" x="${(x+bw/2).toFixed(1)}" y="${PAD.t+ch+27}" text-anchor="middle" title="${_ac} TC actif(s) sur cette tranche">${_ac}TC</text>`;
+    }
   });
   // Légende sous l'axe X
   const ly=PAD.t+ch+34;
+  const _volPres=_volIn+(_filtered?0:_volAb);
   if(_filtered){
-    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités · ${_volIn}</text>
-    <text class="legend" x="${PAD.l+175}" y="${ly}" style="fill:#9a9a9a">Sortants / abandons : non ventilables par campagne au niveau demi-horaire</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">nb d\u0027appels · max ${yMax}</text>`;
+    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_PRES}" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Présentés · ${_volPres}</text>
+    <rect x="${PAD.l+110}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
+    <text class="legend" x="${PAD.l+126}" y="${ly}">Décrochés · ${_volIn}</text>
+    <rect x="${PAD.l+250}" y="${ly-9}" width="7" height="7" fill="#4C9AFF" rx="1" y="${ly-7}"/>
+    <text class="legend" x="${PAD.l+263}" y="${ly}" style="fill:#4C9AFF">nTC = agents actifs / tranche</text>
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">max ${yMax}</text>`;
   } else {
-    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités · ${_volIn}</text>
-    <rect x="${PAD.l+165}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
-    <text class="legend" x="${PAD.l+181}" y="${ly}">Sortants · ${_volOut}</text>
-    <rect x="${PAD.l+295}" y="${ly-9}" width="11" height="11" fill="${C_ABAND}" rx="2"/>
-    <text class="legend" x="${PAD.l+311}" y="${ly}">Abandons · ${_volAb}</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">nb d\u0027appels · max ${yMax}</text>`;
+    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_PRES}" rx="2"/>
+    <text class="legend" x="${PAD.l+16}" y="${ly}">Présentés · ${_volPres}</text>
+    <rect x="${PAD.l+120}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
+    <text class="legend" x="${PAD.l+136}" y="${ly}">Décrochés · ${_volIn}</text>
+    <rect x="${PAD.l+250}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
+    <text class="legend" x="${PAD.l+266}" y="${ly}">Sortants · ${_volOut}</text>
+    <rect x="${PAD.l+360}" y="${ly-9}" width="7" height="7" fill="#4C9AFF" rx="1" y="${ly-7}"/>
+    <text class="legend" x="${PAD.l+373}" y="${ly}" style="fill:#4C9AFF">nTC = agents actifs/tranche</text>
+    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">max ${yMax}</text>`;
   }
   svg+="</svg>";
   host.innerHTML=svg;
@@ -2872,8 +2911,8 @@ function renderBacklog(){
 
 function renderSkills(){
   const host=document.getElementById("skills-table");if(!host)return;
-  // N'afficher que les agents réels (issus de l'API INO), pas les fictifs AGENTS_BASE
-  const realAgents=agents.filter(a=>a.id);
+  // Respecter les filtres actifs (campagnes, statut, agents) — mode tour de contrôle
+  const realAgents=getFiltered().filter(a=>a.id);
   // Cas 1 : aucun agent chargé (jour sans données INO, ou plage incluant un jour vide non encore alimenté)
   if(realAgents.length===0){
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
@@ -4110,11 +4149,13 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
   h+='</tr>';
 
-  // ── Bloc récap campagnes ──
-  var campRecap=[
-    {n:"Vivest",c:"#A9D18E"},{n:"Voltalis",c:"#70AD47"},{n:"Alcéane",c:"#FFF2CC"},
-    {n:"GLOBAL",c:"#BDD7EE"}
-  ];
+  // ── Bloc récap campagnes — dynamique selon le périmètre filtré ──
+  var _campCount={};
+  sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')_campCount[a.camp]=(_campCount[a.camp]||0)+1;});
+  var campRecap=Object.keys(_campCount).sort(function(a,b){return _campCount[b]-_campCount[a];}).slice(0,8).map(function(c){
+    return {n:c,c:WA_GROUP_COLORS[c]||"#E0E0E0"};
+  });
+  campRecap.push({n:"GLOBAL",c:"#BDD7EE"});
   h+='<tr><td colspan="'+COLS+'" style="height:5px;border:none;background:#fff;"></td></tr><tr>';
   h+='<td colspan="3" style="border:none;background:#fff;"></td>';
   campRecap.forEach(function(x){
@@ -4122,7 +4163,8 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     h+='<td style="background:'+x.c+';color:#222;font-weight:700;font-size:9px;padding:2px 7px;border:1px solid #ccc;">'+x.n+'</td>';
     h+=waTd(n,x.c,true,"#111");
   });
-  h+='<td colspan="'+(COLS-11)+'" style="border:none;background:#fff;"></td></tr>';
+  var _recapSpan=COLS-3-(campRecap.length*2);
+  h+='<td colspan="'+Math.max(1,_recapSpan)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
   return h+waCampSynthesis(window._lastAllAgents||sorted);
 }
@@ -4159,19 +4201,10 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   var tHp    =T.reduce(function(s,a){return s+(a.hprod||0);},0);
   var tMails =T.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
 
-  var viv=T.filter(function(a){return a.camp==="Vivest";});
-  var vAppIn=viv.reduce(function(s,a){return s+(a.decroches||0);},0);
-  var vDurW =viv.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
-  var vHp   =viv.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var vMails=viv.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
-  var vAppOut=viv.reduce(function(s,a){return s+(a.sortants||0);},0);
-
-  var fil=T.filter(function(a){return a.camp==="Filippi";});
-  var fAppIn=fil.reduce(function(s,a){return s+(a.decroches||0);},0);
-  var fDurW =fil.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
-  var fHp   =fil.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var fMails=fil.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
-  var fAppOut=fil.reduce(function(s,a){return s+(a.sortants||0);},0);
+  // Cumuls Vivest/Filippi supprimés (colonnes hardcodées retirées — périmètre dynamique)
+  var viv=[],fil=[];
+  var vAppIn=0,vDurW=0,vHp=0,vMails=0,vAppOut=0;
+  var fAppIn=0,fDurW=0,fHp=0,fMails=0,fAppOut=0;
 
   // Nombre de colonnes total
   var nCampCols=camps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
