@@ -3169,8 +3169,11 @@ function renderStaffingBanner(){
   if(!f.length){el.innerHTML='';return;}
   // Construire staffing par camp : compter agents actifs et agents totaux
   const campMap={};
+  // Init toutes les campagnes configurées (même celles sans agent connecté)
+  CAMPS.forEach(c=>{if(c)campMap[c]={total:0,actifs:0,hasSkills:false};});
   f.forEach(a=>{
     const c=a.camp||'–';
+    if(c==='–')return;
     if(!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false};
     campMap[c].total++;
     if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
@@ -3194,7 +3197,12 @@ function renderStaffingBanner(){
     return curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
   }
   const P='#E8006E';
-  const camps=Object.keys(campMap).filter(c=>c!=='–').sort();
+  const camps=Object.keys(campMap).filter(c=>c&&c!=='–').sort((a,b)=>{
+    // Campagnes avec agents d'abord, puis alphabétique
+    const da=campMap[a],db=campMap[b];
+    if(da.total!==db.total)return db.total-da.total;
+    return a.localeCompare(b,'fr');
+  });
   let html=`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;">
     <span style="font-size:10px;font-weight:700;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-right:4px">Staffing par campagne</span>`;
   camps.forEach(camp=>{
