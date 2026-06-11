@@ -715,6 +715,18 @@ body.light .agent-row .skills-cell{color:var(--c-pink-dark);}
 body.light .ino-coverage{background:var(--s-light-1);border-color:#e8e8e8;}
 body.light .ino-coverage-text{color:var(--t-disabled);}
 
+/* ── Bannière alerte transfert GSM ── */
+.gsm-alert-banner{padding:9px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:3px solid;position:sticky;top:0;z-index:200;}
+.gsm-alert-banner.gsm-warn{background:#3d2800;border-color:#ff9f0a;color:#ff9f0a;}
+.gsm-alert-banner.gsm-active{background:#3a0000;border-color:#E8006E;color:#ff4d80;}
+body.light .gsm-alert-banner.gsm-warn{background:#fff8e6;color:#b45309;border-color:#ff9f0a;}
+body.light .gsm-alert-banner.gsm-active{background:#fff0f5;color:#c0005a;border-color:#E8006E;}
+.gsm-icon{font-size:20px;flex-shrink:0;}
+@keyframes gsmPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.gsm-alert-banner.gsm-active .gsm-icon{animation:gsmPulse 1s infinite;}
+.gsm-alert-items{font-size:12px;flex:1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.gsm-alert-item{background:rgba(255,255,255,.08);border-radius:6px;padding:3px 8px;white-space:nowrap;}
+body.light .gsm-alert-item{background:rgba(0,0,0,.06);}
 
 /* ===== CORRECTIONS CONTRASTE / VISIBILITÉ (audit design) ===== */
 /* MODE CLAIR : fond global + topbar (étaient restés noirs) */
@@ -1004,6 +1016,14 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 <main id="main-content">
 <!-- SMART ALERTS -->
 <div id="ino-coverage"></div>
+
+<!-- ALERTE GSM ASTREINTE -->
+<div class="gsm-alert-banner" id="gsm-alert-banner" role="alert" aria-live="polite">
+  <span class="gsm-icon" id="gsm-icon">📱</span>
+  <span id="gsm-alert-title" style="font-weight:700;font-size:13px;flex-shrink:0;"></span>
+  <div class="gsm-alert-items" id="gsm-alert-items"></div>
+  <button onclick="document.getElementById('gsm-alert-banner').style.display='none';" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:inherit;padding:0 6px;flex-shrink:0;" title="Masquer jusqu'à la prochaine vérification" aria-label="Fermer l'alerte GSM">×</button>
+</div>
 
 <div class="content">
   <!-- KPIs -->
@@ -1622,11 +1642,9 @@ let cmpWeeksOffset=0;       // 0 = désactivé, 1..5 = nombre de semaines en arr
 const cmpRefCache=new Map(); // clé "N|date|dateFin|hDeb|hFin" → résumé (jamais invalidé : passé immuable)
 let cmpRef=null;            // résumé de la période de référence courante, ou null
 
-function shiftDateStr(s,days){
-  const d=new Date(s+"T00:00:00");
-  d.setDate(d.getDate()+days);
-  return d.toISOString().slice(0,10);
-}
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
+function timeToMin(t){if(!t)return NaN;const p=String(t).split(":");return Number(p[0])*60+(Number(p[1])||0);}
 function fmtCmpLabel(rd,rdFin){
   const f=s=>new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});
   return rd===rdFin?f(rd):(f(rd)+" → "+f(rdFin));
@@ -1879,6 +1897,7 @@ async function pullStore(){
       astreintesTracked=new Set(Array.isArray(d.astreintes.tracked)?d.astreintes.tracked:[]);
       astreintesEntries=(d.astreintes.entries&&typeof d.astreintes.entries==='object')?d.astreintes.entries:{};
       renderStaffingBanner();
+      checkGsmAlerts();
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.waCols&&typeof d.waCols==='object'){
@@ -3072,13 +3091,73 @@ function renderSelectionSummary(){
       :'<span style="color:#ff9f0a;font-size:9px;margin-left:4px">◌ Simulation</span>');
 }
 
+// ── Alerte GSM astreinte — vérification toutes les 60 s ─────────────────────
+function checkGsmAlerts(){
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowDate=isoLocal(now);
+  const ystDate=shiftDateStr(nowDate,-1);
+  const alerts=[];
+
+  function processDate(date,isYesterday){
+    Object.entries(astreintesEntries).forEach(([key,v])=>{
+      if(!key.endsWith("|"+date))return;
+      const camp=key.slice(0,key.length-date.length-1);
+      if(!astreintesTracked.has(camp))return;
+      const name=typeof v==="string"?v:(v&&v.name)||"";
+      if(!name)return;
+      const gsm=typeof v==="object"&&v&&!!v.gsm;
+      if(!gsm)return;
+      const startStr=(typeof v==="object"&&v.start)||"";
+      const endStr=(typeof v==="object"&&v.end)||"";
+      if(!startStr)return;
+      const startMin=timeToMin(startStr);
+      const endMin=endStr?timeToMin(endStr):null;
+      const isOvernight=endMin!==null&&endMin>0&&endMin<=startMin;
+      if(!isYesterday){
+        const warnMin=startMin-30;
+        const warning=nowMin>=warnMin&&nowMin<startMin;
+        const active=nowMin>=startMin&&(endMin===null||isOvernight||(endMin!==null&&nowMin<endMin));
+        if(warning||active)alerts.push({camp,name,start:startStr,end:endStr||"",state:active?"active":"warning"});
+      }else{
+        // Shift de nuit commencé hier, encore actif tôt le matin
+        if(isOvernight&&endMin!==null&&nowMin<endMin)
+          alerts.push({camp,name,start:startStr,end:endStr||"",state:"active",note:"↗ débuté hier"});
+      }
+    });
+  }
+
+  processDate(ystDate,true);
+  processDate(nowDate,false);
+  renderGsmAlertBanner(alerts);
+}
+
+function renderGsmAlertBanner(alerts){
+  const banner=document.getElementById("gsm-alert-banner");
+  if(!banner)return;
+  if(!alerts.length){banner.style.display="none";return;}
+  const hasActive=alerts.some(a=>a.state==="active");
+  banner.className="gsm-alert-banner "+(hasActive?"gsm-active":"gsm-warn");
+  banner.style.display="flex";
+  document.getElementById("gsm-icon").textContent=hasActive?"📱":"🔔";
+  document.getElementById("gsm-alert-title").textContent=hasActive
+    ?"Transfert GSM actif — vérifiez l'activation"
+    :"Transfert GSM — activation dans moins de 30 min";
+  document.getElementById("gsm-alert-items").innerHTML=alerts.map(a=>
+    `<span class="gsm-alert-item"><b>${esc(a.camp)}</b> — ${esc(a.name)} ${a.start?esc(a.start)+"":""}${a.end?"→"+esc(a.end):""}${a.note?` <span style="opacity:.7;">${esc(a.note)}</span>`:""}</span>`
+  ).join("");
+}
+
 // Astreinte suivie pour une campagne + jours couverts cette semaine (registre partagé, lecture seule)
 function astreinteStatus(camp){
   if(!astreintesTracked.has(camp))return{tracked:false,covered:0};
   const now=new Date();
-  const monday=shiftDateStr(now.toISOString().slice(0,10),-((now.getDay()+6)%7));
+  const monday=shiftDateStr(isoLocal(now),-((now.getDay()+6)%7));
   let covered=0;
-  for(let i=0;i<7;i++){if(astreintesEntries[camp+'|'+shiftDateStr(monday,i)])covered++;}
+  for(let i=0;i<7;i++){
+    const v=astreintesEntries[camp+'|'+shiftDateStr(monday,i)];
+    if(typeof v==="string"?v:(v&&v.name))covered++;
+  }
   return{tracked:true,covered};
 }
 
@@ -3701,6 +3780,7 @@ const _ccInit=document.getElementById('col-count');
 if(_ccInit)_ccInit.textContent=visibleCols.size;
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
+setInterval(checkGsmAlerts,60000);
 (function(){function _r(){if(typeof refreshFromINO==='function')refreshFromINO();}['f-date-deb','f-date-fin'].forEach(function(id){var el=document.getElementById(id);if(el&&!el._dateFixBound){el._dateFixBound=true;el.addEventListener('change',_r);}});})();
 
 // ══════════════════════════════════════════════════════════════════
