@@ -96,6 +96,7 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   <div class="panel">
     <div class="panel-title"><span>📌 KPIs exécutifs — semaine de référence</span><span id="kpi-period" style="color:#666;"></span></div>
     <div class="summary" id="kpis"><div class="empty-hint">Choisissez une date de référence puis cliquez sur « Charger les tendances 4 semaines » pour afficher les indicateurs de pilotage.<br>⏳ L'agrégation sur 4 semaines interroge INO jour par jour et peut prendre une à deux minutes.</div></div>
+    <div id="kpi-src-note" style="margin-top:8px;"></div>
   </div>
 
   <div class="panel">
@@ -476,7 +477,8 @@ function renderCompare(){
   const tabsHtml=CMP_METRICS.map(mt=>`<button class="cmp-metric-tab${mt.key===m.key?" active":""}" data-metric="${mt.key}">${mt.label}</button>`).join("");
   const theadCols=days.map(d=>{
     const wd=new Date(d+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short"});
-    return `<th title="${fmtDateLong(d)}">${fmtDate(d)}<br><span style="font-weight:400;color:#999;font-size:9px;text-transform:capitalize;">${wd}</span></th>`;
+    const ferie=isFrenchHoliday(d);
+    return `<th title="${fmtDateLong(d)}${ferie?" — Jour férié en France (activité réduite attendue)":""}">${fmtDate(d)}${ferie?' <span style="font-size:9px;" title="Jour férié">🏖</span>':""}<br><span style="font-weight:400;color:#999;font-size:9px;text-transform:capitalize;">${wd}</span></th>`;
   }).join("");
   const bodyRows=camps.map(camp=>{
     const vals=days.map(d=>{const r=getCmpRow(d,camp);return r?r[m.key]:null;});
@@ -501,7 +503,8 @@ function renderCompare(){
     camps.forEach(camp=>{
       const r=getCmpRow(d,camp);
       if(!r)return;
-      detailRows+=`<tr><td>${fmtDateLong(d)}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
+      const ferie=isFrenchHoliday(d);
+      detailRows+=`<tr${ferie?' style="background:#fffdf0;"':''}><td>${fmtDateLong(d)}${ferie?' 🏖':""}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
     });
   });
   const detailHtml=`<details style="margin-top:16px;">
@@ -530,6 +533,9 @@ function renderKPIs(){
   const weeks=weeksData.weeks;
   const cur=weeks[3].totals,prev=weeks[2].totals;
   document.getElementById("kpi-period").textContent=`${fmtDateLong(weeks[3].start)} → ${fmtDateLong(weeks[3].end)}`;
+  // Note transparence source données
+  const srcNote=document.getElementById("kpi-src-note");
+  if(srcNote)srcNote.innerHTML='<span style="font-size:10px;color:#999;">Sources : files d\'appel INO (fluxCampagnes) quand disponibles — plus fiables que l\'agrégation agents. Les jours fériés (🏖) affichent naturellement une activité très basse.</span>';
   const qsColor=cur.qs==null?"#888":cur.qs>=85?"#1a8f44":cur.qs<80?"#dc2626":"#161616";
   const chargeAgent=cur.nbAgents>0?(cur.volTraite/cur.nbAgents).toFixed(1):"–";
   document.getElementById("kpis").innerHTML=`
@@ -658,6 +664,23 @@ function renderNarrative(){
   document.getElementById("narrative").innerHTML=sentences.map(s=>`<p style="margin-bottom:8px;line-height:1.6;color:#444;">${s}</p>`).join("");
 }
 
+// Jours fériés français (fixes + Pâques calculé par algo Meeus/Jones/Butcher)
+function easterDate(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return new Date(y,mo-1,da);
+}
+function isFrenchHoliday(dateStr){
+  const d=new Date(dateStr+"T00:00:00"),y=d.getFullYear();
+  const ea=easterDate(y);
+  const offset=(n)=>{const x=new Date(ea);x.setDate(x.getDate()+n);return isoLocal(x);};
+  const fd=(m,day)=>`${y}-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  const jf=new Set([fd(1,1),fd(5,1),fd(5,8),fd(7,14),fd(8,15),fd(11,1),fd(11,11),fd(12,25),
+    offset(1),offset(39),offset(49),offset(50)]);
+  return jf.has(dateStr);
+}
+
 function showToast(msg,color){
   const t=document.getElementById("toast");
   t.textContent=msg;
@@ -710,7 +733,11 @@ document.getElementById("cmp-run").addEventListener("click",runCompare);
 cmpDays=[shiftDateStr(todayStr,-7),todayStr];
 renderCmpChips();
 
-loadConfig();
+(async()=>{
+  await loadConfig();
+  // Auto-charge les tendances 4 semaines au démarrage (date de référence = aujourd'hui)
+  loadTrend();
+})();
 connectSSE();
 </script>
 </body>
