@@ -78,7 +78,11 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   <div class="panel">
     <div class="panel-title">
       <span>📡 Charge projetée par créneau — <span id="radar-camp-label" style="color:#E8006E;font-weight:700;">–</span></span>
-      <span id="radar-period" style="color:#666;"></span>
+      <span style="display:flex;gap:8px;align-items:center;">
+        <span id="radar-period" style="color:#666;"></span>
+        <button class="btn btn-dark" id="btn-radar-excel" disabled title="Exporter le radar au format Excel">⬇ Excel</button>
+        <button class="btn btn-dark" id="btn-radar-pdf" disabled title="Exporter le radar au format PDF">⬇ PDF</button>
+      </span>
     </div>
     <div id="radar-table-wrap" style="overflow-x:auto;">
       <div class="empty-hint">
@@ -298,22 +302,100 @@ function renderHeatmap(){
     days.forEach(d=>{
       const cell=d.profile?d.profile[h]:null;
       if(!cell){
-        const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée";
-        tbody+=`<td style="text-align:center;color:#444;" title="${reason}">n.d.</td>`;
+        const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée INO pour le jour de référence ("+fmtDate(d.refDate)+")";
+        tbody+=`<td style="text-align:center;color:#999;background:#f5f5f5;" title="${reason}"><span style="font-size:10px;">n.d.</span></td>`;
         return;
       }
       const level=tensionLevel(cell,baseline);
       const color=TENSION_COLOR[level];
-      const display=cell.vol===0?"–":(cell.charge===null?"⚠":cell.charge.toFixed(1));
       const reco=recommendedAgents(cell.vol,baseline);
-      const recoTxt=reco==null?"":` · Agents recommandés pour ce volume au rythme habituel (${baseline.toFixed(1)} appels/agent) : ${reco}`;
-      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}${recoTxt}`;
-      tbody+=`<td style="text-align:center;background:${color}1a;color:${color};font-weight:700;" title="${title}">${display}</td>`;
+      if(cell.vol===0){
+        // Pas d'activité habituelle sur ce créneau — affiché explicitement, pas une case vide
+        tbody+=`<td style="text-align:center;background:#fafafa;color:#bbb;" title="Aucun appel ${camp} observé sur ce créneau le ${fmtDate(d.refDate)} — pas de staffing requis a priori"><span style="font-size:10px;">0 appel</span></td>`;
+        return;
+      }
+      // Cellule riche : volume + staffing recommandé vs référence + charge/agent
+      const chargeTxt=cell.charge===null?'<span style="font-size:10px;">⚠ aucun agent</span>':`${cell.charge.toFixed(1)}/ag`;
+      const recoTxt=reco==null?"":`${reco} TC reco`;
+      const refTxt=`réf ${cell.agents}`;
+      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence ${fmtDate(d.refDate)}) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}${reco!=null?` · Staffing recommandé au rythme habituel (${baseline!=null?baseline.toFixed(1):"?"} appels/agent) : ${reco} agent(s)`:""}`;
+      tbody+=`<td style="text-align:center;background:${color}1a;padding:4px 8px;" title="${title}">
+        <div style="font-weight:700;color:${color};font-size:13px;">${cell.vol} <span style="font-size:9px;font-weight:500;">appels</span></div>
+        <div style="font-size:10px;color:#333;font-weight:600;">${recoTxt}${recoTxt&&refTxt?" · ":""}<span style="color:#888;font-weight:400;">${refTxt}</span></div>
+        <div style="font-size:10px;color:${color};">${chargeTxt}</div>
+      </td>`;
     });
     tbody+="</tr>";
   }
-  document.getElementById("radar-table-wrap").innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
-    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> — survolez une cellule pour le détail.</div>`;
+  document.getElementById("radar-table-wrap").innerHTML=`<table class="tbl" id="radar-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> · Lecture d'une cellule : <b>volume projeté</b> · <b>staffing recommandé</b> (vs agents en référence) · <b>charge/agent</b>.</div>`;
+  // Activer les exports
+  document.getElementById("btn-radar-excel").disabled=false;
+  document.getElementById("btn-radar-pdf").disabled=false;
+}
+
+// ── Exports Excel / PDF ──────────────────────────────────────────────
+// Tableau plat (une ligne par jour×créneau) : exploitable en planification,
+// contrairement à la heatmap qui est une vue de lecture.
+function radarExportRows(){
+  const {camp,days,baseline}=radarData;
+  const rows=[["Campagne","Jour","Date","Créneau","Jour de référence","Volume projeté (appels)","Agents actifs (référence)","Charge/agent","Staffing recommandé","Tension"]];
+  const LBL={none:"Pas d'activité",unknown:"Inconnue",normal:"Normale",moderate:"Modérée",high:"Forte",critical:"Critique (aucun agent)"};
+  days.forEach(d=>{
+    for(let h=0;h<12;h++){
+      const cell=d.profile?d.profile[h]:null;
+      if(!cell){rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),"n.d.","n.d.","n.d.","n.d.","Donnée indisponible"]);continue;}
+      const reco=recommendedAgents(cell.vol,baseline);
+      rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),
+        cell.vol,cell.agents,
+        cell.charge==null?"n.d.":cell.charge,
+        reco==null?"n.d.":reco,
+        LBL[tensionLevel(cell,baseline)]||""]);
+    }
+  });
+  return rows;
+}
+
+function exportRadarExcel(){
+  if(!radarData){showToast("⚠ Générez d'abord le radar","#b45309");return;}
+  const {camp,days,baseline}=radarData;
+  const heat=document.getElementById("radar-table");
+  const flat=radarExportRows();
+  const flatHtml='<table border="1" cellspacing="0" cellpadding="3">'+flat.map((r,i)=>'<tr>'+r.map(c=>(i===0?'<th style="background:#2F3640;color:#fff;">':'<td>')+c+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+'</table>';
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
+    '<head><meta charset="UTF-8"><style>table{border-collapse:collapse;font-family:Arial;font-size:11px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}</style></head>'+
+    '<body><h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Radar de couverture — '+camp+' — semaine du '+fmtDate(days[0].date)+' au '+fmtDate(days[6].date)+'</h2>'+
+    '<p style="font-family:Arial;font-size:11px;">Charge/agent de référence : '+(baseline!=null?baseline.toFixed(1)+' appels/agent':'n.d.')+'</p>'+
+    (heat?heat.outerHTML.replace(/<table/,'<table border="1" cellspacing="0" cellpadding="3"'):'')+
+    '<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Détail par jour et créneau (données de planification)</h3>'+flatHtml+'</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const el=document.createElement("a");
+  el.href=url;el.download="Radar_couverture_"+camp.replace(/[^\w]/g,"_")+"_"+radarData.weekStart+".xls";
+  document.body.appendChild(el);el.click();el.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showToast("✓ Export Excel téléchargé");
+}
+
+function exportRadarPDF(){
+  if(!radarData){showToast("⚠ Générez d'abord le radar","#b45309");return;}
+  const {camp,days,baseline}=radarData;
+  const heat=document.getElementById("radar-table-wrap");
+  const synth=document.getElementById("radar-synthesis");
+  const w=window.open("","_blank");
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Radar de couverture '+camp+'</title>'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:14px;}'+
+    'table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;padding:4px 6px;font-size:9.5px;text-align:center;}'+
+    'th{background:#f0f0f0;}h1{font-size:15px;color:#E8006E;margin-bottom:4px;}h2{font-size:11px;color:#555;margin:10px 0 6px;font-weight:600;}'+
+    '.signal{border:1px solid #e0c0c0;background:#fff5f5;border-radius:6px;padding:7px 10px;margin:5px 0;font-size:10px;line-height:1.5;}'+
+    '@media print{@page{size:A4 landscape;margin:8mm;}}</style></head><body>'+
+    '<h1>📡 Radar de couverture — '+camp+'</h1>'+
+    '<div style="font-size:10px;color:#666;">Semaine du '+fmtDate(days[0].date)+' au '+fmtDate(days[6].date)+' · Charge/agent de référence : '+(baseline!=null?baseline.toFixed(1)+' appels/agent':'n.d.')+' · Généré le '+new Date().toLocaleString("fr-FR")+'</div>'+
+    '<h2>Charge projetée par créneau</h2>'+(heat?heat.innerHTML:'')+
+    '<h2>Synthèse — créneaux à anticiper</h2>'+(synth?synth.innerHTML:'')+
+    '</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 function renderRadarSynthesis(){
@@ -374,6 +456,8 @@ const weekInput=document.getElementById("r-week");
 weekInput.value=nextMonday();
 weekInput.addEventListener("change",()=>{document.getElementById("radar-status").textContent="";});
 document.getElementById("btn-radar-load").addEventListener("click",loadRadar);
+document.getElementById("btn-radar-excel").addEventListener("click",exportRadarExcel);
+document.getElementById("btn-radar-pdf").addEventListener("click",exportRadarPDF);
 
 loadConfig();
 connectSSE();
