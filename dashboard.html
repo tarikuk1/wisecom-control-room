@@ -310,9 +310,6 @@ body.light .preset-select{background:var(--s-light-2);border-color:var(--s-light
 .smart-alert.acknowledged{opacity:.55;border-color:#1f1f1f;}
 
 /* Switch */
-.sw-label{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:var(--fs-md2);user-select:none;padding:4px 0;}
-.sw-track{width:40px;height:21px;border-radius:11px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;}
-.sw-thumb{position:absolute;top:2px;width:17px;height:17px;border-radius:50%;background:var(--c-white);transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4);}
 
 /* Smart alerts */
 /* ── ALERTES & FEEDBACK ────────────────────────────────────
@@ -664,8 +661,6 @@ body.light #wa-stat-popup{background:#fff;}
 .wa-cfg-tag button:hover{opacity:1;}
 .wa-cfg-sel{font-size:9.5px;padding:2px 6px;border:1.5px dashed #ccc;border-radius:10px;background:transparent;cursor:pointer;color:#888;max-width:160px;}
 .wa-cfg-sel:hover{border-color:#E8006E;color:#E8006E;}
-body.light .sw-track{background:var(--s-light-border)!important;}
-body.light .sw-track > .sw-thumb{background:var(--c-white);}
 body.light .total-row{background:#fff0f7;}
 body.light .agent-row td{color:var(--s-3);}
 body.light .agent-row td span,body.light .agent-row td b{color:inherit;}
@@ -1000,16 +995,6 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <div class="filter-group"><span class="filter-label">Compétences</span><div class="ck-wrap" id="ck-skills"></div></div>
       <div class="filter-group"><span class="filter-label">Statut</span><div class="ck-wrap" id="ck-status"></div></div>
 
-      <div class="ctrl-vsep"></div>
-
-      <span class="ctrl-label">Isoler</span>
-      <div id="sw-container" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;"></div>
-
-      <label style="display:flex;align-items:center;gap:5px;font-size:var(--fs-sm);color:var(--t-muted);cursor:pointer;white-space:nowrap;margin-left:6px;" title="Masquer les agents déconnectés">
-        <input type="checkbox" id="hide-deconnecte-ctrl" onchange="toggleHideDeconnecteCtrl()" style="accent-color:var(--c-pink);width:13px;height:13px;">
-        Masquer déconnectés
-      </label>
-
     </div>
   </div>
   <!-- Résumé sélection active -->
@@ -1248,7 +1233,6 @@ let astreintesTracked=new Set(),astreintesEntries={};   // registre d'astreinte 
 var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={}, waEmailEdits={};
 let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
 let skillSort={col:null,dir:"asc"};
-let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
   {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
@@ -1857,16 +1841,6 @@ function buildAllDropdowns(){
   renderSelectionSummary();
 }
 
-function buildSwitches(){
-  const cont=document.getElementById("sw-container");
-  const defs=[["reit","Réitérants"],["refus","Refus prise appel"],["inactif","Inactifs"]];
-  cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
-    <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?21:2}px"></div></div>${l}
-  </label>`).join("");
-}
-
-function toggleSw(k){sw[k]=!sw[k];buildSwitches();render();}
-
 // === Persistance partagée serveur ===========================================
 // Les réglages superviseurs (seuils QS/backlog, ajustements manuels mails/heures,
 // colonnes WhatsApp, presets) vivaient uniquement en localStorage : chaque poste avait
@@ -1971,7 +1945,7 @@ async function savePreset(){
   }
   p[name]={camps:[...selCamps],queues:[...selQueues],agents:[...selAgents],
     skills:[...selSkills],status:[...selStatus],
-    sw:{...sw},savedAt:new Date().toISOString()};
+    savedAt:new Date().toISOString()};
   const ok=savePresets(p);
   if(!ok){presetStatus("Impossible d'enregistrer (stockage indisponible)","#ff3b30");return;}
   refreshPresetSelect();
@@ -1986,8 +1960,7 @@ function applyPreset(name){
   selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
   selStatus=Array.isArray(p.status)?p.status:["Actif","Traitement","Post-appel","Déconnecté","n.d."];
-  if(p.sw&&typeof p.sw==="object")sw={...sw,...p.sw};
-  buildAllDropdowns();buildSwitches();render();
+  buildAllDropdowns();render();
   presetStatus(`Vue « ${name} » appliquée`,"#30d158");
 }
 async function deletePreset(){
@@ -2018,9 +1991,6 @@ function getFiltered(){
       const _agSkills=Array.isArray(a.skills)?a.skills.map(s=>s.name||s):[];
       if(_agSkills.length>0&&!_agSkills.some(s=>selSkills.includes(s)))return false;
     }
-    if(sw.refus&&(a.refus||0)===0)return false;
-    if(sw.reit&&(a.reiterants||0)===0)return false;
-    if(sw.inactif&&(a.inactifs||0)<3)return false;
     return true;
   });
 }
@@ -2306,12 +2276,6 @@ function renderKPIs(f){
 }
 
 // Smart routing + Red flags
-function toggleHideDeconnecteCtrl(){
-  hideDeconnecte=document.getElementById("hide-deconnecte-ctrl")?.checked||false;
-  const cb2=document.getElementById("hide-deconnecte");
-  if(cb2)cb2.checked=hideDeconnecte;
-  render();
-}
 function toggleHideDeconnecte(){
   hideDeconnecte=document.getElementById("hide-deconnecte")?.checked||false;
   render();
@@ -3503,7 +3467,6 @@ function exportPDF(){
   slots=genSlots();
   selQueues=getAllQueues();
   buildAllDropdowns();
-  buildSwitches();
   render();
   setBadge("ready");
   connectSSE();
