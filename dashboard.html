@@ -3814,7 +3814,7 @@ function exportPDF(){
     const cfg=await fetch('/api/config').then(r=>r.ok?r.json():null);
     if(cfg&&Array.isArray(cfg.CAMPS)&&cfg.CAMPS.length){
       CAMPS=cfg.CAMPS;
-      if(cfg.QUEUES_MAP&&typeof cfg.QUEUES_MAP==='object')QUEUES_MAP=cfg.QUEUES_MAP;
+      if(cfg.QUEUES_MAP&&typeof cfg.QUEUES_MAP==='object'){QUEUES_MAP=cfg.QUEUES_MAP;window._waCampQ=null;}
       if(Array.isArray(cfg.SKILLS)&&cfg.SKILLS.length)SKILLS=cfg.SKILLS;
       // Re-dérive les sélections par défaut sur la config fraîche
       selCamps=[...CAMPS];selSkills=[...SKILLS];
@@ -4215,6 +4215,72 @@ function waHas(sk,name){
   return sk.has(name)||sk.has(name==='ND'?'Nature & Découvertes':(WA_CAMP_ALIAS&&WA_CAMP_ALIAS[name])||name);
 }
 
+// Cache camp → Set de queues (minuscules), incluant les alias WA_CAMP_ALIAS (ND → Nature & Découvertes).
+// Invalidé à chaque chargement de config (waBuildConfig remet _waCampQ à null).
+function waCampQueues(){
+  if(window._waCampQ)return window._waCampQ;
+  var cq={};
+  if(typeof QUEUES_MAP!=='undefined'&&QUEUES_MAP){
+    Object.keys(QUEUES_MAP).forEach(function(c){
+      cq[c]=new Set((QUEUES_MAP[c]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+    Object.keys(WA_CAMP_ALIAS||{}).forEach(function(wa){
+      var real=WA_CAMP_ALIAS[wa];
+      if(QUEUES_MAP[real]&&!cq[wa])cq[wa]=new Set((QUEUES_MAP[real]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+  }
+  window._waCampQ=cq;
+  return cq;
+}
+
+// Colonnes "Affectations appels" : quand un filtre campagnes est actif, les colonnes SUIVENT
+// la sélection (cohérence stricte campagnes choisies ↔ colonnes affichées). Sinon, la liste
+// WhatsApp par défaut (waActiveCalls). Les noms de campagnes longs avec alias court (Nature &
+// Découvertes → ND) sont affichés en court pour rester compacts et garder leur couleur.
+function waCallColumns(){
+  // Filtre actif = l'utilisateur a réduit la liste des campagnes (sous-ensemble strict de CAMPS)
+  var narrowed=Array.isArray(selCamps)&&selCamps.length>0&&typeof CAMPS!=='undefined'&&selCamps.length<CAMPS.length;
+  if(narrowed){
+    var rev={};Object.keys(WA_CAMP_ALIAS||{}).forEach(function(w){rev[WA_CAMP_ALIAS[w]]=w;});
+    var seen={},out=[];
+    selCamps.forEach(function(c){
+      var col=rev[c]||c;
+      if(!seen[col]){seen[col]=1;out.push(col);}
+    });
+    return out;
+  }
+  return waActiveCalls;
+}
+
+// Vrai si l'agent est affecté/compétent sur la campagne c (nom réel CAMPS ou colonne WA courte).
+// Même cascade que waCampSynthesis : queues traitées → camp principal → compétence==queue →
+// compétence normalisée vers colonne WA. Couvre les campagnes hors liste WA courte (Voltalis,
+// Antargaz…) via QUEUES_MAP, et les colonnes courtes (LGR, ND, HMF…) via normalizeSkillToWaCol.
+function waAgentCovers(a,c){
+  var campQ=waCampQueues();
+  var realCamp=(WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c])?WA_CAMP_ALIAS[c]:c;
+  var qset=campQ[c]||(realCamp!==c?campQ[realCamp]:null);
+  // 1. Queues traitées sur la période
+  var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+  if(qset&&qset.size>0&&agQ.length>0&&agQ.some(function(q){return qset.has(q);}))return true;
+  // 2. Campagne principale détectée
+  if(a.camp===c||a.camp===realCamp)return true;
+  // 3 & 4. Compétences INO (skills + allSkillsData actives)
+  var agSkills=[],agSkillsRaw=[];
+  if(Array.isArray(a.skills))a.skills.forEach(function(s){var n=String(s.name||s);agSkills.push(n.toLowerCase().trim());agSkillsRaw.push(n);});
+  if(Array.isArray(a.allSkillsData))a.allSkillsData.forEach(function(s){if(s.active!==false&&s.name){agSkills.push(String(s.name).toLowerCase().trim());agSkillsRaw.push(String(s.name));}});
+  // 3. Compétence == nom de queue de la campagne
+  if(qset&&qset.size>0&&agSkills.some(function(sk){return qset.has(sk);}))return true;
+  // 4. Compétence normalisée → colonne WA == c (ou alias croisé)
+  for(var i=0;i<agSkillsRaw.length;i++){
+    var col=normalizeSkillToWaCol(agSkillsRaw[i]);
+    if(!col)continue;
+    if(col===c||col===realCamp)return true;
+    if(WA_CAMP_ALIAS&&(WA_CAMP_ALIAS[col]===c||WA_CAMP_ALIAS[c]===col))return true;
+  }
+  return false;
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  TABLEAU 1 — AFFECTATION
 // ══════════════════════════════════════════════════════════════════
@@ -4449,7 +4515,10 @@ function waCampSynthesis(allAgents){
   return h;
 }
 function buildAffectationTable(sorted,dateStr,timeStr){
-  var COLS=7+waActiveCalls.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
+  // Colonnes "Affectations appels" = campagnes sélectionnées si filtre actif, sinon liste WhatsApp par défaut.
+  // Garantit la cohérence stricte : campagnes choisies en haut ↔ colonnes affichées ici.
+  var callCols=waCallColumns();
+  var COLS=7+callCols.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
   var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;width:max-content;">';
 
   // ── Titre ──
@@ -4464,7 +4533,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+=waTh("H<br>retour","#2F3640","#fff",1,2);
   h+=waTh("H<br>fin","#2F3640","#fff",1,2);
   h+=waTh("Cumul","#2F3640","#fff",1,2);
-  h+=waTh("Affectations appels","#1F4E79","#fff",waActiveCalls.length);
+  h+=waTh("Affectations appels"+(callCols!==waActiveCalls?" (campagnes filtrées)":""),"#1F4E79","#fff",callCols.length);
   h+=waTh("Emails","#4472C4","#fff",waActiveMails.length);
   h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
   h+=waTh("Liste des compétences","#375623","#fff",WA_SKILLS_COMP.length);
@@ -4473,7 +4542,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 
   // ── Header ligne 2 — colonnes compétences ──
   h+='<tr>';
-  waActiveCalls.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
+  callCols.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||WA_GROUP_COLORS[s]||"#E0E0E0","#333");});
   waActiveMails.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#BDD7EE","#333");});
   h+=waTh("","#E8006E","#fff");
   WA_SKILLS_COMP.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
@@ -4524,10 +4593,11 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     // Cumul = H prod
     h+=waTd(hpNum?hpNum+"h":"–",rowBg,true,hpNum!=="–"&&parseFloat(hpNum)>=7?"#000":"#C00");
 
-    // Affectations appels — colorié si compétence active
-    waActiveCalls.forEach(function(s){
-      var has=waHas(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
+    // Affectations appels — colorié si l'agent couvre la campagne (matching robuste,
+    // identique aux alertes staffing : queues + camp + compétences + colonne WA normalisée)
+    callCols.forEach(function(s){
+      var has=waAgentCovers(a,s);
+      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||WA_GROUP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
     // Affectations emails (INO + override manager)
     waActiveMails.forEach(function(s){
@@ -4576,9 +4646,9 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   // ── Ligne totaux ──
   h+='<tr style="background:#1F4E79;">';
   h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:9px;padding:2px 6px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
-  // Compter par skill
-  waActiveCalls.forEach(function(s){
-    var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
+  // Compter par campagne colonne (même matching robuste que les cellules)
+  callCols.forEach(function(s){
+    var n=sorted.filter(function(a){return waAgentCovers(a,s);}).length;
     h+=waTd(n>0?n:"","#BDD7EE",true,n>0?"#1F4E79":"#1F4E79");
   });
   waActiveMails.forEach(function(s){
