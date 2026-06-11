@@ -4237,11 +4237,13 @@ function waCampQueues(){
 // la sélection (cohérence stricte campagnes choisies ↔ colonnes affichées). Sinon, la liste
 // WhatsApp par défaut (waActiveCalls). Les noms de campagnes longs avec alias court (Nature &
 // Découvertes → ND) sont affichés en court pour rester compacts et garder leur couleur.
-function waCallColumns(){
-  // Filtre actif = l'utilisateur a réduit la liste des campagnes (sous-ensemble strict de CAMPS)
-  var narrowed=Array.isArray(selCamps)&&selCamps.length>0&&typeof CAMPS!=='undefined'&&selCamps.length<CAMPS.length;
-  if(narrowed){
-    var rev={};Object.keys(WA_CAMP_ALIAS||{}).forEach(function(w){rev[WA_CAMP_ALIAS[w]]=w;});
+// Colonnes "Affectations appels" — dérivées des données réelles (flux + camps agents),
+// même source que Alertes staffing et Stat TC. En mode filtre actif, suit la sélection.
+function waCallColumns(sorted){
+  var rev={};
+  Object.keys(WA_CAMP_ALIAS||{}).forEach(function(w){rev[WA_CAMP_ALIAS[w]]=w;});
+  // Filtre campagnes actif → colonnes = sélection (noms longs → courts via alias)
+  if(campSelPartial()){
     var seen={},out=[];
     selCamps.forEach(function(c){
       var col=rev[c]||c;
@@ -4249,7 +4251,20 @@ function waCallColumns(){
     });
     return out;
   }
-  return waActiveCalls;
+  // Mode "Toutes campagnes" → colonnes dérivées des données temps réel
+  // Même union que waCampSynthesis : flux INO + camps des agents visibles
+  var campSet={};
+  var fx=window._fluxCamps||null;
+  if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
+  if(Array.isArray(sorted)){
+    sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
+  }
+  var seen={},out=[];
+  Object.keys(campSet).sort().forEach(function(c){
+    var col=rev[c]||c;
+    if(!seen[col]){seen[col]=1;out.push(col);}
+  });
+  return out.length>0?out:waActiveCalls;
 }
 
 // Vrai si l'agent est affecté/compétent sur la campagne c (nom réel CAMPS ou colonne WA courte).
@@ -4297,7 +4312,6 @@ function waCampSynthesis(allAgents){
   // Filtrée par selCamps si une sélection est active (mode tour de contrôle)
   var campSet={};
   if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
-  waActiveCalls.forEach(function(c){campSet[c]=1;});
   allAgents.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
   var camps=Object.keys(campSet);
   // Filtrer selon selCamps si une sélection active (<35 campagnes)
@@ -4517,7 +4531,7 @@ function waCampSynthesis(allAgents){
 function buildAffectationTable(sorted,dateStr,timeStr){
   // Colonnes "Affectations appels" = campagnes sélectionnées si filtre actif, sinon liste WhatsApp par défaut.
   // Garantit la cohérence stricte : campagnes choisies en haut ↔ colonnes affichées ici.
-  var callCols=waCallColumns();
+  var callCols=waCallColumns(sorted);
   var COLS=7+callCols.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
   var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;width:max-content;">';
 
@@ -4533,7 +4547,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+=waTh("H<br>retour","#2F3640","#fff",1,2);
   h+=waTh("H<br>fin","#2F3640","#fff",1,2);
   h+=waTh("Cumul","#2F3640","#fff",1,2);
-  h+=waTh("Affectations appels"+(callCols!==waActiveCalls?" (campagnes filtrées)":""),"#1F4E79","#fff",callCols.length);
+  h+=waTh("Affectations appels"+(campSelPartial()?" · filtrées":""),"#1F4E79","#fff",callCols.length);
   h+=waTh("Emails","#4472C4","#fff",waActiveMails.length);
   h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
   h+=waTh("Liste des compétences","#375623","#fff",WA_SKILLS_COMP.length);
@@ -4879,8 +4893,11 @@ function waBuildConfig(){
   var avM=all.filter(function(c){return!waActiveMails.includes(c);});
   function tags(arr,t){return arr.map(function(c){var bg=WA_CAMP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333">'+c+'<button onclick="waRemoveCamp(\''+c.replace(/'/g,"\\'")+'\',\''+t+'\')">×</button></span>';}).join('');}
   function sel(av,t){if(!av.length)return'';return'<select class="wa-cfg-sel" onchange="if(this.value){waAddCamp(this.value,\''+t+'\');this.value=\'\';}">'+'<option value="">+ Ajouter…</option>'+av.map(function(c){return'<option value="'+c+'">'+c+'</option>';}).join('')+'</select>';}
+  // Colonnes appels actuellement dérivées des données en temps réel
+  var _dynCols=waCallColumns(window._lastWaSorted||[]);
   panel.innerHTML='<div class="wa-cfg-hdr">⚙ Personnaliser les colonnes<button onclick="waResetCols()">↺ Réinitialiser</button></div>'+
-    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels ('+waActiveCalls.length+')</div><div class="wa-cfg-tags">'+tags(waActiveCalls,'calls')+sel(avC,'calls')+'</div></div>'+
+    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels</div><div class="wa-cfg-tags">'+
+      (_dynCols.length?_dynCols.map(function(c){var bg=WA_CAMP_COLORS[c]||WA_GROUP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333;opacity:.75;cursor:default;">'+c+'</span>';}).join(''):'')+'<span style="font-size:9px;color:#888;padding:3px 6px;display:inline-block;">Auto-détectées depuis les flux &amp; camps actifs. Appliquez un filtre campagnes pour personnaliser.</span></div></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
 }
 var _waEditAgent=null;
@@ -5109,11 +5126,14 @@ function renderWA(){
   // globale. Si l'utilisateur a restreint les campagnes, sa sélection EST le
   // critère : on affiche tous les agents du périmètre.
   if(!_campScopeActive){
-    var allWaCamps=waActiveCalls.concat(waActiveMails);
+    // Inclure les agents avec un camp connu ou des compétences WA détectées
+    // (colonnes dérivées dynamiquement — plus de liste statique waActiveCalls)
     sorted=sorted.filter(function(a){
+      if(a.camp&&a.camp!=='-'&&a.camp!=='–')return true;
       var sk=waSkills(a);
-      if(sk.size===0) return false; // aucune compétence connue → exclure
-      return allWaCamps.some(function(s){return waHas(sk,s);});
+      if(sk.size>0)return true;
+      // Inclure aussi si des queues INO ont pu être captées (agents actifs en cours)
+      return !!(a.queues&&a.queues.length>0);
     });
   }
   window._lastWaSorted=sorted;
