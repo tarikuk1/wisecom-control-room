@@ -31,6 +31,10 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 .empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
 .success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
 .note{font-size:11px;color:#777;line-height:1.6;margin-top:12px;}
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;text-decoration:none;background:#f5f5f5;transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:#E8006E55;color:#E8006E;background:#fff0f6;}
+.nav-pill.active{border-color:#E8006E;color:#E8006E;background:#fff0f6;}
+.nav-pill .n-icon{font-size:11px;}
 .chip{display:inline-flex;align-items:center;gap:6px;background:#fafafa;border:1px solid #dedede;border-radius:20px;padding:4px 10px 4px 12px;font-size:11px;color:#444;}
 .chip-suggest{cursor:pointer;border-color:#E8006E55;}
 .chip-suggest:hover{background:#E8006E1a;}
@@ -95,7 +99,12 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
-    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+    <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
+    <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
+    <a href="/astreinte" class="nav-pill"><span class="n-icon">🌙</span> Astreinte</a>
+    <a href="/planning" class="nav-pill active"><span class="n-icon">🗓️</span> Planning</a>
+    <a href="/notice" class="nav-pill"><span class="n-icon">📖</span> Notice</a>
   </div>
 </div>
 
