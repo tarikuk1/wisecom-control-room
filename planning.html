@@ -186,8 +186,11 @@ let agentCampMap = new Map();
 let pushTimer = null;
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+// Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
+// et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   return names[new Date(dateStr+"T00:00:00").getDay()];
@@ -196,13 +199,13 @@ function nextMonday(){
   const d=new Date();
   const diff=((8-d.getDay())%7)||7;
   d.setDate(d.getDate()+diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
 }
 function mondayOf(dateStr){
   const d=new Date((dateStr||nextMonday())+"T00:00:00");
   const diff=(d.getDay()+6)%7;
   d.setDate(d.getDate()-diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
 }
 function weekDates(monday){
   const out=[];
@@ -344,7 +347,7 @@ async function loadAgentRoster(){
     agentRoster=built.names;agentCampMap=built.campMap;
   }catch(e){
     try{
-      const today=new Date().toISOString().slice(0,10);
+      const today=isoLocal(new Date());
       const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
       const d=await r.json();
       if(d.error)throw new Error(d.error);
@@ -889,7 +892,7 @@ async function loadCallDistribution(){
         const r=await fetch(`${INO_BASE}/agents-day?date=${refDate}&hDeb=08:00&hFin=20:00`);
         if(!r.ok)continue;
         data=await r.json();
-        const todayStr=new Date().toISOString().slice(0,10);
+        const todayStr=isoLocal(new Date());
         if(refDate<todayStr&&!data.error)distDayCache.set(refDate,data);
       }
       const slots=Array.isArray(data.slots)?data.slots:[];

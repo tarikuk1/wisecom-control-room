@@ -177,9 +177,12 @@ const CMP_METRICS = [
 ];
 
 function fmtMMSS(s){const v=Math.round(s||0);const m=Math.floor(v/60);return`${String(m).padStart(2,"0")}:${String(v%60).padStart(2,"0")}`;}
+// Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
+// et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
 function fmtDateLong(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function pctSigned(cur,prev){if(!(prev>0))return"n.d.";const p=(cur-prev)/prev*100;return(p>0?"+":"")+p.toFixed(0)+"%";}
 
 // Sparkline SVG inline — repris du même motif que dashboard.html (tendance verte si ↑, rose si ↓)
@@ -335,7 +338,7 @@ async function loadTrend(){
   const stEl=document.getElementById("trend-status");
   const btn=document.getElementById("btn-load");
   if(!ref){showToast("⚠ Choisissez une date de référence d'abord","#b45309");return;}
-  const todayStr=new Date().toISOString().slice(0,10);
+  const todayStr=isoLocal(new Date());
   loading=true;
   btn.disabled=true;
   const prevLabel=btn.textContent;
@@ -437,7 +440,7 @@ async function runCompare(){
   if(!cmpDays.length){showToast("⚠ Ajoutez au moins un jour à comparer","#b45309");return;}
   const camps=Array.from(document.querySelectorAll(".cmp-camp-cb:checked")).map(cb=>cb.value);
   if(!camps.length){showToast("⚠ Sélectionnez au moins une campagne à comparer","#b45309");return;}
-  const todayStr2=new Date().toISOString().slice(0,10);
+  const todayStr2=isoLocal(new Date());
   cmpLoading=true;btn.disabled=true;
   const prevLabel=btn.textContent;
   try{
@@ -676,7 +679,7 @@ function connectSSE(){
 }
 
 // Init
-const todayStr=new Date().toISOString().slice(0,10);
+const todayStr=isoLocal(new Date());
 const refInput=document.getElementById("ref-date");
 refInput.value=todayStr;
 refInput.max=todayStr;
