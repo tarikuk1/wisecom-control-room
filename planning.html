@@ -39,8 +39,14 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 .tag-btn{background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:2px 6px;font-size:12px;cursor:pointer;color:#777;line-height:1;}
 .tag-btn.active{background:#fff3e0;border-color:#ff9f0a;color:#b45309;}
 .tag-mutualise{font-size:11px;color:#0066cc;border:1px solid #0066cc55;border-radius:6px;padding:2px 6px;}
-.shift-cell{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:150px;}
+.shift-cell{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:170px;}
 .shift-times{display:flex;align-items:center;gap:4px;color:#777;}
+.shift-lunch{display:flex;align-items:center;gap:4px;font-size:10px;color:#777;}
+.shift-lunch input[type=time]{width:66px;padding:3px 4px;font-size:10px;}
+.shift-pauses{display:flex;align-items:center;gap:5px;font-size:10px;color:#777;flex-wrap:wrap;}
+.shift-pauses label{display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;}
+.shift-pauses input[type=checkbox]{accent-color:#E8006E;}
+.shift-pauses input[type=time]{width:66px;padding:3px 4px;font-size:10px;}
 .shift-off-label{font-size:11px;color:#777;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;}
 .shift-tags{font-size:10px;min-height:13px;color:#E8006E;}
 .total-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fafafa;color:#161616;border:1px solid #dedede;white-space:nowrap;}
@@ -60,6 +66,7 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 .cov-table .wk{background:#fafafa;}
 .cov-cnt{font-weight:700;font-size:12px;}
 .cov-pct{display:block;font-size:9px;color:#888;}
+.cov-brk{display:block;font-size:9px;color:#b45309;}
 .cov-zero-flux{color:#dc2626;font-weight:700;}
 .cov-foot td{border-top:2px solid #dedede;background:#fcfcfc;font-weight:600;}
 
@@ -456,13 +463,38 @@ function currentCamp(){
 }
 function currentMonday(){return mondayOf(document.getElementById("p-week").value);}
 
+// Pause déjeuner valide (début < fin) → [début, fin] en minutes, sinon null
+function lunchRange(s){
+  if(!s||!s.lunchS||!s.lunchE)return null;
+  const a=timeToMinutes(s.lunchS),b=timeToMinutes(s.lunchE);
+  return b>a?[a,b]:null;
+}
+// Heures de début (en minutes) des pauses 15 min posées sur le créneau
+function pauseStarts(s){
+  return [s&&s.p1,s&&s.p2].filter(Boolean).map(timeToMinutes).filter(v=>!isNaN(v));
+}
+// Libellé compact déjeuner + pauses pour les vues en lecture seule et les exports
+function breaksLabel(s){
+  const parts=[];
+  if(lunchRange(s))parts.push(`🍽 ${s.lunchS}–${s.lunchE}`);
+  const ps=[s.p1,s.p2].filter(Boolean);
+  if(ps.length)parts.push(`☕ ${ps.join(" · ")}`);
+  return parts.join("  ");
+}
+
 function weekTotalMinutes(agent,dates,entry){
   let total=0;
   dates.forEach(d=>{
     const s=entry.shifts[agent+"|"+d];
     if(s&&s.start&&s.end){
       const a=timeToMinutes(s.start),b=timeToMinutes(s.end);
-      if(b>a)total+=(b-a);
+      if(b>a){
+        let m=b-a;
+        // Le déjeuner n'est pas du temps travaillé ; les pauses 15 min restent décomptées comme travaillées
+        const l=lunchRange(s);
+        if(l)m-=Math.min(m,l[1]-l[0]);
+        total+=m;
+      }
     }
   });
   return total;
@@ -499,17 +531,28 @@ function toggleTraining(name){
 }
 function commitShiftFromCell(cell){
   const agent=cell.dataset.agent,date=cell.dataset.date;
-  const startI=cell.querySelector(".t-start"),endI=cell.querySelector(".t-end"),offI=cell.querySelector(".t-off");
+  const q=s=>cell.querySelector(s);
+  const startI=q(".t-start"),endI=q(".t-end"),offI=q(".t-off");
+  const lSI=q(".t-lunch-s"),lEI=q(".t-lunch-e");
+  const p1c=q(".t-p1c"),p1I=q(".t-p1"),p2c=q(".t-p2c"),p2I=q(".t-p2");
   const entry=ensureEntry(currentCamp(),currentMonday());
   const key=agent+"|"+date;
   if(offI.checked){
     entry.shifts[key]={off:true};
   }else if(startI.value&&endI.value){
-    entry.shifts[key]={start:startI.value,end:endI.value};
+    const sh={start:startI.value,end:endI.value};
+    // Déjeuner conservé seulement si début ET fin cohérents (début < fin)
+    if(lSI.value&&lEI.value&&timeToMinutes(lEI.value)>timeToMinutes(lSI.value)){sh.lunchS=lSI.value;sh.lunchE=lEI.value;}
+    if(p1c.checked&&p1I.value)sh.p1=p1I.value;
+    if(p2c.checked&&p2I.value)sh.p2=p2I.value;
+    entry.shifts[key]=sh;
   }else{
     delete entry.shifts[key];
   }
-  startI.disabled=offI.checked;endI.disabled=offI.checked;
+  const dis=offI.checked;
+  [startI,endI,lSI,lEI,p1c,p2c].forEach(i=>i.disabled=dis);
+  p1I.disabled=dis||!p1c.checked;
+  p2I.disabled=dis||!p2c.checked;
   const tr=cell.closest("tr");
   const badge=tr&&tr.querySelector(".total-badge");
   if(badge)badge.textContent=fmtHours(weekTotalMinutes(agent,weekDates(currentMonday()),entry));
@@ -547,12 +590,25 @@ function agentRowHTML(r,dates,entry){
     const off=!!(s&&s.off);
     const start=(s&&s.start)||"";
     const end=(s&&s.end)||"";
+    const lS=(s&&s.lunchS)||"",lE=(s&&s.lunchE)||"";
+    const p1=(s&&s.p1)||"",p2=(s&&s.p2)||"";
     const onCall=onCallCampaign(r.nom,d);
     return `<td><div class="shift-cell" data-agent="${esc(r.nom)}" data-date="${d}">
       <div class="shift-times">
         <input type="time" class="t-start" value="${esc(start)}" ${off?"disabled":""}>
         <span>–</span>
         <input type="time" class="t-end" value="${esc(end)}" ${off?"disabled":""}>
+      </div>
+      <div class="shift-lunch" title="Pause déjeuner (début – fin) — déduite du total semaine">
+        🍽 <input type="time" class="t-lunch-s" value="${esc(lS)}" ${off?"disabled":""}>
+        <span>–</span>
+        <input type="time" class="t-lunch-e" value="${esc(lE)}" ${off?"disabled":""}>
+      </div>
+      <div class="shift-pauses">
+        <label title="Pause 15 min n°1 — cochez puis indiquez l'heure de début pour échelonner les pauses entre agents"><input type="checkbox" class="t-p1c" ${p1?"checked":""} ${off?"disabled":""}> ☕15′</label>
+        <input type="time" class="t-p1" value="${esc(p1)}" ${(off||!p1)?"disabled":""}>
+        <label title="Pause 15 min n°2"><input type="checkbox" class="t-p2c" ${p2?"checked":""} ${off?"disabled":""}> ☕15′</label>
+        <input type="time" class="t-p2" value="${esc(p2)}" ${(off||!p2)?"disabled":""}>
       </div>
       <label class="shift-off-label"><input type="checkbox" class="t-off" ${off?"checked":""}> Repos</label>
       <div class="shift-tags">${onCall?`🌙 astreinte ${esc(onCall)}`:""}</div>
@@ -610,16 +666,14 @@ function renderGrid(){
     return;
   }
   const e=ensureEntry(camp,monday);
-  const thead=`<tr><th>Agent</th>${dates.map((d,di)=>`<th${di>=5?' style="background:#f4f4f4;"':''}>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th>Total semaine</th></tr>`;
+  const thead=`<tr><th>Agent</th>${dates.map((d,di)=>`<th${di>=5?' style="background:#f4f4f4;"':''}>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th title="Heures planifiées, pause déjeuner déduite (les pauses 15 min restent comptées)">Total semaine</th></tr>`;
   const tbody=roster.map(r=>agentRowHTML(r,dates,e)).join("");
   wrap.innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 
   wrap.querySelectorAll(".shift-cell").forEach(cell=>{
-    const startI=cell.querySelector(".t-start"),endI=cell.querySelector(".t-end"),offI=cell.querySelector(".t-off");
     const commit=()=>commitShiftFromCell(cell);
-    startI.addEventListener("change",commit);
-    endI.addEventListener("change",commit);
-    offI.addEventListener("change",commit);
+    cell.querySelectorAll(".t-start,.t-end,.t-off,.t-lunch-s,.t-lunch-e,.t-p1c,.t-p1,.t-p2c,.t-p2")
+      .forEach(i=>i.addEventListener("change",commit));
   });
   wrap.querySelectorAll('[data-action="training"]').forEach(btn=>btn.addEventListener("click",e=>{
     toggleTraining(e.target.closest("tr").querySelector(".agent-row-name span").textContent);
@@ -651,9 +705,10 @@ function renderGroupGrids(val,monday,dates,wrap){
           const s=entry.shifts[r.nom+"|"+d];
           const off=!!(s&&s.off);
           const txt=off?"Repos":(s&&s.start&&s.end)?`${esc(s.start)} – ${esc(s.end)}`:"–";
+          const brk=(!off&&s)?breaksLabel(s):"";
           const onCall=onCallCampaign(r.nom,d);
           const onCallTag=onCall?` <span style="color:#E8006E;" title="Astreinte ${esc(onCall)}">🌙</span>`:"";
-          return `<td>${txt}${onCallTag}</td>`;
+          return `<td>${txt}${onCallTag}${brk?`<br><span style="font-size:10px;color:#888;">${esc(brk)}</span>`:""}</td>`;
         }).join("");
         return `<tr><td><span class="agent-row-name"><span>${esc(r.nom)}</span>${r.training?'<span class="tag-btn active" style="cursor:default;">🎓</span>':""}${isMutualise(r.nom)?'<span class="tag-mutualise">⇄ mutualisé</span>':""}</span></td>${cells}<td><span class="total-badge">${esc(fmtHours(weekTotalMinutes(r.nom,dates,entry)))}</span></td></tr>`;
       }).join("");
@@ -674,8 +729,9 @@ function planningTableHTML(camp,dates,entry){
       const s=entry.shifts[r.nom+"|"+d];
       const off=!!(s&&s.off);
       const txt=off?"Repos":(s&&s.start&&s.end)?`${esc(s.start)} – ${esc(s.end)}`:"–";
+      const brk=(!off&&s)?breaksLabel(s):"";
       const onCall=onCallCampaign(r.nom,d);
-      return `<td>${txt}${onCall?'<br><span style="color:#E8006E;font-size:9px;">🌙 astreinte</span>':""}</td>`;
+      return `<td>${txt}${brk?`<br><span style="font-size:9px;color:#888;">${esc(brk)}</span>`:""}${onCall?'<br><span style="color:#E8006E;font-size:9px;">🌙 astreinte</span>':""}</td>`;
     }).join("");
     return `<tr><td>${esc(r.nom)}${r.training?" 🎓":""}${isMutualise(r.nom)?" ⇄":""}</td>${cells}<td><b>${esc(fmtHours(weekTotalMinutes(r.nom,dates,entry)))}</b></td></tr>`;
   }).join("");
@@ -791,6 +847,8 @@ const distDayCache=new Map(); // cache /agents-day par date (jours passés immua
 // Agents planifiés par tranche (08h→20h) pour un ensemble de campagnes
 function computeCoverage(camps,monday,dates){
   const perSlot=dates.map(()=>Array(12).fill(0));
+  const perSlotLunch=dates.map(()=>Array(12).fill(0)); // agents en déjeuner sur l'essentiel de la tranche (≥30 min)
+  const perSlotPause=dates.map(()=>Array(12).fill(0)); // pauses 15 min posées sur la tranche
   const perDayAgents=dates.map(()=>new Set());
   const perDayMin=dates.map(()=>0);
   const perCamp={}; // camp -> [7] agents avec créneau ce jour
@@ -806,17 +864,22 @@ function computeCoverage(camps,monday,dates){
         if(b<=a)return;
         hasAny=true;
         perDayAgents[di].add(camp+"|"+r.nom);
-        perDayMin[di]+=(b-a);
+        const l=lunchRange(s);
+        perDayMin[di]+=(b-a)-(l?Math.min(b-a,l[1]-l[0]):0);
+        const pauses=pauseStarts(s);
         if(!perCamp[camp])perCamp[camp]=dates.map(()=>0);
         perCamp[camp][di]++;
         for(let h=0;h<12;h++){
           const s0=(8+h)*60,s1=s0+60;
-          if(a<s1&&b>s0)perSlot[di][h]++;
+          if(!(a<s1&&b>s0))continue;
+          perSlot[di][h]++;
+          if(l&&Math.min(l[1],s1)-Math.max(l[0],s0)>=30)perSlotLunch[di][h]++;
+          pauses.forEach(p=>{if(p<s1&&p+15>s0)perSlotPause[di][h]++;});
         }
       });
     });
   });
-  return {perSlot,perDayAgents,perDayMin,perCamp,hasAny};
+  return {perSlot,perSlotLunch,perSlotPause,perDayAgents,perDayMin,perCamp,hasAny};
 }
 
 function hourLbl(h){return `${String(h+8).padStart(2,"0")}h–${String(h+9).padStart(2,"0")}h`;}
@@ -846,23 +909,27 @@ function renderCoverage(){
     tbody+=`<tr><td>${hourLbl(h)}</td>`;
     dates.forEach((d,di)=>{
       const n=cov.perSlot[di][h];
+      const lu=cov.perSlotLunch[di][h],pa=cov.perSlotPause[di][h];
+      const eff=Math.max(0,n-lu); // effectif réellement disponible sur la tranche (déjeuners déduits)
       let pctHtml="",alertCls="";
       if(callDist&&dayTotals){
         const v=callDist.vol[di][h];
         if(dayTotals[di]>0&&v>0){
           const pct=Math.round(v/dayTotals[di]*100);
           pctHtml=`<span class="cov-pct" title="${v} appel(s) observé(s) sur cette tranche le ${esc(fmtDate(shiftDateStr(d,-7)))} — ${pct}% du flux du jour">${pct}% flux</span>`;
-          if(n===0)alertCls=" cov-zero-flux";
+          if(eff===0)alertCls=" cov-zero-flux";
         }
       }
-      const bg=n===0?"":(n>=4?"background:#1a8f4426;":(n>=2?"background:#1a8f4415;":"background:#1a8f440a;"));
-      tbody+=`<td class="${isWk(di)?"wk":""}" style="${bg}"><span class="cov-cnt${alertCls}">${n||(pctHtml?"0":"–")}</span>${pctHtml}</td>`;
+      const brkTitle=[lu?`${lu} agent(s) en déjeuner sur l'essentiel de la tranche`:"",pa?`${pa} pause(s) 15 min sur la tranche`:""].filter(Boolean).join(" · ");
+      const brkHtml=(lu||pa)?`<span class="cov-brk" title="${esc(brkTitle)}">${lu?`🍽−${lu}`:""}${lu&&pa?" ":""}${pa?`☕${pa}`:""}</span>`:"";
+      const bg=eff===0?"":(eff>=4?"background:#1a8f4426;":(eff>=2?"background:#1a8f4415;":"background:#1a8f440a;"));
+      tbody+=`<td class="${isWk(di)?"wk":""}" style="${bg}"><span class="cov-cnt${alertCls}"${lu?` title="${n} planifié(s) − ${lu} en déjeuner"`:""}>${eff||(pctHtml||brkHtml?"0":"–")}</span>${brkHtml}${pctHtml}</td>`;
     });
     tbody+="</tr>";
   }
   // Pieds : agents/jour + heures/jour
   let tfoot=`<tr class="cov-foot"><td>👥 TC du jour</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}">${cov.perDayAgents[di].size||"–"}</td>`).join("")}</tr>`;
-  tfoot+=`<tr class="cov-foot"><td>⏱ Heures planifiées</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}">${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</td>`).join("")}</tr>`;
+  tfoot+=`<tr class="cov-foot"><td title="Pause déjeuner déduite">⏱ Heures planifiées (hors déj.)</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}">${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</td>`).join("")}</tr>`;
   // Vue groupée : répartition par compétence campagne
   const campKeys=Object.keys(cov.perCamp);
   if(sel.camps.length>1&&campKeys.length){
@@ -870,7 +937,8 @@ function renderCoverage(){
     tfoot+=campKeys.map(c=>`<tr class="cov-foot" style="font-weight:400;"><td style="color:#E8006E;">· ${esc(c)}</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}" style="color:#777;">${cov.perCamp[c][di]||"–"}</td>`).join("")}</tr>`).join("");
   }
   wrap.innerHTML=`<table class="cov-table"><thead>${thead}</thead><tbody>${tbody}${tfoot}</tbody></table>`
-    +(callDist?`<div style="margin-top:8px;font-size:10px;color:#888;">% flux = part des appels du jour sur la tranche, observée la semaine précédente (même jour de semaine) sur ${esc(callDist.label)}.</div>`:"");
+    +`<div style="margin-top:8px;font-size:10px;color:#888;">Effectif affiché = TC planifiés moins ceux en pause déjeuner sur la tranche · 🍽−n = n agent(s) en déjeuner · ☕n = n pause(s) 15 min posée(s) sur la tranche — échelonnez-les pour éviter qu'elles tombent toutes à la même heure.</div>`
+    +(callDist?`<div style="margin-top:4px;font-size:10px;color:#888;">% flux = part des appels du jour sur la tranche, observée la semaine précédente (même jour de semaine) sur ${esc(callDist.label)}.</div>`:"");
 }
 
 // Charge la répartition des appels de la semaine de référence (semaine précédente, même jour)
@@ -929,13 +997,16 @@ function coverageTableHTML(){
   for(let h=0;h<12;h++){
     tbody+=`<tr><td>${hourLbl(h)}</td>${dates.map((d,di)=>{
       const n=cov.perSlot[di][h];
+      const lu=cov.perSlotLunch[di][h],pa=cov.perSlotPause[di][h];
+      const eff=Math.max(0,n-lu);
       let pct="";
       if(callDist&&dayTotals&&dayTotals[di]>0&&callDist.vol[di][h]>0)pct=` (${Math.round(callDist.vol[di][h]/dayTotals[di]*100)}%)`;
-      return `<td>${n||"–"}${pct}</td>`;
+      const brk=(lu?` 🍽−${lu}`:"")+(pa?` ☕${pa}`:"");
+      return `<td>${(eff||(lu||pa?"0":"–"))}${brk}${pct}</td>`;
     }).join("")}</tr>`;
   }
   tbody+=`<tr><td><b>TC du jour</b></td>${dates.map((d,di)=>`<td><b>${cov.perDayAgents[di].size||"–"}</b></td>`).join("")}</tr>`;
-  tbody+=`<tr><td><b>Heures planifiées</b></td>${dates.map((d,di)=>`<td><b>${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</b></td>`).join("")}</tr>`;
+  tbody+=`<tr><td><b>Heures planifiées (hors déj.)</b></td>${dates.map((d,di)=>`<td><b>${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</b></td>`).join("")}</tr>`;
   const campKeys=Object.keys(cov.perCamp).sort((a,b)=>a.localeCompare(b,"fr"));
   if(exportSelection().camps.length>1&&campKeys.length){
     tbody+=campKeys.map(c=>`<tr><td>· ${esc(c)}</td>${dates.map((d,di)=>`<td>${cov.perCamp[c][di]||"–"}</td>`).join("")}</tr>`).join("");
