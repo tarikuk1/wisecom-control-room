@@ -30,13 +30,30 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 .note{font-size:11px;color:#777;line-height:1.6;margin-top:4px;}
 
 .astreinte-row{display:flex;gap:8px;flex-wrap:wrap;}
-.astreinte-cell{flex:1 1 130px;min-width:130px;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:8px 10px;}
+.astreinte-cell{flex:1 1 150px;min-width:150px;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:8px 10px;}
 .astreinte-day{font-size:11px;color:#777;margin-bottom:6px;text-transform:capitalize;white-space:nowrap;}
 .astreinte-input{width:100%;background:#fff;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;}
 .astreinte-input.empty{border-color:#ffd0d0;background:#fff5f5;color:#dc2626;}
 .astreinte-input.empty::placeholder{color:#e57373;}
+.ast-times{display:flex;align-items:center;gap:3px;font-size:10px;color:#777;margin-top:5px;}
+.ast-times input[type=time]{width:72px;padding:3px 4px;font-size:10px;background:#fff;color:#161616;border:1px solid #dedede;border-radius:5px;}
+.ast-times input[type=time]:disabled{opacity:.35;}
+.ast-gsm-wrap{display:flex;align-items:center;gap:4px;margin-top:4px;}
+.ast-gsm-label{font-size:10px;color:#777;cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.ast-gsm-label input{accent-color:#ff9f0a;}
+.ast-gsm-label.gsm-on{color:#b45309;font-weight:700;}
 .astreinte-tag{font-size:10px;color:#E8006E;margin-top:4px;min-height:13px;}
 .cov-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
+
+/* Tableau de couverture astreinte */
+.ast-cov-table{width:100%;border-collapse:collapse;font-size:11px;}
+.ast-cov-table th{padding:6px 8px;color:#555;font-weight:600;text-align:center;border-bottom:2px solid #dedede;background:#fafafa;white-space:nowrap;}
+.ast-cov-table th:first-child{text-align:left;}
+.ast-cov-table td{padding:5px 8px;text-align:center;border-bottom:1px solid #f2f2f2;white-space:nowrap;}
+.ast-cov-table td:first-child{text-align:left;font-weight:600;color:#555;font-size:10px;}
+.ast-cov-table .wk{background:#fafafa;}
+.ast-cov-table .night-row td:first-child{color:#9966cc;}
+.ast-cov-zero{color:#dc2626;font-weight:700;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
 .modal-box{background:#fff;border:1px solid #dedede;border-radius:10px;padding:20px;max-width:420px;width:90%;}
@@ -83,11 +100,14 @@ select:disabled{opacity:.5;cursor:not-allowed;}
       <div class="loading">Chargement du registre…</div>
     </div>
     <div class="note">
-      Saisissez le nom de l'agent qui couvre l'astreinte pour chaque jour, pour chaque campagne suivie. Une cellule en rouge signale un jour <b>sans personne d'affecté</b>.
-      La saisie propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui) — à défaut de compétences chargées, l'ensemble des agents connus est proposé.
-      Le badge <span style="color:#E8006E;">⇄ agent mutualisé</span> signale un agent également qualifié sur d'autres campagnes — utile pour repérer une éventuelle surcharge avant de confirmer l'affectation.
-      Le registre est partagé entre tous les superviseurs et enregistré automatiquement.
+      Saisissez le nom de l'agent, ses heures (début → fin) et cochez <b>📱 Transfert GSM</b> si l'activation du renvoi doit être rappelée. Une cellule rouge = jour sans agent. Le badge <span style="color:#E8006E;">⇄ agent mutualisé</span> signale un agent qualifié sur d'autres campagnes.
+      <br>Le registre est partagé entre tous les superviseurs et enregistré automatiquement.
     </div>
+  </div>
+
+  <div class="panel" id="ast-coverage-panel" style="display:none;">
+    <div class="panel-title"><span>📊 Couverture astreinte — TC présent par tranche horaire (créneaux 2h)</span></div>
+    <div id="ast-coverage-wrap"></div>
   </div>
 </div>
 
@@ -146,6 +166,13 @@ function weekDates(monday){
   for(let i=0;i<7;i++)out.push(shiftDateStr(monday,i));
   return out;
 }
+
+function timeToMinutes(t){if(!t)return NaN;const p=String(t).split(":");return Number(p[0])*60+(Number(p[1])||0);}
+// Lecture rétrocompatible des entrées (ancien format string ou nouveau format objet)
+function entryName(v){return typeof v==="string"?v:(v&&v.name)||"";}
+function entryStart(v){return(typeof v==="object"&&v&&v.start)||"";}
+function entryEnd(v){return(typeof v==="object"&&v&&v.end)||"";}
+function entryGsm(v){return!!(typeof v==="object"&&v&&v.gsm);}
 
 function showToast(msg,color){
   const t=document.getElementById("toast");
@@ -313,27 +340,45 @@ function removeTracked(camp){
   pushRegistry();
   renderAll();
 }
-function commitEntry(inp){
-  const camp=inp.dataset.camp,date=inp.dataset.date;
-  const v=inp.value.trim();
+function commitEntry(cell){
+  const camp=cell.dataset.camp,date=cell.dataset.date;
+  const nameInp=cell.querySelector(".astreinte-input");
+  const startInp=cell.querySelector(".t-ast-start");
+  const endInp=cell.querySelector(".t-ast-end");
+  const gsmInp=cell.querySelector(".t-ast-gsm");
+  const gsmLbl=cell.querySelector(".ast-gsm-label");
   const key=camp+"|"+date;
-  if(v)registry.entries[key]=v;else delete registry.entries[key];
-  inp.value=v;
-  inp.classList.toggle("empty",!v);
-  const tag=inp.parentElement.querySelector(".astreinte-tag");
-  if(tag)tag.textContent=(v&&isMutualise(v))?"⇄ agent mutualisé":"";
-  const card=inp.closest(".astreinte-camp");
+  const name=(nameInp.value||"").trim();
+  nameInp.value=name;
+  nameInp.classList.toggle("empty",!name);
+  const dis=!name;
+  [startInp,endInp,gsmInp].forEach(i=>{if(i)i.disabled=dis;});
+  if(!name){
+    delete registry.entries[key];
+  }else{
+    const entry={name};
+    if(startInp&&startInp.value)entry.start=startInp.value;
+    if(endInp&&endInp.value)entry.end=endInp.value;
+    if(gsmInp&&gsmInp.checked)entry.gsm=true;
+    registry.entries[key]=entry;
+  }
+  const tag=cell.querySelector(".astreinte-tag");
+  if(tag)tag.textContent=(name&&isMutualise(name))?"⇄ agent mutualisé":"";
+  if(gsmLbl)gsmLbl.classList.toggle("gsm-on",!!(gsmInp&&gsmInp.checked&&name));
+  const card=cell.closest(".astreinte-camp");
   if(card)updateCoverageBadge(card,camp);
+  renderCoveragePanel();
   pushRegistry();
 }
 function updateCoverageBadge(card,camp){
   const monday=mondayOf(document.getElementById("a-week").value);
   const dates=weekDates(monday);
-  const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
+  const covered=dates.filter(d=>!!entryName(registry.entries[camp+"|"+d])).length;
+  const gsmN=dates.filter(d=>entryGsm(registry.entries[camp+"|"+d])).length;
   const badge=card.querySelector(".cov-badge");
   if(!badge)return;
   const col=covered===7?"#1a8f44":(covered===0?"#dc2626":"#b45309");
-  badge.textContent=`${covered}/7 jours couverts`;
+  badge.textContent=`${covered}/7 jours couverts`+(gsmN?` · 📱 ${gsmN}`:``);
   badge.style.background=col+"22";badge.style.color=col;badge.style.borderColor=col;
 }
 
@@ -384,16 +429,33 @@ function renderGrid(){
       </div>
       <div class="astreinte-row">
         ${dates.map(d=>{
-          const name=registry.entries[camp+"|"+d]||"";
+          const v=registry.entries[camp+"|"+d]||"";
+          const name=entryName(v);
+          const start=entryStart(v);
+          const end=entryEnd(v);
+          const gsm=entryGsm(v);
           const mut=name&&isMutualise(name);
-          return `<div class="astreinte-cell">
+          const dis=!name;
+          return `<div class="astreinte-cell" data-camp="${esc(camp)}" data-date="${d}">
             <div class="astreinte-day">${esc(dayName(d))} ${esc(fmtDate(d))}</div>
-            <input type="text" list="${dlId}" class="astreinte-input${name?"":" empty"}" data-camp="${esc(camp)}" data-date="${d}" placeholder="Non assigné" value="${esc(name)}">
+            <input type="text" list="${dlId}" class="astreinte-input${name?"":" empty"}" placeholder="Non assigné" value="${esc(name)}">
+            <div class="ast-times" title="Horaire de début et fin de l'astreinte — nécessaire pour la couverture par tranche">
+              🕐 <input type="time" class="t-ast-start" value="${esc(start)}" ${dis?"disabled":""}>
+              <span>→</span>
+              <input type="time" class="t-ast-end" value="${esc(end)}" ${dis?"disabled":""}>
+            </div>
+            <div class="ast-gsm-wrap">
+              <label class="ast-gsm-label${gsm?" gsm-on":""}" title="Cocher si un transfert GSM doit être activé au début de cette période — une alerte apparaîtra 30 min avant dans le tour de contrôle">
+                <input type="checkbox" class="t-ast-gsm" ${gsm?"checked":""} ${dis?"disabled":""}> 📱 Transfert GSM
+              </label>
+            </div>
             <div class="astreinte-tag">${mut?"⇄ agent mutualisé":""}</div>
           </div>`;
         }).join("")}
       </div>`;
-    card.querySelectorAll(".astreinte-input").forEach(inp=>inp.addEventListener("change",()=>commitEntry(inp)));
+    card.querySelectorAll(".astreinte-cell").forEach(cell=>{
+      cell.querySelectorAll("input").forEach(i=>i.addEventListener("change",()=>commitEntry(cell)));
+    });
     card.querySelector("[data-untrack]").addEventListener("click",async()=>{
       const ok=await confirmModal("Retirer du registre",`Retirer « ${camp} » du registre d'astreinte ? Les affectations déjà saisies sont conservées et réapparaîtront si vous suivez de nouveau cette campagne.`,"Retirer");
       if(!ok)return;
@@ -404,9 +466,77 @@ function renderGrid(){
   });
 }
 
+// ── Couverture astreinte par tranche (12 créneaux de 2h sur 24h) ─────────────
+function slotLabel(i){const h=i*2;return`${String(h).padStart(2,"0")}h–${String(h+2).padStart(2,"0")}h`;}
+function isNightSlot(i){return i<=3||i>=9;} // 00h-08h et 18h-24h
+
+function computeAstreinteCoverage(monday,dates){
+  const perSlot=dates.map(()=>Array(12).fill(0));
+  const perNames=dates.map(()=>Array(12).fill(null).map(()=>[]));
+  let hasAny=false;
+  registry.tracked.forEach(camp=>{
+    dates.forEach((d,di)=>{
+      const v=registry.entries[camp+"|"+d];
+      const name=entryName(v);
+      if(!name)return;
+      const startStr=entryStart(v),endStr=entryEnd(v);
+      if(!startStr)return; // heures requises pour la couverture
+      const a=timeToMinutes(startStr);
+      if(isNaN(a))return;
+      const b=timeToMinutes(endStr);
+      const bValid=!isNaN(b)&&endStr;
+      const overnight=bValid&&b>0&&b<=a;
+      hasAny=true;
+      const endOnDay=overnight?24*60:(bValid?b:24*60);
+      for(let h=0;h<12;h++){
+        const s0=h*2*60,s1=s0+120;
+        if(a<s1&&endOnDay>s0){perSlot[di][h]++;perNames[di][h].push(camp+": "+name);}
+      }
+      if(overnight&&di+1<7){
+        for(let h=0;h<12;h++){
+          const s0=h*2*60,s1=s0+120;
+          if(b>s0){perSlot[di+1][h]++;perNames[di+1][h].push(camp+": "+name+" ↗");}
+        }
+      }
+    });
+  });
+  return{perSlot,perNames,hasAny};
+}
+
+function renderCoveragePanel(){
+  const panel=document.getElementById("ast-coverage-panel");
+  if(!panel)return;
+  if(!registry.tracked.length){panel.style.display="none";return;}
+  const monday=mondayOf(document.getElementById("a-week").value);
+  const dates=weekDates(monday);
+  const cov=computeAstreinteCoverage(monday,dates);
+  if(!cov.hasAny){
+    panel.style.display="none";
+    return;
+  }
+  panel.style.display="block";
+  const isWk=di=>di>=5;
+  const thead=`<tr><th>Tranche</th>${dates.map((d,di)=>`<th class="${isWk(di)?"wk":""}">${esc(dayName(d).slice(0,3))}<br><span style="font-weight:400;color:#999;font-size:10px;">${esc(fmtDate(d))}</span></th>`).join("")}</tr>`;
+  let tbody="";
+  for(let i=0;i<12;i++){
+    const night=isNightSlot(i);
+    tbody+=`<tr class="${night?"night-row":""}"><td>${slotLabel(i)}${night?" 🌙":""}</td>`;
+    dates.forEach((d,di)=>{
+      const n=cov.perSlot[di][i];
+      const names=cov.perNames[di][i];
+      const bg=n===0?"":(n>=3?"background:#1a8f4426;":(n>=1?"background:#1a8f4415;":""));
+      tbody+=`<td class="${isWk(di)?"wk":""}" style="${bg}" title="${esc(names.join("\n")||"Aucune couverture")}"><span${n===0&&night?' class="ast-cov-zero"':""}>${n||"–"}</span></td>`;
+    });
+    tbody+="</tr>";
+  }
+  document.getElementById("ast-coverage-wrap").innerHTML=`<table class="ast-cov-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <div style="margin-top:7px;font-size:10px;color:#888;">Chiffres = nombre de TC couvrant la tranche (heures de début/fin requises dans chaque cellule) · ↗ = report d'une astreinte de nuit commencée la veille · Survol d'une cellule = détail des agents</div>`;
+}
+
 function renderAll(){
   renderAddSelect();
   renderGrid();
+  renderCoveragePanel();
 }
 
 function setWeek(dateStr){
