@@ -189,21 +189,21 @@ body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);c
 /* ── NAV PILLS — boutons de navigation topbar avec icône + label ── */
 .btn-nav{
   background:var(--s-2);border:1px solid var(--s-4);
-  border-radius:20px;padding:5px 11px;
+  border-radius:22px;padding:6px 14px;
   color:var(--t-secondary);font-size:var(--fs-body);font-weight:var(--fw-medium);
-  display:flex;align-items:center;gap:5px;
-  text-decoration:none;white-space:nowrap;min-height:30px;
+  display:flex;align-items:center;gap:6px;
+  text-decoration:none;white-space:nowrap;min-height:34px;
   transition:all var(--motion-fast);
 }
 .btn-nav:hover{background:var(--s-3);border-color:var(--t-disabled);color:var(--c-white);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.3);}
-.btn-nav .n-icon{font-size:13px;line-height:1;flex-shrink:0;}
-.btn-nav .n-lbl{font-size:10px;letter-spacing:.03em;font-weight:600;text-transform:uppercase;}
+.btn-nav .n-icon{font-size:15px;line-height:1;flex-shrink:0;}
+.btn-nav .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
 .btn-nav-sim{border-color:#2a2a00;color:#cca000;background:#1a1500;}
 .btn-nav-sim:hover{background:#2a2200;border-color:#cca000;color:#ffd000;}
-.btn-nav-logout{border:1px solid #3a1a1a;background:transparent;color:#e84444;border-radius:20px;padding:5px 11px;font-size:var(--fs-body);display:flex;align-items:center;gap:5px;min-height:30px;transition:all var(--motion-fast);text-decoration:none;white-space:nowrap;cursor:pointer;}
+.btn-nav-logout{border:1px solid #3a1a1a;background:transparent;color:#e84444;border-radius:22px;padding:6px 14px;font-size:var(--fs-body);display:flex;align-items:center;gap:6px;min-height:34px;transition:all var(--motion-fast);text-decoration:none;white-space:nowrap;cursor:pointer;}
 .btn-nav-logout:hover{background:#2a1010;border-color:#ff4444;transform:translateY(-1px);}
-.btn-nav-logout .n-icon{font-size:13px;line-height:1;}
-.btn-nav-logout .n-lbl{font-size:10px;letter-spacing:.03em;font-weight:600;text-transform:uppercase;}
+.btn-nav-logout .n-icon{font-size:15px;line-height:1;}
+.btn-nav-logout .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
 body.light .btn-nav{background:#f0f0f0;border-color:#d0d0d0;color:#333;}
 body.light .btn-nav:hover{background:#e4e4e4;border-color:#aaa;color:var(--s-1);}
 /* garde la compatibilité ancien code qui utilise encore btn-icon-link */
@@ -952,8 +952,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
       <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
       <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊</button>
-      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄</button>
+      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊 Excel</button>
+      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄 PDF</button>
       <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       <div class="btn-sep"></div>
       <button class="btn-nav btn-nav-sim" onclick="simulate()" title="Générer des données de démonstration" aria-label="Simuler des données de test"><span class="n-icon">⚡</span><span class="n-lbl">Simuler</span></button>
@@ -1491,8 +1491,11 @@ async function refreshFromINO(){
     // Si la tendance vs S-1…S-5 est activée, rafraîchir la référence sur la nouvelle période
     // (fire-and-forget : ne doit jamais bloquer/faire échouer le chargement principal)
     if(cmpWeeksOffset>0)loadCmpRef();
-    // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
-    // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
+    // Auto-chargement des compétences INO en arrière-plan (delay 2s pour ne pas rivaliser avec render)
+    // Permet la détection des agents mutualisés sans cliquer manuellement "Compétences INO"
+    if(agents.length>0&&!skillsLoaded()){
+      setTimeout(function(){if(agents.length>0&&!skillsLoaded())refreshSkills();},2000);
+    }
   }catch(e){ok=false;console.error('[refreshFromINO]',e&&e.message||e);}
   finally{
     document.body.classList.remove("skeleton-on");
@@ -3367,31 +3370,35 @@ function renderStaffingBanner(){
     if(!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false,mutTotal:0,mutActifs:0};
     campMap[c].total++;
     if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
-    if(Array.isArray(a.skills)&&a.skills.length>0)campMap[c].hasSkills=true;
+    if((Array.isArray(a.skills)&&a.skills.length>0)||(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0))campMap[c].hasSkills=true;
   });
-  // 2e passe : agents mutualisés (skills couvrant d'autres campagnes que leur camp principal)
-  // Un agent "Voltalis" avec skill "Vivest" compte aussi pour Vivest en mutualisé
-  if(skillsLoaded()){
-    f.forEach(a=>{
-      if(!Array.isArray(a.skills)||!a.skills.length)return;
-      const primaryCamp=a.camp||'–';
-      const isActive=a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel';
-      CAMPS.forEach(camp=>{
-        if(camp===primaryCamp)return; // déjà compté via camp principal
-        if(!campMap[camp])return;
-        // Un skill matche une campagne si son nom contient le nom de la campagne (insensible casse)
-        const campNorm=camp.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
-        const matches=a.skills.some(sk=>{
-          const skn=String(sk.name||sk).toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
-          return skn===campNorm||skn.includes(campNorm)||campNorm.includes(skn);
-        });
-        if(matches){
-          campMap[camp].mutTotal++;
-          if(isActive)campMap[camp].mutActifs++;
-        }
+  // 2e passe : agents mutualisés — exécutée par-agent (sans gate skillsLoaded global)
+  f.forEach(a=>{
+    // Fusionner allSkillsData (source fiable) + skills (cache) en une liste de noms
+    const allSk=[];
+    if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
+      a.allSkillsData.forEach(s=>{if(s.active!==false)allSk.push(String(s.name||s));});
+    }
+    if(Array.isArray(a.skills)&&a.skills.length>0){
+      a.skills.forEach(s=>{const n=String(s.name||s);if(allSk.indexOf(n)<0)allSk.push(n);});
+    }
+    if(allSk.length===0)return; // cet agent n'a aucune compétence chargée → skip
+    const primaryCamp=a.camp||'–';
+    const isActive=a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel';
+    CAMPS.forEach(camp=>{
+      if(camp===primaryCamp)return; // déjà compté via camp principal
+      if(!campMap[camp])return;
+      const campNorm=camp.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
+      const matches=allSk.some(sk=>{
+        const skn=String(sk).toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
+        return skn===campNorm||skn.includes(campNorm)||campNorm.includes(skn);
       });
+      if(matches){
+        campMap[camp].mutTotal++;
+        if(isActive)campMap[camp].mutActifs++;
+      }
     });
-  }
+  });
   // Horaires SVI depuis critères
   const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');
   const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
@@ -4023,7 +4030,7 @@ setInterval(checkGsmAlerts,60000);
 
 // ── Couleurs campagnes ──────────────────────────────────────────
 var WA_CAMP_COLORS={
-  "Filippi":"#FFD966","MNZ":"#F4B183","Eiffage":"#9DC3E6","CNPA":"#FF9999",
+  "Filippi":"#FFD966","MNZ":"#F4B183","Monetize":"#F4B183","Eiffage":"#9DC3E6","CNPA":"#FF9999",
   "HMF":"#C5E0B4","LMDW":"#B4C6E7","Equisign":"#FFE699","ND":"#D9D9D9",
   "Delsey":"#F8CBAD","M123":"#BDD7EE","LGR":"#E2EFDA","LMB":"#FCE4D6",
   "Apex":"#D6DCE4","Alcéane":"#FFF2CC","Vivest":"#A9D18E","LBE":"#C9C9FF",
@@ -4034,18 +4041,20 @@ var WA_CAMP_COLORS={
 var WA_GROUP_COLORS={
   "Filippi":"#FFD966","Vivest":"#A9D18E","Verspieren":"#9DC3E6","Evoriel":"#C5E0B4",
   "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#70AD47",
-  "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Eiffage":"#9DC3E6",
+  "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Monetize":"#F4B183","Eiffage":"#9DC3E6",
   "ELECTROSUR":"#BDD7EE","Afnor":"#E2EFDA","SOS":"#FCE4D6","LMB":"#FCE4D6",
   "Delsey":"#F8CBAD","LBE":"#C9C9FF","M123":"#BDD7EE","LGR":"#E2EFDA",
   "Equisign":"#FFE699","Apex":"#D6DCE4","Nature & Découvertes":"#C5E0B4",
 };
 
 // ── Colonnes compétences (fidèles à l'image de référence) ─────
-var WA_SKILLS_CALLS=["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_CALLS=["Filippi","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
-var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_COMP =["Filippi","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+// Alias WA colonne → clé CAMPS/QUEUES_MAP (pour les cas où le nom court diffère du nom de camp)
+var WA_CAMP_ALIAS={"ND":"Nature & Découvertes"};
 (function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
-waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls:WA_SKILLS_CALLS.slice();
+waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls.map(function(c){return c==='MNZ'?'Monetize':c;}):WA_SKILLS_CALLS.slice();
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
 if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
 if(_s&&typeof _s.email==='object')waEmailEdits=_s.email||{};
@@ -4083,32 +4092,79 @@ function waHr(dt){
   }catch(e){return"";}
 }
 
-// Résoudre les compétences d'un agent depuis toutes les sources disponibles
+// Normalise un nom de compétence INO (long-form) vers la colonne WA courte.
+// Exemples : "LMDW_FR" → "LMDW", "Monetize FR" → "Monetize", "HMF Débordement" → "HMF",
+//            "LGR Boutique" → "LGR", "Nature & Découvertes" → "ND", "M123_Boutique" → "M123"
+function normalizeSkillToWaCol(inoName){
+  var n=String(inoName||'').trim();
+  if(!n)return null;
+  var allWa=[].concat(WA_SKILLS_CALLS,WA_SKILLS_COMP,WA_SKILLS_MAILS);
+  // Dédupliqué
+  var seen={};
+  allWa=allWa.filter(function(w){if(seen[w])return false;seen[w]=1;return true;});
+  var nl=n.toLowerCase();
+  // Normalise accentuation + séparateurs pour comparer
+  var norm=function(s){return s.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[ùû]/g,'u').replace(/[ç]/g,'c').replace(/[œ]/g,'oe').replace(/[&]/g,'').replace(/\s+/g,' ').trim();};
+  var nn=norm(n);
+  // 1. Correspondance exacte (insensible à la casse)
+  var exact=allWa.find(function(w){return norm(w)===nn;});
+  if(exact)return exact;
+  // 2. Correspondance avec alias WA_CAMP_ALIAS inversé (camp long → WA court)
+  var aliasKeys=Object.keys(WA_CAMP_ALIAS||{});
+  for(var ai=0;ai<aliasKeys.length;ai++){
+    var wa=aliasKeys[ai], camp=WA_CAMP_ALIAS[wa];
+    if(norm(camp)===nn||nn.startsWith(norm(camp)))return wa;
+  }
+  // 3. Préfixe : la colonne WA est un préfixe du nom INO (LMDW_FR→LMDW, M123_Boutique→M123, HMF Débordement→HMF)
+  var prefix=allWa.find(function(w){
+    var nw=norm(w);
+    if(nw.length<2)return false;
+    return nn===nw||nn.startsWith(nw+'_')||nn.startsWith(nw+' ')||nn.startsWith(nw+'-');
+  });
+  if(prefix)return prefix;
+  // 4. Le nom INO contient le nom WA comme token (Sortant LMDW→LMDW, Sortant Maison 123→M123)
+  var token=allWa.find(function(w){
+    var nw=norm(w);
+    if(nw.length<3)return false;
+    return nn.includes(' '+nw)||nn.includes(nw+' ')||nn.includes('_'+nw);
+  });
+  if(token)return token;
+  return null;
+}
+
+// Résoudre les compétences d'un agent depuis toutes les sources disponibles.
+// Renvoie un Set de noms de COLONNES WA (pas de noms INO bruts).
 function waSkills(a){
-  // SOURCE 1 (fiable) : allSkillsData INO chargées via bouton Compétences → seule source vérité
+  var allWaCols=new Set([].concat(WA_SKILLS_CALLS,WA_SKILLS_COMP,WA_SKILLS_MAILS));
+  // SOURCE 1 (fiable) : allSkillsData INO chargées via ↺ Compétences → seule source de vérité
   if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
-    return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
+    var mapped1=[];
+    a.allSkillsData.filter(function(s){return s.active!==false;}).forEach(function(s){
+      var col=normalizeSkillToWaCol(s.name||s);
+      if(col&&mapped1.indexOf(col)<0)mapped1.push(col);
+    });
+    if(mapped1.length>0)return new Set(mapped1);
   }
-  // SOURCE 2 (partiellement fiable) : skills[] issus du cache INO
-  // On ne retient QUE les compétences reconnues dans WA_SKILLS_CALLS/WA_SKILLS_COMP pour éviter faux-positifs
+  // SOURCE 2 : skills[] issus du cache INO — normaliser vers colonnes WA
   if(Array.isArray(a.skills)&&a.skills.length>0){
-    var allWa=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP,...WA_SKILLS_MAILS]);
-    var filtered=a.skills.map(function(s){return s.name||s;}).filter(function(n){return allWa.has(n);});
-    if(filtered.length>0)return new Set(filtered);
+    var mapped2=[];
+    a.skills.map(function(s){return s.name||s;}).forEach(function(n){
+      var col=normalizeSkillToWaCol(n);
+      if(!col&&allWaCols.has(n))col=n; // déjà une colonne WA courte
+      if(col&&mapped2.indexOf(col)<0)mapped2.push(col);
+    });
+    if(mapped2.length>0)return new Set(mapped2);
   }
-  // SOURCE 3 : déduction depuis la campagne principale uniquement (strict)
-  // Un agent Afnor n'a PAS ND, LMDW, Filippi etc. automatiquement
+  // SOURCE 3 : déduction depuis la campagne principale (strict, une seule compétence)
   if(a.camp&&a.camp!=='–'){
-    var campSkill=a.camp; // la campagne = la compétence éponyme s'il y en a une
-    var allWa2=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP]);
-    if(allWa2.has(campSkill))return new Set([campSkill]);
+    var col3=normalizeSkillToWaCol(a.camp);
+    if(!col3&&allWaCols.has(a.camp))col3=a.camp;
+    if(col3)return new Set([col3]);
   }
   return new Set();
 }
 function waHas(sk,name){
-  return sk.has(name)||[...sk].some(function(x){
-    return false;
-  });
+  return sk.has(name)||sk.has(name==='ND'?'Nature & Découvertes':(WA_CAMP_ALIAS&&WA_CAMP_ALIAS[name])||name);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4136,10 +4192,18 @@ function waCampSynthesis(allAgents){
   }
 
   // Build lookup: campaign → Set of lowercase queue names (from QUEUES_MAP)
+  // Inclut les alias WA_CAMP_ALIAS (ex: "ND" → queues de "Nature & Découvertes")
   var campQueues={};
   if(typeof QUEUES_MAP!=='undefined'&&QUEUES_MAP){
     Object.keys(QUEUES_MAP).forEach(function(c){
       campQueues[c]=new Set((QUEUES_MAP[c]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+    // Alias : colonne WA courte → camp long (ex: ND → Nature & Découvertes)
+    Object.keys(WA_CAMP_ALIAS||{}).forEach(function(wa){
+      var real=WA_CAMP_ALIAS[wa];
+      if(QUEUES_MAP[real]&&!campQueues[wa]){
+        campQueues[wa]=new Set((QUEUES_MAP[real]||[]).map(function(q){return q.toLowerCase().trim();}));
+      }
     });
   }
 
@@ -4166,11 +4230,22 @@ function waCampSynthesis(allAgents){
       if(campQueues[c]&&campQueues[c].size>0&&agQ.length>0){
         matched=agQ.some(function(q){return campQueues[c].has(q);});
       }
-      // 2. Camp principal
-      if(!matched&&a.camp===c)matched=true;
+      // 2. Camp principal (direct ou via alias WA_CAMP_ALIAS)
+      if(!matched){
+        var realCamp=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:c;
+        matched=(a.camp===c)||(a.camp===realCamp);
+      }
       // 3. Compétences INO actives → queue de la campagne (agents mutualisés pas encore sonnés)
-      if(!matched&&agSkills.length>0&&campQueues[c]&&campQueues[c].size>0){
-        matched=agSkills.some(function(sk){return campQueues[c].has(sk);});
+      // Utilise aussi les queues du camp réel (via alias) pour les colonnes courtes (ND, etc.)
+      if(!matched&&agSkills.length>0){
+        var qset=campQueues[c];
+        if(!qset||qset.size===0){
+          var rc=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:null;
+          if(rc)qset=campQueues[rc];
+        }
+        if(qset&&qset.size>0){
+          matched=agSkills.some(function(sk){return qset.has(sk);});
+        }
       }
       if(matched){
         staff[c].count++;
