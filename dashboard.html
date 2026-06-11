@@ -3320,6 +3320,37 @@ function astreinteStatus(camp){
   return{tracked:true,covered};
 }
 
+// Retourne le statut GSM actif d'une campagne (si transfert GSM en cours maintenant)
+function gsmStatus(camp){
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowDate=isoLocal(now);
+  const ystDate=shiftDateStr(nowDate,-1);
+  function check(date,isYesterday){
+    const v=astreintesEntries[camp+'|'+date];
+    if(!v)return null;
+    const name=typeof v==="string"?v:(v&&v.name)||"";
+    if(!name)return null;
+    const gsm=typeof v==="object"&&v&&!!v.gsm;
+    if(!gsm)return null;
+    const startStr=(typeof v==="object"&&v.start)||"";
+    const endStr=(typeof v==="object"&&v.end)||"";
+    if(!startStr)return null;
+    const startMin=timeToMin(startStr);
+    const endMin=endStr?timeToMin(endStr):null;
+    const isOvernight=endMin!==null&&endMin>0&&endMin<=startMin;
+    let active=false;
+    if(!isYesterday){
+      active=nowMin>=startMin&&(endMin===null||isOvernight||(endMin!==null&&nowMin<endMin));
+    }else{
+      active=isOvernight&&endMin!==null&&nowMin<endMin;
+    }
+    if(active)return{name,start:startStr,end:endStr};
+    return null;
+  }
+  return check(ystDate,true)||check(nowDate,false)||null;
+}
+
 // ── Bandeau staffing par campagne (sous tableau Agents) ──────────────────
 function renderStaffingBanner(){
   const el=document.getElementById('staffing-banner');
@@ -3410,13 +3441,19 @@ function renderStaffingBanner(){
     const astBadge=(crit[camp]&&crit[camp].astreinte_display&&ast.tracked)
       ?`<span style="color:${ast.covered===7?'#30d158':(ast.covered===0?'#ff3b30':'#ff9f0a')};font-size:9px;margin-left:1px" title="Astreinte suivie pour ${camp} — ${ast.covered}/7 jours couverts cette semaine">🌙 ${ast.covered}/7</span>`
       :'';
+    // Badge 📱 GSM actif — transfert renvoi téléphonique en cours
+    const gsm=gsmStatus(camp);
+    const gsmBadge=gsm
+      ?`<span style="color:#30d158;font-size:9px;margin-left:1px;background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.3);border-radius:4px;padding:1px 4px;" title="Transfert GSM actif depuis ${gsm.start} — ${gsm.name}${gsm.end?' → '+gsm.end:''}">📱✓ ${gsm.start}</span>`
+      :'';
     const titleMut=hasMut?` · ${d.mutTotal} agent(s) mutualisé(s) disponible(s) (${d.mutActifs} actifs)`:'';
+    const titleGsm=gsm?` · 📱 GSM actif : ${gsm.name} depuis ${gsm.start}`:'';
     html+=`<div style="background:${bg};border:${border};border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default"
-      title="${camp} — ${d.actifs} actifs / ${d.total} agents${titleMut}${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
+      title="${camp} — ${d.actifs} actifs / ${d.total} agents${titleMut}${titleGsm}${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
       <span style="font-size:10px;color:var(--t-secondary)">${camp}</span>
       <span style="font-size:11px;font-weight:700;color:${countColor}">${displayCount}</span>
       <span style="font-size:9px;color:var(--t-disabled)">/${d.total}${hasMut?'+'+d.mutTotal:''}</span>
-      ${badge}${astBadge}
+      ${badge}${astBadge}${gsmBadge}
     </div>`;
   });
   // Total global
@@ -4106,19 +4143,35 @@ function waCampSynthesis(allAgents){
     });
   }
 
-  // TC par campagne : agents ayant traité au moins une queue de la campagne sur la période
-  // Utilise QUEUES_MAP pour le mapping exact queue→campagne (source de vérité)
+  // TC par campagne : agents ayant traité au moins une queue de la campagne sur la période,
+  // OU ayant une compétence active couvrant une queue de la campagne (agents mutualisés)
   var staff={};
   camps.forEach(function(c){staff[c]={count:0,agents:[]};});
   allAgents.forEach(function(a){
     var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+    // Compétences INO actives de l'agent (skills chargés via ↺ Compétences)
+    var agSkills=[];
+    if(Array.isArray(a.skills)&&a.skills.length>0){
+      a.skills.forEach(function(s){agSkills.push(String(s.name||s).toLowerCase().trim());});
+    }
+    if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
+      a.allSkillsData.forEach(function(s){
+        if(s.active!==false&&s.name)agSkills.push(String(s.name).toLowerCase().trim());
+      });
+    }
     camps.forEach(function(c){
       if(staff[c].agents.indexOf(a.nom)>=0)return; // déjà compté
       var matched=false;
+      // 1. Queues traitées aujourd'hui → campagne
       if(campQueues[c]&&campQueues[c].size>0&&agQ.length>0){
         matched=agQ.some(function(q){return campQueues[c].has(q);});
       }
+      // 2. Camp principal
       if(!matched&&a.camp===c)matched=true;
+      // 3. Compétences INO actives → queue de la campagne (agents mutualisés pas encore sonnés)
+      if(!matched&&agSkills.length>0&&campQueues[c]&&campQueues[c].size>0){
+        matched=agSkills.some(function(sk){return campQueues[c].has(sk);});
+      }
       if(matched){
         staff[c].count++;
         staff[c].agents.push(a.nom);
