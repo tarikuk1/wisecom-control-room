@@ -1796,10 +1796,10 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
     document.getElementById(`${cid}-btn`).onclick=e=>{
       e.stopPropagation();
       const wasOpen=open;
-      if(!wasOpen){ckCloseAll(cid);}   // ferme les autres d'abord
+      if(!wasOpen){ckCloseAll(cid);}
       open=!wasOpen;query="";
       ckSetOpen(cid,open);ckSetQuery(cid,query);
-      rebuild();  // rebuild uniquement CE dropdown — évite de détruire l'handler en recrééant tout
+      buildAllDropdowns();  // rebuild tous les dropdowns pour fermer visuellement les autres
     };
     if(open){
       const si=document.getElementById(`${cid}-search`);
@@ -1853,7 +1853,7 @@ function buildAllDropdowns(){
         ?agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom)
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
-  buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;render();});
+  buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;buildAllDropdowns();render();});
   // Compétences : UNIQUEMENT les compétences INO réelles des agents du périmètre campagne.
   const scopedSkills=getScopedSkills();
   const _loaded=skillsLoaded();
@@ -1877,9 +1877,9 @@ function buildAllDropdowns(){
       selSkills=selSkills.filter(s=>scopedSkills.includes(s));
       if(selSkills.length===0)selSkills=[...scopedSkills];
     }
-    buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;render();});
+    buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;buildAllDropdowns();render();});
   }
-  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
+  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;buildAllDropdowns();render();});
   renderSelectionSummary();
 }
 
@@ -1925,7 +1925,7 @@ async function pullStore(){
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.waCols&&typeof d.waCols==='object'){
-      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls;
+      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls.map(function(c){return c==='MNZ'?'Monetize':c;});
       if(Array.isArray(d.waCols.mails)&&d.waCols.mails.length)waActiveMails=d.waCols.mails;
       if(d.waCols.time&&typeof d.waCols.time==='object')waTimeEdits=d.waCols.time;
       if(d.waCols.email&&typeof d.waCols.email==='object')waEmailEdits=d.waCols.email;
