@@ -46,6 +46,10 @@ const _JOUR_KEYS={Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sa
 function parisJour(d){return _JOUR_KEYS[_parisDayFmt.format(d)]||"lun";}
 // Minute du jour en heure France (les offsets FR sont en heures pleines → minutes UTC inchangées)
 function parisMinOfDay(d){return parisHour(d)*60+d.getUTCMinutes();}
+// Date du jour en heure France (YYYY-MM-DD) — new Date().toISOString() donne la date UTC :
+// entre 00h et 02h Paris elle pointe encore sur la veille (serveur Railway en UTC)
+const _parisDateFmt=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"});
+function parisDateStr(d){return _parisDateFmt.format(d||new Date());}
 
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
@@ -218,7 +222,7 @@ async function getToken(force){
 // Récupère les compétences actives par agent depuis INO /agent/list
 let skillsCache={};let skillsCacheDate='';
 async function fetchAgentSkills(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=parisDateStr();
   if(skillsCacheDate===today&&Object.keys(skillsCache).length>0)return skillsCache;
   const token=await getToken();if(!token)return {};
   try{
@@ -246,7 +250,7 @@ async function fetchAgentSkills(){
 
 async function fetchDayStats(){
   const token=await getToken();if(!token)return;
-  const d=new Date().toISOString().slice(0,10);
+  const d=parisDateStr();
   try{
     const[ci,co]=await Promise.all([
       apiReq("POST","/call/in/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:2000},token),
@@ -268,7 +272,11 @@ async function fetchDayStats(){
 }
 
 async function fetchAgentsDay(date,hDeb,hFin,dateFin){
-  hDeb=parseInt((hDeb||'08:00').split(':')[0]);hFin=parseInt((hFin||'20:00').split(':')[0]);
+  // Bornes en minutes (précision réelle de la sélection : "08:30" ne doit pas devenir "08:00")
+  const _hm=s=>{const p=String(s||'').split(':');return (parseInt(p[0])||0)*60+(parseInt(p[1])||0);};
+  const minDeb=_hm(hDeb||'08:00'), minFin=_hm(hFin||'20:00');
+  // Bornes heures pleines pour la grille de slots 30 min
+  hDeb=Math.floor(minDeb/60);hFin=minFin%60>0?Math.floor(minFin/60)+1:Math.floor(minFin/60);
   const token=await getToken();if(!token)throw new Error("Pas de token");
   // Construire la liste des jours de la plage [date .. dateFin] (incluse)
   const _d0=new Date(date+"T00:00:00"); const _d1=new Date((dateFin||date)+"T00:00:00");
@@ -294,6 +302,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       ]);
       if(ri1&&ri1[ECHEC])echecJour=ri1[ECHEC];
       if(ro1&&ro1[ECHEC])echecJour=echecJour||ro1[ECHEC];
+      // Timeout INO : apiReq résout avec {_timeout:true,histories:[]} — à traiter comme un échec
+      // sinon le jour passe pour "0 appel" (mode honnête : signaler, jamais masquer)
+      if(ri1&&ri1._timeout)echecJour=echecJour||"timeout INO (in)";
+      if(ro1&&ro1._timeout)echecJour=echecJour||"timeout INO (out)";
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
       // Pagination : si on a atteint la limite, découper par demi-journée et compléter
@@ -316,6 +328,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
           ]);
           if(rip&&rip[ECHEC])echecJour=rip[ECHEC];
           if(rop&&rop[ECHEC])echecJour=echecJour||rop[ECHEC];
+          if(rip&&rip._timeout)echecJour=echecJour||"timeout INO (in, tranche)";
+          if(rop&&rop._timeout)echecJour=echecJour||"timeout INO (out, tranche)";
           if(rip&&rip.histories)riH=riH.concat(rip.histories);
           if(rop&&rop.histories)roH=roH.concat(rop.histories);
         }
@@ -370,8 +384,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(_dtP){
       const _dP=new Date(_dtP);
       if(!isNaN(_dP)){
-        const _hFr=parisHour(_dP);
-        if(_hFr<hDeb||_hFr>=hFin)return; // hors plage → ignoré partout (flux + slots + agents)
+        const _mFr=parisMinOfDay(_dP);
+        if(_mFr<minDeb||_mFr>=minFin)return; // hors plage (à la minute) → ignoré partout (flux + slots + agents)
       }
     }
     // Comptage GLOBAL des flux réels (avant filtre agent) — un abandon n'a pas d'agent
@@ -404,13 +418,13 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     }else{fluxSortants++;}
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
-    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0)};
+    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0)};
     if(type==="in"){
       // Présenté = tout entrant routé à l'agent. Décroché = présenté pris (durée>0, non abandonné).
       agents[k].presentes++;
       const agDur=(h.call&&h.call.agentDuration)||0;
       const _ab=(h.status&&String(h.status).toLowerCase().includes('abandon'));
-      if(agDur>0&&!_ab){agents[k].appelsIn++;}     // décroché
+      if(agDur>0&&!_ab){agents[k].appelsIn++;agents[k].dureeIn+=agDur;}  // décroché — durée IN isolée pour le DMT
       else{agents[k].nonDecroches++;}              // présenté non décroché
     }else agents[k].appelsOut++;
     const agDur2=(h.call&&h.call.agentDuration)||0;
@@ -483,7 +497,9 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     return {
       id:a.id,nom:a.nom,username:a.username,statutEstime,lastCallDate:a.derniereAction,
       appelsIn:a.appelsIn,appelsPresentes:a.presentes||(a.appelsIn+(a.nonDecroches||0)),nonDecroches:a.nonDecroches||0,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
-      duree:a.duree,dmt:a.appelsIn>0?Math.round(a.duree/a.appelsIn):0,
+      // DMT = durée moyenne des ENTRANTS décrochés uniquement (a.duree cumule IN+OUT,
+      // la diviser par appelsIn gonflait le DMT de tout agent faisant du sortant)
+      duree:a.duree,dmt:a.appelsIn>0?Math.round((a.dureeIn||0)/a.appelsIn):0,
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
       queues:Array.from(a.queues).join(", "),
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,

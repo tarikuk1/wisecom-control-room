@@ -1296,6 +1296,15 @@ let colPanelOpen=false;
 let slots=[],allQueues=[];
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
+// Sélection campagnes partielle ? Comparer à l'UNIVERS réel (CAMPS connus + camps déduits
+// des agents INO, qui peuvent être des noms de queues hors config). Comparer à CAMPS.length
+// seul est faux dès que selCamps contient des camps hors CAMPS (selCamps.length>CAMPS.length
+// rendait le filtre campagne inopérant jusqu'à la première interaction manuelle).
+function campSelPartial(){
+  const uni=new Set(CAMPS);
+  agents.forEach(a=>{if(a.camp&&a.camp!=='–')uni.add(a.camp);});
+  return selCamps.length<uni.size;
+}
 // Compétences réelles présentes chez les agents du périmètre campagne sélectionné.
 // Source : compétences INO réelles des agents (a.skills / a.allSkillsData), filtrées par campagne.
 // Compétences réellement portées par les agents du périmètre campagne.
@@ -1304,7 +1313,7 @@ function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[])
 // "Compétences non chargées" plutôt qu'une liste globale trompeuse non liée à la campagne.
 function getScopedSkills(){
   if(!agents.length)return [];
-  const inScope=selCamps.length<CAMPS.length?agents.filter(a=>selCamps.includes(a.camp)):agents;
+  const inScope=campSelPartial()?agents.filter(a=>selCamps.includes(a.camp)):agents;
   const s=new Set();
   inScope.forEach(a=>{
     (a.skills||[]).forEach(k=>{if(k)s.add(k.name||k);});
@@ -1377,7 +1386,7 @@ function setBadge(state){
 }
 function stampUpdate(ok){
   const u=document.getElementById("last-update");if(!u)return;
-  const dDeb=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+  const dDeb=document.getElementById("f-date-deb").value||isoLocal(new Date());
   const dFin=document.getElementById("f-date-fin").value||dDeb;
   const fr=s=>s.split("-").reverse().join("/");
   const periode=(dDeb===dFin)?("du "+fr(dDeb)):("du "+fr(dDeb)+" au "+fr(dFin));
@@ -1400,7 +1409,7 @@ function campOfQueue(qn){
 // carte confronte le réel à l'instant du rafraîchissement aux objectifs des critères
 // campagne (QS min) → écart affiché en points.
 async function loadQueueStatus(){
-  const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+  const d=document.getElementById("f-date-deb").value||isoLocal(new Date());
   const grid=document.getElementById("queue-status-grid");
   if(!grid)return; // silencieux si le panel n'est pas visible
   try{
@@ -1428,7 +1437,7 @@ function renderQueueStatus(){
     let queues=window._lastQueuesData;
     // Attribution campagne + filtrage par la sélection active (philosophie : tous les
     // onglets s'adaptent aux filtres campagnes/horaire/dates)
-    const _filtreActif=selCamps.length<CAMPS.length;
+    const _filtreActif=campSelPartial();
     queues=queues.map(function(q){return Object.assign({},q,{camp:campOfQueue(q.name)});});
     if(_filtreActif)queues=queues.filter(function(q){return q.camp&&selCamps.includes(q.camp);});
     if(queues.length===0){
@@ -1507,7 +1516,7 @@ async function refreshFromINO(){
 }
 async function loadAgentsFromAPI(){
   try{
-    const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+    const d=document.getElementById("f-date-deb").value||isoLocal(new Date());
     const dFin=document.getElementById("f-date-fin")?.value||d;
     const hDeb=document.getElementById("f-h-deb")?.value||"08:00";
     const hFin=document.getElementById("f-h-fin")?.value||"20:00";
@@ -1548,9 +1557,10 @@ async function loadAgentsFromAPI(){
         let hprod=0;
         if(a.premiereAction&&a.derniereAction){
           const presH=(new Date(a.derniereAction)-new Date(a.premiereAction))/3600000;
-          hprod=presH>0?+presH.toFixed(2):0;
-        }else if(a.duree>0){
-          // Fallback : comm / 0.75 (agent occupe ~75% du temps en comm)
+          if(presH>0)hprod=+presH.toFixed(2);
+        }
+        // Fallback (agent mono-appel : premiere===derniere → presH=0) : comm / 0.75
+        if(hprod===0&&a.duree>0){
           hprod=+(a.duree/3600/0.75).toFixed(2);
         }
         // 1. Queues actives du jour
@@ -1595,8 +1605,10 @@ async function loadAgentsFromAPI(){
         if(a.premiereAction&&a.derniereAction){
           try{presenceSec=Math.abs(new Date(a.derniereAction)-new Date(a.premiereAction))/1000;}catch(e){presenceSec=0;}
         }
-        // Fallback: si présence trop courte, utiliser duree*1.25 comme estimation
-        if(presenceSec<a.duree&&a.duree>0) presenceSec=a.duree*1.25;
+        // Présence incohérente (durée comm > présence mesurée) → occupation non calculable.
+        // L'ancien fallback presenceSec=duree*1.25 fabriquait une occupation constante ~96 %
+        // présentée comme une mesure — mode honnête : n.d. plutôt qu'une valeur inventée.
+        if(presenceSec<a.duree)presenceSec=0;
         const tempsDispo=presenceSec>0?(presenceSec*(50/60)):0;
         const occupation=(tempsDispo>0&&a.duree>0)?Math.min(100,Math.round((a.duree/tempsDispo)*100)):null;
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
@@ -1667,6 +1679,12 @@ const cmpRefCache=new Map(); // clé "N|date|dateFin|hDeb|hFin" → résumé (ja
 let cmpRef=null;            // résumé de la période de référence courante, ou null
 
 function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+// Heure métier = Europe/Paris quel que soit le fuseau du navigateur (offsets FR en heures
+// pleines → minutes UTC valables telles quelles). Utilisé pour horaires d'ouverture et GSM.
+const _parisHourFmtTop=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
+const _parisDayFmtTop=new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short"});
+function parisNowMin(){const d=new Date();return (parseInt(_parisHourFmtTop.format(d),10)%24)*60+d.getUTCMinutes();}
+function parisDayKey(d){return ({Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sat:"sam"})[_parisDayFmtTop.format(d||new Date())]||"lun";}
 function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function timeToMin(t){if(!t)return NaN;const p=String(t).split(":");return Number(p[0])*60+(Number(p[1])||0);}
 function fmtCmpLabel(rd,rdFin){
@@ -1849,7 +1867,7 @@ function buildAllDropdowns(){
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
   // Agents : seulement ceux affectés aux camps sélectionnés (si filtre partiel)
   const agList=agents.length
-    ?(selCamps.length<CAMPS.length
+    ?(campSelPartial()
         ?agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom)
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
@@ -1925,7 +1943,14 @@ async function pullStore(){
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.waCols&&typeof d.waCols==='object'){
-      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls.map(function(c){return c==='MNZ'?'Monetize':c;});
+      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length){
+        waActiveCalls=d.waCols.calls.slice();
+        // Colonnes serveur antérieures à l'ajout de Monetize : l'injecter après MNZ
+        if(waActiveCalls.indexOf('Monetize')<0){
+          const _mz=waActiveCalls.indexOf('MNZ');
+          waActiveCalls.splice(_mz>=0?_mz+1:1,0,'Monetize');
+        }
+      }
       if(Array.isArray(d.waCols.mails)&&d.waCols.mails.length)waActiveMails=d.waCols.mails;
       if(d.waCols.time&&typeof d.waCols.time==='object')waTimeEdits=d.waCols.time;
       if(d.waCols.email&&typeof d.waCols.email==='object')waEmailEdits=d.waCols.email;
@@ -2023,10 +2048,19 @@ function getFiltered(){
   // Calculé UNE SEULE FOIS hors de la boucle (évite O(n²) qui figeait l'UI)
   const _scoped=getScopedSkills();
   const _skillFilterActive=skillsLoaded()&&selSkills.length>0&&selSkills.length<_scoped.length;
+  const _campPartial=campSelPartial();
+  // Filtre Files : actif seulement si sélection partielle. Un agent passe s'il a traité
+  // au moins une des files sélectionnées ; un agent sans file (aucun appel) n'est pas exclu.
+  const _queueFilterActive=selQueues.length>0&&allQueues.length>0&&selQueues.length<allQueues.length;
+  const _selQueuesSet=_queueFilterActive?new Set(selQueues):null;
   return agents.filter(a=>{
     if(hideDeconnecte&&(a.status==="Déconnecté"||(a.status===null&&(a.decroches||0)===0&&(a.sortants||0)===0)))return false;
-    if(selCamps.length<CAMPS.length&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
+    if(_campPartial&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
     if(!selAgents.includes(a.nom))return false;
+    if(_queueFilterActive){
+      const aq=(a.queues||"").split(", ").filter(Boolean);
+      if(aq.length>0&&!aq.some(q=>_selQueuesSet.has(q)))return false;
+    }
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
     // Filtre compétences : seulement si les compétences INO sont chargées ET sélection partielle
@@ -2231,7 +2265,7 @@ function renderKPIs(f){
   // utiliser les flux de file des campagnes sélectionnées (abandons inclus + appels pris
   // par des agents mutualisés rattachés à une autre campagne). Le calcul agents
   // (décrochés/présentés) sous-estime les abandons et surestime la QS.
-  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&selCamps.length<CAMPS.length
+  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&campSelPartial()
     &&agents.filter(a=>selCamps.includes(a.camp)).every(a=>selAgents.includes(a.nom));
   // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
   // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
@@ -2330,7 +2364,7 @@ function updateAlertBadge(f){
   const badge=document.getElementById("alert-badge");
   const tabBtn=document.getElementById("tab-btn-alertes");
   if(!badge||!tabBtn)return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=isoLocal(new Date());
   const selDate=(document.getElementById("f-date-deb")||{}).value||today;
   const isToday=selDate===today;
   const total=isToday?redFlags:0;
@@ -2346,8 +2380,8 @@ function renderAlerts(f){
   const zone=document.getElementById("alerts-zone");
   // Pilotage instantané : les conseils ne s'affichent QUE pour la journée en cours (live).
   // Sur une date antérieure (historique), aucun conseil — ce n'est pas du temps réel.
-  const selDate=(document.getElementById("f-date-deb")||{}).value||new Date().toISOString().slice(0,10);
-  const today=new Date().toISOString().slice(0,10);
+  const selDate=(document.getElementById("f-date-deb")||{}).value||isoLocal(new Date());
+  const today=isoLocal(new Date());
   if(selDate!==today){
     zone.innerHTML='<div style="padding:14px 18px;font-size:11px;color:#666;background:rgba(255,255,255,.02);border:1px solid #1a1a1a;border-radius:10px">📅 Consultation historique ('+selDate.split("-").reverse().join("/")+') — les conseils de pilotage ne s\'affichent que sur la journée en cours.</div>';
     return;
@@ -2402,10 +2436,9 @@ function renderAlerts(f){
       </div>`;
     }
     // Amplitude horaire d'ouverture du service (par campagne)
-    const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+    const curMin=parisNowMin();   // heure métier Paris, pas le fuseau du navigateur
     const toMin=t=>{const[h,m]=String(t).split(":").map(Number);return h*60+(m||0);};
-    const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
-    const jourAuj=_jrKeys[nowH.getDay()];
+    const jourAuj=parisDayKey();
     let serviceOuvert,hOuv="–",hFerm="–";
     if(cc.h24){serviceOuvert=true;hOuv="00:00";hFerm="24:00";}
     else if(cc.jours&&cc.jours[jourAuj]){
@@ -2721,7 +2754,7 @@ function renderChart(){
   // par campagne (via les files). Sortants/abandons restent des totaux globaux non
   // attribuables par campagne → on ne les affiche pas en vue filtrée pour ne pas induire
   // en erreur (sinon « 443 sortants » = global, pas la campagne sélectionnée).
-  const _filtered=(typeof selCamps!=="undefined"&&typeof CAMPS!=="undefined"&&selCamps.length<CAMPS.length);
+  const _filtered=(typeof selCamps!=="undefined"&&typeof CAMPS!=="undefined"&&campSelPartial());
   // Période sélectionnée (date à date) + volume total affiché
   const _fr=s=>s?s.split("-").reverse().join("/"):"";
   const _dDeb=(document.getElementById("f-date-deb")||{}).value||"";
@@ -3244,7 +3277,7 @@ function renderSelectionSummary(){
   el.innerHTML=`<span style="color:var(--t-disabled);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Sélection active →</span>`
     +tag('Période',periode)
     +tag('Horaire',hDeb+'–'+hFin)
-    +tag('Campagnes',campsDisp,selCamps.length<CAMPS.length)
+    +tag('Campagnes',campsDisp,campSelPartial())
     +tag('Files',queuesDisp)
     +tag('Agents',agentsDisp)
     +tag('Statut',statusDisp)
@@ -3256,7 +3289,7 @@ function renderSelectionSummary(){
 // ── Alerte GSM astreinte — vérification toutes les 60 s ─────────────────────
 function checkGsmAlerts(){
   const now=new Date();
-  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowMin=parisNowMin();   // heure métier Paris
   const nowDate=isoLocal(now);
   const ystDate=shiftDateStr(nowDate,-1);
   const alerts=[];
@@ -3274,8 +3307,11 @@ function checkGsmAlerts(){
       const endStr=(typeof v==="object"&&v.end)||"";
       if(!startStr)return;
       const startMin=timeToMin(startStr);
-      const endMin=endStr?timeToMin(endStr):null;
-      const isOvernight=endMin!==null&&endMin>0&&endMin<=startMin;
+      // Fin "00:00" = minuit en fin de journée (1440), sinon une astreinte 20:00→00:00
+      // n'était jamais considérée active (endMin=0 → ni overnight ni nowMin<0)
+      let endMin=endStr?timeToMin(endStr):null;
+      if(endMin===0)endMin=1440;
+      const isOvernight=endMin!==null&&endMin<1440&&endMin<=startMin;
       if(!isYesterday){
         const warnMin=startMin-30;
         const warning=nowMin>=warnMin&&nowMin<startMin;
@@ -3326,7 +3362,7 @@ function astreinteStatus(camp){
 // Retourne le statut GSM actif d'une campagne (si transfert GSM en cours maintenant)
 function gsmStatus(camp){
   const now=new Date();
-  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowMin=parisNowMin();   // heure métier Paris
   const nowDate=isoLocal(now);
   const ystDate=shiftDateStr(nowDate,-1);
   function check(date,isYesterday){
@@ -3340,8 +3376,9 @@ function gsmStatus(camp){
     const endStr=(typeof v==="object"&&v.end)||"";
     if(!startStr)return null;
     const startMin=timeToMin(startStr);
-    const endMin=endStr?timeToMin(endStr):null;
-    const isOvernight=endMin!==null&&endMin>0&&endMin<=startMin;
+    let endMin=endStr?timeToMin(endStr):null;
+    if(endMin===0)endMin=1440;  // fin "00:00" = minuit fin de journée
+    const isOvernight=endMin!==null&&endMin<1440&&endMin<=startMin;
     let active=false;
     if(!isYesterday){
       active=nowMin>=startMin&&(endMin===null||isOvernight||(endMin!==null&&nowMin<endMin));
@@ -3401,10 +3438,9 @@ function renderStaffingBanner(){
   });
   // Horaires SVI depuis critères
   const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');
-  const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+  const curMin=parisNowMin();   // heure métier Paris, pas le fuseau du navigateur
   const toMin=t=>{const[h,m]=String(t).split(':').map(Number);return h*60+(m||0);};
-  const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
-  const jourAuj=_jrKeys[nowH.getDay()];
+  const jourAuj=parisDayKey();
   function isCampOpen(camp){
     const cc=crit[camp]||{};
     if(cc.h24)return true;
@@ -3523,10 +3559,15 @@ function switchTab(id,btn){
   if(id==="alertes")renderAlerts(getFiltered());
 }
 
-function showToast(msg,color="#30d158"){
+function showToast(msg,color="#30d158",durationMs){
   const t=document.getElementById("toast");
-  t.textContent=msg;t.style.borderColor=color;t.style.color=color;
-  t.style.display="block";setTimeout(()=>t.style.display="none",3500);
+  // Accepte des noms sémantiques ('error'/'warn'/'ok') ou une couleur CSS directe.
+  // Sans ce mapping, style.borderColor="error" est invalide → ignoré → une erreur
+  // s'affichait avec la couleur du toast précédent (souvent le vert succès).
+  const SEM={error:"#ff3b30",err:"#ff3b30",warn:"#ff9f0a",warning:"#ff9f0a",ok:"#30d158",success:"#30d158",info:"#4C9AFF"};
+  const c=SEM[String(color).toLowerCase()]||color;
+  t.textContent=msg;t.style.borderColor=c;t.style.color=c;
+  t.style.display="block";setTimeout(()=>t.style.display="none",durationMs||3500);
 }
 
 // Export Excel amélioré
@@ -3779,7 +3820,7 @@ function exportPDF(){
       selCamps=[...CAMPS];selSkills=[...SKILLS];
     }
   }catch(e){/* repli silencieux sur la config inline si /api/config indisponible */}
-  const todayStr=new Date().toISOString().slice(0,10);
+  const todayStr=isoLocal(new Date());
   document.getElementById("f-date-fin").value=todayStr;
   document.getElementById("f-date-deb").value=todayStr;
   agents=genAgents();
@@ -4048,13 +4089,20 @@ var WA_GROUP_COLORS={
 };
 
 // ── Colonnes compétences (fidèles à l'image de référence) ─────
-var WA_SKILLS_CALLS=["Filippi","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+// MNZ et Monetize sont DEUX campagnes distinctes dans queues_config.js
+// (MNZ → queues "MNZ"/"MNZ_FR" ; Monetize → queue "Monetize FR") : deux colonnes.
+var WA_SKILLS_CALLS=["Filippi","MNZ","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
-var WA_SKILLS_COMP =["Filippi","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_COMP =["Filippi","MNZ","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 // Alias WA colonne → clé CAMPS/QUEUES_MAP (pour les cas où le nom court diffère du nom de camp)
 var WA_CAMP_ALIAS={"ND":"Nature & Découvertes"};
 (function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
-waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls.map(function(c){return c==='MNZ'?'Monetize':c;}):WA_SKILLS_CALLS.slice();
+waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls.slice():WA_SKILLS_CALLS.slice();
+// Colonnes sauvegardées avant l'ajout de Monetize : l'injecter pour ne pas la perdre
+if(waActiveCalls.indexOf('Monetize')<0&&WA_SKILLS_CALLS.indexOf('Monetize')>=0){
+  var _mzPos=waActiveCalls.indexOf('MNZ');
+  waActiveCalls.splice(_mzPos>=0?_mzPos+1:1,0,'Monetize');
+}
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
 if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
 if(_s&&typeof _s.email==='object')waEmailEdits=_s.email||{};
@@ -4187,7 +4235,7 @@ function waCampSynthesis(allAgents){
   allAgents.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
   var camps=Object.keys(campSet);
   // Filtrer selon selCamps si une sélection active (<35 campagnes)
-  if(typeof selCamps!=='undefined'&&Array.isArray(selCamps)&&selCamps.length<CAMPS.length){
+  if(typeof selCamps!=='undefined'&&Array.isArray(selCamps)&&campSelPartial()){
     camps=camps.filter(function(c){return selCamps.includes(c);});
   }
 
@@ -4214,15 +4262,20 @@ function waCampSynthesis(allAgents){
   allAgents.forEach(function(a){
     var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
     // Compétences INO actives de l'agent (skills chargés via ↺ Compétences)
-    var agSkills=[];
+    var agSkills=[];     // lowercase, pour égalité stricte avec noms de queues
+    var agSkillsRaw=[];  // brutes, pour normalisation vers colonnes WA
     if(Array.isArray(a.skills)&&a.skills.length>0){
-      a.skills.forEach(function(s){agSkills.push(String(s.name||s).toLowerCase().trim());});
+      a.skills.forEach(function(s){var n=String(s.name||s);agSkills.push(n.toLowerCase().trim());agSkillsRaw.push(n);});
     }
     if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
       a.allSkillsData.forEach(function(s){
-        if(s.active!==false&&s.name)agSkills.push(String(s.name).toLowerCase().trim());
+        if(s.active!==false&&s.name){agSkills.push(String(s.name).toLowerCase().trim());agSkillsRaw.push(String(s.name));}
       });
     }
+    // Colonnes WA couvertes par les compétences (gère "LGR" vs queues "LGR-SC",
+    // "Vivest interne" vs "Vivest_Client", "LMDW_FR" vs LMDW, accents…)
+    var agWaCols=new Set();
+    agSkillsRaw.forEach(function(skRaw){var col=normalizeSkillToWaCol(skRaw);if(col)agWaCols.add(col);});
     camps.forEach(function(c){
       if(staff[c].agents.indexOf(a.nom)>=0)return; // déjà compté
       var matched=false;
@@ -4245,6 +4298,19 @@ function waCampSynthesis(allAgents){
         }
         if(qset&&qset.size>0){
           matched=agSkills.some(function(sk){return qset.has(sk);});
+        }
+      }
+      // 4. Compétence normalisée → colonne WA → campagne. Couvre les compétences courtes
+      // qui n'égalent aucun nom de queue : "LGR" (queues LGR-SC…), "Vivest" (Vivest_Client…),
+      // "LMDW_FR"→LMDW, "Alcéane astreinte" (accents), HMF/CNPA…
+      if(!matched&&agWaCols.size>0){
+        var realC=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:c;
+        if(agWaCols.has(c)||agWaCols.has(realC))matched=true;
+        if(!matched&&WA_CAMP_ALIAS){
+          var _ak=Object.keys(WA_CAMP_ALIAS);
+          for(var _ai=0;_ai<_ak.length;_ai++){
+            if(WA_CAMP_ALIAS[_ak[_ai]]===c&&agWaCols.has(_ak[_ai])){matched=true;break;}
+          }
         }
       }
       if(matched){
@@ -4482,13 +4548,21 @@ function buildAffectationTable(sorted,dateStr,timeStr){
       "min-width:115px;line-height:1.3;"
     );
 
-    // Liste compétences — UNIQUEMENT depuis allSkillsData (données INO exactes)
+    // Liste compétences — UNIQUEMENT depuis allSkillsData (données INO exactes),
+    // normalisées vers les colonnes WA (sinon "LMDW_FR" n'apparaissait pas sous LMDW
+    // alors que "Affectations appels" la coloriait — deux sections contradictoires)
     var _hasInoSk=Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;
     var _nbActif=_hasInoSk?a.allSkillsData.filter(function(x){return x.active;}).length:null;
+    var _inoCols=new Set();
+    if(_hasInoSk){
+      a.allSkillsData.forEach(function(x){
+        if(!x.active)return;
+        var col=normalizeSkillToWaCol(x.name||x);
+        if(col)_inoCols.add(col);
+      });
+    }
     WA_SKILLS_COMP.forEach(function(s){
-      var has=_hasInoSk
-        ?a.allSkillsData.some(function(x){return x.active&&(x.name||x)===s;})
-        :false;
+      var has=_inoCols.has(s);
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
 
@@ -4929,7 +5003,7 @@ function renderWA(){
   var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
   var timeStr=_hDeb+"–"+_hFin;
   // Indicateur si on consulte une date passée ou un créneau hors horaires courants
-  var _todayIso=new Date().toISOString().slice(0,10);
+  var _todayIso=isoLocal(new Date());
   var _isPast=_dFin&&_dFin<_todayIso;
   var _periodLabel=_isPast?"Historique":"Période";
   if(agents.length===0){
@@ -4949,7 +5023,7 @@ function renderWA(){
       return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
     });
   }
-  var _campScopeActive=selCamps.length<CAMPS.length;
+  var _campScopeActive=campSelPartial();
   var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
   if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
   if(scope.length===0){

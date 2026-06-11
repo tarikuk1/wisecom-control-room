@@ -381,7 +381,10 @@ function isMutualise(name){
 // l'a inscrit comme couvrant ce jour-là — renvoie le nom de la campagne ou null
 function onCallCampaign(agentName,date){
   for(const camp of (astreintes.tracked||[])){
-    if(astreintes.entries[camp+"|"+date]===agentName)return camp;
+    // Le registre stocke soit une string (ancien format), soit {name,start,end,gsm}
+    const v=astreintes.entries[camp+"|"+date];
+    const n=typeof v==="string"?v:(v&&v.name)||"";
+    if(n===agentName)return camp;
   }
   return null;
 }
