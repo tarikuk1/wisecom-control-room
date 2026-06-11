@@ -2871,7 +2871,7 @@ function initQualifPanel(){
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
         <select id="qf-camp" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
           <option value="">— Toutes campagnes —</option>
-          ${CAMPS.map(c=>`<option value="${c}">${c}</option>`).join(‘’)}
+          ${CAMPS.map(c=>`<option value="${c}">${c}</option>`).join('')}
         </select>
         <input type="date" id="qf-d1" value="${today}" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
         <span style="color:var(--t-disabled);font-size:10px;">→</span>
@@ -2891,7 +2891,7 @@ function updateQualifFromAgents(filtered){
   const campFilter=campSel?campSel.value:"";
   const src=campFilter?filtered.filter(a=>a.camp===campFilter):filtered;
   if(!src.length){
-    host.innerHTML=’<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">Aucune donnée chargée — utilisez Rafraîchir puis Rechercher</div>’;
+    host.innerHTML='<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">Aucune donnée chargée — utilisez Rafraîchir puis Rechercher</div>';
     return;
   }
   const totKo=src.reduce((s,a)=>s+(a.ko||0),0);
@@ -2914,7 +2914,7 @@ function updateQualifFromAgents(filtered){
   _qualifMeta={camp:campFilter||"Toutes",d1:isoLocal(new Date()),d2:isoLocal(new Date()),agents:src.length,total:totAppels};
   renderQualifBars(host,_qualifData,totAppels);
   const exp=document.getElementById("qf-export");
-  if(exp){exp.disabled=false;exp.style.cursor=’pointer’;exp.style.color=’var(--t-secondary)’;exp.style.background=’var(--s-3)’;}
+  if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
 }
 let _qualifData=[],_qualifMeta={};
 
@@ -2925,10 +2925,10 @@ async function runQualifSearch(){
   const camp=document.getElementById("qf-camp")?.value||"";
   const host=document.getElementById("qf-results");
   if(!host||!d1||!d2)return;
-  host.innerHTML=’<div style="padding:14px;color:var(--t-muted);font-size:11px;text-align:center;display:flex;align-items:center;gap:8px;justify-content:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--c-pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span>Chargement…</div>’;
+  host.innerHTML='<div style="padding:14px;color:var(--t-muted);font-size:11px;text-align:center;display:flex;align-items:center;gap:8px;justify-content:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--c-pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span>Chargement…</div>';
   try{
     const url=`/agents-day?date=${d1}&dateFin=${d2}&hDeb=0&hFin=24`;
-    const r=await fetch(url,{credentials:’same-origin’});
+    const r=await fetch(url,{credentials:'same-origin'});
     if(!r.ok)throw new Error("HTTP "+r.status);
     const json=await r.json();
     const src=(json.agents||[]).filter(a=>{
@@ -2957,7 +2957,7 @@ async function runQualifSearch(){
     _qualifMeta={camp:camp||"Toutes",d1,d2,agents:src.length,total:totAppels};
     renderQualifBars(host,_qualifData,totAppels);
     const exp=document.getElementById("qf-export");
-    if(exp){exp.disabled=false;exp.style.cursor=’pointer’;exp.style.color=’var(--t-secondary)’;exp.style.background=’var(--s-3)’;}
+    if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
   }catch(e){
     host.innerHTML=`<div style="padding:12px;color:#ff9f0a;font-size:11px">⚠ Erreur : ${e.message}</div>`;
   }
@@ -2965,28 +2965,28 @@ async function runQualifSearch(){
 
 function renderQualifBars(host,data,total){
   if(!total){
-    host.innerHTML=’<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">0 appel sur la période — aucune répartition disponible</div>’;
+    host.innerHTML='<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">0 appel sur la période — aucune répartition disponible</div>';
     return;
   }
   const maxN=Math.max(...data.filter(d=>d.n!=null).map(d=>d.n),1);
   const COLORS={"100 % KO":"#ff3b30","Hors SVI":"#ff6b30","Sans suite":"#ff9f0a","Rappel":"#ffd000","RDV pris / Intéressé":"#30d158","Transfert":"#4C9AFF","Réitérant":"#bf5af2","Refus":"#e84444"};
-  let html=’<div style="display:flex;flex-direction:column;gap:5px;">’;
+  let html='<div style="display:flex;flex-direction:column;gap:5px;">';
   data.forEach(d=>{
     const pct=d.n!=null&&total>0?Math.round(d.n/total*100):null;
     const barW=d.n!=null?Math.round(d.n/maxN*100):0;
     const col=COLORS[d.q]||"#888";
     const nd=d.n==null;
     html+=`<div style="display:grid;grid-template-columns:120px 1fr 38px 32px;align-items:center;gap:5px;">
-      <span style="font-size:10px;color:${nd?’var(--t-disabled)’:’var(--t-secondary)’};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.q}">${d.q}</span>
+      <span style="font-size:10px;color:${nd?'var(--t-disabled)':'var(--t-secondary)'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.q}">${d.q}</span>
       <div style="background:var(--s-2);border-radius:3px;height:8px;overflow:hidden;">
-        ${nd?’’:`<div style="background:${col};width:${barW}%;height:100%;border-radius:3px;transition:width .3s;"></div>`}
+        ${nd?'':`<div style="background:${col};width:${barW}%;height:100%;border-radius:3px;transition:width .3s;"></div>`}
       </div>
-      <span style="font-size:10px;font-weight:700;color:${nd?’var(--t-disabled)’:col};text-align:right;">${nd?’n.d.’:(d.n)}</span>
-      <span style="font-size:9px;color:var(--t-disabled);text-align:right;">${pct!=null?pct+’%’:’’}</span>
+      <span style="font-size:10px;font-weight:700;color:${nd?'var(--t-disabled)':col};text-align:right;">${nd?'n.d.':(d.n)}</span>
+      <span style="font-size:9px;color:var(--t-disabled);text-align:right;">${pct!=null?pct+'%':''}</span>
     </div>`;
   });
   html+=`</div><div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--s-3);display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-size:9px;color:var(--t-disabled)">${_qualifMeta.camp} · ${_qualifMeta.d1}${_qualifMeta.d1!==_qualifMeta.d2?’ → ‘+_qualifMeta.d2:’’} · ${_qualifMeta.agents} agent(s)</span>
+    <span style="font-size:9px;color:var(--t-disabled)">${_qualifMeta.camp} · ${_qualifMeta.d1}${_qualifMeta.d1!==_qualifMeta.d2?' → '+_qualifMeta.d2:''} · ${_qualifMeta.agents} agent(s)</span>
     <span style="font-size:9px;color:var(--t-muted)">Total : <b>${total}</b> appels</span>
   </div>`;
   host.innerHTML=html;
@@ -2997,14 +2997,14 @@ function exportQualifCsv(){
   const total=_qualifMeta.total||1;
   let csv="Qualification,Nombre,Pourcentage,Source\n";
   _qualifData.forEach(d=>{
-    const pct=d.n!=null?Math.round(d.n/total*100):’n.d.’;
-    csv+=`"${d.q}",${d.n??’n.d.’},${pct}%,"${d.src}"\n`;
+    const pct=d.n!=null?Math.round(d.n/total*100):'n.d.';
+    csv+=`"${d.q}",${d.n??'n.d.'},${pct}%,"${d.src}"\n`;
   });
   csv+=`\nTotal,${total},100%,INO\n`;
   csv+=`Campagne,"${_qualifMeta.camp}"\nPériode,"${_qualifMeta.d1} → ${_qualifMeta.d2}"\n`;
   const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`qualifs_${_qualifMeta.camp.replace(/[^a-z0-9]/gi,’_’)}_${_qualifMeta.d1}_${_qualifMeta.d2}.csv`;
+  a.download=`qualifs_${_qualifMeta.camp.replace(/[^a-z0-9]/gi,'_')}_${_qualifMeta.d1}_${_qualifMeta.d2}.csv`;
   a.click();URL.revokeObjectURL(a.href);
 }
 
