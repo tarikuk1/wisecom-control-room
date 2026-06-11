@@ -130,9 +130,11 @@ let sortDir = -1;
 let mailOverrides = {};
 let noteOverrides = {};
 
-// Date picker — aujourd'hui par défaut
+// Date picker — aujourd'hui par défaut (heure LOCALE, pas UTC : toISOString ferait
+// glisser la date d'un jour entre minuit et 2h du matin heure de Paris)
 const dp = document.getElementById("date-picker");
-dp.value = new Date().toISOString().slice(0,10);
+const _n=new Date();
+dp.value = _n.getFullYear()+"-"+String(_n.getMonth()+1).padStart(2,"0")+"-"+String(_n.getDate()).padStart(2,"0");
 dp.addEventListener("change", loadData);
 
 function fmtMMSS(s){const m=Math.floor(s/60);return`${String(m).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}

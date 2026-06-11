@@ -25,9 +25,14 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 .panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
 .panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:8px 10px;color:#999;font-weight:500;text-align:left;border-bottom:1px solid #dedede;white-space:nowrap;background:#fafafa;}
+.tbl th{padding:9px 10px;color:#555;font-weight:600;text-align:center;border-bottom:2px solid #dedede;white-space:nowrap;background:#fafafa;}
+.tbl th:first-child{text-align:left;position:sticky;left:0;background:#fafafa;z-index:2;}
 .tbl td{padding:7px 10px;border-bottom:1px solid #efefef;vertical-align:middle;white-space:nowrap;}
-.tbl tr:hover td{background:#fff8fc;}
+.tbl td:first-child{position:sticky;left:0;background:#fff;z-index:1;border-right:1px solid #eee;}
+.tbl tbody tr:nth-child(even) td{background-clip:padding-box;}
+.tbl tr:hover td{box-shadow:inset 0 0 0 99px rgba(232,0,110,.03);}
+.tbl th.wk,.tbl td.wk{background:#f6f6f6;}
+.tbl th.today{box-shadow:inset 0 -3px 0 #E8006E;}
 .loading{text-align:center;padding:30px;color:#999;}
 .empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
 .success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
@@ -118,8 +123,11 @@ let radarData = null;   // {camp, weekStart, days:[{date,refDate,profile,error}]
 let loading = false;
 const dayCache = new Map(); // clé "YYYY-MM-DD" -> réponse /agents-day brute (immuable une fois le jour entièrement passé)
 
+// Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
+// et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   return names[new Date(dateStr+"T00:00:00").getDay()];
@@ -130,7 +138,14 @@ function nextMonday(){
   const d=new Date();
   const diff=((8-d.getDay())%7)||7;
   d.setDate(d.getDate()+diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
+}
+// Recale n'importe quelle date sur le lundi de sa semaine (les semaines commencent le lundi)
+function mondayOf(dateStr){
+  const d=new Date((dateStr||nextMonday())+"T00:00:00");
+  const diff=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-diff);
+  return isoLocal(d);
 }
 
 function showToast(msg,color){
@@ -242,7 +257,7 @@ async function loadDay(date){
   const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=08:00&hFin=20:00`);
   if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
   const data=await res.json();
-  const todayStr=new Date().toISOString().slice(0,10);
+  const todayStr=isoLocal(new Date());
   if(date<todayStr&&!data.error)dayCache.set(date,data); // passé immuable -> cache
   return data;
 }
@@ -250,7 +265,7 @@ async function loadDay(date){
 async function loadRadar(){
   if(loading)return;
   const camp=document.getElementById("r-camp").value;
-  const weekStart=document.getElementById("r-week").value;
+  const weekStart=mondayOf(document.getElementById("r-week").value); // semaine = lundi → dimanche, toujours
   const offsetDays=parseInt(document.getElementById("r-offset").value,10);
   const stEl=document.getElementById("radar-status");
   const btn=document.getElementById("btn-radar-load");
@@ -294,16 +309,21 @@ async function loadRadar(){
 function renderHeatmap(){
   const {camp,days,baseline}=radarData;
   document.getElementById("radar-camp-label").textContent=camp;
-  document.getElementById("radar-period").textContent=`Semaine du ${fmtDate(days[0].date)} au ${fmtDate(days[6].date)}`;
-  const thead=`<tr><th>Créneau</th>${days.map(d=>`<th title="Projection basée sur ${dayName(d.refDate)} ${fmtDate(d.refDate)}">${dayName(d.date)} ${fmtDate(d.date)}<br><span style="font-weight:400;color:#555;font-size:10px;">proj. base ${fmtDate(d.refDate)}</span></th>`).join("")}</tr>`;
+  document.getElementById("radar-period").textContent=`Semaine du ${dayName(days[0].date)} ${fmtDate(days[0].date)} au ${dayName(days[6].date)} ${fmtDate(days[6].date)}`;
+  const todayStr=isoLocal(new Date());
+  const isWk=d=>{const wd=new Date(d+"T00:00:00").getDay();return wd===0||wd===6;};
+  // Garde-fou : le jour de référence doit tomber sur le MÊME jour de semaine que le jour projeté
+  const misaligned=days.some(d=>new Date(d.date+"T00:00:00").getDay()!==new Date(d.refDate+"T00:00:00").getDay());
+  const thead=`<tr><th>Créneau</th>${days.map(d=>`<th class="${isWk(d.date)?"wk":""}${d.date===todayStr?" today":""}" title="Projection basée sur ${dayName(d.refDate)} ${fmtDate(d.refDate)} (même jour de semaine)">${dayName(d.date)} ${fmtDate(d.date)}<br><span style="font-weight:400;color:#777;font-size:10px;">réf. ${dayName(d.refDate).slice(0,3).toLowerCase()} ${fmtDate(d.refDate)}</span></th>`).join("")}</tr>`;
   let tbody="";
   for(let h=0;h<12;h++){
     tbody+=`<tr><td><b>${hourLabel(h)}</b></td>`;
     days.forEach(d=>{
       const cell=d.profile?d.profile[h]:null;
+      const wkCls=isWk(d.date)?"wk":"";
       if(!cell){
         const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée INO pour le jour de référence ("+fmtDate(d.refDate)+")";
-        tbody+=`<td style="text-align:center;color:#999;background:#f5f5f5;" title="${reason}"><span style="font-size:10px;">n.d.</span></td>`;
+        tbody+=`<td class="${wkCls}" style="text-align:center;color:#999;" title="${reason}"><span style="font-size:10px;">n.d.</span></td>`;
         return;
       }
       const level=tensionLevel(cell,baseline);
@@ -311,7 +331,7 @@ function renderHeatmap(){
       const reco=recommendedAgents(cell.vol,baseline);
       if(cell.vol===0){
         // Pas d'activité habituelle sur ce créneau — affiché explicitement, pas une case vide
-        tbody+=`<td style="text-align:center;background:#fafafa;color:#bbb;" title="Aucun appel ${camp} observé sur ce créneau le ${fmtDate(d.refDate)} — pas de staffing requis a priori"><span style="font-size:10px;">0 appel</span></td>`;
+        tbody+=`<td class="${wkCls}" style="text-align:center;color:#bbb;" title="Aucun appel ${camp} observé sur ce créneau le ${fmtDate(d.refDate)} — pas de staffing requis a priori"><span style="font-size:10px;">0 appel</span></td>`;
         return;
       }
       // Cellule riche : volume + staffing recommandé vs référence + charge/agent
@@ -327,7 +347,9 @@ function renderHeatmap(){
     });
     tbody+="</tr>";
   }
-  document.getElementById("radar-table-wrap").innerHTML=`<table class="tbl" id="radar-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+  document.getElementById("radar-table-wrap").innerHTML=
+    (misaligned?`<div style="background:#fff5f5;border:1px solid #ffd0d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#dc2626;font-weight:600;">⚠ Incohérence calendrier détectée : un jour projeté ne correspond pas au même jour de semaine que sa référence — régénérez le radar. Si le problème persiste, signalez-le.</div>`:"")
+    +`<table class="tbl" id="radar-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
     <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> · Lecture d'une cellule : <b>volume projeté</b> · <b>staffing recommandé</b> (vs agents en référence) · <b>charge/agent</b>.</div>`;
   // Activer les exports
   document.getElementById("btn-radar-excel").disabled=false;
@@ -454,7 +476,11 @@ function connectSSE(){
 // Init
 const weekInput=document.getElementById("r-week");
 weekInput.value=nextMonday();
-weekInput.addEventListener("change",()=>{document.getElementById("radar-status").textContent="";});
+weekInput.addEventListener("change",e=>{
+  // Toujours recaler sur le lundi : garantit l'alignement jour de semaine ↔ jour de référence
+  if(e.target.value)e.target.value=mondayOf(e.target.value);
+  document.getElementById("radar-status").textContent="";
+});
 document.getElementById("btn-radar-load").addEventListener("click",loadRadar);
 document.getElementById("btn-radar-excel").addEventListener("click",exportRadarExcel);
 document.getElementById("btn-radar-pdf").addEventListener("click",exportRadarPDF);
