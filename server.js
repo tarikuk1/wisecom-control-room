@@ -1,5 +1,7 @@
 const http=require("http"),https=require("https"),fs=require("fs"),path=require("path"),crypto=require("crypto");
 const PORT=process.env.PORT||3000;
+// SÉCURITÉ : définir ces variables dans les env vars Railway pour ne pas exposer les secrets en clair.
+// Les valeurs ci-dessous sont des fallbacks de développement — ne pas conserver en production.
 const INO_LOGIN=process.env.INO_LOGIN||"tarik_dashboard";
 const INO_PWD=process.env.INO_PWD||"XnF!AuuWJg$cR$S";
 const INO_APIKEY=process.env.INO_APIKEY||"dasboard_INO";
@@ -148,7 +150,7 @@ function isCampOpenAt(camp,d){
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -802,6 +804,10 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url==="/logout"){if(cookies.session)delete sessions[cookies.session];if(cookies.pending)delete pending[cookies.pending];setCookie(res,"session","",0);setCookie(res,"pending","",0);res.writeHead(302,{Location:"/login"});return res.end();}
   if(url==="/webhook"&&req.method==="POST"){
+    // Authentification : l'expéditeur doit fournir le secret via X-Webhook-Secret ou ?secret=
+    const WEBHOOK_SECRET=process.env.WEBHOOK_SECRET||"";
+    const providedSecret=req.headers["x-webhook-secret"]||(new URL(req.url,"http://localhost")).searchParams.get("secret")||"";
+    if(WEBHOOK_SECRET&&providedSecret!==WEBHOOK_SECRET){res.writeHead(401,{"Content-Type":"application/json"});return res.end(JSON.stringify({error:"Secret webhook invalide"}));}
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{

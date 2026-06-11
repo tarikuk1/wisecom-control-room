@@ -47,6 +47,7 @@ ul{margin:6px 0 10px 22px;}
     <a href="/executif" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📊 Exécutif</a>
     <a href="/couverture" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📡 Couverture</a>
     <a href="/astreinte" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🌙 Astreinte</a>
+    <a href="/agents-jour" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📋 Agents jour</a>
     <a href="/planning" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗓️ Planning</a>
   </div>
 </div>
@@ -179,7 +180,7 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="couverture">
   <h2>5. Radar de couverture 📡</h2>
-  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif planifié est inférieur au besoin estimé.</p>
+  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel de la campagne.</p>
 </section>
 
 <section id="astreinte">
@@ -248,7 +249,7 @@ ul{margin:6px 0 10px 22px;}
     <li><b>Pause déjeuner</b> : saisissez l'heure de début et de fin. Elle est <b>déduite du total hebdomadaire</b>.</li>
     <li><b>Pauses 15 min</b> (jusqu'à 2 par jour) : cochez la case et indiquez l'heure. Elles restent comptées comme du temps de travail mais sont visibles dans le planning pour éviter les chevauchements.</li>
   </ul>
-  <p>Le tableau de couverture (bas de page) affiche pour chaque créneau de 30 minutes : le nombre d'agents effectivement présents (hors déjeuner), avec des badges <b>🍽−n</b> (agents en pause déjeuner) et <b>☕n</b> (agents en pause 15 min) pour identifier les tensions.</p>
+  <p>Le tableau de couverture (bas de page) affiche pour chaque <b>tranche de 1 heure</b> : le nombre d'agents effectivement présents (hors déjeuner), avec des badges <b>🍽−n</b> (agents en pause déjeuner) et <b>☕n</b> (agents en pause 15 min) pour identifier les tensions.</p>
 
   <h3>Vue globale « ALL »</h3>
   <p>Dans le sélecteur de campagne, l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes — lecture seule.</p>
@@ -304,6 +305,7 @@ ul{margin:6px 0 10px 22px;}
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #E8006E;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#E8006E;background:#fff0f6;">📊 Exécutif ← page active</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📡 Couverture</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🌙 Astreinte</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📋 Agents jour</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🗓️ Planning</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📖 Notice</span>
   </div>

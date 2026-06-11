@@ -449,13 +449,28 @@ async function deletePole(name){
   renderGrid();
   showToast(`Pôle « ${name} » supprimé`,"#777");
 }
+// Dirty-set : clés modifiées localement non encore confirmées par le serveur
+const _dirtyKeys=new Set();
 function pushPlanning(){
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>{
-    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"planning",value:planning})})
-      .then(r=>r.json()).then(d=>{
-        planningStatus(d&&d.ok?"Planning enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>planningStatus("Échec de l'enregistrement (réseau)","#dc2626"));
+  // Capture la liste des clés localement modifiées avant le debounce
+  const snapshot=JSON.parse(JSON.stringify(planning));
+  const dirtySnap=new Set(_dirtyKeys);
+  pushTimer=setTimeout(async()=>{
+    try{
+      // Rebase : GET état courant du serveur, puis écraser seulement les clés dirty locales
+      const storeR=await fetch(`${INO_BASE}/api/store`);
+      const storeD=await storeR.json();
+      const serverPlanning=(storeD&&storeD.planning&&typeof storeD.planning==="object")?storeD.planning:{};
+      const merged={...serverPlanning};
+      dirtySnap.forEach(k=>{ merged[k]=snapshot[k]; });
+      dirtySnap.forEach(k=>_dirtyKeys.delete(k));
+      const r=await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"planning",value:merged})});
+      const d=await r.json();
+      planningStatus(d&&d.ok?"Planning enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+    }catch(e){
+      planningStatus("Échec de l'enregistrement (réseau)","#dc2626");
+    }
   },600);
 }
 
@@ -500,13 +515,13 @@ function weekTotalMinutes(agent,dates,entry){
     const s=entry.shifts[agent+"|"+d];
     if(s&&s.start&&s.end){
       const a=timeToMinutes(s.start),b=timeToMinutes(s.end);
-      if(b>a){
-        let m=b-a;
-        // Le déjeuner n'est pas du temps travaillé ; les pauses 15 min restent décomptées comme travaillées
-        const l=lunchRange(s);
-        if(l)m-=Math.min(m,l[1]-l[0]);
-        total+=m;
-      }
+      let m;
+      if(b>a){m=b-a;}
+      else if(b<a){m=(1440-a)+b;} // créneau de nuit passant minuit
+      else{return;}
+      const l=lunchRange(s);
+      if(l)m-=Math.min(m,l[1]-l[0]);
+      total+=m;
     }
   });
   return total;
@@ -519,6 +534,7 @@ function addAgent(name){
   const entry=ensureEntry(camp,currentMonday());
   if(entry.roster.some(r=>r.nom===name)){showToast(`« ${name} » figure déjà dans ce planning`,"#b45309");return;}
   entry.roster.push({nom:name,training:false});
+  _dirtyKeys.add(entryKey(camp,currentMonday()));
   pushPlanning();
   renderGrid();
   showToast(`« ${name} » ajouté au planning`,"#1a8f44");
@@ -529,6 +545,7 @@ async function removeAgent(name){
   if(!ok)return;
   const entry=ensureEntry(camp,currentMonday());
   entry.roster=entry.roster.filter(r=>r.nom!==name);
+  _dirtyKeys.add(entryKey(camp,currentMonday()));
   pushPlanning();
   renderGrid();
   showToast(`« ${name} » retiré du planning`,"#777");
@@ -549,6 +566,7 @@ function commitShiftFromCell(cell){
   const p1c=q(".t-p1c"),p1I=q(".t-p1"),p2c=q(".t-p2c"),p2I=q(".t-p2");
   const entry=ensureEntry(currentCamp(),currentMonday());
   const key=agent+"|"+date;
+  _dirtyKeys.add(entryKey(currentCamp(),currentMonday()));
   if(offI.checked){
     entry.shifts[key]={off:true};
   }else if(startI.value&&endI.value){
@@ -873,17 +891,20 @@ function computeCoverage(camps,monday,dates){
         const s=entry.shifts[r.nom+"|"+d];
         if(!s||s.off||!s.start||!s.end)return;
         const a=timeToMinutes(s.start),b=timeToMinutes(s.end);
-        if(b<=a)return;
+        if(a===b)return;
+        const overnight=b<a;
         hasAny=true;
         perDayAgents[di].add(camp+"|"+r.nom);
         const l=lunchRange(s);
-        perDayMin[di]+=(b-a)-(l?Math.min(b-a,l[1]-l[0]):0);
+        const durMin=overnight?(1440-a)+b:b-a;
+        perDayMin[di]+=durMin-(l?Math.min(durMin,l[1]-l[0]):0);
         const pauses=pauseStarts(s);
         if(!perCamp[camp])perCamp[camp]=dates.map(()=>0);
         perCamp[camp][di]++;
+        const bEff=overnight?1440:b; // pour coverage: traiter le créneau de nuit jusqu'à minuit (20h max)
         for(let h=0;h<12;h++){
           const s0=(8+h)*60,s1=s0+60;
-          if(!(a<s1&&b>s0))continue;
+          if(!(a<s1&&bEff>s0))continue;
           perSlot[di][h]++;
           if(l&&Math.min(l[1],s1)-Math.max(l[0],s0)>=30)perSlotLunch[di][h]++;
           pauses.forEach(p=>{if(p<s1&&p+15>s0)perSlotPause[di][h]++;});
@@ -1060,6 +1081,19 @@ document.getElementById("pole-name-input").addEventListener("keydown",e=>{if(e.k
   renderGrid();
 })();
 connectSSE();
+
+// Flush immédiat des changements en attente si l'utilisateur quitte la page
+function _flushNow(){
+  if(pushTimer===null||!_dirtyKeys.size)return;
+  clearTimeout(pushTimer);
+  pushTimer=null;
+  const snapshot=JSON.parse(JSON.stringify(planning));
+  const dirtySnap=new Set(_dirtyKeys);
+  _dirtyKeys.clear();
+  navigator.sendBeacon(`${INO_BASE}/api/store`,JSON.stringify({key:"planning",value:snapshot}));
+}
+window.addEventListener("beforeunload",_flushNow);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")_flushNow(); });
 </script>
 </body>
 </html>

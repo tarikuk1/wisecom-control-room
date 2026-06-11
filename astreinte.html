@@ -328,13 +328,33 @@ async function loadStore(){
     showToast("⚠ Registre indisponible — vérifiez la connexion","#b45309");
   }
 }
+// Clés d'entrée modifiées localement (format "camp|YYYY-MM-DD")
+const _dirtyAst=new Set();
 function pushRegistry(){
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>{
-    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:registry})})
-      .then(r=>r.json()).then(d=>{
-        astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626"));
+  const localSnap=JSON.parse(JSON.stringify(registry));
+  const dirtySnap=new Set(_dirtyAst);
+  pushTimer=setTimeout(async()=>{
+    try{
+      // Rebase : récupère l'état serveur, écrase seulement les clés dirty
+      const storeR=await fetch(`${INO_BASE}/api/store`);
+      const storeD=await storeR.json();
+      const srv=(storeD&&storeD.astreintes&&typeof storeD.astreintes==="object")?storeD.astreintes:{tracked:[],entries:{}};
+      const merged={
+        tracked:localSnap.tracked,
+        entries:{...srv.entries}
+      };
+      dirtySnap.forEach(k=>{
+        if(localSnap.entries[k]!=null)merged.entries[k]=localSnap.entries[k];
+        else delete merged.entries[k]; // entrée supprimée localement
+        _dirtyAst.delete(k);
+      });
+      const r=await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:merged})});
+      const d=await r.json();
+      astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+    }catch(e){
+      astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626");
+    }
   },600);
 }
 
@@ -357,6 +377,7 @@ function commitEntry(cell){
   const gsmInp=cell.querySelector(".t-ast-gsm");
   const gsmLbl=cell.querySelector(".ast-gsm-label");
   const key=camp+"|"+date;
+  _dirtyAst.add(key);
   const name=(nameInp.value||"").trim();
   nameInp.value=name;
   nameInp.classList.toggle("empty",!name);
@@ -368,7 +389,10 @@ function commitEntry(cell){
     const entry={name};
     if(startInp&&startInp.value)entry.start=startInp.value;
     if(endInp&&endInp.value)entry.end=endInp.value;
-    if(gsmInp&&gsmInp.checked)entry.gsm=true;
+    if(gsmInp&&gsmInp.checked){
+      entry.gsm=true;
+      if(!entry.start)showToast("⚠ GSM coché sans heure de début — renseignez l'heure de prise d'astreinte pour déclencher l'alerte automatique","#b45309");
+    }
     registry.entries[key]=entry;
   }
   const tag=cell.querySelector(".astreinte-tag");
@@ -492,9 +516,10 @@ function computeAstreinteCoverage(monday,dates){
       if(!startStr)return; // heures requises pour la couverture
       const a=timeToMinutes(startStr);
       if(isNaN(a))return;
-      const b=timeToMinutes(endStr);
+      // "00:00" comme heure de fin = fin de journée (1440 min), pas 0
+      const b=endStr==="00:00"?1440:(endStr?timeToMinutes(endStr):NaN);
       const bValid=!isNaN(b)&&endStr;
-      const overnight=bValid&&b>0&&b<=a;
+      const overnight=bValid&&b!==1440&&b<=a;
       hasAny=true;
       const endOnDay=overnight?24*60:(bValid?b:24*60);
       for(let h=0;h<12;h++){
@@ -585,6 +610,15 @@ document.getElementById("btn-add-camp").addEventListener("click",()=>{
   renderAll();
 })();
 connectSSE();
+
+function _astFlushNow(){
+  if(pushTimer===null||!_dirtyAst.size)return;
+  clearTimeout(pushTimer);
+  pushTimer=null;
+  navigator.sendBeacon(`${INO_BASE}/api/store`,JSON.stringify({key:"astreintes",value:registry}));
+}
+window.addEventListener("beforeunload",_astFlushNow);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")_astFlushNow(); });
 </script>
 </body>
 </html>
