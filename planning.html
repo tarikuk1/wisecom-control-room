@@ -51,6 +51,18 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
 .modal-msg{font-size:12px;color:#777;line-height:1.5;margin-bottom:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
 
+/* Couverture prévisionnelle */
+.cov-table{width:100%;border-collapse:collapse;font-size:11px;}
+.cov-table th{padding:6px 8px;color:#777;font-weight:600;text-align:center;border-bottom:1px solid #dedede;background:#fafafa;white-space:nowrap;}
+.cov-table th:first-child{text-align:left;}
+.cov-table td{padding:5px 8px;text-align:center;border-bottom:1px solid #f2f2f2;}
+.cov-table td:first-child{text-align:left;font-weight:600;color:#555;white-space:nowrap;}
+.cov-table .wk{background:#fafafa;}
+.cov-cnt{font-weight:700;font-size:12px;}
+.cov-pct{display:block;font-size:9px;color:#888;}
+.cov-zero-flux{color:#dc2626;font-weight:700;}
+.cov-foot td{border-top:2px solid #dedede;background:#fcfcfc;font-weight:600;}
+
 .group-camp-block{margin-bottom:18px;}
 .group-camp-block:last-child{margin-bottom:0;}
 .group-camp-title{font-size:12px;font-weight:700;color:#E8006E;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
@@ -129,6 +141,19 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
       <b style="color:#0066cc;">⇄</b> un agent mutualisé, qualifié sur d'autres campagnes ·
       <b style="color:#E8006E;">🌙</b> un jour où l'agent est déjà inscrit au registre d'astreinte pour une campagne suivie.
       Le total hebdomadaire est calculé automatiquement à partir des créneaux saisis. Le planning est partagé entre superviseurs et enregistré automatiquement.
+    </div>
+  </div>
+
+  <div class="panel" id="coverage-panel" style="display:none;">
+    <div class="panel-title">
+      <span>📊 Couverture prévisionnelle — <span id="coverage-label" style="color:#E8006E;font-weight:700;">–</span></span>
+      <button class="btn btn-dark" id="btn-load-callpct" title="Charge la répartition réelle des appels de la semaine précédente (INO) pour comparer la couverture planifiée au flux attendu par tranche">📈 Charger % appels par tranche (réf. semaine préc.)</button>
+    </div>
+    <div id="coverage-wrap"></div>
+    <div class="note">
+      Cumul récapitulatif calculé en direct depuis les créneaux saisis : nombre de <b>TC planifiés par tranche horaire et par jour</b>, total d'agents et d'heures par jour, et — en vue groupée — répartition par compétence campagne.
+      Cliquez sur « 📈 Charger % appels » pour superposer la <b>part du flux d'appels de chaque tranche</b> (observée sur la semaine de référence, même jour de semaine) : une tranche à fort % d'appels avec peu de TC planifiés est à renforcer en priorité.
+      <span class="cov-zero-flux">Rouge</span> = tranche avec flux observé mais 0 TC planifié.
     </div>
   </div>
 
@@ -486,6 +511,7 @@ function commitShiftFromCell(cell){
   const badge=tr&&tr.querySelector(".total-badge");
   if(badge)badge.textContent=fmtHours(weekTotalMinutes(agent,weekDates(currentMonday()),entry));
   pushPlanning();
+  renderCoverage(); // cumul récapitulatif mis à jour en direct à chaque créneau saisi
 }
 
 function renderRosterTools(camp,roster){
@@ -549,21 +575,26 @@ function renderGrid(){
   const wrap=document.getElementById("planning-table-wrap");
   const dates=weekDates(monday);
 
+  // Période affichée de date à date, avec le jour complet pour faciliter la lecture
+  const periodLbl=`${dayName(dates[0])} ${fmtDate(dates[0])} → ${dayName(dates[6])} ${fmtDate(dates[6])}`;
+
   if(isGroupView(campVal)){
     document.getElementById("planning-camp-label").textContent=(campVal==="__ALL__"?"🌐 ":"🗂️ ")+groupLabel(campVal);
-    document.getElementById("planning-period").textContent=`${fmtDate(dates[0])} → ${fmtDate(dates[6])}`;
+    document.getElementById("planning-period").textContent=periodLbl;
     renderRosterTools("",[]);
     renderGroupGrids(campVal,monday,dates,wrap);
+    renderCoverage();
     return;
   }
 
   const camp=campVal;
   document.getElementById("planning-camp-label").textContent=camp||"–";
-  document.getElementById("planning-period").textContent=camp?`${fmtDate(dates[0])} → ${fmtDate(dates[6])}`:"";
+  document.getElementById("planning-period").textContent=camp?periodLbl:"";
 
   if(!camp){
     wrap.innerHTML='<div class="empty-hint">Choisissez une campagne et la semaine à préparer pour afficher et construire son planning.</div>';
     renderRosterTools("",[]);
+    document.getElementById("coverage-panel").style.display="none";
     return;
   }
   const entry=getEntry(camp,monday);
@@ -572,10 +603,11 @@ function renderGrid(){
 
   if(!roster.length){
     wrap.innerHTML=`<div class="empty-hint">Aucun agent dans le planning de <b>${esc(camp)}</b> pour cette semaine. Ajoutez-en un ci-dessus, ou choisissez parmi les suggestions détectées.</div>`;
+    document.getElementById("coverage-panel").style.display="none";
     return;
   }
   const e=ensureEntry(camp,monday);
-  const thead=`<tr><th>Agent</th>${dates.map(d=>`<th>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th>Total semaine</th></tr>`;
+  const thead=`<tr><th>Agent</th>${dates.map((d,di)=>`<th${di>=5?' style="background:#f4f4f4;"':''}>${esc(dayName(d))} ${esc(fmtDate(d))}</th>`).join("")}<th>Total semaine</th></tr>`;
   const tbody=roster.map(r=>agentRowHTML(r,dates,e)).join("");
   wrap.innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 
@@ -592,6 +624,7 @@ function renderGrid(){
   wrap.querySelectorAll('[data-action="remove"]').forEach(btn=>btn.addEventListener("click",e=>{
     removeAgent(e.target.closest("tr").querySelector(".agent-row-name span").textContent);
   }));
+  renderCoverage();
 }
 
 // Vue groupée (ALL ou pôle) : empile les plannings de chaque campagne du regroupement,
@@ -664,6 +697,8 @@ function exportPlanningPDF(){
   const dates=weekDates(monday);
   const dateStr=new Date().toLocaleDateString("fr-FR");
   const sections=sel.camps.map(camp=>`<div class="camp-section"><h2>${esc(camp)}</h2>${planningTableHTML(camp,dates,getEntry(camp,monday))}</div>`).join("");
+  const covHtml=coverageTableHTML();
+  const covSection=covHtml?`<div class="camp-section"><h2>Couverture prévisionnelle — TC par tranche horaire${callDist?" · % du flux d'appels (réf. semaine précédente)":""}</h2>${covHtml}</div>`:"";
   const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
     <title>Planning — ${esc(sel.label)} — ${fmtDate(dates[0])} au ${fmtDate(dates[6])}</title>
     <style>
@@ -697,6 +732,7 @@ function exportPlanningPDF(){
       <div class="meta">Semaine du ${fmtDate(dates[0])} au ${fmtDate(dates[6])} · Édité le ${dateStr}</div>
     </div>
     ${sections}
+    ${covSection}
     <div class="footer">Wisecom · Planning de la semaine · Document généré automatiquement — usage interne</div>
     <script>setTimeout(()=>window.print(),350);<\/script>
     </body></html>`;
@@ -713,7 +749,9 @@ function exportPlanningExcel(){
   const sections=sel.camps.map(camp=>
     `<h2 style="color:#E8006E;font-family:Arial;font-size:12px;margin:14px 0 6px;">${esc(camp)}</h2>`
     +planningTableHTML(camp,dates,getEntry(camp,monday)).replace(/<table>/,'<table border="1" cellspacing="0" cellpadding="4">')
-  ).join("");
+  ).join("")
+  +(coverageTableHTML()?'<h2 style="color:#E8006E;font-family:Arial;font-size:12px;margin:14px 0 6px;">Couverture prévisionnelle — TC par tranche horaire'+(callDist?' · % du flux (réf. sem. préc.)':'')+'</h2>'
+    +coverageTableHTML().replace(/<table>/,'<table border="1" cellspacing="0" cellpadding="4">'):"");
   const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
     +'<head><meta charset="UTF-8"><style>'
     +'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;}'
@@ -735,7 +773,171 @@ function exportPlanningExcel(){
 
 function setWeek(dateStr){
   document.getElementById("p-week").value=mondayOf(dateStr);
+  callDist=null; // la répartition des appels dépend de la semaine — invalider
   renderGrid();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  COUVERTURE PRÉVISIONNELLE — cumul récapitulatif par jour / tranche /
+//  compétence campagne, avec superposition du % d'appels par tranche
+//  (flux réel INO de la semaine de référence, même jour de semaine)
+// ════════════════════════════════════════════════════════════════════
+let callDist=null;            // {vol:[7][12], label} — volumes d'appels par jour×tranche (réf. semaine précédente)
+const distDayCache=new Map(); // cache /agents-day par date (jours passés immuables)
+
+// Agents planifiés par tranche (08h→20h) pour un ensemble de campagnes
+function computeCoverage(camps,monday,dates){
+  const perSlot=dates.map(()=>Array(12).fill(0));
+  const perDayAgents=dates.map(()=>new Set());
+  const perDayMin=dates.map(()=>0);
+  const perCamp={}; // camp -> [7] agents avec créneau ce jour
+  let hasAny=false;
+  camps.forEach(camp=>{
+    const entry=getEntry(camp,monday);
+    if(!entry||!entry.roster.length)return;
+    entry.roster.forEach(r=>{
+      dates.forEach((d,di)=>{
+        const s=entry.shifts[r.nom+"|"+d];
+        if(!s||s.off||!s.start||!s.end)return;
+        const a=timeToMinutes(s.start),b=timeToMinutes(s.end);
+        if(b<=a)return;
+        hasAny=true;
+        perDayAgents[di].add(camp+"|"+r.nom);
+        perDayMin[di]+=(b-a);
+        if(!perCamp[camp])perCamp[camp]=dates.map(()=>0);
+        perCamp[camp][di]++;
+        for(let h=0;h<12;h++){
+          const s0=(8+h)*60,s1=s0+60;
+          if(a<s1&&b>s0)perSlot[di][h]++;
+        }
+      });
+    });
+  });
+  return {perSlot,perDayAgents,perDayMin,perCamp,hasAny};
+}
+
+function hourLbl(h){return `${String(h+8).padStart(2,"0")}h–${String(h+9).padStart(2,"0")}h`;}
+
+function renderCoverage(){
+  const panel=document.getElementById("coverage-panel");
+  const wrap=document.getElementById("coverage-wrap");
+  const sel=exportSelection();
+  if(!sel){panel.style.display="none";return;}
+  const monday=currentMonday();
+  const dates=weekDates(monday);
+  const cov=computeCoverage(sel.camps,monday,dates);
+  document.getElementById("coverage-label").textContent=sel.label;
+  if(!cov.hasAny){
+    panel.style.display="none";
+    return;
+  }
+  panel.style.display="block";
+
+  // % du flux par tranche (par jour) si chargé
+  const dayTotals=callDist?callDist.vol.map(dv=>dv.reduce((s,v)=>s+v,0)):null;
+
+  const isWk=di=>di>=5; // samedi/dimanche (semaine commence lundi)
+  const thead=`<tr><th>Tranche</th>${dates.map((d,di)=>`<th class="${isWk(di)?"wk":""}">${esc(dayName(d))}<br><span style="font-weight:400;color:#999;font-size:10px;">${esc(fmtDate(d))}</span></th>`).join("")}</tr>`;
+  let tbody="";
+  for(let h=0;h<12;h++){
+    tbody+=`<tr><td>${hourLbl(h)}</td>`;
+    dates.forEach((d,di)=>{
+      const n=cov.perSlot[di][h];
+      let pctHtml="",alertCls="";
+      if(callDist&&dayTotals){
+        const v=callDist.vol[di][h];
+        if(dayTotals[di]>0&&v>0){
+          const pct=Math.round(v/dayTotals[di]*100);
+          pctHtml=`<span class="cov-pct" title="${v} appel(s) observé(s) sur cette tranche le ${esc(fmtDate(shiftDateStr(d,-7)))} — ${pct}% du flux du jour">${pct}% flux</span>`;
+          if(n===0)alertCls=" cov-zero-flux";
+        }
+      }
+      const bg=n===0?"":(n>=4?"background:#1a8f4426;":(n>=2?"background:#1a8f4415;":"background:#1a8f440a;"));
+      tbody+=`<td class="${isWk(di)?"wk":""}" style="${bg}"><span class="cov-cnt${alertCls}">${n||(pctHtml?"0":"–")}</span>${pctHtml}</td>`;
+    });
+    tbody+="</tr>";
+  }
+  // Pieds : agents/jour + heures/jour
+  let tfoot=`<tr class="cov-foot"><td>👥 TC du jour</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}">${cov.perDayAgents[di].size||"–"}</td>`).join("")}</tr>`;
+  tfoot+=`<tr class="cov-foot"><td>⏱ Heures planifiées</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}">${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</td>`).join("")}</tr>`;
+  // Vue groupée : répartition par compétence campagne
+  const campKeys=Object.keys(cov.perCamp);
+  if(sel.camps.length>1&&campKeys.length){
+    campKeys.sort((a,b)=>a.localeCompare(b,"fr"));
+    tfoot+=campKeys.map(c=>`<tr class="cov-foot" style="font-weight:400;"><td style="color:#E8006E;">· ${esc(c)}</td>${dates.map((d,di)=>`<td class="${isWk(di)?"wk":""}" style="color:#777;">${cov.perCamp[c][di]||"–"}</td>`).join("")}</tr>`).join("");
+  }
+  wrap.innerHTML=`<table class="cov-table"><thead>${thead}</thead><tbody>${tbody}${tfoot}</tbody></table>`
+    +(callDist?`<div style="margin-top:8px;font-size:10px;color:#888;">% flux = part des appels du jour sur la tranche, observée la semaine précédente (même jour de semaine) sur ${esc(callDist.label)}.</div>`:"");
+}
+
+// Charge la répartition des appels de la semaine de référence (semaine précédente, même jour)
+async function loadCallDistribution(){
+  const sel=exportSelection();
+  if(!sel){showToast("Choisissez d'abord une campagne ou un pôle.","#b45309");return;}
+  const btn=document.getElementById("btn-load-callpct");
+  const monday=currentMonday();
+  const dates=weekDates(monday);
+  btn.disabled=true;
+  const prev=btn.textContent;
+  try{
+    const vol=dates.map(()=>Array(12).fill(0));
+    for(let i=0;i<7;i++){
+      const refDate=shiftDateStr(dates[i],-7);
+      btn.textContent=`⏳ Analyse ${i+1}/7 — ${fmtDate(refDate)}…`;
+      let data=distDayCache.get(refDate);
+      if(!data){
+        const r=await fetch(`${INO_BASE}/agents-day?date=${refDate}&hDeb=08:00&hFin=20:00`);
+        if(!r.ok)continue;
+        data=await r.json();
+        const todayStr=new Date().toISOString().slice(0,10);
+        if(refDate<todayStr&&!data.error)distDayCache.set(refDate,data);
+      }
+      const slots=Array.isArray(data.slots)?data.slots:[];
+      slots.forEach(sl=>{
+        const h=parseInt((sl.lbl||"").split(":")[0],10);
+        if(isNaN(h)||h<8||h>=20)return;
+        Object.entries(sl.queues||{}).forEach(([q,v])=>{
+          if(sel.camps.includes(detectCampaign(q)))vol[i][h-8]+=v||0;
+        });
+      });
+    }
+    callDist={vol,label:sel.label};
+    renderCoverage();
+    showToast("✓ Répartition des appels chargée (référence : semaine précédente)");
+  }catch(e){
+    showToast("⚠ Impossible de charger la répartition des appels — "+(e&&e.message||e),"#dc2626");
+  }finally{
+    btn.disabled=false;
+    btn.textContent=prev;
+  }
+}
+
+// Version statique du tableau de couverture pour les exports PDF / Excel
+function coverageTableHTML(){
+  const sel=exportSelection();
+  if(!sel)return "";
+  const monday=currentMonday();
+  const dates=weekDates(monday);
+  const cov=computeCoverage(sel.camps,monday,dates);
+  if(!cov.hasAny)return "";
+  const dayTotals=callDist?callDist.vol.map(dv=>dv.reduce((s,v)=>s+v,0)):null;
+  const thead=`<tr><th>Tranche</th>${dates.map(d=>`<th>${esc(dayName(d))}<br>${esc(fmtDate(d))}</th>`).join("")}</tr>`;
+  let tbody="";
+  for(let h=0;h<12;h++){
+    tbody+=`<tr><td>${hourLbl(h)}</td>${dates.map((d,di)=>{
+      const n=cov.perSlot[di][h];
+      let pct="";
+      if(callDist&&dayTotals&&dayTotals[di]>0&&callDist.vol[di][h]>0)pct=` (${Math.round(callDist.vol[di][h]/dayTotals[di]*100)}%)`;
+      return `<td>${n||"–"}${pct}</td>`;
+    }).join("")}</tr>`;
+  }
+  tbody+=`<tr><td><b>TC du jour</b></td>${dates.map((d,di)=>`<td><b>${cov.perDayAgents[di].size||"–"}</b></td>`).join("")}</tr>`;
+  tbody+=`<tr><td><b>Heures planifiées</b></td>${dates.map((d,di)=>`<td><b>${cov.perDayMin[di]?esc(fmtHours(cov.perDayMin[di])):"–"}</b></td>`).join("")}</tr>`;
+  const campKeys=Object.keys(cov.perCamp).sort((a,b)=>a.localeCompare(b,"fr"));
+  if(exportSelection().camps.length>1&&campKeys.length){
+    tbody+=campKeys.map(c=>`<tr><td>· ${esc(c)}</td>${dates.map((d,di)=>`<td>${cov.perCamp[c][di]||"–"}</td>`).join("")}</tr>`).join("");
+  }
+  return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
 }
 
 function connectSSE(){
@@ -754,7 +956,8 @@ weekInput.addEventListener("change",e=>{
 });
 document.getElementById("btn-week-prev").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,-7)));
 document.getElementById("btn-week-next").addEventListener("click",()=>setWeek(shiftDateStr(weekInput.value,7)));
-document.getElementById("p-camp").addEventListener("change",renderGrid);
+document.getElementById("p-camp").addEventListener("change",()=>{callDist=null;renderGrid();});
+document.getElementById("btn-load-callpct").addEventListener("click",loadCallDistribution);
 document.getElementById("btn-export-pdf").addEventListener("click",exportPlanningPDF);
 document.getElementById("btn-export-xls").addEventListener("click",exportPlanningExcel);
 document.getElementById("btn-poles-toggle").addEventListener("click",()=>{
