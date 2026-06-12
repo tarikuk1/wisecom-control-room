@@ -2144,6 +2144,7 @@ async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScor
     const r=await fetch('/api/skill-list/'+agentId);
     if(r.ok){
       const d=await r.json();
+      if(d.ok===false)throw new Error(d.error||'Token INO indisponible');
       const allSkills=[...(d.profileSkills||[]),(d.flowSkills||[])].flat();
       const match=allSkills.find(s=>s.name&&s.name.toLowerCase()===sk.toLowerCase());
       if(match){

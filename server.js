@@ -829,7 +829,7 @@ const server=http.createServer(async(req,res)=>{
         const {agentId,skillId,skillNom,agentNom,score}=JSON.parse(body);
         if(!agentId||!skillId) return (res.writeHead(400),res.end(JSON.stringify({ok:false,error:"agentId et skillId requis"})));
         const token=await getToken();
-        if(!token) return (res.writeHead(502),res.end(JSON.stringify({ok:false,error:"Token INO indisponible"})));
+        if(!token) return (res.writeHead(200),res.end(JSON.stringify({ok:false,error:"Token INO indisponible — connexion INO non établie"})));
         const now=new Date().toISOString().replace("T"," ").slice(0,19);
         const addResp=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skill/add",
           {aas:{id:parseInt(skillId),score:score||100,startDate:now,status:1}},token);
@@ -838,12 +838,12 @@ const server=http.createServer(async(req,res)=>{
           res.writeHead(200,{"Content-Type":"application/json"});
           res.end(JSON.stringify({ok:true,skill:addResp.aas,message:"Compétence activée"}));
         } else {
-          res.writeHead(502);
+          res.writeHead(200,{"Content-Type":"application/json"});
           res.end(JSON.stringify({ok:false,error:"Réponse INO inattendue. Le compte API INO actuel (dasboard_INO) n'a pas les droits /cc/*. Contactez l'administrateur INO pour activer les droits Centre de Contacts.",raw:JSON.stringify(addResp).slice(0,200)}));
         }
       }catch(e){
         console.error("[SKILL] Erreur:",e.message);
-        res.writeHead(500);
+        res.writeHead(200,{"Content-Type":"application/json"});
         res.end(JSON.stringify({ok:false,error:e.message}));
       }
     });return;
@@ -861,7 +861,7 @@ const server=http.createServer(async(req,res)=>{
           res.writeHead(400);res.end(JSON.stringify({error:"agentIds[] requis"}));return;
         }
         const token=await getToken();
-        if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token INO indisponible"}));return;}
+        if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));return;}
         const results={};
         // Traiter par batch de 3 avec délai pour respecter le rate-limiting INO
         for(let i=0;i<agentIds.length;i+=3){
@@ -912,14 +912,14 @@ const server=http.createServer(async(req,res)=>{
     const agentId=url.replace("/api/skill-list/","").split("?")[0];
     try{
       let token=await getToken();
-      if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible — vérifiez les credentials INO"}));return;}
       let rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
       if(rf.status===401){
         // Token expiré — renouveler et réessayer une fois
         token=await getToken(true);
         rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
       }
-      if(rf.status===401){res.writeHead(502);res.end(JSON.stringify({error:"HTTP 401 — Droits insuffisants sur le compte INO dasboard_INO pour /cc/*"}));return;}
+      if(rf.status===401){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"HTTP 401 — Droits insuffisants sur le compte INO dasboard_INO pour /cc/*"}));return;}
       res.writeHead(200,{"Content-Type":"application/json"});
       res.end(JSON.stringify(rf.body||{}));
     }catch(e){
@@ -934,7 +934,7 @@ const server=http.createServer(async(req,res)=>{
     const date=u2.searchParams.get("date")||new Date().toISOString().slice(0,10);
     try{
       const token=await getToken();
-      if(!token){res.writeHead(502,{"Content-Type":"application/json"});res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));return;}
       const[ci,co]=await Promise.all([
         apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token),
         apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token)
@@ -1091,7 +1091,7 @@ const server=http.createServer(async(req,res)=>{
           return res.end(JSON.stringify(Object.assign({cache:true},_queuesCache)));
         }
         const token=await getToken();
-        if(!token){res.writeHead(502);return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        if(!token){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
         // Sources de files "déclarées" dans la config INO. On tente plusieurs endpoints :
         // d'abord le routing voix (= page /maker/app#/flow/voice/routing : la config
         // officielle des files/routages), puis les listes de files classiques en repli.
