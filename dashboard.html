@@ -1318,8 +1318,8 @@ function getScopedSkills(){
   if(campSelPartial()){
     const primary=agents.filter(a=>selCamps.includes(a.camp));
     // Campagne flux-only (pas d'agents primaires) : élargir au périmètre des agents couvrants
-    inScope=primary.length>0?primary
-      :(skillsLoaded()?agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))):agents);
+    const _covScope=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c)));
+    inScope=primary.length>0?primary:(_covScope.length>0?_covScope:agents);
   }else{
     inScope=agents;
   }
@@ -1899,11 +1899,10 @@ function buildAllDropdowns(){
       const agOfCamps=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
       if(agOfCamps.length>0){
         selAgents=agOfCamps;
-      }else if(skillsLoaded()){
+      }else{
+        // Queues + camp principal suffisent sans compétences chargées
         const covering=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
         selAgents=covering.length>0?covering:agents.map(a=>a.nom);
-      }else{
-        selAgents=agents.map(a=>a.nom);
       }
     }
     // CASCADE compétences : recalculer le périmètre et tout re-sélectionner
@@ -1918,8 +1917,8 @@ function buildAllDropdowns(){
         ?(()=>{
             const primary=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
             if(primary.length>0)return primary;
-            if(skillsLoaded())return agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
-            return agents.map(a=>a.nom);
+            const cov=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
+            return cov.length>0?cov:agents.map(a=>a.nom);
           })()
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
@@ -2111,7 +2110,9 @@ function getFiltered(){
   // néanmoins couvrir une campagne sélectionnée via ses compétences secondaires.
   // C'est notamment le cas des campagnes "flux-only" (ex : M123) où tous les appels sont
   // pris par des agents mutualisés rattachés à d'autres camps principaux.
-  const _covCheck=_campPartial&&skillsLoaded();
+  // waAgentCovers est appelé sans pré-requis : étapes 1 (queues traitées) et 2 (camp principal)
+  // fonctionnent sans compétences chargées. Les étapes 3-4 (skills) s'ajoutent quand dispo.
+  const _covCheck=_campPartial;
   // Filtre Files : actif seulement si sélection partielle. Un agent passe s'il a traité
   // au moins une des files sélectionnées ; un agent sans file (aucun appel) n'est pas exclu.
   const _queueFilterActive=selQueues.length>0&&allQueues.length>0&&selQueues.length<allQueues.length;
