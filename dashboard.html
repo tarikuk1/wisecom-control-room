@@ -1600,7 +1600,9 @@ async function loadAgentsFromAPI(){
         // Dernière activité voix réelle = dernier appel connu d'INO (derniereAction). Pas de simulation :
         // si l'agent n'a aucun appel sur la période, pas de référence → pas d'alerte Red Flag possible.
         const lastVoix=a.derniereAction?new Date(a.derniereAction).getTime():null;
-        // Occupation = duree communication / (présence * 50min/h)
+        // Occupation = (temps comm [+ ACW si configuré]) / (présence × min productives/h).
+        // Le diviseur (min/h, défaut 50) ET l'inclusion de l'ACW sont paramétrables PAR CAMPAGNE
+        // (⚙ Critères & KPI) car la définition d'occupation varie selon le client.
         // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
         let presenceSec=0;
         if(a.premiereAction&&a.derniereAction){
@@ -1610,8 +1612,10 @@ async function loadAgentsFromAPI(){
         // L'ancien fallback presenceSec=duree*1.25 fabriquait une occupation constante ~96 %
         // présentée comme une mesure — mode honnête : n.d. plutôt qu'une valeur inventée.
         if(presenceSec<a.duree)presenceSec=0;
-        const tempsDispo=presenceSec>0?(presenceSec*(50/60)):0;
-        const occupation=(tempsDispo>0&&a.duree>0)?Math.min(100,Math.round((a.duree/tempsDispo)*100)):null;
+        // Inputs bruts conservés sur l'agent pour recalcul à la volée quand la config change
+        const _occComm=a.duree||0;
+        const _occAcw=(a.acwMoyen||0)*(a.appelsIn||0);
+        const occupation=computeOccupation(camp,_occComm,presenceSec,_occAcw);
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
@@ -1641,7 +1645,7 @@ async function loadAgentsFromAPI(){
           refus:a.refus!=null?a.refus:null,
           reiterants:a.reiterants!=null?a.reiterants:null,
           realise,files_ok:true,
-          acw:a.acwMoyen||null,occupation,adherence:a.adherence!=null?a.adherence:null,
+          acw:a.acwMoyen||null,occupation,_occComm:_occComm,_occPres:presenceSec,_occAcw:_occAcw,adherence:a.adherence!=null?a.adherence:null,
           transfo:a.transfo!=null?a.transfo:null,
           spark:Array.isArray(a.spark)?a.spark:null,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
@@ -1951,6 +1955,8 @@ async function pullStore(){
     const d=await r.json();
     if(d.criteres&&typeof d.criteres==='object'&&Object.keys(d.criteres).length){
       try{localStorage.setItem(CRITERES_KEY,JSON.stringify(d.criteres));}catch(e){}
+      // Recalcul occupation : la config (min/h, ACW) peut avoir changé sur un autre poste
+      recomputeOccupations();render();
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.backlog&&typeof d.backlog==='object'&&Object.keys(d.backlog).length){
@@ -2391,7 +2397,7 @@ function renderKPIs(f){
     {l:"% Réalisé",v:pct+"%",sub:`${actesReal} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true,
      def:"Avancement de la production du jour par rapport à l'objectif d'actes de l'équipe.\n\nFormule : (Σ Actes réalisés / Σ Objectifs des agents du périmètre) × 100.\n• Actes = appels traités + appels sortants + mails saisis. En périmètre complet ou filtre campagne seul, les appels viennent de la FILE INO (incluant ceux pris par des agents mutualisés) ; avec un filtre agent actif, ce sont les actes des agents sélectionnés.\n• Objectif d'un agent = « Objectif d'appels » de sa campagne, configurable dans ⚙ Critères & KPI (défaut : 50 actes/jour/agent).\n\nExemple : 6 agents × 50 actes d'objectif = 300 ; 313 appels traités file + sortants + mails → plafonné à 100 %.\n\nATTENTION : si l'objectif d'une campagne n'a pas été personnalisé, le défaut de 50 s'applique — réglez les objectifs réels par campagne pour fiabiliser ce KPI.\n\nLecture : ≥ 80 % bonne maîtrise · < 60 % attention."},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal,
-     def:"Part du temps de présence passée en communication, en moyenne sur les agents du périmètre.\n\nFormule : moyenne des taux d'occupation individuels (seuls les agents avec occupation mesurable sont comptés).\nOccupation d'un agent = Temps de communication / (Présence estimée × 50 min/h) — la règle des 50 min/h tolère 10 min non communicantes par heure (pauses, wrap-up).\n\nLecture : ≥ 85 % bonne maîtrise · < 70 % attention."},
+     def:"Part du temps de présence passée en communication, en moyenne sur les agents du périmètre.\n\nFormule : moyenne des taux d'occupation individuels (seuls les agents avec occupation mesurable sont comptés).\nOccupation d'un agent = (Temps de communication [+ ACW si activé]) / (Présence estimée × min productives/h).\n\nParamétrable PAR CAMPAGNE dans ⚙ Critères & KPI (la définition varie selon le client) :\n• Min. productives/heure (défaut 50 → tolère 10 min/h de pause/wrap ; 60 = présence brute).\n• Inclusion du post-appel (ACW) dans le temps occupé.\n\nLecture : ≥ 85 % bonne maîtrise · < 70 % attention."},
     {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_hasFlux?(_isFullScope?"File globale INO":"File INO · campagnes sélectionnées"):"Présentés agents filtrés",
      cmp:_cmp?cmpDelta(totRecus,_cmp.totRecus,null,fmtInt):"",
      def:"Volume d'appels entrants reçus sur la période.\n\nPérimètre complet ou filtre campagne seul : file INO = appels traités + abandonnés des campagnes du périmètre (appels hors horaires d'ouverture exclus).\nFiltre agent actif : somme des appels présentés aux agents sélectionnés.\n\nSource : API INO /call/in/histories."},
@@ -2594,7 +2600,7 @@ function renderTable(sorted){
     {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : Durée totale de communication / Nombre d'appels traités. Source : agentDuration cumulé / total appels. Affiché en MMmin SSsec."},
     {k:"dmt",l:"DMT",title:"Durée Moyenne de Traitement = DMC + ACW estimé",def:"Durée Moyenne de Traitement (DMT).\n\nDéfinition métier : temps total mobilisé par un appel, de la prise en charge jusqu'à la clôture du traitement post-appel.\n\nFormule : DMT = DMC + ACW\n• DMC (Durée Moyenne de Communication) : temps passé en ligne avec l'interlocuteur.\n• ACW (After Call Work) : temps de traitement post-appel (qualification, saisie, compte-rendu).\n\n⚠ L'ACW inclus dans ce calcul est une ESTIMATION indirecte (voir définition colonne Post-appel ACW). Le DMT est donc lui aussi indicatif, pas une mesure exacte.\n\nCas n.d. : si l'agent a moins de 2 appels dans la journée, aucun gap n'est mesurable — le DMT affiché est alors égal à la DMC.\n\nAffichage : en minutes et secondes.\n\nUsage opérationnel : l'écart (DMT − DMC) révèle le poids du wrap-up. Un DMT nettement supérieur à la DMC signale un post-appel long (procédure complexe, saisie lourde). Un DMT ≈ DMC indique un traitement quasi-instantané après raccrochage."},
     {k:"acw",l:"Post-appel (ACW)",title:"After Call Work — Temps de post-appel (estimation)",def:"After Call Work (ACW) — Temps de traitement post-appel.\n\nDéfinition métier : durée entre la fin d'un appel et le début de l'appel suivant. C'est le temps qu'un agent consacre à finaliser son traitement après avoir raccroché : saisie CRM, qualification, rédaction de compte-rendu, mise à jour de dossier.\n\n⚠ SOURCE — L'API INO ne fournit PAS l'ACW en donnée directe. Cette valeur est une ESTIMATION calculée par le serveur à partir des historiques d'appels.\n• Formule : gap entre (fin appel N) et (début appel N+1), moyenné sur la journée\n• Fin appel N = timestamp début + agentDuration (en secondes)\n• Les gaps > 1 heure sont exclus (pauses, absences)\n\n⚠ BIAIS IMPORTANT — Ce gap inclut aussi le temps d'attente sans appel (délai entre la fin du wrap-up réel et la distribution de l'appel suivant par l'ACD). Il est impossible de distinguer automatiquement la part de post-appel réel de la part d'attente passive entre deux appels distribués.\n\nComment fiabiliser la lecture :\n• Croiser avec le volume : un ACW calculé sur 30+ appels est fiable. Sur moins de 10 appels, l'attente inter-appels domine et la valeur est peu exploitable.\n• Comparer au groupe campagne : un agent avec un ACW > 20 % au-dessus de la moyenne de ses collègues sur la même file mérite une vérification, même si la valeur absolue reste indicative.\n• Ne pas isoler cet indicateur : le croiser avec le taux d'occupation et le volume d'appels pour valider une tendance avant toute conclusion.\n\nAffichage : en minutes et secondes (ex : 2min 15sec).\nSeuil d'alerte : dérive > 20 % au-dessus de la moyenne du groupe campagne."},
-    {k:"occupation",l:"Occupation",title:"Taux d'occupation = Temps comm / (Présence × 50/60)",def:"Taux d'occupation = Temps total de communication / (Présence estimée × 50 min/h). La règle des 50 min/h correspond à 10 min de temps non communicant par heure (pauses, wrap-up). Présence estimée = derniereAction - premiereAction."},
+    {k:"occupation",l:"Occupation",title:"Taux d'occupation = (Comm. [+ ACW]) / (Présence × min/h) — paramétrable par campagne",def:"Taux d'occupation = (Temps de communication [+ ACW si activé]) / (Présence estimée × min productives/h). Le diviseur (min/h, défaut 50) et l'inclusion de l'ACW sont paramétrables par campagne dans ⚙ Critères & KPI car la définition varie selon le client. Présence estimée = derniereAction - premiereAction."},
     {k:"transfo",l:"Transformation",title:"Taux de transformation (qualifications positives)",def:"Taux de transformation = qualifications positives (RDV, Intéressé) / total qualifications. Source : h.status analysé dans les histories INO."},
     {k:"adherence",l:"Adhérence",title:"Adhérence au planning",def:"Taux d'adhérence au planning prévu. ⚠ Non exposé par l'API INO histories."},
     {k:"ko",l:"100 % KO",title:"Appels présentés mais non décrochés par l'agent",def:"Appels entrants présentés à l'agent mais non décrochés (agentDuration=0 ou status=abandoned). ATTENTION : les abandons de file (appelant raccroche avant d'être distribué) ont agent=null et ne sont PAS inclus ici — ils apparaissent dans les KPI globaux de flux manqués."},
@@ -3950,6 +3956,41 @@ const CRITERES_KEY='wisecom_criteres_v1';
 function loadCriteres(){
   try{return JSON.parse(localStorage.getItem(CRITERES_KEY))||{};}catch{return{};}
 }
+// ── Paramètres de calcul du taux d'occupation, par campagne ──
+// minH  = minutes "productives" par heure de présence (défaut 50 → tolère 10 min/h de pause/wrap).
+//         Mettre 60 pour une occupation sur présence brute (sans tolérance).
+// incAcw= inclure le temps de post-appel (ACW/wrap-up) dans le numérateur (certains clients le comptent).
+function occCampParams(camp){
+  var d={minH:50,incAcw:false};
+  try{
+    var crit=JSON.parse(localStorage.getItem(CRITERES_KEY)||'{}');
+    var c=crit&&crit[camp];
+    if(c){
+      if(c.occ_min_h!=null&&!isNaN(+c.occ_min_h)&&+c.occ_min_h>0)d.minH=Math.min(60,+c.occ_min_h);
+      if(c.occ_inc_acw!=null)d.incAcw=!!c.occ_inc_acw;
+    }
+  }catch(e){}
+  return d;
+}
+// Calcule l'occupation (%) d'un agent à partir des composants bruts et de la config de sa campagne.
+// Retourne null si la présence n'est pas mesurable (mode honnête : pas de valeur inventée).
+function computeOccupation(camp,commSec,presSec,acwSec){
+  if(!(presSec>0))return null;
+  var p=occCampParams(camp);
+  var num=(commSec||0)+(p.incAcw?(acwSec||0):0);
+  if(!(num>0))return null;
+  var basis=presSec*(p.minH/60);
+  if(!(basis>0))return null;
+  return Math.min(100,Math.round((num/basis)*100));
+}
+// Recalcule a.occupation pour tous les agents à partir des inputs bruts conservés (_occComm/_occPres/_occAcw).
+// Appelé après modification de la config d'occupation, sans rechargement INO.
+function recomputeOccupations(){
+  if(!Array.isArray(agents))return;
+  agents.forEach(function(a){
+    if(a&&typeof a._occPres!=='undefined')a.occupation=computeOccupation(a.camp,a._occComm,a._occPres,a._occAcw);
+  });
+}
 function toggleH24(c){
   const cb=document.getElementById('h24-'+c);
   const grid=document.getElementById('jours-'+c);
@@ -3976,6 +4017,8 @@ function saveCriteres(){
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
       astreinte_display:document.getElementById('astreinte-display-'+c)?.checked||false,
       obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
+      occ_min_h:Math.min(60,Math.max(1,parseInt(document.getElementById('occ-minh-'+c)?.value||50)||50)),
+      occ_inc_acw:document.getElementById('occ-incacw-'+c)?.checked||false,
       h24:document.getElementById('h24-'+c)?.checked||false,
       jours:(function(){var o={};['lun','mar','mer','jeu','ven','sam','dim'].forEach(function(j){
         var on=document.querySelector('.jour-on[data-c="'+c+'"][data-j="'+j+'"]');
@@ -3996,6 +4039,8 @@ function saveCriteres(){
       if(cc)a.obj=cc.obj_appels||a.obj;
       return a;
     });
+    // Recalcul du taux d'occupation avec les nouveaux paramètres par campagne (min/h, ACW)
+    recomputeOccupations();
     render();
   }catch(e){showToast('Sauvegarde échouée. Réessayez.','#E8006E');}
 }
@@ -4025,7 +4070,7 @@ function renderCriteres(){
     +'</div>';
   CAMPS.forEach(function(c){
     const _defJours={lun:{on:true,o:'09:00',f:'18:00'},mar:{on:true,o:'09:00',f:'18:00'},mer:{on:true,o:'09:00',f:'18:00'},jeu:{on:true,o:'09:00',f:'18:00'},ven:{on:true,o:'09:00',f:'18:00'},sam:{on:false,o:'09:00',f:'18:00'},dim:{on:false,o:'09:00',f:'18:00'}};
-    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,occ_min_h:50,occ_inc_acw:false,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
     if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
     // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
     Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
@@ -4075,6 +4120,13 @@ function renderCriteres(){
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
           +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" aria-label="Objectif appels" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
+          +'<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--s-3)">'
+            +'<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:4px">⏱ Calcul du taux d\'occupation</div>'
+            +'<div class="param-row"><span class="param-label" title="Minutes réellement productives par heure de présence. 50 = tolère 10 min/h de pause/wrap. 60 = présence brute.">Min. productives / heure</span><input class="param-input" id="occ-minh-'+c+'" type="number" aria-label="Minutes productives par heure" min="1" max="60" value="'+s.occ_min_h+'"><span class="param-unit">min/h</span></div>'
+            +'<div class="alert-trigger" style="margin-top:6px"><input type="checkbox" aria-label="Inclure ACW dans l\'occupation" id="occ-incacw-'+c+'"'+(s.occ_inc_acw?' checked':'')+'>'
+            +'<label for="occ-incacw-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Inclure le post-appel (ACW) dans le temps occupé</label></div>'
+            +'<div style="font-size:9px;color:#555;margin-top:4px">Occupation = (Comm.'+(s.occ_inc_acw?' + ACW':'')+') / (Présence × '+s.occ_min_h+'/60)</div>'
+          +'</div>'
           +'<div class="param-row" style="flex-direction:column;align-items:stretch;gap:8px">'
             +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="param-label">⏰ Amplitude horaire d\'ouverture</span>'
               +'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:'+(s.h24?P:'#888')+';cursor:pointer"><input type="checkbox" id="h24-'+c+'" aria-label="Ouvert 24h/24 7j/7" '+(s.h24?'checked':'')+' onchange="toggleH24(\''+c+'\')"> 24h/24 · 7j/7</label>'
