@@ -43,7 +43,12 @@ ul{margin:6px 0 10px 22px;}
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button>
-    <a href="/" class="btn">← Tour de contrôle</a>
+    <a href="/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🏠 Tour de contrôle</a>
+    <a href="/executif" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📊 Exécutif</a>
+    <a href="/couverture" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📡 Couverture</a>
+    <a href="/astreinte" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🌙 Astreinte</a>
+    <a href="/agents-jour" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📋 Agents jour</a>
+    <a href="/planning" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗓️ Planning</a>
   </div>
 </div>
 
@@ -58,9 +63,10 @@ ul{margin:6px 0 10px 22px;}
     <li><a href="#executif">Tableau de bord exécutif 📊</a></li>
     <li><a href="#couverture">Radar de couverture 📡</a></li>
     <li><a href="#astreinte">Registre d'astreinte 🌙</a></li>
-    <li><a href="#planning">Planning de la semaine 🗓️ (exports, vue globale, pôles)</a></li>
+    <li><a href="#planning">Planning de la semaine 🗓️</a></li>
     <li><a href="#admin">Administration ⚙</a></li>
     <li><a href="#legende">Légende des icônes & badges</a></li>
+    <li><a href="#navigation">Navigation entre pages</a></li>
   </ol>
 </div>
 
@@ -72,24 +78,84 @@ ul{margin:6px 0 10px 22px;}
 <section id="dashboard">
   <h2>2. Tour de contrôle (page principale)</h2>
   <p>C'est la vue temps réel de l'activité : agents connectés, appels, statuts, files d'attente. Les données arrivent en continu depuis INO (badge « ● INO connecté » en haut de page).</p>
-  <h3>Bandeau staffing</h3>
-  <p>En haut, le bandeau récapitule par campagne le nombre d'agents et les alertes. Si l'option est activée dans les critères (voir ci-dessous), un badge <b>🌙 astreinte</b> y indique la couverture d'astreinte de la semaine : vert = 7 jours sur 7 couverts, orange = couverture partielle, rouge = aucun jour couvert.</p>
+
+  <h3>Bandeau staffing par campagne</h3>
+  <p>En bas du tableau agents, le bandeau liste <b>toutes les campagnes configurées</b>, même celles sans agent connecté. Pour chaque campagne : nombre d'agents actifs / total, alertes couleur.</p>
+  <div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:11px;color:#ccc;margin:10px 0;overflow-x:auto;">
+    <div style="color:#666;margin-bottom:6px;">── Bandeau staffing ────────────────────────────────────────────</div>
+    <span style="background:#0d1a10;border:1px solid rgba(48,209,88,.4);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#30d158">Voltalis <b>5</b><span style="color:#555">/8</span></span>
+    <span style="background:#1a0d0d;border:1px solid rgba(255,59,48,.4);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ff3b30">ELECTROSUR <b>0</b><span style="color:#555">/0</span> <span style="font-size:9px;color:#ff3b30">⚠ ALERTE</span></span>
+    <span style="background:#111;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ccc">Vivest <b>2</b><span style="color:#555">/3</span> <span style="font-size:9px;color:#30d158">🌙 7/7</span></span>
+    <span style="background:#141a0f;border:1px solid rgba(255,159,10,.25);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ff9f0a">Antargaz <b>1</b><span style="color:#555">/0+2</span> <span style="font-size:9px;color:#ff9f0a">↔ mut.</span></span>
+    <span style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#888">Alcéane <b>0</b><span style="color:#555">/0</span></span>
+  </div>
+  <ul>
+    <li><b style="color:#30d158">Vert</b> : agents actifs sur la campagne.</li>
+    <li><b style="color:#ff3b30">⚠ ALERTE rouge</b> : service ouvert ET 0 agent actif — vérifier le staffing.</li>
+    <li><b style="color:#ff9f0a">↔ mut.</b> : aucun agent principal mais des agents <b>mutualisés</b> (compétences multi-campagnes) couvrent la campagne — pas d'alerte rouge.</li>
+    <li><b>🌙 X/7</b> : couverture d'astreinte de la semaine (si activé dans Critères & KPI).</li>
+    <li>Le compteur affiché est <code>actifs / total+mutualisés</code> si des mutualisés sont détectés.</li>
+  </ul>
+
+  <h3>Alerte GSM astreinte 📱</h3>
+  <p>30 minutes avant le début d'une astreinte nécessitant le transfert GSM, une <b>bannière orange</b> apparaît en haut de la page principale. Pendant l'astreinte active, elle passe en <b>rose / rouge</b>. La bannière indique le ou les TC concernés, la campagne et l'heure d'activation.</p>
+  <div style="background:#1a1000;border:2px solid #ff9f0a;border-radius:8px;padding:8px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;font-size:11px;color:#ffd000;">
+    <span style="font-size:18px;">📱</span>
+    <span><b>GSM astreinte à activer dans 25 min</b> — Dupont (Vivest) · Début à 20:00</span>
+  </div>
+  <div class="tip">💡 Fermez la bannière en cliquant sur × — elle réapparaîtra à la prochaine vérification automatique (toutes les 60 secondes).</div>
+
   <h3>Filtres & tri</h3>
-  <p>Filtrez par campagne, statut ou agent ; cliquez sur les en-têtes de colonnes pour trier. Un clic sur l'intitulé d'une colonne affiche sa définition et sa formule de calcul.</p>
+  <p>La barre de filtres (sous l'en-tête) contient deux rangées :</p>
+  <ul>
+    <li><b>Rangée A</b> — Période (dates début→fin), Horaire, Tendance (comparer à S-1…S-5), Vues sauvegardées.</li>
+    <li><b>Rangée B</b> — Dropdowns multi-sélection : Campagnes · Files · Agents · Compétences · <b>Statut</b>.</li>
+  </ul>
+  <p>Le filtre <b>Statut</b> contient tous les états possibles d'un agent INO : <i>Actif · Traitement · Post-appel · Déconnecté · Inconnu · En pause · Déjeuner · Formation · Réunion · Back-office · Absent · n.d.</i> — cochez ou décochez pour affiner la vue.</p>
+  <div class="tip">💡 Pour voir uniquement les agents actifs en ligne, décochez « Déconnecté » et « n.d. » dans le filtre Statut.</div>
+
+  <h3>Répartition qualifications 🏷️</h3>
+  <p>Dans l'onglet <b>Volumes & Tranches</b>, le panneau droit propose la répartition des qualifications. Sélectionnez une campagne et une plage de dates puis cliquez <b>Rechercher</b> pour charger les données depuis INO :</p>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;color:#ccc;">
+    <div style="font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🏷️ Répartition qualifications</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">— Toutes campagnes — ▼</span>
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">2026-06-01</span>
+      <span style="color:#666;font-size:10px;">→</span>
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">2026-06-11</span>
+      <span style="background:#E8006E;color:#fff;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Rechercher</span>
+      <span style="background:#1e1e1e;color:#666;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">Export CSV</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;">100 % KO</span><div style="background:#ff3b3055;height:7px;border-radius:3px;"><div style="background:#ff3b30;width:62%;height:100%;border-radius:3px;"></div></div><span style="font-size:10px;color:#ff3b30;text-align:right;">32</span><span style="font-size:9px;color:#666;text-align:right;">28%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;">RDV pris / Int.</span><div style="background:#30d15855;height:7px;border-radius:3px;"><div style="background:#30d158;width:48%;height:100%;border-radius:3px;"></div></div><span style="font-size:10px;color:#30d158;text-align:right;">25</span><span style="font-size:9px;color:#666;text-align:right;">22%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;color:#666;font-weight:600;">Hors SVI</span><div style="background:#1e1e1e;height:7px;border-radius:3px;"></div><span style="font-size:10px;color:#555;text-align:right;">n.d.</span><span style="font-size:9px;color:#555;text-align:right;"></span>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:9px;color:#555;">Toutes · 2026-06-01 → 2026-06-11 · 24 agents · Total : 114 appels</div>
+  </div>
+  <p>Le bouton <b>Export CSV</b> (disponible après une recherche) télécharge la répartition complète avec les pourcentages, les totaux et la source des données.</p>
+  <div class="tip">💡 Certaines qualifications (Hors SVI, Rappel) ne sont pas distinguables au niveau de l'API INO — elles apparaissent en grisé avec la mention « n.d. ». Utilisez « Sans suite » et « RDV pris / Intéressé » qui agrègent les résultats disponibles.</div>
+
   <h3>Définitions des KPI ⓘ</h3>
-  <p>Chaque carte du bandeau KPI (QS, % Réalisé, Flux, DMC…) porte une icône <b>ⓘ</b> : cliquez dessus pour afficher la définition complète de l'indicateur, sa formule de calcul, sa source et ses seuils de lecture. À noter : en filtre par campagne(s), la QS et les flux sont calculés au niveau de la file INO (abandons inclus, comme l'écran RA) ; dès qu'un filtre agent est actif, ils basculent sur les données des agents sélectionnés.</p>
+  <p>Chaque carte du bandeau KPI (QS, % Réalisé, Flux, DMC…) porte une icône <b>ⓘ</b> : cliquez dessus pour afficher la définition complète de l'indicateur, sa formule de calcul, sa source et ses seuils de lecture.</p>
+
   <h3>Critères & KPI par campagne</h3>
-  <p>Le panneau « Critères & KPI » permet, campagne par campagne, de régler les objectifs et les alertes (QS cible, backlog, alerte « aucun agent », jours/horaires surveillés…). C'est aussi là que s'active l'affichage du badge 🌙 astreinte d'une campagne dans le bandeau staffing — disponible dès que la campagne est suivie dans le <a href="/astreinte">registre d'astreinte</a>. Cliquez sur « Enregistrer » pour appliquer : les réglages sont partagés entre superviseurs.</p>
+  <p>Le bouton <span class="kbd">KPI</span> en haut à droite ouvre le panneau de réglages par campagne : objectifs d'appels, QS cible, backlog, alerte, horaires, badge 🌙 astreinte. Les réglages sont partagés entre superviseurs.</p>
+
   <h3>Exports</h3>
   <ul>
-    <li><b>Excel / CSV</b> : exporte le tableau des agents tel que filtré et trié.</li>
-    <li><b>PDF</b> : version imprimable du tableau (la fenêtre qui s'ouvre propose « Imprimer / Enregistrer en PDF »).</li>
+    <li><b>📊 Excel / CSV</b> : exporte le tableau agents filtré et trié.</li>
+    <li><b>📄 PDF</b> : version imprimable du tableau.</li>
     <li><b>Matrice de compétences (PDF)</b> : cartographie agents × compétences INO.</li>
-    <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager (aperçu, PDF ou Excel).</li>
+    <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager.</li>
   </ul>
   <div class="tip">💡 Si la fenêtre d'export PDF ne s'ouvre pas, autorisez les pop-ups pour ce site dans votre navigateur.</div>
-  <h3>Pages liées (boutons en haut à droite)</h3>
-  <p>📊 Exécutif · 📡 Couverture · 🌙 Astreinte · 🗓️ Planning · ⚙ Administration · 📖 cette notice. Chaque page s'ouvre dans un nouvel onglet.</p>
 </section>
 
 <section id="agents-jour">
@@ -99,43 +165,104 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="executif">
   <h2>4. Tableau de bord exécutif 📊</h2>
-  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
+  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller). Les données et KPIs se <b>chargent automatiquement</b> à l'ouverture de la page.</p>
+  <h3>Jours fériés 🏖</h3>
+  <p>Les jours fériés légaux français (11 fériés fixes + Pâques dynamique) sont signalés par le badge <b>🏖</b> sur les colonnes de la matrice comparateur et dans le détail des données. Les volumes faibles sur ces jours sont donc normaux et attendus.</p>
   <h3>Comparateur jours & campagnes 🆚</h3>
-  <p>Le panneau « Comparateur » permet de confronter <b>un ou plusieurs jours</b> (ajoutez chaque date puis « + Ajouter ce jour ») sur <b>une ou plusieurs campagnes</b> (cochez celles à comparer — toutes les campagnes actives sont proposées). Cliquez sur « Comparer » :</p>
+  <p>Le panneau « Comparateur » confronte un ou plusieurs jours sur une ou plusieurs campagnes. Cliquez sur « Comparer » :</p>
   <ul>
-    <li>La <b>matrice</b> affiche, pour la métrique choisie (volume traité, QS, DMC, agents actifs, charge/agent), une ligne par campagne et une colonne par jour ; la meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
-    <li>Les onglets au-dessus de la matrice changent de métrique instantanément.</li>
-    <li>Le « détail complet » (dépliable) liste toutes les valeurs jour × campagne.</li>
+    <li>La <b>matrice</b> affiche volume traité, QS, DMC, agents actifs ou charge/agent par campagne × jour.</li>
+    <li>La meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
+    <li>Les colonnes de jours fériés ont un fond jaune pâle et un badge 🏖.</li>
   </ul>
+  <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 dans le tableau confirme ce cas.</div>
 </section>
 
 <section id="couverture">
   <h2>5. Radar de couverture 📡</h2>
-  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif planifié est inférieur au besoin estimé.</p>
+  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel de la campagne.</p>
 </section>
 
 <section id="astreinte">
   <h2>6. Registre d'astreinte 🌙</h2>
-  <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte. La liste de choix propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui).</p>
+  <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte.</p>
+
+  <h3>Saisie agent + horaires + GSM</h3>
+  <p>Pour chaque jour, saisissez :</p>
+  <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 10px;max-width:280px;">
+      <select style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:11px;width:100%;margin-bottom:6px;color:#444;"><option>Dupont Martin</option></select>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:10px;color:#999;">🕐</span>
+        <input type="time" value="20:00" style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 5px;font-size:10px;width:70px;color:#444;">
+        <span style="font-size:10px;color:#999;">→</span>
+        <input type="time" value="08:00" style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 5px;font-size:10px;width:70px;color:#444;">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:#555;cursor:pointer;">
+        <input type="checkbox" checked style="accent-color:#E8006E;"> 📱 Transfert GSM à activer
+      </label>
+    </div>
+  </div>
+  <ul>
+    <li><b>Horaires</b> : saisissez l'heure de début et de fin. Les astreintes qui dépassent minuit (ex. 20h→08h) sont automatiquement divisées sur deux colonnes jours dans le tableau de couverture.</li>
+    <li><b>📱 Transfert GSM</b> : cochez si le TC doit activer le renvoi GSM sur son téléphone. Cela déclenche une <b>alerte automatique 30 min avant</b> sur la page principale (bannière orange).</li>
+  </ul>
+
+  <h3>Tableau de couverture horaire</h3>
+  <p>Sous le registre, le tableau de couverture affiche les 12 créneaux de 2 heures × 7 jours, colorisé selon le nombre d'agents couverts. Les créneaux de nuit sont identifiés (fond sombre).</p>
+
+  <h3>Informations partagées</h3>
   <ul>
     <li>Le registre est <b>partagé entre superviseurs</b> et enregistré automatiquement.</li>
-    <li>Les affectations apparaissent en croisement sur le <a href="/planning">Planning</a> (tag 🌙 sur le jour concerné) et peuvent être affichées en badge dans le bandeau staffing de la Tour de contrôle (à activer dans Critères & KPI).</li>
+    <li>Les affectations apparaissent en badge dans le bandeau staffing de la Tour de contrôle (à activer dans Critères & KPI).</li>
+    <li>Un badge récapitulatif affiche : <code>X/7 jours couverts · 📱 N</code> (N = nombre de jours avec GSM requis).</li>
   </ul>
 </section>
 
 <section id="planning">
   <h2>7. Planning de la semaine 🗓️</h2>
-  <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents (les suggestions proposent tous les agents qualifiés sur la compétence de la campagne), puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ». Le total hebdomadaire se calcule automatiquement et tout est enregistré et partagé en continu.</p>
+  <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents, puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ».</p>
+
+  <h3>Saisie de créneau avec pauses</h3>
+  <p>Pour chaque case agent × jour, vous pouvez renseigner :</p>
+  <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 10px;max-width:320px;">
+      <div style="display:flex;gap:4px;align-items:center;margin-bottom:5px;">
+        <input type="time" value="08:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:60px;color:#444;">
+        <span style="color:#aaa;font-size:10px;">→</span>
+        <input type="time" value="20:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:60px;color:#444;">
+      </div>
+      <div style="background:#f0f8ff;border:1px solid #bdd;border-radius:4px;padding:5px 7px;margin-bottom:5px;font-size:10px;color:#336;">
+        🍽 Pause déjeuner :
+        <input type="time" value="12:00" style="font-size:10px;background:#fff;border:1px solid #bdd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+        →
+        <input type="time" value="13:00" style="font-size:10px;background:#fff;border:1px solid #bdd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+      </div>
+      <div style="font-size:10px;color:#555;">
+        ☕ Pause 15 min :
+        <input type="checkbox" style="accent-color:#E8006E;"> <input type="time" value="10:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+        <input type="checkbox" style="accent-color:#E8006E;"> <input type="time" value="15:30" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+      </div>
+    </div>
+  </div>
+  <ul>
+    <li><b>Pause déjeuner</b> : saisissez l'heure de début et de fin. Elle est <b>déduite du total hebdomadaire</b>.</li>
+    <li><b>Pauses 15 min</b> (jusqu'à 2 par jour) : cochez la case et indiquez l'heure. Elles restent comptées comme du temps de travail mais sont visibles dans le planning pour éviter les chevauchements.</li>
+  </ul>
+  <p>Le tableau de couverture (bas de page) affiche pour chaque <b>tranche de 1 heure</b> : le nombre d'agents effectivement présents (hors déjeuner), avec des badges <b>🍽−n</b> (agents en pause déjeuner) et <b>☕n</b> (agents en pause 15 min) pour identifier les tensions.</p>
+
   <h3>Vue globale « ALL »</h3>
-  <p>Dans le sélecteur de campagne, sous « Vues groupées », l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes actives pour la semaine choisie — une visibilité globale en lecture seule (l'édition se fait toujours campagne par campagne).</p>
+  <p>Dans le sélecteur de campagne, l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes — lecture seule.</p>
+
   <h3>Pôles (regroupements nommés)</h3>
-  <p>Le bouton <span class="kbd">🗂️ Pôles</span> ouvre le panneau de regroupement : donnez un nom (ex. « Pôle Multi »), cochez au moins 2 campagnes, puis « + Créer le pôle ». Le pôle apparaît dans le sélecteur sous « Vues groupées » : sélectionnez-le pour voir côte à côte les plannings de ses campagnes, et pour les exporter en un clic. Les pôles sont partagés entre superviseurs ; la suppression d'un pôle n'affecte pas les campagnes elles-mêmes.</p>
+  <p>Le bouton <span class="kbd">🗂️ Pôles</span> ouvre le panneau de regroupement : donnez un nom, cochez au moins 2 campagnes, puis « + Créer le pôle ». Les pôles sont partagés entre superviseurs.</p>
+
   <h3>Exports PDF & Excel</h3>
   <ul>
-    <li><span class="kbd">📄 Export PDF</span> : ouvre une version imprimable A4 paysage du planning affiché (une campagne, un pôle ou toutes les campagnes) — cliquez sur « Imprimer / Enregistrer en PDF ».</li>
-    <li><span class="kbd">📊 Export Excel</span> : télécharge un fichier .xls du même contenu, un tableau par campagne.</li>
+    <li><span class="kbd">📄 Export PDF</span> : version imprimable A4 paysage du planning affiché.</li>
+    <li><span class="kbd">📊 Export Excel</span> : télécharge un fichier .xls, un tableau par campagne.</li>
   </ul>
-  <div class="tip">💡 Sélectionnez d'abord ce que vous voulez exporter (une campagne, un pôle ou « Toutes les campagnes ») et la bonne semaine : l'export porte exactement sur la vue affichée.</div>
+  <div class="tip">💡 Le total hebdomadaire est calculé automatiquement et exclut les pauses déjeuner. Utilisez les pauses 15 min à des horaires décalés pour que tous les agents ne soient pas absents simultanément.</div>
 </section>
 
 <section id="admin">
@@ -155,6 +282,12 @@ ul{margin:6px 0 10px 22px;}
     <b>🎓</b><span>Agent en formation cette semaine (cliquable dans le planning pour activer/désactiver).</span>
     <b>⇄</b><span>Agent mutualisé — qualifié sur plusieurs campagnes.</span>
     <b>🌙</b><span>Astreinte : jour couvert par l'agent au registre d'astreinte ; en badge campagne, couverture de la semaine (vert 7/7 · orange partielle · rouge 0/7).</span>
+    <b>📱</b><span>Transfert GSM requis — bannière orange 30 min avant, rouge pendant l'astreinte active.</span>
+    <b>⚠ ALERTE</b><span>Service ouvert sans agent actif ni mutualisé disponible — vérification staffing urgente.</span>
+    <b>↔ mut.</b><span>Couverture assurée par des agents mutualisés (compétences multi-campagnes) — pas d'alerte rouge.</span>
+    <b>🍽−n</b><span>n agents en pause déjeuner sur ce créneau (déduits de la couverture effective).</span>
+    <b>☕n</b><span>n agents en pause 15 min sur ce créneau.</span>
+    <b>🏖</b><span>Jour férié (tableaux exécutifs) — volumes naturellement plus faibles, non comparables.</span>
     <b>📊</b><span>Tableau de bord exécutif.</span>
     <b>📡</b><span>Radar de couverture.</span>
     <b>🗓️</b><span>Planning de la semaine.</span>
@@ -164,7 +297,23 @@ ul{margin:6px 0 10px 22px;}
   </div>
 </section>
 
-<div class="foot">Wisecom · Control Room INO · Notice d'utilisation — document interne</div>
+<section id="navigation">
+  <h2>10. Navigation entre pages</h2>
+  <p>Chaque page du Control Room affiche, en haut à droite, une barre de navigation sous forme de <b>pills</b> (pastilles arrondies icon + label). La page courante est mise en évidence en rose.</p>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0;">
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🏠 Tour de contrôle</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #E8006E;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#E8006E;background:#fff0f6;">📊 Exécutif ← page active</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📡 Couverture</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🌙 Astreinte</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📋 Agents jour</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🗓️ Planning</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📖 Notice</span>
+  </div>
+  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre, contours subtils, icône + label court en majuscules. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
+  <p>Le bouton <span class="kbd">⚡ Simuler</span> (fond doré) génère des données de démonstration — uniquement pour les tests, jamais sur une session connectée à INO en production.</p>
+</section>
+
+<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour juin 2026 — document interne</div>
 
 </div>
 </body>

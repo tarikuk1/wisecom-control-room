@@ -8,7 +8,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#0d0d0d;color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8;}
+.header{background:#111;border-bottom:1px solid #222;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid #333;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#888;text-decoration:none;background:#1a1a1a;transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:#E8006E55;color:#E8006E;background:#1e0a14;}
+.nav-pill.active{border-color:#E8006E;color:#E8006E;background:#1e0a14;}
+.nav-pill .n-icon{font-size:11px;}
 .title{font-weight:700;font-size:15px;letter-spacing:.05em;}
 .subtitle{font-size:11px;color:#444;margin-top:2px;}
 .dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
@@ -67,6 +71,13 @@ input[type=text]{background:#1a1a1a;color:#ccc;border:1px solid #333;border-radi
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
+    <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
+    <a href="/agents-jour" class="nav-pill active"><span class="n-icon">📋</span> Agents jour</a>
+    <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
+    <a href="/astreinte" class="nav-pill"><span class="n-icon">🌙</span> Astreinte</a>
+    <a href="/planning" class="nav-pill"><span class="n-icon">🗓️</span> Planning</a>
+    <a href="/notice" class="nav-pill"><span class="n-icon">📖</span> Notice</a>
     <button class="btn btn-dark" onclick="exportCSV()">📥 Export CSV</button>
     <button class="btn btn-pink" onclick="loadData()">🔄 Actualiser</button>
   </div>
@@ -135,7 +146,6 @@ let noteOverrides = {};
 const dp = document.getElementById("date-picker");
 const _n=new Date();
 dp.value = _n.getFullYear()+"-"+String(_n.getMonth()+1).padStart(2,"0")+"-"+String(_n.getDate()).padStart(2,"0");
-dp.addEventListener("change", loadData);
 
 function fmtMMSS(s){const m=Math.floor(s/60);return`${String(m).padStart(2,"0")}:${String(Math.round(s%60)).padStart(2,"0")}`;}
 function fmtTime(iso){if(!iso)return"–";const d=new Date(iso);return`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;}
@@ -199,7 +209,8 @@ function renderTable(){
     const mails = mailOverrides[a.id] || 0;
     const note = noteOverrides[a.id] || "";
     const actes = a.total + mails;
-    const hProd = a.duree > 0 ? a.duree / 3600 : 1;
+    const ampMs = (a.premiereAction && a.derniereAction) ? Math.max(0, new Date(a.derniereAction)-new Date(a.premiereAction)) : 0;
+    const hProd = ampMs > 0 ? ampMs/3600000 : (a.duree > 0 ? a.duree/3600 : 1);
     const actesH = (actes / hProd).toFixed(1);
     const tags = (a.queues||"").split(", ").filter(Boolean).slice(0,3).map(q=>`<span class="tag">${q}</span>`).join("");
     return `<tr>
@@ -234,7 +245,7 @@ function renderSummary(){
   const totOut = agents.reduce((s,a)=>s+a.appelsOut,0);
   const totMails = agents.reduce((s,a)=>s+(mailOverrides[a.id]||0),0);
   const totActes = agents.reduce((s,a)=>s+a.total+(mailOverrides[a.id]||0),0);
-  const avgDmt = agents.length>0?Math.round(agents.reduce((s,a)=>s+a.dmt,0)/agents.length):0;
+  const avgDmt = totIn>0 ? Math.round(agents.reduce((s,a)=>s+(a.dmt*(a.appelsIn||0)),0)/totIn) : (agents.length>0?Math.round(agents.reduce((s,a)=>s+a.dmt,0)/agents.length):0);
   document.getElementById("summary").innerHTML = `
     <div class="card"><div class="card-label">Agents actifs</div><div class="card-value" style="color:#E8006E;">${agents.length}</div><div class="card-sub">sur la journée</div></div>
     <div class="card"><div class="card-label">Appels IN</div><div class="card-value">${totIn}</div><div class="card-sub">entrants traités</div></div>
@@ -263,16 +274,35 @@ function sortBy(key){
 function saveAllMails(){
   localStorage.setItem("wisecom_mails_"+dp.value, JSON.stringify(mailOverrides));
   localStorage.setItem("wisecom_notes_"+dp.value, JSON.stringify(noteOverrides));
+  // Fusionner avec les overrides des autres dates déjà en store
+  fetch(`${INO_BASE}/api/store`).then(r=>r.json()).then(d=>{
+    const all=(d&&d.mailOverrides&&typeof d.mailOverrides==="object")?d.mailOverrides:{};
+    all[dp.value]={mails:mailOverrides,notes:noteOverrides};
+    return fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({key:"mailOverrides",value:all})});
+  }).catch(()=>{});
   const msg=document.getElementById("save-msg");
   msg.style.display="inline";
   setTimeout(()=>msg.style.display="none",2000);
 }
 
-function loadSaved(){
-  const m=localStorage.getItem("wisecom_mails_"+dp.value);
-  const n=localStorage.getItem("wisecom_notes_"+dp.value);
-  if(m) mailOverrides=JSON.parse(m);
-  if(n) noteOverrides=JSON.parse(n);
+async function loadSaved(){
+  try{
+    const m=localStorage.getItem("wisecom_mails_"+dp.value);
+    const n=localStorage.getItem("wisecom_notes_"+dp.value);
+    if(m) mailOverrides=JSON.parse(m);
+    if(n) noteOverrides=JSON.parse(n);
+  }catch(e){ mailOverrides={}; noteOverrides={}; }
+  try{
+    const r=await fetch(`${INO_BASE}/api/store`);
+    const d=await r.json();
+    const stored=d&&d.mailOverrides&&d.mailOverrides[dp.value];
+    if(stored&&stored.mails){
+      // Store prend la priorité (données partagées), localStorage écrase en dernier (saisies locales plus récentes)
+      mailOverrides={...stored.mails,...mailOverrides};
+      if(stored.notes)noteOverrides={...stored.notes,...noteOverrides};
+    }
+  }catch(e){}
 }
 
 function exportCSV(){
@@ -281,7 +311,8 @@ function exportCSV(){
   agents.forEach(a=>{
     const mails=mailOverrides[a.id]||0;
     const actes=a.total+mails;
-    const hProd=a.duree>0?a.duree/3600:1;
+    const ampMs=(a.premiereAction&&a.derniereAction)?Math.max(0,new Date(a.derniereAction)-new Date(a.premiereAction)):0;
+    const hProd=ampMs>0?ampMs/3600000:(a.duree>0?a.duree/3600:1);
     rows.push([a.nom,a.username,fmtTime(a.premiereAction),fmtTime(a.derniereAction),a.appelsIn,a.appelsOut,a.total,fmtMMSS(a.dmt),mails,noteOverrides[a.id]||"",actes,(actes/hProd).toFixed(1),(a.queues||"")]);
   });
   const csv=rows.map(r=>r.map(c=>`"${c}"`).join(";")).join("\n");
@@ -307,9 +338,8 @@ function connectSSE(){
 }
 
 // Init
-dp.addEventListener("change",()=>{mailOverrides={};noteOverrides={};loadSaved();loadData();});
-loadSaved();
-loadData();
+dp.addEventListener("change",()=>{mailOverrides={};noteOverrides={};loadSaved().then(()=>loadData());});
+(async()=>{await loadSaved();loadData();})();
 connectSSE();
 </script>
 </body>

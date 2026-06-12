@@ -1,5 +1,7 @@
 const http=require("http"),https=require("https"),fs=require("fs"),path=require("path"),crypto=require("crypto");
 const PORT=process.env.PORT||3000;
+// SÉCURITÉ : définir ces variables dans les env vars Railway pour ne pas exposer les secrets en clair.
+// Les valeurs ci-dessous sont des fallbacks de développement — ne pas conserver en production.
 const INO_LOGIN=process.env.INO_LOGIN||"tarik_dashboard";
 const INO_PWD=process.env.INO_PWD||"XnF!AuuWJg$cR$S";
 const INO_APIKEY=process.env.INO_APIKEY||"dasboard_INO";
@@ -46,6 +48,10 @@ const _JOUR_KEYS={Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sa
 function parisJour(d){return _JOUR_KEYS[_parisDayFmt.format(d)]||"lun";}
 // Minute du jour en heure France (les offsets FR sont en heures pleines → minutes UTC inchangées)
 function parisMinOfDay(d){return parisHour(d)*60+d.getUTCMinutes();}
+// Date du jour en heure France (YYYY-MM-DD) — new Date().toISOString() donne la date UTC :
+// entre 00h et 02h Paris elle pointe encore sur la veille (serveur Railway en UTC)
+const _parisDateFmt=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"});
+function parisDateStr(d){return _parisDateFmt.format(d||new Date());}
 
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
@@ -144,7 +150,7 @@ function isCampOpenAt(camp,d){
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -218,7 +224,7 @@ async function getToken(force){
 // Récupère les compétences actives par agent depuis INO /agent/list
 let skillsCache={};let skillsCacheDate='';
 async function fetchAgentSkills(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=parisDateStr();
   if(skillsCacheDate===today&&Object.keys(skillsCache).length>0)return skillsCache;
   const token=await getToken();if(!token)return {};
   try{
@@ -246,7 +252,7 @@ async function fetchAgentSkills(){
 
 async function fetchDayStats(){
   const token=await getToken();if(!token)return;
-  const d=new Date().toISOString().slice(0,10);
+  const d=parisDateStr();
   try{
     const[ci,co]=await Promise.all([
       apiReq("POST","/call/in/histories",{startDate:d+" 00:00:00",endDate:d+" 23:59:59",limit:2000},token),
@@ -268,7 +274,11 @@ async function fetchDayStats(){
 }
 
 async function fetchAgentsDay(date,hDeb,hFin,dateFin){
-  hDeb=parseInt((hDeb||'08:00').split(':')[0]);hFin=parseInt((hFin||'20:00').split(':')[0]);
+  // Bornes en minutes (précision réelle de la sélection : "08:30" ne doit pas devenir "08:00")
+  const _hm=s=>{const p=String(s||'').split(':');return (parseInt(p[0])||0)*60+(parseInt(p[1])||0);};
+  const minDeb=_hm(hDeb||'08:00'), minFin=_hm(hFin||'20:00');
+  // Bornes heures pleines pour la grille de slots 30 min
+  hDeb=Math.floor(minDeb/60);hFin=minFin%60>0?Math.floor(minFin/60)+1:Math.floor(minFin/60);
   const token=await getToken();if(!token)throw new Error("Pas de token");
   // Construire la liste des jours de la plage [date .. dateFin] (incluse)
   const _d0=new Date(date+"T00:00:00"); const _d1=new Date((dateFin||date)+"T00:00:00");
@@ -294,6 +304,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       ]);
       if(ri1&&ri1[ECHEC])echecJour=ri1[ECHEC];
       if(ro1&&ro1[ECHEC])echecJour=echecJour||ro1[ECHEC];
+      // Timeout INO : apiReq résout avec {_timeout:true,histories:[]} — à traiter comme un échec
+      // sinon le jour passe pour "0 appel" (mode honnête : signaler, jamais masquer)
+      if(ri1&&ri1._timeout)echecJour=echecJour||"timeout INO (in)";
+      if(ro1&&ro1._timeout)echecJour=echecJour||"timeout INO (out)";
       if(ri1&&ri1.histories)riH=riH.concat(ri1.histories);
       if(ro1&&ro1.histories)roH=roH.concat(ro1.histories);
       // Pagination : si on a atteint la limite, découper par demi-journée et compléter
@@ -316,6 +330,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
           ]);
           if(rip&&rip[ECHEC])echecJour=rip[ECHEC];
           if(rop&&rop[ECHEC])echecJour=echecJour||rop[ECHEC];
+          if(rip&&rip._timeout)echecJour=echecJour||"timeout INO (in, tranche)";
+          if(rop&&rop._timeout)echecJour=echecJour||"timeout INO (out, tranche)";
           if(rip&&rip.histories)riH=riH.concat(rip.histories);
           if(rop&&rop.histories)roH=roH.concat(rop.histories);
         }
@@ -370,8 +386,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(_dtP){
       const _dP=new Date(_dtP);
       if(!isNaN(_dP)){
-        const _hFr=parisHour(_dP);
-        if(_hFr<hDeb||_hFr>=hFin)return; // hors plage → ignoré partout (flux + slots + agents)
+        const _mFr=parisMinOfDay(_dP);
+        if(_mFr<minDeb||_mFr>=minFin)return; // hors plage (à la minute) → ignoré partout (flux + slots + agents)
       }
     }
     // Comptage GLOBAL des flux réels (avant filtre agent) — un abandon n'a pas d'agent
@@ -404,13 +420,13 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     }else{fluxSortants++;}
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
-    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0)};
+    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0)};
     if(type==="in"){
       // Présenté = tout entrant routé à l'agent. Décroché = présenté pris (durée>0, non abandonné).
       agents[k].presentes++;
       const agDur=(h.call&&h.call.agentDuration)||0;
       const _ab=(h.status&&String(h.status).toLowerCase().includes('abandon'));
-      if(agDur>0&&!_ab){agents[k].appelsIn++;}     // décroché
+      if(agDur>0&&!_ab){agents[k].appelsIn++;agents[k].dureeIn+=agDur;}  // décroché — durée IN isolée pour le DMT
       else{agents[k].nonDecroches++;}              // présenté non décroché
     }else agents[k].appelsOut++;
     const agDur2=(h.call&&h.call.agentDuration)||0;
@@ -483,7 +499,9 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     return {
       id:a.id,nom:a.nom,username:a.username,statutEstime,lastCallDate:a.derniereAction,
       appelsIn:a.appelsIn,appelsPresentes:a.presentes||(a.appelsIn+(a.nonDecroches||0)),nonDecroches:a.nonDecroches||0,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
-      duree:a.duree,dmt:a.appelsIn>0?Math.round(a.duree/a.appelsIn):0,
+      // DMT = durée moyenne des ENTRANTS décrochés uniquement (a.duree cumule IN+OUT,
+      // la diviser par appelsIn gonflait le DMT de tout agent faisant du sortant)
+      duree:a.duree,dmt:a.appelsIn>0?Math.round((a.dureeIn||0)/a.appelsIn):0,
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
       queues:Array.from(a.queues).join(", "),
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
@@ -786,6 +804,10 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url==="/logout"){if(cookies.session)delete sessions[cookies.session];if(cookies.pending)delete pending[cookies.pending];setCookie(res,"session","",0);setCookie(res,"pending","",0);res.writeHead(302,{Location:"/login"});return res.end();}
   if(url==="/webhook"&&req.method==="POST"){
+    // Authentification : l'expéditeur doit fournir le secret via X-Webhook-Secret ou ?secret=
+    const WEBHOOK_SECRET=process.env.WEBHOOK_SECRET||"";
+    const providedSecret=req.headers["x-webhook-secret"]||(new URL(req.url,"http://localhost")).searchParams.get("secret")||"";
+    if(WEBHOOK_SECRET&&providedSecret!==WEBHOOK_SECRET){res.writeHead(401,{"Content-Type":"application/json"});return res.end(JSON.stringify({error:"Secret webhook invalide"}));}
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
@@ -807,7 +829,7 @@ const server=http.createServer(async(req,res)=>{
         const {agentId,skillId,skillNom,agentNom,score}=JSON.parse(body);
         if(!agentId||!skillId) return (res.writeHead(400),res.end(JSON.stringify({ok:false,error:"agentId et skillId requis"})));
         const token=await getToken();
-        if(!token) return (res.writeHead(502),res.end(JSON.stringify({ok:false,error:"Token INO indisponible"})));
+        if(!token) return (res.writeHead(200),res.end(JSON.stringify({ok:false,error:"Token INO indisponible — connexion INO non établie"})));
         const now=new Date().toISOString().replace("T"," ").slice(0,19);
         const addResp=await apiReq("POST","/cc/agent/"+agentId+"/flow/voice/skill/add",
           {aas:{id:parseInt(skillId),score:score||100,startDate:now,status:1}},token);
@@ -816,12 +838,12 @@ const server=http.createServer(async(req,res)=>{
           res.writeHead(200,{"Content-Type":"application/json"});
           res.end(JSON.stringify({ok:true,skill:addResp.aas,message:"Compétence activée"}));
         } else {
-          res.writeHead(502);
+          res.writeHead(200,{"Content-Type":"application/json"});
           res.end(JSON.stringify({ok:false,error:"Réponse INO inattendue. Le compte API INO actuel (dasboard_INO) n'a pas les droits /cc/*. Contactez l'administrateur INO pour activer les droits Centre de Contacts.",raw:JSON.stringify(addResp).slice(0,200)}));
         }
       }catch(e){
         console.error("[SKILL] Erreur:",e.message);
-        res.writeHead(500);
+        res.writeHead(200,{"Content-Type":"application/json"});
         res.end(JSON.stringify({ok:false,error:e.message}));
       }
     });return;
@@ -839,7 +861,7 @@ const server=http.createServer(async(req,res)=>{
           res.writeHead(400);res.end(JSON.stringify({error:"agentIds[] requis"}));return;
         }
         const token=await getToken();
-        if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token INO indisponible"}));return;}
+        if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));return;}
         const results={};
         // Traiter par batch de 3 avec délai pour respecter le rate-limiting INO
         for(let i=0;i<agentIds.length;i+=3){
@@ -890,14 +912,14 @@ const server=http.createServer(async(req,res)=>{
     const agentId=url.replace("/api/skill-list/","").split("?")[0];
     try{
       let token=await getToken();
-      if(!token){res.writeHead(502);res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible — vérifiez les credentials INO"}));return;}
       let rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
       if(rf.status===401){
         // Token expiré — renouveler et réessayer une fois
         token=await getToken(true);
         rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},token);
       }
-      if(rf.status===401){res.writeHead(502);res.end(JSON.stringify({error:"HTTP 401 — Droits insuffisants sur le compte INO dasboard_INO pour /cc/*"}));return;}
+      if(rf.status===401){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"HTTP 401 — Droits insuffisants sur le compte INO dasboard_INO pour /cc/*"}));return;}
       res.writeHead(200,{"Content-Type":"application/json"});
       res.end(JSON.stringify(rf.body||{}));
     }catch(e){
@@ -912,7 +934,7 @@ const server=http.createServer(async(req,res)=>{
     const date=u2.searchParams.get("date")||new Date().toISOString().slice(0,10);
     try{
       const token=await getToken();
-      if(!token){res.writeHead(502,{"Content-Type":"application/json"});res.end(JSON.stringify({error:"Token indisponible"}));return;}
+      if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));return;}
       const[ci,co]=await Promise.all([
         apiReq("POST","/call/in/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token),
         apiReq("POST","/call/out/histories",{startDate:date+" 00:00:00",endDate:date+" 23:59:59",limit:2000},token)
@@ -1069,7 +1091,7 @@ const server=http.createServer(async(req,res)=>{
           return res.end(JSON.stringify(Object.assign({cache:true},_queuesCache)));
         }
         const token=await getToken();
-        if(!token){res.writeHead(502);return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        if(!token){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
         // Sources de files "déclarées" dans la config INO. On tente plusieurs endpoints :
         // d'abord le routing voix (= page /maker/app#/flow/voice/routing : la config
         // officielle des files/routages), puis les listes de files classiques en repli.
@@ -1213,13 +1235,14 @@ const server=http.createServer(async(req,res)=>{
     const adminHtml=makeAdmin(session.login);
     res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(adminHtml);
   }
-  if(url==="/"||url==="/dashboard"){const p=path.join(__dirname,"dashboard.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/agents-jour"){const p=path.join(__dirname,"agents_jour.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/executif"){const p=path.join(__dirname,"executif.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/couverture"){const p=path.join(__dirname,"couverture.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/astreinte"){const p=path.join(__dirname,"astreinte.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
-  if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return fs.createReadStream(p).pipe(res);}}
+  const _HTML_HDRS={"Content-Type":"text/html;charset=utf-8","Cache-Control":"no-cache, no-store, must-revalidate","Pragma":"no-cache","Expires":"0"};
+  if(url==="/"||url==="/dashboard"){const p=path.join(__dirname,"dashboard.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/agents-jour"){const p=path.join(__dirname,"agents_jour.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/executif"){const p=path.join(__dirname,"executif.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/couverture"){const p=path.join(__dirname,"couverture.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/astreinte"){const p=path.join(__dirname,"astreinte.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   res.writeHead(404,{"Content-Type":"text/html"});res.end(make404());
 });
 

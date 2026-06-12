@@ -28,6 +28,10 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 .empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
 .success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
 .note{font-size:11px;color:#777;line-height:1.6;margin-top:4px;}
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;text-decoration:none;background:#f5f5f5;transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:#E8006E55;color:#E8006E;background:#fff0f6;}
+.nav-pill.active{border-color:#E8006E;color:#E8006E;background:#fff0f6;}
+.nav-pill .n-icon{font-size:11px;}
 
 .astreinte-row{display:flex;gap:8px;flex-wrap:wrap;}
 .astreinte-cell{flex:1 1 150px;min-width:150px;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:8px 10px;}
@@ -78,7 +82,12 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
-    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+    <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
+    <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
+    <a href="/astreinte" class="nav-pill active"><span class="n-icon">🌙</span> Astreinte</a>
+    <a href="/planning" class="nav-pill"><span class="n-icon">🗓️</span> Planning</a>
+    <a href="/notice" class="nav-pill"><span class="n-icon">📖</span> Notice</a>
   </div>
 </div>
 
@@ -319,13 +328,33 @@ async function loadStore(){
     showToast("⚠ Registre indisponible — vérifiez la connexion","#b45309");
   }
 }
+// Clés d'entrée modifiées localement (format "camp|YYYY-MM-DD")
+const _dirtyAst=new Set();
 function pushRegistry(){
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>{
-    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:registry})})
-      .then(r=>r.json()).then(d=>{
-        astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626"));
+  const localSnap=JSON.parse(JSON.stringify(registry));
+  const dirtySnap=new Set(_dirtyAst);
+  pushTimer=setTimeout(async()=>{
+    try{
+      // Rebase : récupère l'état serveur, écrase seulement les clés dirty
+      const storeR=await fetch(`${INO_BASE}/api/store`);
+      const storeD=await storeR.json();
+      const srv=(storeD&&storeD.astreintes&&typeof storeD.astreintes==="object")?storeD.astreintes:{tracked:[],entries:{}};
+      const merged={
+        tracked:localSnap.tracked,
+        entries:{...srv.entries}
+      };
+      dirtySnap.forEach(k=>{
+        if(localSnap.entries[k]!=null)merged.entries[k]=localSnap.entries[k];
+        else delete merged.entries[k]; // entrée supprimée localement
+        _dirtyAst.delete(k);
+      });
+      const r=await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:merged})});
+      const d=await r.json();
+      astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+    }catch(e){
+      astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626");
+    }
   },600);
 }
 
@@ -348,6 +377,7 @@ function commitEntry(cell){
   const gsmInp=cell.querySelector(".t-ast-gsm");
   const gsmLbl=cell.querySelector(".ast-gsm-label");
   const key=camp+"|"+date;
+  _dirtyAst.add(key);
   const name=(nameInp.value||"").trim();
   nameInp.value=name;
   nameInp.classList.toggle("empty",!name);
@@ -359,7 +389,10 @@ function commitEntry(cell){
     const entry={name};
     if(startInp&&startInp.value)entry.start=startInp.value;
     if(endInp&&endInp.value)entry.end=endInp.value;
-    if(gsmInp&&gsmInp.checked)entry.gsm=true;
+    if(gsmInp&&gsmInp.checked){
+      entry.gsm=true;
+      if(!entry.start)showToast("⚠ GSM coché sans heure de début — renseignez l'heure de prise d'astreinte pour déclencher l'alerte automatique","#b45309");
+    }
     registry.entries[key]=entry;
   }
   const tag=cell.querySelector(".astreinte-tag");
@@ -483,9 +516,10 @@ function computeAstreinteCoverage(monday,dates){
       if(!startStr)return; // heures requises pour la couverture
       const a=timeToMinutes(startStr);
       if(isNaN(a))return;
-      const b=timeToMinutes(endStr);
+      // "00:00" comme heure de fin = fin de journée (1440 min), pas 0
+      const b=endStr==="00:00"?1440:(endStr?timeToMinutes(endStr):NaN);
       const bValid=!isNaN(b)&&endStr;
-      const overnight=bValid&&b>0&&b<=a;
+      const overnight=bValid&&b!==1440&&b<=a;
       hasAny=true;
       const endOnDay=overnight?24*60:(bValid?b:24*60);
       for(let h=0;h<12;h++){
@@ -576,6 +610,15 @@ document.getElementById("btn-add-camp").addEventListener("click",()=>{
   renderAll();
 })();
 connectSSE();
+
+function _astFlushNow(){
+  if(pushTimer===null||!_dirtyAst.size)return;
+  clearTimeout(pushTimer);
+  pushTimer=null;
+  navigator.sendBeacon(`${INO_BASE}/api/store`,JSON.stringify({key:"astreintes",value:registry}));
+}
+window.addEventListener("beforeunload",_astFlushNow);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")_astFlushNow(); });
 </script>
 </body>
 </html>
