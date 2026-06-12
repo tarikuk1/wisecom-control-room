@@ -886,16 +886,36 @@ const server=http.createServer(async(req,res)=>{
                   break;
                 }
                 const r=rf.body;
-                if(r&&(r.flowSkills||r.profileSkills)){
-                  const flow=r.flowSkills||[];
-                  results[agentId]={
-                    skills:flow.filter(s=>s.status===1).map(s=>({id:s.id,name:s.name,score:s.score||100,active:true})),
-                    allSkills:flow.map(s=>({id:s.id,name:s.name,score:s.score||100,active:s.status===1}))
+                // La forme de la réponse varie selon la version/endpoint INO :
+                // {flowSkills:[…]} / {profileSkills:[…]} / {skills:[…]} / {data:[…]} ou un tableau direct.
+                // On extrait le premier tableau de compétences trouvé.
+                let flow=null;
+                if(Array.isArray(r))flow=r;
+                else if(r&&typeof r==='object'){
+                  flow=Array.isArray(r.flowSkills)?r.flowSkills
+                      :Array.isArray(r.profileSkills)?r.profileSkills
+                      :Array.isArray(r.skills)?r.skills
+                      :Array.isArray(r.data)?r.data
+                      :Array.isArray(r.flow)?r.flow:null;
+                }
+                if(Array.isArray(flow)){
+                  // Statut actif : selon la version → status===1 / active / enabled. Si aucun indicateur
+                  // n'est présent, la compétence est considérée active (principe métier :
+                  // 1 agent = N compétences possibles, ne jamais masquer une couverture).
+                  const isOn=s=>{
+                    if(s==null)return false;
+                    if(typeof s.status!=='undefined')return s.status===1||s.status===true||s.status==='1';
+                    if(typeof s.active!=='undefined')return !!s.active;
+                    if(typeof s.enabled!=='undefined')return !!s.enabled;
+                    return true;
                   };
+                  const nameOf=s=>(s&&(s.name||s.skill||s.code||s.label))||'';
+                  const norm=flow.map(s=>({id:(s&&s.id)||null,name:nameOf(s),score:(s&&s.score)||100,active:isOn(s)})).filter(s=>s.name);
+                  results[agentId]={skills:norm.filter(s=>s.active),allSkills:norm};
                   return;
                 }
-                // Réponse inattendue mais pas d'erreur HTTP
-                results[agentId]={error:"Réponse INO vide ou inattendue (HTTP "+rf.status+")"};
+                // Réponse inattendue mais pas d'erreur HTTP — joindre les clés pour diagnostic
+                results[agentId]={error:("Réponse INO inattendue (HTTP "+rf.status+") clés="+(r&&typeof r==='object'?Object.keys(r).join(','):String(typeof r))).slice(0,80)};
                 return;
               }catch(e){
                 if(attempt<2){await new Promise(r=>setTimeout(r,3000*(attempt+1)));continue;}
