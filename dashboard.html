@@ -1294,6 +1294,7 @@ const COL_DEFS=[
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
 let slots=[],allQueues=[];
+let _skillsLoadedAt=null; // horodatage du dernier chargement réussi des compétences INO
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
 // Sélection campagnes partielle ? Comparer à l'UNIVERS réel (CAMPS connus + camps déduits
@@ -1894,10 +1895,13 @@ function buildAllDropdowns(){
     // Compétences INO pas encore chargées → état explicite, pas de liste globale trompeuse
     const wrap=document.getElementById("ck-skills");
     if(wrap){
+      const _lbl=_skillsLoadedAt
+        ?'<span style="color:#30d158;font-weight:600;font-size:10px">✓ Chargé le '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span><br><span style="color:var(--c-pink)">Cliquer pour recharger</span>'
+        :'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span>';
       wrap.innerHTML='<button type="button" onclick="refreshSkills&&refreshSkills()" '
         +'style="width:100%;background:var(--s-2);border:1px dashed var(--s-4);border-radius:8px;'
         +'padding:7px 10px;color:var(--t-disabled);font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
-        +'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span></button>';
+        +_lbl+'</button>';
     }
     selSkills=[]; window._prevScopedSkills=[];
   }else{
@@ -2226,6 +2230,7 @@ async function refreshSkills(){
         updated++;
       }
     });
+    _skillsLoadedAt=new Date();
     render();
     if(document.getElementById('skills-table'))renderSkills();
     clearInterval(_pt);if(_bar){_bar.style.width='100%';_bar.style.animation='none';}if(_lbl)_lbl.textContent='✓ '+updated+'/'+agentIds.length+' agents mis à jour';
@@ -2236,7 +2241,17 @@ async function refreshSkills(){
     setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);
     showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
+    if(btn){
+      btn.disabled=false;
+      if(_skillsLoadedAt&&skillsLoaded()){
+        const _t=_skillsLoadedAt;
+        const _hhmm=_t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const _ddmm=_t.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+        btn.innerHTML='↺ Compétences&nbsp;<span style="color:#30d158;font-weight:700;font-size:10px">✓ '+_ddmm+' '+_hhmm+'</span>';
+      }else{
+        btn.textContent='↺ Compétences';
+      }
+    }
   }
 }
 function getSorted(f){
@@ -2765,7 +2780,22 @@ function renderChart(){
     // Si aucun appel pour ce camp dans ce slot → garder le slot vide
     return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
   });
-  const displaySlots=filteredSlots;
+  // Supprimer les tranches vides en début/fin pour éviter une plage vide illisible.
+  // S'applique uniquement si des données existent (évite un graphe vide avec 2 slots fantômes).
+  let displaySlots=filteredSlots.slice();
+  const _totalSlotVol=displaySlots.reduce(function(s,x){return s+(x.vol||0)+(x.out||0);},0);
+  if(_totalSlotVol>0){
+    while(displaySlots.length>2){
+      const last=displaySlots[displaySlots.length-1];
+      if((last.vol||0)===0&&(last.out||0)===0&&(last.aband||0)===0)displaySlots.pop();
+      else break;
+    }
+    while(displaySlots.length>2){
+      const first=displaySlots[0];
+      if((first.vol||0)===0&&(first.out||0)===0&&(first.aband||0)===0)displaySlots.shift();
+      else break;
+    }
+  }
   // Filtre campagne actif : au niveau demi-horaire, seuls les ENTRANTS sont ventilables
   // par campagne (via les files). Sortants/abandons restent des totaux globaux non
   // attribuables par campagne → on ne les affiche pas en vue filtrée pour ne pas induire
@@ -3121,9 +3151,13 @@ function renderSkills(){
 
   if(!hasInoSkills){
     // État vide explicite : inviter à charger les compétences
+    const _skDateBadge=_skillsLoadedAt
+      ?'<div style="margin-bottom:10px"><span style="display:inline-block;background:#0d2b1a;border:1px solid #30d158;border-radius:20px;padding:4px 14px;font-size:11px;color:#30d158;font-weight:700">✓ Dernière MAJ : '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span></div>'
+      :'';
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
       +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">🧩</div>'
       +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Compétences non chargées</div>'
+      +_skDateBadge
       +'<div style="font-size:12px;color:#666;max-width:420px;margin:0 auto 18px;line-height:1.6">Les compétences INO ne sont pas récupérées automatiquement (pour garder le rafraîchissement rapide). Cliquez sur le bouton ci-dessous pour charger les compétences réelles de chaque agent depuis INO.</div>'
       +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">Charger depuis INO</button>'
       +'</td></tr>';
@@ -3425,8 +3459,10 @@ function renderStaffingBanner(){
     if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
     if((Array.isArray(a.skills)&&a.skills.length>0)||(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0))campMap[c].hasSkills=true;
   });
-  // 2e passe : agents mutualisés — exécutée par-agent (sans gate skillsLoaded global)
-  f.forEach(a=>{
+  // 2e passe : agents mutualisés — utiliser TOUS les agents (pas seulement le filtre actif)
+  // pour détecter les agents d'autres campagnes qui couvrent en compétence secondaire
+  const _allForMut=agents.length>0?agents:f;
+  _allForMut.forEach(a=>{
     // Fusionner allSkillsData (source fiable) + skills (cache) en une liste de noms
     const allSk=[];
     if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
@@ -4707,7 +4743,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   var _recapSpan=COLS-3-(campRecap.length*2);
   h+='<td colspan="'+Math.max(1,_recapSpan)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
-  return h+waCampSynthesis(window._lastAllAgents||sorted);
+  return h+waCampSynthesis(agents.filter(function(a){return a.id;})||window._lastAllAgents||sorted);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -5126,7 +5162,18 @@ function renderWA(){
       return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
     });
   }
+  // Principe 1 agent = plusieurs compétences : inclure les agents d'autres campagnes
+  // qui couvrent une des campagnes sélectionnées via leurs compétences secondaires.
+  // Cela permet au superviseur de voir en un coup d'œil les ressources réellement disponibles.
   var _campScopeActive=campSelPartial();
+  if(_campScopeActive&&skillsLoaded()){
+    var _scopeIds=new Set(scope.map(function(a){return a.id;}));
+    var _secondary=agents.filter(function(a){
+      if(_scopeIds.has(a.id))return false; // déjà présent
+      return selCamps.some(function(c){return waAgentCovers(a,c);});
+    });
+    if(_secondary.length>0)scope=scope.concat(_secondary);
+  }
   var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
   if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
   if(scope.length===0){
