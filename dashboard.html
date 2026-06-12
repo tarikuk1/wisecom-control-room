@@ -4412,7 +4412,20 @@ function waCallColumns(sorted){
     return out;
   }
   // Mode "Toutes campagnes" → liste manuelle waActiveCalls (définie par le superviseur via ⚙)
-  return waActiveCalls.length>0?waActiveCalls:WA_SKILLS_CALLS.slice();
+  // + campagnes avec flux réel non encore listées (ex: MNZ ajouté par _fluxCamps mais absent de waActiveCalls)
+  var base=(waActiveCalls.length>0?waActiveCalls:WA_SKILLS_CALLS.slice()).slice();
+  var fx=window._fluxCamps;
+  if(fx){
+    var baseSet=new Set(base);
+    Object.keys(fx).forEach(function(c){
+      if(c==='Autre')return;
+      var col=rev[c]||c; // nom long → alias court (ex: Monetize → MNZ)
+      if(baseSet.has(col))return;
+      var f=fx[c]||{};
+      if((f.presentes||0)+(f.decroches||0)+(f.sortants||0)>0){base.push(col);baseSet.add(col);}
+    });
+  }
+  return base;
 }
 
 // Vrai si l'agent est affecté/compétent sur la campagne c (nom réel CAMPS ou colonne WA courte).
