@@ -886,6 +886,10 @@ const server=http.createServer(async(req,res)=>{
                   break;
                 }
                 const r=rf.body;
+                // Log diagnostic (premier agent uniquement) pour repérer la forme de réponse INO
+                if(i===0&&batch[0]===agentId){
+                  console.log('[SKILLS-DBG] agent='+agentId+' HTTP='+rf.status+' type='+(Array.isArray(r)?'array':typeof r)+' keys='+(r&&typeof r==='object'?Object.keys(r).join(','):'n/a')+' sample='+JSON.stringify(r).slice(0,200));
+                }
                 // La forme de la réponse varie selon la version/endpoint INO :
                 // {flowSkills:[…]} / {profileSkills:[…]} / {skills:[…]} / {data:[…]} ou un tableau direct.
                 // On extrait le premier tableau de compétences trouvé.
@@ -1074,6 +1078,20 @@ const server=http.createServer(async(req,res)=>{
         res.end(JSON.stringify({ok:true}));
       }catch(e){res.writeHead(400,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"JSON invalide"}));}
     });
+    return;
+  }
+  // Endpoint diagnostic : réponse INO brute pour un agent (accessible à toute session valide)
+  if(url.startsWith("/api/skills-debug/")){
+    const _agId=url.replace("/api/skills-debug/","").split("?")[0];
+    if(!_agId){res.writeHead(400);res.end(JSON.stringify({error:"agentId manquant"}));return;}
+    try{
+      const token=await getToken();
+      if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token indisponible"}));return;}
+      const _ep="/cc/agent/"+_agId+"/flow/voice/skills/list";
+      const rf=await apiReqFull("POST",_ep,{},token);
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({ok:true,agentId:_agId,endpoint:_ep,httpStatus:rf.status,raw:rf.body}));
+    }catch(e){res.writeHead(500);res.end(JSON.stringify({error:e.message}));}
     return;
   }
   // [SÉCURITÉ] Routes admin : exiger le rôle admin (pas seulement une session valide)

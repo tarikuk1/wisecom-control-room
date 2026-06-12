@@ -2279,7 +2279,11 @@ async function refreshSkills(){
     if(updated>0){
       showToast('✓ Compétences chargées ('+updated+'/'+agentIds.length+' agents)'+(usedFallback?' — via /agent/list':''),'ok',5000);
     }else{
-      showToast('INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'. Le compte de service n\'a probablement pas les droits /cc/*.'),'error',8000);
+      // Afficher un diagnostic interactif : permet d'inspecter la réponse brute INO pour un agent
+      const _diagId=agentIds[0]||'';
+      const _diagMsg='INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'.')+
+        (_diagId?' <a href="/api/skills-debug/'+_diagId+'" target="_blank" style="color:#ff9f0a;text-decoration:underline;">Inspecter la réponse INO ↗</a>':'');
+      showToast(_diagMsg,'error',12000);
     }
   }catch(e){
     clearInterval(_pt);if(_bar){_bar.style.width='0';_bar.style.animation='none';}if(_lbl)_lbl.textContent='Erreur — réessayez';
@@ -4312,10 +4316,7 @@ function waCampQueues(){
 
 // Colonnes "Affectations appels" : quand un filtre campagnes est actif, les colonnes SUIVENT
 // la sélection (cohérence stricte campagnes choisies ↔ colonnes affichées). Sinon, la liste
-// WhatsApp par défaut (waActiveCalls). Les noms de campagnes longs avec alias court (Nature &
-// Découvertes → ND) sont affichés en court pour rester compacts et garder leur couleur.
-// Colonnes "Affectations appels" — dérivées des données réelles (flux + camps agents),
-// même source que Alertes staffing et Stat TC. En mode filtre actif, suit la sélection.
+// manuelle waActiveCalls (personnalisable via ⚙ Personnaliser les colonnes).
 function waCallColumns(sorted){
   var rev={};
   Object.keys(WA_CAMP_ALIAS||{}).forEach(function(w){rev[WA_CAMP_ALIAS[w]]=w;});
@@ -4328,20 +4329,8 @@ function waCallColumns(sorted){
     });
     return out;
   }
-  // Mode "Toutes campagnes" → colonnes dérivées des données temps réel
-  // Même union que waCampSynthesis : flux INO + camps des agents visibles
-  var campSet={};
-  var fx=window._fluxCamps||null;
-  if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
-  if(Array.isArray(sorted)){
-    sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
-  }
-  var seen={},out=[];
-  Object.keys(campSet).sort().forEach(function(c){
-    var col=rev[c]||c;
-    if(!seen[col]){seen[col]=1;out.push(col);}
-  });
-  return out.length>0?out:waActiveCalls;
+  // Mode "Toutes campagnes" → liste manuelle waActiveCalls (définie par le superviseur via ⚙)
+  return waActiveCalls.length>0?waActiveCalls:WA_SKILLS_CALLS.slice();
 }
 
 // Vrai si l'agent est affecté/compétent sur la campagne c (nom réel CAMPS ou colonne WA courte).
@@ -5011,11 +5000,14 @@ function waBuildConfig(){
   var avM=all.filter(function(c){return!waActiveMails.includes(c);});
   function tags(arr,t){return arr.map(function(c){var bg=WA_CAMP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333">'+c+'<button onclick="waRemoveCamp(\''+c.replace(/'/g,"\\'")+'\',\''+t+'\')">×</button></span>';}).join('');}
   function sel(av,t){if(!av.length)return'';return'<select class="wa-cfg-sel" onchange="if(this.value){waAddCamp(this.value,\''+t+'\');this.value=\'\';}">'+'<option value="">+ Ajouter…</option>'+av.map(function(c){return'<option value="'+c+'">'+c+'</option>';}).join('')+'</select>';}
-  // Colonnes appels actuellement dérivées des données en temps réel
-  var _dynCols=waCallColumns(window._lastWaSorted||[]);
+  // Note : quand un filtre campagnes est actif, les colonnes appels suivent automatiquement
+  // la sélection — la personnalisation manuelle s'applique en mode "Toutes campagnes".
+  var _filterActive=typeof campSelPartial==='function'&&campSelPartial();
   panel.innerHTML='<div class="wa-cfg-hdr">⚙ Personnaliser les colonnes<button onclick="waResetCols()">↺ Réinitialiser</button></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels</div><div class="wa-cfg-tags">'+
-      (_dynCols.length?_dynCols.map(function(c){var bg=WA_CAMP_COLORS[c]||WA_GROUP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333;opacity:.75;cursor:default;">'+c+'</span>';}).join(''):'')+'<span style="font-size:9px;color:#888;padding:3px 6px;display:inline-block;">Auto-détectées depuis les flux &amp; camps actifs. Appliquez un filtre campagnes pour personnaliser.</span></div></div>'+
+      (_filterActive
+        ?'<span style="font-size:9px;color:#888;padding:3px 6px;display:inline-block;">Colonnes auto : filtre campagnes actif ('+selCamps.length+' camp.). Retirez le filtre pour personnaliser.</span>'
+        :tags(waActiveCalls,'calls')+sel(avC,'calls'))+'</div></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
 }
 var _waEditAgent=null;
