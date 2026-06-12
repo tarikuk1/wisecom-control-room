@@ -1294,6 +1294,7 @@ const COL_DEFS=[
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
 let slots=[],allQueues=[];
+let _skillsLoadedAt=null; // horodatage du dernier chargement réussi des compétences INO
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
 // Sélection campagnes partielle ? Comparer à l'UNIVERS réel (CAMPS connus + camps déduits
@@ -1894,10 +1895,13 @@ function buildAllDropdowns(){
     // Compétences INO pas encore chargées → état explicite, pas de liste globale trompeuse
     const wrap=document.getElementById("ck-skills");
     if(wrap){
+      const _lbl=_skillsLoadedAt
+        ?'<span style="color:#30d158;font-weight:600;font-size:10px">✓ Chargé le '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span><br><span style="color:var(--c-pink)">Cliquer pour recharger</span>'
+        :'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span>';
       wrap.innerHTML='<button type="button" onclick="refreshSkills&&refreshSkills()" '
         +'style="width:100%;background:var(--s-2);border:1px dashed var(--s-4);border-radius:8px;'
         +'padding:7px 10px;color:var(--t-disabled);font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
-        +'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span></button>';
+        +_lbl+'</button>';
     }
     selSkills=[]; window._prevScopedSkills=[];
   }else{
@@ -2226,6 +2230,7 @@ async function refreshSkills(){
         updated++;
       }
     });
+    _skillsLoadedAt=new Date();
     render();
     if(document.getElementById('skills-table'))renderSkills();
     clearInterval(_pt);if(_bar){_bar.style.width='100%';_bar.style.animation='none';}if(_lbl)_lbl.textContent='✓ '+updated+'/'+agentIds.length+' agents mis à jour';
@@ -2236,7 +2241,17 @@ async function refreshSkills(){
     setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);
     showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
+    if(btn){
+      btn.disabled=false;
+      if(_skillsLoadedAt&&skillsLoaded()){
+        const _t=_skillsLoadedAt;
+        const _hhmm=_t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const _ddmm=_t.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+        btn.innerHTML='↺ Compétences&nbsp;<span style="color:#30d158;font-weight:700;font-size:10px">✓ '+_ddmm+' '+_hhmm+'</span>';
+      }else{
+        btn.textContent='↺ Compétences';
+      }
+    }
   }
 }
 function getSorted(f){
@@ -2765,7 +2780,22 @@ function renderChart(){
     // Si aucun appel pour ce camp dans ce slot → garder le slot vide
     return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
   });
-  const displaySlots=filteredSlots;
+  // Supprimer les tranches vides en début/fin pour éviter une plage vide illisible.
+  // S'applique uniquement si des données existent (évite un graphe vide avec 2 slots fantômes).
+  let displaySlots=filteredSlots.slice();
+  const _totalSlotVol=displaySlots.reduce(function(s,x){return s+(x.vol||0)+(x.out||0);},0);
+  if(_totalSlotVol>0){
+    while(displaySlots.length>2){
+      const last=displaySlots[displaySlots.length-1];
+      if((last.vol||0)===0&&(last.out||0)===0&&(last.aband||0)===0)displaySlots.pop();
+      else break;
+    }
+    while(displaySlots.length>2){
+      const first=displaySlots[0];
+      if((first.vol||0)===0&&(first.out||0)===0&&(first.aband||0)===0)displaySlots.shift();
+      else break;
+    }
+  }
   // Filtre campagne actif : au niveau demi-horaire, seuls les ENTRANTS sont ventilables
   // par campagne (via les files). Sortants/abandons restent des totaux globaux non
   // attribuables par campagne → on ne les affiche pas en vue filtrée pour ne pas induire
@@ -3121,9 +3151,13 @@ function renderSkills(){
 
   if(!hasInoSkills){
     // État vide explicite : inviter à charger les compétences
+    const _skDateBadge=_skillsLoadedAt
+      ?'<div style="margin-bottom:10px"><span style="display:inline-block;background:#0d2b1a;border:1px solid #30d158;border-radius:20px;padding:4px 14px;font-size:11px;color:#30d158;font-weight:700">✓ Dernière MAJ : '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span></div>'
+      :'';
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
       +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">🧩</div>'
       +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Compétences non chargées</div>'
+      +_skDateBadge
       +'<div style="font-size:12px;color:#666;max-width:420px;margin:0 auto 18px;line-height:1.6">Les compétences INO ne sont pas récupérées automatiquement (pour garder le rafraîchissement rapide). Cliquez sur le bouton ci-dessous pour charger les compétences réelles de chaque agent depuis INO.</div>'
       +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">Charger depuis INO</button>'
       +'</td></tr>';
@@ -3413,43 +3447,26 @@ function renderStaffingBanner(){
   if(!el)return;
   const f=getFiltered();
   if(!f.length){el.innerHTML='';return;}
-  // Construire staffing par camp : compter agents actifs et agents totaux
+  // STAFFING = COUVERTURE COMPÉTENCE (principe 1 agent = N compétences).
+  // On compte, pour CHAQUE campagne, tous les agents COMPÉTENTS (waAgentCovers —
+  // la même fonction que le tableau des compétences / Affectation WhatsApp), pas
+  // seulement ceux dont c'est le camp principal. Source : tout le plateau (agents[]),
+  // pour refléter les ressources réellement disponibles quel que soit le filtre.
+  const _allAg=(agents&&agents.length>0)?agents.filter(a=>a.id):f;
   const campMap={};
-  // Init toutes les campagnes configurées (même celles sans agent connecté)
-  CAMPS.forEach(c=>{if(c)campMap[c]={total:0,actifs:0,hasSkills:false,mutTotal:0,mutActifs:0};});
-  f.forEach(a=>{
-    const c=a.camp||'–';
-    if(c==='–')return;
-    if(!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false,mutTotal:0,mutActifs:0};
-    campMap[c].total++;
-    if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
-    if((Array.isArray(a.skills)&&a.skills.length>0)||(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0))campMap[c].hasSkills=true;
-  });
-  // 2e passe : agents mutualisés — exécutée par-agent (sans gate skillsLoaded global)
-  f.forEach(a=>{
-    // Fusionner allSkillsData (source fiable) + skills (cache) en une liste de noms
-    const allSk=[];
-    if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
-      a.allSkillsData.forEach(s=>{if(s.active!==false)allSk.push(String(s.name||s));});
-    }
-    if(Array.isArray(a.skills)&&a.skills.length>0){
-      a.skills.forEach(s=>{const n=String(s.name||s);if(allSk.indexOf(n)<0)allSk.push(n);});
-    }
-    if(allSk.length===0)return; // cet agent n'a aucune compétence chargée → skip
-    const primaryCamp=a.camp||'–';
-    const isActive=a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel';
-    CAMPS.forEach(camp=>{
-      if(camp===primaryCamp)return; // déjà compté via camp principal
-      if(!campMap[camp])return;
-      const campNorm=camp.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
-      const matches=allSk.some(sk=>{
-        const skn=String(sk).toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[-_ &]/g,'');
-        return skn===campNorm||skn.includes(campNorm)||campNorm.includes(skn);
-      });
-      if(matches){
-        campMap[camp].mutTotal++;
-        if(isActive)campMap[camp].mutActifs++;
-      }
+  // Init toutes les campagnes configurées + camps actifs issus du flux INO
+  CAMPS.forEach(c=>{if(c)campMap[c]={total:0,actifs:0,hasSkills:false};});
+  const _fxBan=window._fluxCamps||null;
+  if(_fxBan)Object.keys(_fxBan).forEach(c=>{if(c&&c!=='Autre'&&!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false};});
+  const _isActive=a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel';
+  _allAg.forEach(a=>{
+    const act=_isActive(a);
+    const hasSk=(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0)||(Array.isArray(a.skills)&&a.skills.length>0);
+    Object.keys(campMap).forEach(camp=>{
+      if(!waAgentCovers(a,camp))return;
+      campMap[camp].total++;
+      if(act)campMap[camp].actifs++;
+      if(hasSk)campMap[camp].hasSkills=true;
     });
   });
   // Horaires SVI depuis critères
@@ -3480,20 +3497,18 @@ function renderStaffingBanner(){
   camps.forEach(camp=>{
     const d=campMap[camp];
     const open=isCampOpen(camp);
-    const hasMut=d.mutTotal>0;
-    // Alerte rouge : service ouvert, 0 agent actif (primaire), ET 0 agent mutualisé actif
-    const alertZero=open&&d.actifs===0&&(!hasMut||d.mutActifs===0);
-    // Couverture mutualisée uniquement (0 primaire mais des mutualisés actifs) = avertissement orange atténué
-    const onlyMut=open&&d.actifs===0&&hasMut&&d.mutActifs>0;
-    // Alerte compétences : service ouvert ET aucune compétence connue ET pas de mutualisé
-    const alertSkills=open&&!d.hasSkills&&!hasMut&&inoLive;
-    const bg=alertZero?'rgba(255,59,48,.12)':(onlyMut?'rgba(255,159,10,.06)':(alertSkills?'rgba(255,159,10,.08)':'var(--s-2)'));
-    const border=alertZero?'1px solid rgba(255,59,48,.4)':(onlyMut?'1px solid rgba(255,159,10,.25)':(alertSkills?'1px solid rgba(255,159,10,.3)':'1px solid var(--s-4)'));
-    const countColor=alertZero?'#ff3b30':(d.actifs>0?'#30d158':(onlyMut?'#ff9f0a':'var(--t-secondary)'));
-    const displayCount=d.actifs>0?d.actifs:(onlyMut?d.mutActifs:d.actifs);
-    const badge=alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent actif">⚠ ALERTE</span>':
-      (onlyMut?`<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Agents mutualisés disponibles : ${d.mutActifs}/${d.mutTotal}">↔ mut.</span>`:'')
-      +(alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Compétences non chargées">ⓘ</span>':'');
+    // Staffing = couverture compétence : d.actifs = agents COMPÉTENTS actuellement actifs,
+    // d.total = agents COMPÉTENTS sur la campagne (mutualisation incluse).
+    // Alerte rouge : service ouvert ET aucun agent compétent actif.
+    const alertZero=open&&d.actifs===0;
+    // Alerte compétences : service ouvert, aucun agent compétent connu (pool de couverture vide)
+    const alertSkills=open&&d.total===0&&inoLive;
+    const bg=alertZero?'rgba(255,59,48,.12)':(alertSkills?'rgba(255,159,10,.08)':'var(--s-2)');
+    const border=alertZero?'1px solid rgba(255,59,48,.4)':(alertSkills?'1px solid rgba(255,159,10,.3)':'1px solid var(--s-4)');
+    const countColor=alertZero?'#ff3b30':(d.actifs>0?'#30d158':'var(--t-secondary)');
+    const displayCount=d.actifs;
+    const badge=(alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent compétent actif">⚠ ALERTE</span>':'')
+      +(alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Aucun agent compétent identifié — chargez les compétences INO">ⓘ</span>':'');
     // Badge 🌙 astreinte — affiché seulement si activé pour cette campagne dans Critères & KPI
     // ET que le registre d'astreinte la suit effectivement (donnée partagée, lecture seule)
     const ast=astreinteStatus(camp);
@@ -3505,20 +3520,21 @@ function renderStaffingBanner(){
     const gsmBadge=gsm
       ?`<span style="color:#30d158;font-size:9px;margin-left:1px;background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.3);border-radius:4px;padding:1px 4px;" title="Transfert GSM actif depuis ${gsm.start} — ${gsm.name}${gsm.end?' → '+gsm.end:''}">📱✓ ${gsm.start}</span>`
       :'';
-    const titleMut=hasMut?` · ${d.mutTotal} agent(s) mutualisé(s) disponible(s) (${d.mutActifs} actifs)`:'';
     const titleGsm=gsm?` · 📱 GSM actif : ${gsm.name} depuis ${gsm.start}`:'';
     html+=`<div style="background:${bg};border:${border};border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default"
-      title="${camp} — ${d.actifs} actifs / ${d.total} agents${titleMut}${titleGsm}${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
+      title="${camp} — ${d.actifs} agent(s) compétent(s) actif(s) / ${d.total} compétent(s) au total (mutualisation incluse)${titleGsm}${alertZero?' — ⚠ Service ouvert, 0 agent compétent actif !':''}${alertSkills?' — Aucun agent compétent identifié (compétences INO non chargées)':''}">
       <span style="font-size:10px;color:var(--t-secondary)">${camp}</span>
       <span style="font-size:11px;font-weight:700;color:${countColor}">${displayCount}</span>
-      <span style="font-size:9px;color:var(--t-disabled)">/${d.total}${hasMut?'+'+d.mutTotal:''}</span>
+      <span style="font-size:9px;color:var(--t-disabled)">/${d.total}</span>
       ${badge}${astBadge}${gsmBadge}
     </div>`;
   });
-  // Total global
-  const totActifs=camps.reduce((s,c)=>s+(campMap[c]?.actifs||0),0);
-  const totAll=camps.reduce((s,c)=>s+(campMap[c]?.total||0),0);
-  html+=`<div style="background:var(--s-3);border:1px solid var(--s-4);border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:4px">
+  // Total global = effectif RÉEL du plateau (agents distincts), pas la somme des
+  // couvertures par campagne (un agent mutualisé compte dans plusieurs campagnes).
+  const totAll=_allAg.length;
+  const totActifs=_allAg.filter(_isActive).length;
+  html+=`<div style="background:var(--s-3);border:1px solid var(--s-4);border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:4px"
+    title="Effectif réel du plateau (agents distincts). Les compteurs par campagne incluent la mutualisation : un agent compétent sur N campagnes y est compté N fois.">
     <span style="font-size:10px;color:var(--t-muted)">TOTAL</span>
     <span style="font-size:11px;font-weight:700;color:${P}">${totActifs}</span>
     <span style="font-size:9px;color:var(--t-disabled)">/${totAll} agents</span>
@@ -4707,7 +4723,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   var _recapSpan=COLS-3-(campRecap.length*2);
   h+='<td colspan="'+Math.max(1,_recapSpan)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
-  return h+waCampSynthesis(window._lastAllAgents||sorted);
+  return h+waCampSynthesis(agents.filter(function(a){return a.id;})||window._lastAllAgents||sorted);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4715,7 +4731,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 //  Format fidèle image : date | CumulMulti/Vivest/Filippi | campagnes
 // ══════════════════════════════════════════════════════════════════
 function buildStatTCTable(sorted,dateStr,timeStr){
-  // Grouper par campagne
+  // Grouper par campagne (camp principal de l'agent)
   var campData={};
   sorted.forEach(function(a){
     var camp=a.camp||"–";
@@ -4730,9 +4746,42 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     var _mk=a.login||a.id;campData[camp].mails +=((statTCEdits[_mk]&&statTCEdits[_mk].mails!=null)?statTCEdits[_mk].mails:(mailsEdit[a.id]||a.mails_auto||0));
   });
 
-  // Campagnes triées par nb agents desc
+  // DMC représentative d'une campagne = moyenne pondérée du temps de communication
+  // des agents COMPÉTENTS (waAgentCovers) ayant réellement décroché — y compris les
+  // agents mutualisés dont le camp principal est ailleurs. Évite un DMC vide alors
+  // qu'il y a eu de la production sur la file.
+  function _covDmc(camp){
+    var dw=0,di=0;
+    sorted.forEach(function(a){
+      if((a.decroches||0)>0&&waAgentCovers(a,camp)){dw+=(a.dmc||0)*(a.decroches||0);di+=(a.decroches||0);}
+    });
+    return di>0?Math.round(dw/di):0;
+  }
+
+  // ── Ajouter les campagnes ACTIVES absentes du tableau ──
+  // Une campagne peut avoir du flux réel (présentés/décrochés/sortants) sans qu'aucun
+  // agent ne l'ait en camp principal (appels pris par des agents mutualisés rattachés
+  // à une autre campagne). Sans cet ajout, ces campagnes actives disparaissaient.
+  var _fxStc=window._fluxCamps||null;
+  if(_fxStc){
+    Object.keys(_fxStc).forEach(function(c){
+      if(c==='Autre'||campData[c])return;
+      if(campSelPartial()&&Array.isArray(selCamps)&&!selCamps.includes(c))return;
+      var f=_fxStc[c]||{};
+      var vol=(f.presentes||0)+(f.decroches||0)+(f.sortants||0);
+      if(vol<=0)return; // seulement les campagnes réellement actives
+      campData[c]={agents:[],appIn:(f.decroches||0),appOut:(f.sortants||0),durW:0,hp:0,mails:0,fluxOnly:true,presentes:(f.presentes||0)};
+    });
+  }
+  // Mémoriser le nom de campagne sur chaque groupe (utilisé par le calcul DMC)
+  Object.keys(campData).forEach(function(c){campData[c].name=c;});
+
+  // Campagnes triées : staffées (avec agents) d'abord par nb agents desc, puis
+  // les campagnes flux-only (mutualisées) par volume de décrochés desc.
   var camps=Object.keys(campData).sort(function(a,b){
-    return campData[b].agents.length-campData[a].agents.length;
+    var na=campData[a].agents.length, nb=campData[b].agents.length;
+    if(na!==nb)return nb-na;
+    return (campData[b].appIn||0)-(campData[a].appIn||0);
   });
 
   var T=sorted;
@@ -4755,7 +4804,8 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;">';
 
   // ── Titre ──
-  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+'</td></tr>';
+  var _nbFluxOnly=camps.filter(function(c){return campData[c].fluxOnly;}).length;
+  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+(_nbFluxOnly>0?' <span style="font-weight:400;color:#888;font-size:10px;">· '+_nbFluxOnly+' campagne(s) ◆ couverte(s) en mutualisation (flux réel, agents rattachés ailleurs)</span>':'')+'</td></tr>';
 
   // ── Header ligne 1 : KPI col + cumulatifs + groupes campagne ──
   h+='<tr>';
@@ -4764,8 +4814,8 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   camps.forEach(function(camp){
     var n=campData[camp].agents.length;
     var bg=WA_GROUP_COLORS[camp]||"#E0E0E0";
-    // Titre groupe = camp (+ 1 col cumul)
-    h+=waTh(camp,bg,"#222",n+1);
+    // Titre groupe = camp (+ 1 col cumul). ◆ = campagne flux-only (mutualisée, sans TC en camp principal)
+    h+=waTh(camp+(campData[camp].fluxOnly?' <span title="Flux réel couvert par des agents mutualisés (camp principal ailleurs)" style="color:#B07800;">◆</span>':''),bg,"#222",n+1);
   });
   h+='</tr>';
 
@@ -4805,7 +4855,14 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       vFn:function(){return vAppIn>0?mmss2(Math.round(vDurW/vAppIn)):"–";},
       fFn:function(){return fAppIn>0?mmss2(Math.round(fDurW/fAppIn)):"–";},
       aFn:function(a){return a.dmc?mmss2(a.dmc):"–";},
-      cFn:function(cd){return cd.appIn>0?mmss2(Math.round(cd.durW/cd.appIn)):"–";}
+      cFn:function(cd){
+        // Camps staffés : DMC pondérée des agents en camp principal ayant décroché.
+        if(!cd.fluxOnly&&cd.appIn>0&&cd.durW>0)return mmss2(Math.round(cd.durW/cd.appIn));
+        // Camp flux-only OU agents principaux sans entrant : DMC des agents COMPÉTENTS
+        // (mutualisés inclus) qui ont décroché sur la file → cohérent avec la production.
+        var d=_covDmc(cd.name);
+        return d>0?mmss2(d):"–";
+      }
     },{
       lbl:"Appels Sortants",bg:"#EBF3FF",col:"#1F4E79",
       tot:function(){return tAppOut;},
@@ -5126,7 +5183,18 @@ function renderWA(){
       return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
     });
   }
+  // Principe 1 agent = plusieurs compétences : inclure les agents d'autres campagnes
+  // qui couvrent une des campagnes sélectionnées via leurs compétences secondaires.
+  // Cela permet au superviseur de voir en un coup d'œil les ressources réellement disponibles.
   var _campScopeActive=campSelPartial();
+  if(_campScopeActive&&skillsLoaded()){
+    var _scopeIds=new Set(scope.map(function(a){return a.id;}));
+    var _secondary=agents.filter(function(a){
+      if(_scopeIds.has(a.id))return false; // déjà présent
+      return selCamps.some(function(c){return waAgentCovers(a,c);});
+    });
+    if(_secondary.length>0)scope=scope.concat(_secondary);
+  }
   var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
   if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
   if(scope.length===0){
