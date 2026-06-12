@@ -4960,11 +4960,19 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   var KPIS=[
     {
       lbl:"Appels Traités",bg:"#FFF2CC",col:"#000",
-      tot:function(){return tAppIn;},
+      tot:function(){
+        var fx=window._fluxCamps;
+        if(fx){var t=0;camps.forEach(function(c){t+=fx[c]?(fx[c].decroches||0):(campData[c].appIn||0);});return t;}
+        return tAppIn;
+      },
       vFn:function(){return vAppIn;},
       fFn:function(){return fAppIn;},
       aFn:function(a){return a.decroches||0;},
-      cFn:function(cd){return cd.appIn;}
+      cFn:function(cd){
+        var fx=window._fluxCamps;
+        if(fx&&fx[cd.name]&&(fx[cd.name].decroches||0)>0)return fx[cd.name].decroches;
+        return cd.appIn;
+      }
     },{
       lbl:"DMC",bg:"#FFE0E0",col:"#CC0000",
       tot:function(){return tAppIn>0?mmss2(Math.round(tDurW/tAppIn)):"–";},
