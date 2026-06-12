@@ -1617,9 +1617,17 @@ async function loadAgentsFromAPI(){
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
         // Compétences: vides au chargement initial, remplies via bouton ↺ Compétences
         // (évite ~15s de délai au rafraîchir principal)
+        // Compétences : on privilégie un enrichissement /cc/* déjà chargé (_oldSk, état actif/inactif fin),
+        // sinon les compétences déclarées remontées par le payload (/agent/list). Le serveur envoie
+        // `skills` (noms) et `allSkills` (objets {name,active}). On accepte aussi les anciens noms
+        // `skillsData`/`allSkillsData` par sécurité.
+        const _pSkillNames=Array.isArray(a.skills)?a.skills.map(s=>s&&s.name||s).filter(Boolean)
+          :(Array.isArray(a.skillsData)?a.skillsData.map(s=>s&&s.name||s).filter(Boolean):[]);
+        const _pAllSkills=Array.isArray(a.allSkills)&&a.allSkills.length>0?a.allSkills
+          :(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0?a.allSkillsData:[]);
         return{id:a.id,nom:a.nom,login:a.username,camp,
-          skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:(Array.isArray(a.skillsData)&&a.skillsData.length>0?a.skillsData.map(s=>s.name||s):[]),
-          allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:(Array.isArray(a.allSkillsData)?a.allSkillsData:[]),
+          skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:_pSkillNames,
+          allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:_pAllSkills,
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
@@ -1649,6 +1657,9 @@ async function loadAgentsFromAPI(){
       // Garder tous les CAMPS connus + les camps réels non référencés
       selCamps=[...new Set([...CAMPS,...realCamps])];
       selStatus=[...STATUSES];
+      // Compétences désormais livrées automatiquement avec le payload (/agent/list) : horodater
+      // le premier chargement réussi pour la pastille verte, sans écraser un chargement /cc/* manuel.
+      if(!_skillsLoadedAt&&skillsLoaded())_skillsLoadedAt=new Date();
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
       render();
@@ -2219,23 +2230,57 @@ async function refreshSkills(){
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const data=await resp.json();
     if(!data.ok)throw new Error(data.error||'Erreur serveur. Réessayez dans quelques instants.');
-    // Mettre à jour les agents avec les compétences reçues
-    let updated=0;
+    // Mettre à jour les agents avec les compétences reçues (source détaillée /cc/*)
+    let updated=0,firstErr='';
     agents.forEach(a=>{
       const sk=data.results[a.id];
-      if(sk&&!sk.error){
+      if(sk&&!sk.error&&Array.isArray(sk.allSkills)&&sk.allSkills.length>0){
         a.skills=sk.skills.map(s=>s.name);
         a.allSkillsData=sk.allSkills;
         a.skillsData=sk.skills;
         updated++;
-      }
+      }else if(sk&&sk.error&&!firstErr){firstErr=String(sk.error);}
     });
-    _skillsLoadedAt=new Date();
+    // FALLBACK : si /cc/* n'a rien remonté (droits INO insuffisants sur le compte de service),
+    // on bascule sur les compétences déclarées dans /agent/list (endpoint /api/skills),
+    // qui ne nécessite pas les droits /cc/*. Source moins fine (pas d'état actif/inactif)
+    // mais suffisante pour la couverture par campagne (waAgentCovers travaille sur les noms).
+    let usedFallback=false;
+    if(updated===0){
+      if(_lbl)_lbl.textContent='Compétences détaillées indisponibles — repli sur /agent/list…';
+      try{
+        const fr=await fetch('/api/skills');
+        const fd=await fr.json();
+        if(fd&&fd.ok&&fd.agents){
+          // Indexer par id ET par nom normalisé (l'id INO peut différer entre endpoints)
+          const byId=fd.agents;
+          const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+          const byName={};Object.values(byId).forEach(v=>{if(v&&v.nom)byName[norm(v.nom)]=v;});
+          agents.forEach(a=>{
+            const rec=byId[a.id]||byName[norm(a.nom)];
+            const names=rec&&Array.isArray(rec.skills)?rec.skills.filter(Boolean):[];
+            if(names.length>0){
+              a.skills=names.slice();
+              a.allSkillsData=names.map(n=>({id:null,name:n,score:100,active:true}));
+              a.skillsData=a.allSkillsData.slice();
+              updated++;
+            }
+          });
+          if(updated>0)usedFallback=true;
+        }
+      }catch(_e){/* fallback best-effort */}
+    }
+    if(updated>0)_skillsLoadedAt=new Date();
     render();
     if(document.getElementById('skills-table'))renderSkills();
-    clearInterval(_pt);if(_bar){_bar.style.width='100%';_bar.style.animation='none';}if(_lbl)_lbl.textContent='✓ '+updated+'/'+agentIds.length+' agents mis à jour';
-    setTimeout(()=>{if(_prog)_prog.style.display='none';},2500);
-    showToast('✓ Compétences mises à jour ('+updated+'/'+agentIds.length+' agents)','ok',5000);
+    clearInterval(_pt);if(_bar){_bar.style.width=updated>0?'100%':'0';_bar.style.animation='none';}
+    if(_lbl)_lbl.textContent=updated>0?('✓ '+updated+'/'+agentIds.length+' agents'+(usedFallback?' (source /agent/list)':'')):'Aucune compétence remontée par INO';
+    setTimeout(()=>{if(_prog)_prog.style.display='none';},updated>0?2500:4000);
+    if(updated>0){
+      showToast('✓ Compétences chargées ('+updated+'/'+agentIds.length+' agents)'+(usedFallback?' — via /agent/list':''),'ok',5000);
+    }else{
+      showToast('INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'. Le compte de service n\'a probablement pas les droits /cc/*.'),'error',8000);
+    }
   }catch(e){
     clearInterval(_pt);if(_bar){_bar.style.width='0';_bar.style.animation='none';}if(_lbl)_lbl.textContent='Erreur — réessayez';
     setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);

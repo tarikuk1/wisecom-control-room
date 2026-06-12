@@ -280,6 +280,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Bornes heures pleines pour la grille de slots 30 min
   hDeb=Math.floor(minDeb/60);hFin=minFin%60>0?Math.floor(minFin/60)+1:Math.floor(minFin/60);
   const token=await getToken();if(!token)throw new Error("Pas de token");
+  // Réchauffer le cache compétences (/agent/list) — mis en cache pour la journée, donc un seul
+  // appel réseau par jour. Garantit que chaque agent du payload porte ses compétences déclarées
+  // sans dépendre des droits /cc/*. Best-effort : ne bloque jamais le chargement principal.
+  try{await fetchAgentSkills();}catch(_e){/* le payload retombe sur skills:[] */}
   // Construire la liste des jours de la plage [date .. dateFin] (incluse)
   const _d0=new Date(date+"T00:00:00"); const _d1=new Date((dateFin||date)+"T00:00:00");
   const jours=[]; for(let d=new Date(_d0); d<=_d1; d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10)); if(jours.length>62)break;}
@@ -507,8 +511,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
       spark:a.spark,
-      skills:[],  // enrichi ci-dessous via API INO /cc/agent/:id/flow/voice/skills/list
-      allSkills:[],  // toutes les compétences (actives + inactives) pour la matrice
+      // Compétences déclarées dans /agent/list (competences/skills/queues). Disponibles sans
+      // les droits /cc/*. Le bouton ↺ Compétences peut ensuite enrichir avec l'état actif/inactif
+      // via /cc/agent/:id/flow/voice/skills/list quand le compte de service y a accès.
+      skills:Array.isArray(sk.skills)?sk.skills.slice():[],
+      allSkills:Array.isArray(sk.skills)?sk.skills.map(n=>({id:null,name:n,score:100,active:true})):[],
       acwMoyen:a.acwMoyen||null
     };
   }).sort((a,b)=>b.total-a.total);
