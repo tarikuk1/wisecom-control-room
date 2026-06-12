@@ -1314,7 +1314,15 @@ function campSelPartial(){
 // "Compétences non chargées" plutôt qu'une liste globale trompeuse non liée à la campagne.
 function getScopedSkills(){
   if(!agents.length)return [];
-  const inScope=campSelPartial()?agents.filter(a=>selCamps.includes(a.camp)):agents;
+  let inScope;
+  if(campSelPartial()){
+    const primary=agents.filter(a=>selCamps.includes(a.camp));
+    // Campagne flux-only (pas d'agents primaires) : élargir au périmètre des agents couvrants
+    inScope=primary.length>0?primary
+      :(skillsLoaded()?agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))):agents);
+  }else{
+    inScope=agents;
+  }
   const s=new Set();
   inScope.forEach(a=>{
     (a.skills||[]).forEach(k=>{if(k)s.add(k.name||k);});
@@ -1886,9 +1894,17 @@ function buildAllDropdowns(){
     selCamps=v;
     allQueues=getAllQueues();selQueues=getAllQueues();
     // CASCADE : quand on change les camps → restreindre selAgents aux agents de ces camps
+    // Principe 1 agent = N compétences : si aucun agent primaire, inclure les agents couvrants.
     if(agents.length){
       const agOfCamps=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
-      selAgents=agOfCamps.length>0?agOfCamps:agents.map(a=>a.nom);
+      if(agOfCamps.length>0){
+        selAgents=agOfCamps;
+      }else if(skillsLoaded()){
+        const covering=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
+        selAgents=covering.length>0?covering:agents.map(a=>a.nom);
+      }else{
+        selAgents=agents.map(a=>a.nom);
+      }
     }
     // CASCADE compétences : recalculer le périmètre et tout re-sélectionner
     selSkills=getScopedSkills();window._prevScopedSkills=selSkills;
@@ -1896,10 +1912,15 @@ function buildAllDropdowns(){
   });
   // Files : seulement celles des camps sélectionnés
   buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();ckRenderDeferred();});
-  // Agents : seulement ceux affectés aux camps sélectionnés (si filtre partiel)
+  // Agents : ceux du camp sélectionné + agents couvrant via compétences (si 0 primaires)
   const agList=agents.length
     ?(campSelPartial()
-        ?agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom)
+        ?(()=>{
+            const primary=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
+            if(primary.length>0)return primary;
+            if(skillsLoaded())return agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
+            return agents.map(a=>a.nom);
+          })()
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
   buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;buildAllDropdowns();ckRenderDeferred();});
@@ -2085,13 +2106,22 @@ function getFiltered(){
   const _scoped=getScopedSkills();
   const _skillFilterActive=skillsLoaded()&&selSkills.length>0&&selSkills.length<_scoped.length;
   const _campPartial=campSelPartial();
+  // Principe "1 agent = N compétences" : si les compétences sont chargées et qu'un filtre
+  // campagne est actif, un agent dont le camp primaire n'est PAS dans la sélection peut
+  // néanmoins couvrir une campagne sélectionnée via ses compétences secondaires.
+  // C'est notamment le cas des campagnes "flux-only" (ex : M123) où tous les appels sont
+  // pris par des agents mutualisés rattachés à d'autres camps principaux.
+  const _covCheck=_campPartial&&skillsLoaded();
   // Filtre Files : actif seulement si sélection partielle. Un agent passe s'il a traité
   // au moins une des files sélectionnées ; un agent sans file (aucun appel) n'est pas exclu.
   const _queueFilterActive=selQueues.length>0&&allQueues.length>0&&selQueues.length<allQueues.length;
   const _selQueuesSet=_queueFilterActive?new Set(selQueues):null;
   return agents.filter(a=>{
     if(hideDeconnecte&&(a.status==="Déconnecté"||(a.status===null&&(a.decroches||0)===0&&(a.sortants||0)===0)))return false;
-    if(_campPartial&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
+    if(_campPartial&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp)){
+      // Camp primaire hors sélection : inclure si couverture compétence sur un camp sélectionné
+      if(!_covCheck||!selCamps.some(c=>waAgentCovers(a,c)))return false;
+    }
     if(!selAgents.includes(a.nom))return false;
     if(_queueFilterActive){
       const aq=(a.queues||"").split(", ").filter(Boolean);
