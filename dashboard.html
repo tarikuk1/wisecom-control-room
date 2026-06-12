@@ -1779,26 +1779,20 @@ function setCmpWeeks(val){
   else{cmpRef=null;if(stEl)stEl.textContent="";render();}
 }
 
-// État persistant des dropdowns (ouvert/fermé + query de recherche)
-// Indispensable pour que le menu reste ouvert quand l'utilisateur fait plusieurs sélections
-const ckState={};
-function ckGetOpen(cid){return !!ckState[cid+":open"];}
-function ckSetOpen(cid,v){ckState[cid+":open"]=!!v;}
-function ckGetQuery(cid){return ckState[cid+":query"]||"";}
-function ckSetQuery(cid,v){ckState[cid+":query"]=v||"";}
-function ckAnyOpen(){return Object.keys(ckState).some(k=>k.endsWith(":open")&&ckState[k]);}
-// Fermer tous les menus (sauf "except" éventuel). Découpe par suffixe ":open" et non
-// split(":") — un id futur contenant ":" ne casserait pas la fermeture.
-function ckCloseAll(except){
-  Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).forEach(k=>{
-    const id=k.slice(0,-5); if(id!==except)ckState[k]=false;
-  });
-}
+// État des dropdowns : UN SEUL menu ouvert à la fois, garanti structurellement.
+// Remplace le map ckState multi-clés qui pouvait accumuler plusieurs "open:true"
+// (chaque closure lisait ckGetOpen indépendamment → menus fantômes restant ouverts).
+let _ckOpenId=null;           // ID du wrapper actuellement ouvert, ou null
+const _ckQueryMap={};         // texte de recherche par ID (indépendant de l'état ouvert)
+function ckGetOpen(cid){return _ckOpenId===cid;}
+function ckSetOpen(cid,v){if(v){_ckOpenId=cid;}else if(_ckOpenId===cid){_ckOpenId=null;}}
+function ckGetQuery(cid){return _ckQueryMap[cid]||"";}
+function ckSetQuery(cid,v){_ckQueryMap[cid]=v||"";}
+function ckAnyOpen(){return _ckOpenId!==null;}
+function ckCloseAll(){_ckOpenId=null;}
 
-// render() reconstruit TOUT le dashboard (KPI, tableau, graphes, 3 tableaux WhatsApp,
-// compétences, backlog…). L'appeler à chaque clic de case figeait l'interface. On le
-// diffère : la case et le menu se mettent à jour instantanément, le recalcul des données
-// suit ~150 ms après le DERNIER clic. Une rafale de clics ne déclenche donc qu'un seul rendu.
+// render() différé : la case se met à jour instantanément, le recalcul lourd suit
+// ~150 ms après le DERNIER clic. Pas de rendu intermédiaire sur chaque tick.
 let _ckRenderTimer=null;
 function ckRenderDeferred(){
   if(_ckRenderTimer)clearTimeout(_ckRenderTimer);
@@ -1813,11 +1807,11 @@ function ckRenderFlush(){
 function buildCkDrop(cid,label,options,selected,onChangeFn){
   const wrap=document.getElementById(cid);
   if(!wrap)return;
-  // open et query persistés entre rebuilds (sinon le menu se ferme après chaque clic d'option)
-  let open=ckGetOpen(cid), query=ckGetQuery(cid);
+  // Lire l'état depuis la source de vérité unique (pas de closure stale)
   function rebuild(keepFocus){
-    // Mémoriser le défilement de la liste pour le restaurer (sinon la liste « saute »
-    // en haut à chaque clic de case — ingérable avec 150+ files).
+    const open=ckGetOpen(cid);
+    const query=ckGetQuery(cid);
+    // Mémoriser le défilement pour le restaurer (évite le retour en haut à chaque tick)
     const _prevList=wrap.querySelector('.ck-list');
     const _prevScroll=_prevList?_prevList.scrollTop:0;
     const all=selected.length===options.length&&options.length>0;
@@ -1835,18 +1829,17 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
     if(open&&_prevScroll){const _nl=wrap.querySelector('.ck-list');if(_nl)_nl.scrollTop=_prevScroll;}
     document.getElementById(`${cid}-btn`).onclick=e=>{
       e.stopPropagation();
-      const wasOpen=open;
-      ckCloseAll();              // un seul menu ouvert à la fois (ferme aussi celui-ci)
-      open=!wasOpen;query="";
-      ckSetOpen(cid,open);ckSetQuery(cid,query);
-      buildAllDropdowns();       // refléter la fermeture des autres + l'état de celui-ci
+      const wasOpen=ckGetOpen(cid);  // lire depuis la source de vérité, jamais une closure
+      ckCloseAll();                   // _ckOpenId=null — ferme tout
+      if(!wasOpen){ckSetOpen(cid,true);ckSetQuery(cid,"");}
+      buildAllDropdowns();
     };
     if(open){
       const si=document.getElementById(`${cid}-search`);
       if(si){
         si.onclick=e=>e.stopPropagation();
-        si.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();open=false;ckSetOpen(cid,false);buildAllDropdowns();}};
-        si.oninput=e=>{query=e.target.value;ckSetQuery(cid,query);rebuild(true);};
+        si.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();ckCloseAll();buildAllDropdowns();}};
+        si.oninput=e=>{ckSetQuery(cid,e.target.value);rebuild(true);};
         if(keepFocus){si.focus();si.setSelectionRange(si.value.length,si.value.length);}
       }
       document.getElementById(`${cid}-all`).onclick=e=>{e.stopPropagation();onChangeFn(all?[]:options.slice());};
@@ -1859,19 +1852,12 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
 }
 
 // Fermeture globale : clic hors d'un dropdown ouvert, ou touche Échap.
-// Les clics sur bouton/recherche/option font stopPropagation → seuls les VRAIS clics
-// extérieurs arrivent ici. On vide le rendu différé pour appliquer la sélection aussitôt.
 if(!window._ckGlobalClose){
   window._ckGlobalClose=true;
   document.addEventListener("click",e=>{
     if(!ckAnyOpen())return;
-    let changed=false;
-    Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).forEach(k=>{
-      const id=k.slice(0,-5);
-      const w=document.getElementById(id);
-      if(w&&!w.contains(e.target)){ckSetOpen(id,false);changed=true;}
-    });
-    if(changed){buildAllDropdowns();ckRenderFlush();}
+    const w=document.getElementById(_ckOpenId);
+    if(w&&!w.contains(e.target)){ckCloseAll();buildAllDropdowns();ckRenderFlush();}
   });
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape"&&ckAnyOpen()){ckCloseAll();buildAllDropdowns();ckRenderFlush();}
