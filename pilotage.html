@@ -7,195 +7,333 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#999;margin-top:2px;}
-.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#fafafa;border-bottom:1px solid #e8e8e8;padding:10px 20px 0 20px;}
-.ctrl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;}
-.ctrl-row label{font-size:11px;color:#999;}
-input[type=date],input[type=time],select{background:#fff;color:#333;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
-.presel-row{display:flex;gap:14px;flex-wrap:wrap;border-top:1px dashed #e4e4e4;padding:10px 0;}
-.presel-box{flex:1;min-width:200px;max-width:340px;}
-.presel-box .pb-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
-.pb-list{border:1px solid #e0e0e0;border-radius:8px;max-height:116px;overflow-y:auto;padding:4px 6px;background:#fff;display:flex;flex-wrap:wrap;gap:1px;}
-.pb-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#444;cursor:pointer;padding:2px 4px;white-space:nowrap;}
-.pb-item input{accent-color:#E8006E;}
-.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
-.btn-pink{background:#E8006E;color:#fff;}
-.btn-pink:disabled{opacity:.5;cursor:wait;}
-.btn-dark{background:#efefef;color:#444;border:1px solid #ccc;}
-.content{padding:16px 20px;}
-.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:7px 9px;color:#999;font-weight:600;text-align:left;border-bottom:1px solid #dedede;background:#fafafa;white-space:nowrap;}
-.tbl td{padding:6px 9px;border-bottom:1px solid #efefef;vertical-align:middle;white-space:nowrap;}
-.tbl tr:hover td{background:#fff8fc;}
-.avg-row td{background:#fff0f8 !important;font-style:italic;color:#a3105e;}
-.avg-row td b{color:#a3105e;}
-.loading{text-align:center;padding:30px;color:#999;}
-.empty-hint{color:#999;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;box-shadow:0 4px 16px rgba(0,0,0,.1);}
-.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;text-decoration:none;background:#f5f5f5;transition:all .15s;white-space:nowrap;}
-.nav-pill:hover{border-color:#E8006E55;color:#E8006E;background:#fff0f6;}
+body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;min-height:100vh;}
+
+/* ─── HEADER ─── */
+.header{background:#fff;border-bottom:2px solid #E8006E22;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;height:54px;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.dot{width:9px;height:9px;border-radius:50%;background:#E8006E;box-shadow:0 0 10px #E8006Eaa;flex-shrink:0;}
+.title{font-weight:800;font-size:14px;letter-spacing:.06em;color:#111;}
+.subtitle{font-size:10px;color:#aaa;margin-top:1px;}
+.nav-pills{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid #e2e2e2;border-radius:20px;padding:4px 11px;font-size:11px;font-weight:600;color:#555;text-decoration:none;background:#fafafa;transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:#E8006E55;color:#E8006E;background:#fff5f9;}
 .nav-pill.active{border-color:#E8006E;color:#E8006E;background:#fff0f6;}
-/* agent filter */
-.filter-grid{display:flex;gap:18px;flex-wrap:wrap;}
-.filter-box{min-width:190px;flex:1;}
-.filter-box .fb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
-.filter-box .fb-title{font-size:11px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
-.fb-mini{font-size:10px;color:#E8006E;background:none;border:none;cursor:pointer;font-weight:600;}
-.fb-list{border:1px solid #e0e0e0;border-radius:8px;max-height:130px;overflow-y:auto;padding:4px 6px;background:#fff;}
-.fb-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#444;cursor:pointer;padding:2px 2px;}
-.fb-item input{accent-color:#E8006E;}
-.fb-search{width:100%;margin-bottom:5px;}
-.kpi-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.kpi-tab{border:1px solid #dedede;background:#fafafa;color:#666;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:600;}
+#sse-badge{font-size:10px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;white-space:nowrap;}
+
+/* ─── CONFIG ZONE ─── */
+.config-zone{padding:20px 24px;max-width:1400px;margin:0 auto;}
+
+.config-card{background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.config-card-title{font-size:11px;font-weight:800;color:#E8006E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.config-card-title svg{flex-shrink:0;}
+
+/* période + options row */
+.period-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+.period-field{display:flex;flex-direction:column;gap:5px;}
+.period-field label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;}
+.period-field input,
+.period-field select{background:#f7f7f9;color:#222;border:1.5px solid #e2e2e2;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;}
+.period-field input:focus,
+.period-field select:focus{border-color:#E8006E;background:#fff;}
+.period-sep{color:#bbb;padding-bottom:9px;font-size:16px;}
+
+/* ─── CAMPAIGN PILLS ─── */
+.camp-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.camp-pill{cursor:pointer;border:1.5px solid #e0e0e0;border-radius:22px;padding:6px 14px;font-size:12px;font-weight:600;color:#555;background:#f7f7f9;transition:all .15s;user-select:none;white-space:nowrap;}
+.camp-pill:hover{border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
+.camp-pill.selected{border-color:#E8006E;color:#fff;background:#E8006E;}
+.camp-pill-all{border-style:dashed;border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
+.camp-pill-all.selected{border-style:solid;background:#E8006E;color:#fff;}
+
+/* ─── KPI CARDS ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.kpi-card{cursor:pointer;border:1.5px solid #e8e8e8;border-radius:10px;padding:12px 14px;background:#f9f9fb;transition:all .15s;user-select:none;}
+.kpi-card:hover{border-color:#E8006E88;background:#fff5f9;transform:translateY(-1px);}
+.kpi-card.selected{border-color:#E8006E;background:#fff0f6;box-shadow:0 0 0 3px #E8006E18;}
+.kpi-card-icon{font-size:20px;margin-bottom:6px;line-height:1;}
+.kpi-card-label{font-size:12px;font-weight:700;color:#222;}
+.kpi-card-def{font-size:10px;color:#999;margin-top:2px;line-height:1.4;}
+.kpi-card.selected .kpi-card-label{color:#E8006E;}
+.kpi-check{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid #ccc;float:right;margin-top:1px;position:relative;}
+.kpi-card.selected .kpi-check{background:#E8006E;border-color:#E8006E;}
+.kpi-card.selected .kpi-check::after{content:'';display:block;position:absolute;top:1px;left:3px;width:5px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg);}
+
+/* ─── LAUNCH BUTTON ─── */
+.launch-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:6px;}
+.btn-launch{background:linear-gradient(135deg,#E8006E,#c4005a);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;box-shadow:0 4px 14px #E8006E44;}
+.btn-launch:hover{transform:translateY(-1px);box-shadow:0 6px 18px #E8006E55;}
+.btn-launch:disabled{opacity:.5;cursor:wait;transform:none;box-shadow:none;}
+.btn-launch svg{flex-shrink:0;}
+#status{font-size:11px;color:#888;}
+
+/* ─── CONTENT ─── */
+.content{padding:0 24px 24px;max-width:1400px;margin:0 auto;}
+
+/* ─── PANELS ─── */
+.panel{background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.panel-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.panel-title{font-size:13px;font-weight:700;color:#222;display:flex;align-items:center;gap:7px;}
+.panel-sub{font-size:10px;color:#aaa;margin-top:2px;}
+
+/* ─── TEAM BENCHMARK CARDS ─── */
+.bench-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;}
+.bench-card{background:linear-gradient(135deg,#fff0f6,#fff);border:1.5px solid #f5c6de;border-radius:12px;padding:14px 16px;}
+.bench-card-kpi{font-size:10px;font-weight:800;color:#E8006E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.bench-card-val{font-size:24px;font-weight:800;color:#1a1a1a;line-height:1;}
+.bench-card-sub{font-size:10px;color:#aaa;margin-top:4px;}
+
+/* ─── AGENT SELECTOR ─── */
+.agent-zone{display:flex;gap:14px;flex-wrap:wrap;}
+.agent-col{flex:1;min-width:220px;}
+.agent-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.agent-col-label{font-size:10px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:.05em;}
+.btn-mini{font-size:11px;color:#E8006E;background:none;border:none;cursor:pointer;font-weight:700;padding:0;}
+.agent-search{width:100%;border:1.5px solid #e2e2e2;border-radius:8px;padding:7px 11px;font-size:12px;font-family:inherit;outline:none;background:#f7f7f9;margin-bottom:8px;}
+.agent-search:focus{border-color:#E8006E;background:#fff;}
+.agent-list{border:1.5px solid #ebebeb;border-radius:10px;max-height:200px;overflow-y:auto;background:#fafafa;}
+.agent-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s;}
+.agent-item:last-child{border-bottom:none;}
+.agent-item:hover{background:#fff5f9;}
+.agent-item input{accent-color:#E8006E;width:14px;height:14px;flex-shrink:0;}
+.agent-item-name{font-size:12px;font-weight:600;color:#222;flex:1;}
+.agent-item-camp{font-size:10px;color:#bbb;}
+.agent-count-badge{font-size:10px;color:#999;font-weight:400;}
+
+/* ─── TEMPLATE BAR ─── */
+.tpl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fdf2f8;border:1.5px solid #f5c6de;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.tpl-bar label{font-size:11px;color:#a3105e;font-weight:800;}
+.tpl-input{border:1.5px solid #e3b9d1;border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;outline:none;}
+.tpl-input:focus{border-color:#E8006E;}
+.tpl-select{border:1.5px solid #e3b9d1;border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;background:#fff;outline:none;}
+.btn-sm{border:none;border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:700;}
+.btn-sm-pink{background:#E8006E;color:#fff;}
+.btn-sm-ghost{background:#fff;color:#555;border:1.5px solid #ddd;}
+
+/* ─── KPI TABS ─── */
+.kpi-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.kpi-tab{border:1.5px solid #e2e2e2;background:#f7f7f9;color:#666;border-radius:8px;padding:6px 14px;font-size:11px;cursor:pointer;font-weight:700;transition:all .15s;font-family:inherit;}
+.kpi-tab:hover{border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
 .kpi-tab.active{background:#E8006E;color:#fff;border-color:#E8006E;}
-.cell-best{background:#eafff1;color:#1a8f44;font-weight:700;}
+
+/* ─── TABLES ─── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:8px 10px;color:#888;font-weight:700;text-align:left;border-bottom:2px solid #f0f0f0;background:#fafafa;white-space:nowrap;font-size:11px;}
+.tbl td{padding:7px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle;white-space:nowrap;}
+.tbl tr:hover td{background:#fdf5f9;}
+.avg-row td{background:#fff0f8!important;color:#a3105e;font-style:italic;}
+.cell-best{background:#eafff2;color:#1a8f44;font-weight:700;}
 .cell-worst{background:#fff0f0;color:#dc2626;font-weight:700;}
 .cell-team{background:#fff0f8;color:#a3105e;}
-.legend-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
-.tpl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fdf2f8;border:1px solid #f5d0e3;border-radius:8px;padding:8px 12px;margin-bottom:14px;}
-.tpl-bar input[type=text]{border:1px solid #e3b9d1;border-radius:6px;padding:5px 9px;font-size:12px;}
-/* team avg summary cards */
-.avg-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
-.avg-card{flex:1;min-width:140px;border:1px solid #f5d0e3;border-radius:8px;padding:10px 14px;background:#fff6fb;}
-.avg-card .ac-kpi{font-size:10px;color:#a3105e;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
-.avg-card .ac-val{font-size:18px;font-weight:700;color:#E8006E;}
-.avg-card .ac-sub{font-size:10px;color:#999;margin-top:2px;}
-@media (max-width:600px){.header,.controls,.content{padding-left:14px;padding-right:14px;}.success-toast{left:14px;right:14px;bottom:14px;max-width:none;}}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle;}
+
+/* ─── INTRO / EMPTY ─── */
+.intro-card{background:#fff;border:1.5px dashed #e8c8db;border-radius:14px;padding:48px 32px;text-align:center;color:#bbb;}
+.intro-card h2{font-size:16px;color:#E8006E;font-weight:800;margin-bottom:10px;}
+.intro-card p{font-size:12px;line-height:1.7;color:#999;max-width:520px;margin:0 auto;}
+.empty-hint{color:#bbb;font-size:12px;padding:28px 16px;text-align:center;line-height:1.7;}
+
+/* ─── TOAST ─── */
+.success-toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:700;display:none;z-index:999;max-width:380px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
+
+@media(max-width:700px){
+  .header{padding:0 14px;height:auto;padding-top:10px;padding-bottom:10px;}
+  .config-zone,.content{padding-left:14px;padding-right:14px;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .bench-cards{grid-template-columns:1fr 1fr;}
+  .success-toast{left:14px;right:14px;bottom:14px;max-width:none;}
+}
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
 <div class="header">
-  <div>
-    <div><span class="dot"></span><span class="title">PILOTAGE DE LA PRODUCTIVITÉ</span></div>
-    <div class="subtitle">Wisecom · INO · Évolution &amp; comparaison de la productivité agent dans le temps</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
-    <a href="/" class="nav-pill"><span>🏠</span> Tour de contrôle</a>
-    <a href="/executif" class="nav-pill"><span>📊</span> Exécutif</a>
-    <a href="/pilotage" class="nav-pill active"><span>🎯</span> Pilotage</a>
-    <a href="/couverture" class="nav-pill"><span>📡</span> Couverture</a>
-    <a href="/planning" class="nav-pill"><span>🗓️</span> Planning</a>
-    <a href="/notice" class="nav-pill"><span>📖</span> Notice</a>
-  </div>
-</div>
-
-<!-- ===== BARRE DE CONTRÔLES (sélection avant chargement) ===== -->
-<div class="controls">
-  <!-- Ligne 1 : paramètres temporels + bouton -->
-  <div class="ctrl-row">
-    <label for="ref-date">Date de fin</label>
-    <input type="date" id="ref-date" min="2022-01-01">
-    <label for="f-depth">Profondeur</label>
-    <select id="f-depth" title="Nombre de semaines glissantes analysées">
-      <option value="4">4 semaines</option>
-      <option value="8">2 mois (8 sem.)</option>
-      <option value="13">3 mois (13 sem.)</option>
-    </select>
-    <label for="f-hdeb" title="Restreint l'analyse à une tranche horaire">Tranche horaire</label>
-    <input type="time" id="f-hdeb" value="00:00" step="1800" style="width:96px;">
-    <span style="color:#888;">→</span>
-    <input type="time" id="f-hfin" value="23:59" step="1800" style="width:96px;">
-    <button class="btn btn-pink" id="btn-load">🔄 Charger l'analyse</button>
-    <span id="status" aria-live="polite" style="font-size:11px;color:#888;"></span>
-  </div>
-  <!-- Ligne 2 : filtres pré-chargement -->
-  <div class="presel-row">
-    <div class="presel-box">
-      <div class="pb-title">📋 Campagnes à analyser</div>
-      <div class="pb-list" id="pre-camps"><span style="font-size:11px;color:#bbb;padding:4px;">chargement…</span></div>
+  <div class="header-left">
+    <div class="dot"></div>
+    <div>
+      <div class="title">PILOTAGE PRODUCTIVITÉ</div>
+      <div class="subtitle">Évolution &amp; comparaison agent dans le temps — Wisecom · INO</div>
     </div>
-    <div class="presel-box">
-      <div class="pb-title">📊 Indicateurs KPI à afficher</div>
-      <div class="pb-list" id="pre-kpis"></div>
-    </div>
-    <div class="presel-box">
-      <div class="pb-title">👤 Filtrer les agents (nom)</div>
-      <input type="search" id="ag-pre-search" placeholder="Tapez un nom pour filtrer après chargement…" style="width:100%;margin-bottom:4px;border:1px solid #dedede;border-radius:6px;padding:5px 9px;font-size:12px;">
-      <div style="font-size:10px;color:#bbb;line-height:1.4;">La liste complète apparaît après chargement. Vous pourrez sélectionner les agents à comparer.</div>
-    </div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <span id="sse-badge">◌ INO…</span>
+    <nav class="nav-pills">
+      <a href="/" class="nav-pill">🏠 Tour de contrôle</a>
+      <a href="/executif" class="nav-pill">📊 Exécutif</a>
+      <a href="/pilotage" class="nav-pill active">🎯 Pilotage</a>
+      <a href="/couverture" class="nav-pill">📡 Couverture</a>
+      <a href="/planning" class="nav-pill">🗓️ Planning</a>
+      <a href="/notice" class="nav-pill">📖 Notice</a>
+    </nav>
   </div>
 </div>
 
-<div class="content">
+<!-- ═══════════════════════════ CONFIGURATION ═══════════════════════════ -->
+<div class="config-zone">
 
-  <!-- Résumé modèles -->
-  <div class="panel" id="filters-panel" style="display:none;">
-    <div class="panel-title"><span>🎛️ Sélection des agents à comparer</span></div>
-    <div class="tpl-bar">
-      <span style="font-size:11px;color:#a3105e;font-weight:700;">💾 Modèles</span>
-      <select id="tpl-select" style="min-width:170px;"><option value="">— charger un modèle —</option></select>
-      <button class="btn btn-dark" id="tpl-load" style="font-size:11px;">Appliquer</button>
-      <button class="btn btn-dark" id="tpl-del" style="font-size:11px;">Supprimer</button>
-      <span style="width:1px;height:20px;background:#e3b9d1;"></span>
-      <input type="text" id="tpl-name" placeholder="Nom du modèle (ex. Équipe Vivest)" style="min-width:200px;">
-      <button class="btn btn-pink" id="tpl-save" style="font-size:11px;">Enregistrer</button>
+  <!-- Bloc 1 : Période & paramètres -->
+  <div class="config-card">
+    <div class="config-card-title">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M5 1a1 1 0 0 1 2 0v1h2V1a1 1 0 0 1 2 0v1h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2V1zm-2 4v8h10V5H3z"/></svg>
+      Période d'analyse
     </div>
-    <div class="filter-grid">
-      <div class="filter-box">
-        <div class="fb-head"><span class="fb-title">👤 Agents <span id="ag-count" style="color:#bbb;font-weight:400;"></span></span><button class="fb-mini" data-all="agents">tout/aucun</button></div>
-        <input type="search" class="fb-search" id="ag-search" placeholder="Filtrer les agents…">
-        <div class="fb-list" id="fb-agents"></div>
+    <div class="period-row">
+      <div class="period-field">
+        <label>Date de fin</label>
+        <input type="date" id="ref-date" min="2022-01-01">
+      </div>
+      <div class="period-field">
+        <label>Profondeur</label>
+        <select id="f-depth">
+          <option value="4">4 semaines</option>
+          <option value="8">2 mois (8 sem.)</option>
+          <option value="13">3 mois (13 sem.)</option>
+        </select>
+      </div>
+      <div class="period-field">
+        <label>Tranche horaire</label>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <input type="time" id="f-hdeb" value="00:00" step="1800" style="width:100px;">
+          <span class="period-sep">→</span>
+          <input type="time" id="f-hfin" value="23:59" step="1800" style="width:100px;">
+        </div>
       </div>
     </div>
-    <div style="font-size:10px;color:#999;margin-top:8px;">Les filtres Campagnes &amp; KPI sont définis dans la barre de sélection ci-dessus et s'appliquent au <b>vivier d'agents</b>. Cochez ensuite les agents à comparer individuellement.</div>
   </div>
 
-  <!-- Moyennes équipe (team benchmark) -->
-  <div class="panel" id="team-panel" style="display:none;">
-    <div class="panel-title">
-      <span>📐 Moyennes équipe — benchmark sur la période sélectionnée</span>
-      <span style="font-size:10px;color:#999;">calculé sur tous les agents du vivier (campagnes sélectionnées) · même période et tranche horaire</span>
+  <!-- Bloc 2 : Campagnes -->
+  <div class="config-card">
+    <div class="config-card-title">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 4a1 1 0 0 1 .117 1.993L8 6H6a1 1 0 0 1 0-2h2zm-2.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
+      Campagnes à analyser
+      <span id="camp-count" style="font-weight:400;color:#ccc;font-size:10px;text-transform:none;letter-spacing:0;"></span>
     </div>
-    <div class="avg-cards" id="team-cards"></div>
-    <div style="overflow-x:auto;margin-top:12px;" id="team-table-wrap"></div>
-    <div style="font-size:10px;color:#999;margin-top:8px;">La ligne <i>Moy. équipe</i> est calculée sur l'ensemble du vivier (tous agents actifs pour les campagnes sélectionnées), pas uniquement les agents cochés. Elle sert de référence de comparaison.</div>
+    <div class="camp-pills" id="pre-camps">
+      <span style="color:#bbb;font-size:12px;">chargement…</span>
+    </div>
   </div>
 
-  <!-- Évolution dans le temps -->
+  <!-- Bloc 3 : KPIs -->
+  <div class="config-card">
+    <div class="config-card-title">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M1 11h2v3H1v-3zm3-4h2v7H4V7zm3-3h2v10H7V4zm3 2h2v8h-2V6zm3-5h2v13h-2V1z"/></svg>
+      Indicateurs KPI
+      <span id="kpi-count" style="font-weight:400;color:#ccc;font-size:10px;text-transform:none;letter-spacing:0;"></span>
+    </div>
+    <div class="kpi-grid" id="pre-kpis"></div>
+  </div>
+
+  <!-- Bouton lancement -->
+  <div class="launch-row">
+    <button class="btn-launch" id="btn-load">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.596 8.697l-6.363 3.692C4.48 12.71 4 12.407 4 11.9V4.1c0-.507.48-.81.733-.489L11.596 7.3c.238.225.238.712 0 .937z"/></svg>
+      Lancer l'analyse
+    </button>
+    <span id="status" aria-live="polite"></span>
+  </div>
+
+</div><!-- /config-zone -->
+
+<!-- ═══════════════════════════ RÉSULTATS ═══════════════════════════ -->
+<div class="content">
+
+  <!-- Intro -->
+  <div id="intro-panel" class="intro-card">
+    <h2>🎯 Configurez votre analyse</h2>
+    <p>Sélectionnez les campagnes, les indicateurs et la période ci-dessus, puis lancez l'analyse.<br>Vous obtiendrez : la moyenne équipe de référence, les courbes d'évolution, le classement avec min/moy/max, et la heatmap agent × période.</p>
+  </div>
+
+  <!-- Panel sélection agents + modèles -->
+  <div class="panel" id="filters-panel" style="display:none;">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">👤 Sélection des agents à comparer</div>
+        <div class="panel-sub">Choisissez les agents à inclure dans les graphiques et tableaux</div>
+      </div>
+    </div>
+    <!-- Modèles -->
+    <div class="tpl-bar">
+      <label>💾 Modèles</label>
+      <select id="tpl-select" class="tpl-select" style="min-width:180px;"><option value="">— charger un modèle —</option></select>
+      <button class="btn-sm btn-sm-ghost" id="tpl-load">Appliquer</button>
+      <button class="btn-sm btn-sm-ghost" id="tpl-del">Supprimer</button>
+      <div style="width:1px;height:20px;background:#e3b9d1;flex-shrink:0;"></div>
+      <input type="text" id="tpl-name" class="tpl-input" placeholder="Nom du modèle (ex. Équipe Vivest)" style="min-width:200px;">
+      <button class="btn-sm btn-sm-pink" id="tpl-save">Enregistrer</button>
+    </div>
+    <!-- Agent list -->
+    <div class="agent-zone">
+      <div class="agent-col">
+        <div class="agent-col-head">
+          <span class="agent-col-label">Agents <span id="ag-count" class="agent-count-badge"></span></span>
+          <button class="btn-mini" data-all="agents">tout / aucun</button>
+        </div>
+        <input type="search" class="agent-search" id="ag-search" placeholder="Rechercher un agent…">
+        <div class="agent-list" id="fb-agents"></div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#bbb;margin-top:10px;">Les filtres Campagnes &amp; KPI appliqués ci-dessus définissent le vivier. Cochez les agents à comparer individuellement.</div>
+  </div>
+
+  <!-- Benchmark équipe -->
+  <div class="panel" id="team-panel" style="display:none;">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">📐 Moyennes équipe — benchmark de référence</div>
+        <div class="panel-sub">Calculé sur tous les agents actifs du vivier (campagnes sélectionnées) · même période et tranche horaire</div>
+      </div>
+    </div>
+    <div class="bench-cards" id="team-cards"></div>
+    <div style="overflow-x:auto;" id="team-table-wrap"></div>
+    <div style="font-size:10px;color:#bbb;margin-top:10px;">La ligne <i>Moy. équipe</i> est calculée sur l'ensemble du vivier, pas uniquement les agents cochés. Elle sert de référence de comparaison.</div>
+  </div>
+
+  <!-- Évolution -->
   <div class="panel" id="evo-panel" style="display:none;">
-    <div class="panel-title"><span>📈 Évolution dans le temps</span></div>
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">📈 Évolution dans le temps</div>
+        <div class="panel-sub">Courbe par agent · pointillés roses = moyenne équipe</div>
+      </div>
+    </div>
     <div class="kpi-tabs" id="kpi-tabs"></div>
     <div id="evo-chart" style="overflow-x:auto;"></div>
-    <div id="evo-legend" style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:10px;font-size:11px;"></div>
+    <div id="evo-legend" style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:11px;"></div>
   </div>
 
   <!-- Classement -->
   <div class="panel" id="rank-panel" style="display:none;">
-    <div class="panel-title"><span>🏁 Classement &amp; dispersion <span id="rank-kpi" style="color:#E8006E;font-weight:700;"></span></span><span style="font-size:10px;color:#999;">vert = meilleure semaine · rose = moins bonne · ligne rose = moy. équipe</span></div>
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">🏁 Classement &amp; dispersion — <span id="rank-kpi" style="color:#E8006E;"></span></div>
+        <div class="panel-sub">Vert = meilleure semaine · rose = moins bonne · ligne rose = moy. équipe</div>
+      </div>
+    </div>
     <div style="overflow-x:auto;" id="rank-wrap"></div>
   </div>
 
   <!-- Heatmap -->
   <div class="panel" id="heat-panel" style="display:none;">
-    <div class="panel-title"><span>🔥 Heatmap agent × période</span><span style="font-size:10px;color:#999;">intensité = performance relative sur l'indicateur choisi</span></div>
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">🔥 Heatmap agent × période</div>
+        <div class="panel-sub">Intensité = performance relative sur l'indicateur choisi</div>
+      </div>
+    </div>
     <div style="overflow-x:auto;" id="heat-wrap"></div>
   </div>
 
   <!-- Définitions -->
   <div class="panel" id="defs-panel" style="display:none;">
-    <div class="panel-title"><span>ⓘ Définitions &amp; mode de calcul</span></div>
+    <div class="panel-header">
+      <div class="panel-title">ⓘ Définitions &amp; mode de calcul</div>
+    </div>
     <table class="tbl">
       <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
       <tbody id="defs-body"></tbody>
     </table>
-    <div style="font-size:10px;color:#999;margin-top:8px;">Chaque point = une semaine glissante de 7 jours. Les durées (DMC, DMT, ACW) et taux sont agrégés par INO sur la semaine et la tranche horaire choisies. <b>min / moy / max</b> = plus basse, moyenne et plus haute valeur de l'agent sur la période (les semaines sans activité sont ignorées pour les durées et taux).</div>
-  </div>
-
-  <div class="panel" id="intro-panel">
-    <div class="empty-hint">
-      Choisissez vos critères dans la barre de sélection (campagnes, indicateurs KPI, tranche horaire, profondeur)<br>
-      puis cliquez <b>« Charger l'analyse »</b>.<br><br>
-      Vous obtiendrez : la <b>moyenne équipe</b> de référence, les courbes d'évolution, le classement avec min / moyenne / max, et la heatmap agent × période.<br>
-      Enregistrez vos sélections comme <b>modèles nommés</b> réutilisables par toute l'équipe.
-    </div>
+    <div style="font-size:10px;color:#bbb;margin-top:10px;">Chaque point = une semaine glissante de 7 jours. <b>min / moy / max</b> = plus basse, moyenne et plus haute valeur de l'agent sur la période (semaines sans activité ignorées pour les durées et taux).</div>
   </div>
 
 </div>
@@ -208,23 +346,22 @@ let CAMPS=[],QUEUES_MAP={};
 let trendDepth=4,trendHDeb="00:00",trendHFin="23:59";
 let loading=false;
 const weekCache=new Map();
-let pdata=null; // {weeks:[{start,end}], agents:Map<id,{id,nom,camp,skills:Set,series:[kpiObj]}>}
+let pdata=null;
 let curKPI="traites";
-// selCamps/selKPIs managed in pre-select (controls bar), selAgents in post-load panel
-let selCamps=new Set();   // campagnes à analyser (pré-sélection)
-let selKPIs=new Set();    // KPIs à afficher dans le benchmark équipe
-let selAgents=new Set();  // agents individuels sélectionnés pour les graphes
+let selCamps=new Set();
+let selKPIs=new Set();
+let selAgents=new Set();
 let tplStore={};
 
 const KPIS=[
-  {key:"traites", label:"Appels traités",  fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
-  {key:"actes",   label:"Actes totaux",    fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
-  {key:"sortants",label:"Appels sortants", fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
-  {key:"dmt",     label:"DMT",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW (identique au dashboard)"]},
-  {key:"dmc",     label:"DMC",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée de communication des entrants décrochés ÷ entrants décrochés (identique au dashboard)"]},
-  {key:"acw",     label:"ACW (post-appel)",fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
-  {key:"decroche",label:"Taux décroché",   fmt:v=>v==null?"n.d.":Math.round(v)+"%",              betterUp:true,  vol:false, def:["Part des appels présentés que l'agent a décrochés","Appels traités ÷ appels présentés × 100"]},
-  {key:"transfo", label:"Transformation",  fmt:v=>v==null?"n.d.":Math.round(v)+"%",              betterUp:true,  vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
+  {key:"traites", label:"Appels traités",  icon:"📞", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
+  {key:"actes",   label:"Actes totaux",    icon:"📋", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
+  {key:"sortants",label:"Appels sortants", icon:"📤", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
+  {key:"dmt",     label:"DMT",             icon:"⏱️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW"]},
+  {key:"dmc",     label:"DMC",             icon:"🗣️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée comm. entrants décrochés ÷ entrants décrochés"]},
+  {key:"acw",     label:"ACW (post-appel)",icon:"✍️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
+  {key:"decroche",label:"Taux décroché",   icon:"🎯", fmt:v=>v==null?"n.d.":Math.round(v)+"%", betterUp:true, vol:false, def:["Part des appels présentés décrochés","Appels traités ÷ appels présentés × 100"]},
+  {key:"transfo", label:"Transformation",  icon:"✅", fmt:v=>v==null?"n.d.":Math.round(v)+"%", betterUp:true, vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
 ];
 const PALETTE=["#E8006E","#1F77B4","#2CA02C","#FF7F0E","#9467BD","#17BECF","#8C564B","#D62728","#BCBD22","#7F7F7F","#E377C2","#1a8f44"];
 
@@ -248,10 +385,7 @@ function agentWeekKPIs(a){
   const total=traites+sortants;
   return {
     traites, sortants, actes:total, present:pres,
-    // DMT = traitement complet = communication entrante (a.dmt serveur) + post-appel ACW — comme le dashboard.
     dmt:(a.dmt||0)+(a.acwMoyen||0),
-    // DMC = communication entrante / entrants décrochés (champ serveur a.dmt, cohérent avec le dashboard).
-    // Auparavant : (comm IN+OUT)/(in+out) — formule incohérente avec le reste de la plateforme.
     dmc:a.dmt||0,
     acw:a.acwMoyen||0,
     decroche:pres>0?Math.round(traites/pres*100):null,
@@ -260,13 +394,13 @@ function agentWeekKPIs(a){
   };
 }
 
-// ---- Config & templates ----
+// ─── Config & templates ───
 async function loadConfig(){
   try{
     const r=await fetch(INO_BASE+"/api/config");const d=await r.json();
     CAMPS=Array.isArray(d.CAMPS)?d.CAMPS:[];
     QUEUES_MAP=(d.QUEUES_MAP&&typeof d.QUEUES_MAP==="object")?d.QUEUES_MAP:{};
-    selCamps=new Set(CAMPS); // pré-sélectionner toutes les campagnes
+    selCamps=new Set(CAMPS);
   }catch(e){showToast("⚠ Configuration des campagnes indisponible","#b45309");}
   buildPreCamps();
 }
@@ -275,27 +409,65 @@ async function loadTplStore(){
   renderTplSelect();
 }
 
-// ---- Pré-sélection (contrôles avant chargement) ----
+// ─── Build campaign pills ───
 function buildPreCamps(){
   const el=document.getElementById("pre-camps");
-  if(!CAMPS.length){el.innerHTML='<span style="font-size:11px;color:#bbb;padding:4px;">aucune campagne configurée</span>';return;}
-  el.innerHTML=CAMPS.map(c=>'<label class="pb-item"><input type="checkbox" value="'+c.replace(/"/g,"&quot;")+'"'+(selCamps.has(c)?" checked":"")+' data-pc>'+c+'</label>').join("");
-  el.addEventListener("change",e=>{
-    if(!e.target.dataset.pc===false)return;
-    toggleSet(selCamps,e.target.value,e.target.checked);
+  if(!CAMPS.length){el.innerHTML='<span style="color:#bbb;font-size:12px;">aucune campagne configurée</span>';return;}
+  let html='<span class="camp-pill camp-pill-all'+(selCamps.size===CAMPS.length?" selected":"")+'" id="camp-all">Toutes</span>';
+  html+=CAMPS.map(c=>'<span class="camp-pill'+(selCamps.has(c)?" selected":"")+'" data-camp="'+encodeURIComponent(c)+'">'+c+'</span>').join("");
+  el.innerHTML=html;
+  updateCampCount();
+  el.addEventListener("click",e=>{
+    const pill=e.target.closest(".camp-pill");
+    if(!pill)return;
+    if(pill.id==="camp-all"){
+      if(selCamps.size===CAMPS.length){selCamps=new Set();}else{selCamps=new Set(CAMPS);}
+    } else {
+      const c=decodeURIComponent(pill.dataset.camp||"");
+      if(selCamps.has(c))selCamps.delete(c);else selCamps.add(c);
+    }
+    el.querySelectorAll(".camp-pill[data-camp]").forEach(p=>{
+      const c=decodeURIComponent(p.dataset.camp);
+      p.classList.toggle("selected",selCamps.has(c));
+    });
+    const allPill=el.querySelector("#camp-all");
+    if(allPill)allPill.classList.toggle("selected",selCamps.size===CAMPS.length);
+    updateCampCount();
   });
 }
+function updateCampCount(){
+  const el=document.getElementById("camp-count");
+  if(el)el.textContent=selCamps.size===CAMPS.length?"(toutes)":"("+selCamps.size+" / "+CAMPS.length+")";
+}
+
+// ─── Build KPI cards ───
 function buildPreKPIs(){
   const el=document.getElementById("pre-kpis");
-  el.innerHTML=KPIS.map(k=>'<label class="pb-item"><input type="checkbox" value="'+k.key+'"'+(selKPIs.has(k.key)?" checked":"")+' data-pk>'+k.label+'</label>').join("");
-  el.addEventListener("change",e=>{
-    if(e.target.dataset.pk===undefined)return;
-    toggleSet(selKPIs,e.target.value,e.target.checked);
+  el.innerHTML=KPIS.map(k=>`<div class="kpi-card${selKPIs.has(k.key)?" selected":""}" data-kpk="${k.key}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <span class="kpi-card-icon">${k.icon}</span>
+      <span class="kpi-check"></span>
+    </div>
+    <div class="kpi-card-label">${k.label}</div>
+    <div class="kpi-card-def">${k.def[0]}</div>
+  </div>`).join("");
+  updateKpiCount();
+  el.addEventListener("click",e=>{
+    const card=e.target.closest(".kpi-card[data-kpk]");
+    if(!card)return;
+    const key=card.dataset.kpk;
+    if(selKPIs.has(key))selKPIs.delete(key);else selKPIs.add(key);
+    card.classList.toggle("selected",selKPIs.has(key));
+    updateKpiCount();
     if(pdata){renderTeamAvg();renderRank();}
   });
 }
+function updateKpiCount(){
+  const el=document.getElementById("kpi-count");
+  if(el)el.textContent="("+selKPIs.size+" / "+KPIS.length+")";
+}
 
-// ---- Chargement ----
+// ─── Chargement ───
 async function loadWeek(start,end,cacheable){
   const key=start+"|"+end+"|"+trendHDeb+"|"+trendHFin;
   if(cacheable&&weekCache.has(key))return weekCache.get(key);
@@ -317,23 +489,20 @@ async function loadAnalysis(){
   trendDepth=parseInt(document.getElementById("f-depth").value,10)||4;
   trendHDeb=document.getElementById("f-hdeb").value||"00:00";
   trendHFin=document.getElementById("f-hfin").value||"23:59";
-  // Lire sélection campagnes depuis la barre de pré-sélection
-  selCamps=new Set();
-  document.querySelectorAll("#pre-camps input[data-pc]:checked").forEach(cb=>selCamps.add(cb.value));
   if(!selCamps.size){showToast("⚠ Sélectionnez au moins une campagne","#b45309");return;}
-  // Lire sélection KPIs depuis la barre de pré-sélection
-  selKPIs=new Set();
-  document.querySelectorAll("#pre-kpis input[data-pk]:checked").forEach(cb=>selKPIs.add(cb.value));
-  if(!selKPIs.size)selKPIs=new Set(KPIS.map(k=>k.key)); // fallback: tous
+  if(!selKPIs.size)selKPIs=new Set(KPIS.map(k=>k.key));
   const N=trendDepth, todayStr=isoLocal(new Date());
-  loading=true;btn.disabled=true;const prev=btn.textContent;btn.textContent="⏳ Chargement…";
+  loading=true;btn.disabled=true;
+  const prevHTML=btn.innerHTML;
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 1a7 7 0 1 0 7 7h-2a5 5 0 1 1-5-5V1z"/></svg> Chargement…';
+  const style=document.createElement("style");style.textContent="@keyframes spin{to{transform:rotate(360deg)}}";document.head.appendChild(style);
   try{
     const ranges=Array.from({length:N},(_,i2)=>weekRange(ref,N-1-i2));
     const weeks=[],agMap=new Map();
     for(let i=0;i<ranges.length;i++){
       const{start,end}=ranges[i];
       const cacheable=end<todayStr;
-      stEl.textContent="Chargement semaine "+(i+1)+"/"+N+" ("+fmtDate(start)+" → "+fmtDate(end)+")…";
+      stEl.textContent="Semaine "+(i+1)+"/"+N+" · "+fmtDate(start)+" → "+fmtDate(end);
       const list=await loadWeek(start,end,cacheable);
       weeks.push({start,end});
       list.forEach(a=>{
@@ -345,55 +514,40 @@ async function loadAnalysis(){
       });
     }
     agMap.forEach(rec=>{for(let i=0;i<N;i++){if(!rec.series[i])rec.series[i]={traites:0,sortants:0,actes:0,present:0,dmt:0,dmc:0,acw:0,decroche:null,transfo:null,active:false};}});
-    // Appliquer filtrage par campagne sur les agents chargés
-    const agentPreSearch=(document.getElementById("ag-pre-search").value||"").toLowerCase().trim();
     pdata={weeks,agents:agMap};
-    stEl.textContent="✓ "+agMap.size+" agents · "+N+" semaines ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?", "+trendHDeb+"–"+trendHFin:"")+")";
-    // Pré-filtrage agent par nom si saisi avant chargement
-    initSelections(agentPreSearch);
+    stEl.textContent="✓ "+agMap.size+" agents · "+N+" sem. ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?" · "+trendHDeb+"–"+trendHFin:"")+")";
+    initSelections();
     document.getElementById("intro-panel").style.display="none";
     ["filters-panel","team-panel","evo-panel","rank-panel","heat-panel","defs-panel"].forEach(id=>document.getElementById(id).style.display="");
     renderDefs();renderKpiTabs();renderAgentList();renderAll();
-    showToast("✓ Analyse de productivité chargée");
+    showToast("✓ Analyse chargée — "+agMap.size+" agents");
   }catch(e){
     const msg=(e&&e.message)||String(e);
-    stEl.textContent="⚠ Chargement interrompu — "+msg;
+    stEl.textContent="⚠ Erreur — "+msg;
     showToast("⚠ Échec — "+msg,"#dc2626");
-  }finally{loading=false;btn.disabled=false;btn.textContent=prev;}
+  }finally{loading=false;btn.disabled=false;btn.innerHTML=prevHTML;}
 }
 
-// ---- Sélections ----
+// ─── Sélections ───
 function allAgentsArr(){return [...pdata.agents.values()];}
-function allCampsArr(){const s=new Set();pdata.agents.forEach(a=>{if(a.camp)s.add(a.camp);});return [...s].sort((x,y)=>x.localeCompare(y));}
+function candidateAgents(){return allAgentsArr().filter(a=>!selCamps.size||selCamps.has(a.camp));}
+function selectedAgentRecs(){return candidateAgents().filter(a=>selAgents.has(a.id));}
 
-function initSelections(nameFilter){
-  // vivier = agents des campagnes sélectionnées
+function initSelections(){
   const candidates=candidateAgents();
   const active=candidates.filter(a=>a.series.some(s=>s.active)).sort((a,b)=>seriesAvg(b,"actes")-seriesAvg(a,"actes"));
-  // Appliquer filtre par nom pré-saisi si présent
-  const filtered=nameFilter?active.filter(a=>a.nom.toLowerCase().includes(nameFilter)):active;
-  selAgents=new Set((filtered.length?filtered:active).slice(0,10).map(a=>a.id));
+  selAgents=new Set(active.slice(0,10).map(a=>a.id));
 }
-
-// vivier = agents dont la campagne est dans selCamps
-function candidateAgents(){
-  return allAgentsArr().filter(a=>{
-    if(selCamps.size>0 && !selCamps.has(a.camp))return false;
-    return true;
-  });
-}
-function selectedAgentRecs(){return candidateAgents().filter(a=>selAgents.has(a.id));}
 
 function seriesVals(rec,key){return rec.series.map(s=>s?s[key]:null);}
 function seriesAvg(rec,key){
-  const k=kpi(key);const vals=rec.series.map((s,i)=>s?s[key]:null)
-    .filter((v,i)=>v!=null && (k.vol?true:rec.series[i].active));
+  const k=kpi(key);
+  const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));
   if(!vals.length)return 0;return vals.reduce((s,v)=>s+v,0)/vals.length;
 }
 function seriesMin(rec,key){const k=kpi(key);const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));return vals.length?Math.min(...vals):null;}
 function seriesMax(rec,key){const k=kpi(key);const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));return vals.length?Math.max(...vals):null;}
 
-// Moyenne équipe pour un KPI sur une semaine donnée (index i)
 function teamWeekAvg(key,weekIdx){
   const k=kpi(key);
   const cands=candidateAgents().filter(a=>a.series[weekIdx]&&(k.vol?a.series[weekIdx][key]>0:a.series[weekIdx].active));
@@ -403,44 +557,40 @@ function teamWeekAvg(key,weekIdx){
   return vals.reduce((s,v)=>s+v,0)/vals.length;
 }
 function teamOverallAvg(key){
-  const k=kpi(key);
-  const N=pdata.weeks.length;
-  const avgs=[];
+  const N=pdata.weeks.length,avgs=[];
   for(let i=0;i<N;i++){const v=teamWeekAvg(key,i);if(v!=null)avgs.push(v);}
   if(!avgs.length)return null;
   return avgs.reduce((s,v)=>s+v,0)/avgs.length;
 }
 
-// ---- Rendus ----
+// ─── Rendus ───
 function renderKpiTabs(){
-  document.getElementById("kpi-tabs").innerHTML=KPIS.map(k=>'<button class="kpi-tab'+(k.key===curKPI?" active":"")+'" data-k="'+k.key+'">'+k.label+'</button>').join("");
+  document.getElementById("kpi-tabs").innerHTML=KPIS.map(k=>'<button class="kpi-tab'+(k.key===curKPI?" active":"")+'" data-k="'+k.key+'">'+k.icon+' '+k.label+'</button>').join("");
   document.querySelectorAll("#kpi-tabs .kpi-tab").forEach(t=>t.addEventListener("click",e=>{curKPI=e.currentTarget.dataset.k;renderKpiTabs();renderAll();}));
 }
 function renderDefs(){
-  document.getElementById("defs-body").innerHTML=KPIS.map(k=>'<tr><td><b>'+k.label+'</b></td><td>'+k.def[0]+'</td><td>'+k.def[1]+'</td></tr>').join("")+
-    '<tr><td><b>min / moy / max</b></td><td>Dispersion de l\'agent sur la période</td><td>Plus basse, moyenne et plus haute valeur de l\'agent sur les '+(pdata?pdata.weeks.length:"N")+' semaines</td></tr>';
+  document.getElementById("defs-body").innerHTML=KPIS.map(k=>'<tr><td><b>'+k.icon+' '+k.label+'</b></td><td>'+k.def[0]+'</td><td>'+k.def[1]+'</td></tr>').join("")+
+    '<tr><td><b>min / moy / max</b></td><td>Dispersion de l\'agent sur la période</td><td>Plus basse, moyenne et plus haute valeur sur les '+(pdata?pdata.weeks.length:"N")+' semaines</td></tr>';
 }
 function renderTplSelect(){
   const names=Object.keys(tplStore).sort((a,b)=>a.localeCompare(b));
   document.getElementById("tpl-select").innerHTML='<option value="">— charger un modèle —</option>'+names.map(n=>'<option value="'+encodeURIComponent(n)+'">'+n+'</option>').join("");
 }
 
-// ---- Benchmark équipe ----
 function renderTeamAvg(){
   if(!pdata)return;
   const kpiKeys=[...selKPIs].filter(k=>KPIS.some(x=>x.key===k));
-  if(!kpiKeys.length){document.getElementById("team-cards").innerHTML='<div style="font-size:11px;color:#bbb;padding:8px;">Aucun indicateur sélectionné.</div>';document.getElementById("team-table-wrap").innerHTML="";return;}
+  const cardsEl=document.getElementById("team-cards");
+  const wrapEl=document.getElementById("team-table-wrap");
+  if(!kpiKeys.length){cardsEl.innerHTML='<div style="font-size:12px;color:#bbb;padding:8px;">Aucun indicateur sélectionné.</div>';wrapEl.innerHTML="";return;}
   const N=pdata.weeks.length;
-  // Cards : une par KPI sélectionné, valeur globale moyenne équipe
-  document.getElementById("team-cards").innerHTML=kpiKeys.map(key=>{
+  cardsEl.innerHTML=kpiKeys.map(key=>{
     const k=kpi(key);const v=teamOverallAvg(key);
     const cands=candidateAgents().filter(a=>a.series.some((s,i)=>s&&(k.vol?s[key]>0:s.active)));
-    return '<div class="avg-card"><div class="ac-kpi">'+k.label+'</div><div class="ac-val">'+(v!=null?k.fmt(v):"n.d.")+'</div><div class="ac-sub">moy. équipe · '+cands.length+' agents actifs</div></div>';
+    return '<div class="bench-card"><div class="bench-card-kpi">'+k.icon+' '+k.label+'</div><div class="bench-card-val">'+(v!=null?k.fmt(v):"n.d.")+'</div><div class="bench-card-sub">moy. équipe · '+cands.length+' agents actifs</div></div>';
   }).join("");
-  // Tableau détaillé : agents sélectionnés + ligne moyenne équipe, par semaine, pour chaque KPI sélectionné
-  if(!selectedAgentRecs().length){document.getElementById("team-table-wrap").innerHTML='<div class="empty-hint">Sélectionnez au moins un agent pour voir la comparaison détaillée.</div>';return;}
+  if(!selectedAgentRecs().length){wrapEl.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent pour voir la comparaison détaillée.</div>';return;}
   const recs=selectedAgentRecs().sort((a,b)=>seriesAvg(b,kpiKeys[0])-seriesAvg(a,kpiKeys[0]));
-  // Construire un tableau par KPI sélectionné
   let html="";
   kpiKeys.forEach(key=>{
     const k=kpi(key);
@@ -452,15 +602,15 @@ function renderTeamAvg(){
         const valid=v!=null&&(k.vol||r.series[i].active);
         const tv=teamWeekAvg(key,i);
         let badge="";
-        if(valid&&tv!=null){const diff=k.betterUp?(v-tv):(tv-v);badge=diff>=0?'<span style="color:#1a8f44;font-size:9px;">▲</span>':'<span style="color:#dc2626;font-size:9px;">▼</span>';}
-        return '<td>'+(valid?k.fmt(v)+" "+badge:'<span style="color:#ccc">–</span>')+'</td>';
+        if(valid&&tv!=null){const diff=k.betterUp?(v-tv):(tv-v);badge=diff>=0?'<span style="color:#1a8f44;font-size:9px;"> ▲</span>':'<span style="color:#dc2626;font-size:9px;"> ▼</span>';}
+        return '<td>'+(valid?k.fmt(v)+badge:'<span style="color:#ddd">–</span>')+'</td>';
       }).join("");
       return '<tr><td><b>'+r.nom+'</b> <span style="color:#bbb;font-size:10px;">'+r.camp+'</span></td>'+cells+'<td><b>'+k.fmt(seriesAvg(r,key))+'</b></td></tr>';
     }).join("");
-    html+='<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:#a3105e;margin-bottom:4px;">'+k.label+'</div>'
+    html+='<div style="margin-bottom:18px;"><div style="font-size:11px;font-weight:800;color:#E8006E;margin-bottom:6px;">'+k.icon+' '+k.label+'</div>'
       +'<table class="tbl"><thead><tr><th>Agent</th>'+weekHeaders+'<th>Moy. agent</th></tr></thead><tbody>'+teamRow+agentRows+'</tbody></table></div>';
   });
-  document.getElementById("team-table-wrap").innerHTML=html;
+  wrapEl.innerHTML=html;
 }
 
 function renderAgentList(){
@@ -469,13 +619,16 @@ function renderAgentList(){
   const cands=candidateAgents().sort((a,b)=>a.nom.localeCompare(b.nom)).filter(a=>!q||a.nom.toLowerCase().includes(q));
   const candIds=new Set(candidateAgents().map(a=>a.id));
   [...selAgents].forEach(id=>{if(!candIds.has(id))selAgents.delete(id);});
-  document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" / "+candidateAgents().length+")";
+  document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sélectionnés / "+candidateAgents().length+")";
   const el=document.getElementById("fb-agents");
-  if(!cands.length){el.innerHTML='<div style="font-size:11px;color:#bbb;padding:6px;">aucun agent dans ces campagnes</div>';return;}
-  el.innerHTML=cands.map(a=>{
-    return '<label class="fb-item"><input type="checkbox" value="'+a.id+'"'+(selAgents.has(a.id)?" checked":"")+'>'+a.nom+' <span style="color:#bbb;font-size:10px;">'+a.camp+'</span></label>';
-  }).join("");
-  el.oninput=e=>{toggleSet(selAgents,isNaN(+e.target.value)?e.target.value:+e.target.value,e.target.checked);document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" / "+candidateAgents().length+")";renderAll();};
+  if(!cands.length){el.innerHTML='<div style="font-size:12px;color:#bbb;padding:12px 10px;">Aucun agent dans ces campagnes</div>';return;}
+  el.innerHTML=cands.map(a=>'<label class="agent-item"><input type="checkbox" value="'+a.id+'"'+(selAgents.has(a.id)?" checked":"")+'>'+
+    '<span class="agent-item-name">'+a.nom+'</span><span class="agent-item-camp">'+a.camp+'</span></label>').join("");
+  el.oninput=e=>{
+    toggleSet(selAgents,isNaN(+e.target.value)?e.target.value:+e.target.value,e.target.checked);
+    document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sélectionnés / "+candidateAgents().length+")";
+    renderAll();
+  };
 }
 function toggleSet(set,val,on){
   let v=val;if(typeof [...set][0]==="number"||(/^\d+$/.test(val)&&set===selAgents))v=+val;
@@ -484,7 +637,7 @@ function toggleSet(set,val,on){
 
 function renderAll(){
   if(!pdata)return;
-  document.getElementById("rank-kpi").textContent="· "+kpi(curKPI).label;
+  document.getElementById("rank-kpi").textContent=kpi(curKPI).icon+" "+kpi(curKPI).label;
   renderTeamAvg();renderEvo();renderRank();renderHeat();
 }
 
@@ -492,32 +645,35 @@ function renderEvo(){
   const recs=selectedAgentRecs();
   const wrap=document.getElementById("evo-chart"),leg=document.getElementById("evo-legend");
   if(!recs.length){wrap.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent.</div>';leg.innerHTML="";return;}
-  const k=kpi(curKPI),W=860,H=320,mL=54,mR=16,mT=14,mB=40,N=pdata.weeks.length;
+  const k=kpi(curKPI),W=880,H=320,mL=58,mR=16,mT=14,mB=44,N=pdata.weeks.length;
   const shown=recs.slice(0,12);
   let vmax=0,vmin=Infinity;
   shown.forEach(r=>seriesVals(r,curKPI).forEach((v,i)=>{if(v!=null&&(k.vol||r.series[i].active)){if(v>vmax)vmax=v;if(v<vmin)vmin=v;}}));
-  // Inclure la moyenne équipe dans l'échelle
   for(let i=0;i<N;i++){const tv=teamWeekAvg(curKPI,i);if(tv!=null){if(tv>vmax)vmax=tv;if(tv<vmin)vmin=tv;}}
   if(!isFinite(vmin))vmin=0;if(vmax<=0)vmax=1;
   const lo=k.vol?0:Math.max(0,Math.floor(vmin*0.9)),hi=Math.ceil(vmax*1.05)||1;
   const x=i=>mL+(N<=1?0:(i/(N-1))*(W-mL-mR));
   const y=v=>H-mB-((v-lo)/((hi-lo)||1))*(H-mT-mB);
-  let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="min-width:560px;font-family:Arial;" role="img">';
-  for(let g=0;g<=4;g++){const vv=lo+(hi-lo)*g/4,yy=y(vv);svg+='<line x1="'+mL+'" y1="'+yy+'" x2="'+(W-mR)+'" y2="'+yy+'" stroke="#eee"/><text x="'+(mL-6)+'" y="'+(yy+3)+'" text-anchor="end" font-size="9" fill="#999">'+k.fmt(vv)+'</text>';}
-  pdata.weeks.forEach((w,i)=>{const off=N-1-i;const lbl=off===0?"réf.":"S-"+off;svg+='<text x="'+x(i)+'" y="'+(H-mB+14)+'" text-anchor="middle" font-size="9" fill="#999">'+lbl+'</text><text x="'+x(i)+'" y="'+(H-mB+25)+'" text-anchor="middle" font-size="8" fill="#bbb">'+fmtDate(w.start)+'</text>';});
-  // Courbe moyenne équipe (pointillés roses)
+  let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="min-width:560px;font-family:\'Segoe UI\',Arial;" role="img">';
+  // Grid
+  for(let g=0;g<=4;g++){const vv=lo+(hi-lo)*g/4,yy=y(vv);svg+='<line x1="'+mL+'" y1="'+yy+'" x2="'+(W-mR)+'" y2="'+yy+'" stroke="#f0f0f0" stroke-width="1"/><text x="'+(mL-8)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#aaa">'+k.fmt(vv)+'</text>';}
+  // Week labels
+  pdata.weeks.forEach((w,i)=>{const off=N-1-i;const lbl=off===0?"réf.":"S-"+off;svg+='<text x="'+x(i)+'" y="'+(H-mB+16)+'" text-anchor="middle" font-size="9.5" fill="#888" font-weight="600">'+lbl+'</text><text x="'+x(i)+'" y="'+(H-mB+28)+'" text-anchor="middle" font-size="8" fill="#bbb">'+fmtDate(w.start)+'</text>';});
+  // Équipe
   const teamPts=[];for(let i=0;i<N;i++){const tv=teamWeekAvg(curKPI,i);if(tv!=null)teamPts.push([x(i),y(tv)]);}
-  if(teamPts.length>1){svg+='<polyline points="'+teamPts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="#E8006E" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.55"/>';}
-  // Courbes agents
+  if(teamPts.length>1)svg+='<polyline points="'+teamPts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="#E8006E" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>';
+  // Agents
   shown.forEach((r,ci)=>{
     const col=PALETTE[ci%PALETTE.length];const pts=[];
     seriesVals(r,curKPI).forEach((v,i)=>{if(v!=null&&(k.vol||r.series[i].active))pts.push([x(i),y(v)]);});
-    if(pts.length>1)svg+='<polyline points="'+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>';
-    pts.forEach(p=>{svg+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.6" fill="'+col+'"/>';});
+    if(pts.length>1)svg+='<polyline points="'+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    pts.forEach(p=>{svg+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="'+col+'" stroke="#fff" stroke-width="1.5"/>';});
   });
   svg+='</svg>';
   wrap.innerHTML=svg;
-  leg.innerHTML='<span><span class="legend-dot" style="background:#E8006E;opacity:.55;border:1px dashed #E8006E;"></span>Moy. équipe</span>'+shown.map((r,ci)=>'<span><span class="legend-dot" style="background:'+PALETTE[ci%PALETTE.length]+'"></span>'+r.nom+'</span>').join("")+(recs.length>12?'<span style="color:#bbb;">+'+(recs.length-12)+' autres (voir tableau)</span>':"");
+  leg.innerHTML='<span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:none;border:1.5px dashed #E8006E;opacity:.7;"></span>Moy. équipe</span>'+
+    shown.map((r,ci)=>'<span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:'+PALETTE[ci%PALETTE.length]+'"></span>'+r.nom+'</span>').join("")+
+    (recs.length>12?'<span style="color:#bbb;">+'+(recs.length-12)+' autres</span>':"");
 }
 
 function renderRank(){
@@ -526,9 +682,8 @@ function renderRank(){
   if(!recs.length){wrap.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent.</div>';return;}
   const sorted=[...recs].sort((a,b)=>{const av=seriesAvg(a,curKPI),bv=seriesAvg(b,curKPI);return k.betterUp?bv-av:av-bv;});
   const head='<tr><th>Agent</th><th>Camp.</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th title="'+w.start+'→'+w.end+'">'+(off===0?"réf.":"S-"+off)+'</th>';}).join("")+'<th>min</th><th>moy</th><th>max</th><th>tendance</th></tr>';
-  // Ligne moyenne équipe
   const teamCells=pdata.weeks.map((_,i)=>{const tv=teamWeekAvg(curKPI,i);return '<td class="cell-team">'+(tv!=null?k.fmt(tv):"–")+'</td>';}).join("");
-  const teamRow='<tr class="avg-row"><td colspan="2"><b>Moy. équipe</b> <span style="font-size:10px;color:#bbb;">(vivier campagnes)</span></td>'+teamCells+'<td>–</td><td class="cell-team"><b>'+(teamOverallAvg(curKPI)!=null?k.fmt(teamOverallAvg(curKPI)):"–")+'</b></td><td>–</td><td></td></tr>';
+  const teamRow='<tr class="avg-row"><td colspan="2"><b>Moy. équipe</b> <span style="font-size:10px;color:#ddd;">(vivier campagnes)</span></td>'+teamCells+'<td>–</td><td class="cell-team"><b>'+(teamOverallAvg(curKPI)!=null?k.fmt(teamOverallAvg(curKPI)):"–")+'</b></td><td>–</td><td></td></tr>';
   const body=sorted.map((r,idx)=>{
     const vals=seriesVals(r,curKPI);
     const num=vals.map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:null).filter(v=>v!=null);
@@ -536,11 +691,11 @@ function renderRank(){
     const cells=vals.map((v,i)=>{
       const valid=v!=null&&(k.vol||r.series[i].active);
       let cls="";if(valid&&mx!==mn){if(v===mx)cls=k.betterUp?"cell-best":"cell-worst";else if(v===mn)cls=k.betterUp?"cell-worst":"cell-best";}
-      return '<td class="'+cls+'">'+(valid?k.fmt(v):'<span style="color:#ccc">–</span>')+'</td>';
+      return '<td class="'+cls+'">'+(valid?k.fmt(v):'<span style="color:#ddd">–</span>')+'</td>';
     }).join("");
     const avg=seriesAvg(r,curKPI);
-    const rankBadge=idx===0?' <span title="Meilleure moyenne" style="color:#1a8f44;">▲ top</span>':(idx===sorted.length-1&&sorted.length>1?' <span title="Plus faible moyenne" style="color:#dc2626;">▼ bas</span>':"");
-    return '<tr><td><b>'+r.nom+'</b>'+rankBadge+'</td><td style="color:#888;">'+r.camp+'</td>'+cells+
+    const rankBadge=idx===0?' <span style="color:#1a8f44;font-size:10px;">▲ top</span>':(idx===sorted.length-1&&sorted.length>1?' <span style="color:#dc2626;font-size:10px;">▼ bas</span>':"");
+    return '<tr><td><b>'+r.nom+'</b>'+rankBadge+'</td><td style="color:#aaa;font-size:11px;">'+r.camp+'</td>'+cells+
       '<td>'+(mn!=null?k.fmt(mn):"–")+'</td><td><b>'+k.fmt(avg)+'</b></td><td>'+(mx!=null?k.fmt(mx):"–")+'</td><td>'+sparkSVG(vals.map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:0))+'</td></tr>';
   }).join("");
   wrap.innerHTML='<table class="tbl"><thead>'+head+'</thead><tbody>'+teamRow+body+'</tbody></table>';
@@ -555,7 +710,7 @@ function renderHeat(){
   if(!isFinite(gmin)){gmin=0;gmax=1;}if(gmax===gmin)gmax=gmin+1;
   function lerp(a,b,t){return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)];}
   function cellColor(v,valid){
-    if(!valid)return "background:#f5f5f5;color:#ccc;";
+    if(!valid)return "background:#f7f7f7;color:#ddd;";
     let t=(v-gmin)/(gmax-gmin);if(!k.betterUp)t=1-t;
     const good=[26,143,68],bad=[220,38,38];
     const mix=t>=0.5?lerp([255,255,255],good,(t-0.5)*2):lerp(bad,[255,255,255],t*2);
@@ -564,22 +719,22 @@ function renderHeat(){
   const sorted=[...recs].sort((a,b)=>{const av=seriesAvg(a,curKPI),bv=seriesAvg(b,curKPI);return k.betterUp?bv-av:av-bv;});
   const head='<tr><th>Agent</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th style="text-align:center;">'+(off===0?"réf.":"S-"+off)+'</th>';}).join("")+'</tr>';
   const body=sorted.map(r=>{
-    const cells=seriesVals(r,curKPI).map((v,i)=>{const valid=v!=null&&(k.vol||r.series[i].active);return '<td style="text-align:center;'+cellColor(v,valid)+'">'+(valid?k.fmt(v):"–")+'</td>';}).join("");
-    return '<tr><td style="white-space:nowrap;"><b>'+r.nom+'</b></td>'+cells+'</tr>';
+    const cells=seriesVals(r,curKPI).map((v,i)=>{const valid=v!=null&&(k.vol||r.series[i].active);return '<td style="text-align:center;border-radius:5px;'+cellColor(v,valid)+'">'+(valid?k.fmt(v):"–")+'</td>';}).join("");
+    return '<tr><td style="white-space:nowrap;font-weight:600;">'+r.nom+'</td>'+cells+'</tr>';
   }).join("");
-  wrap.innerHTML='<table class="tbl" style="border-collapse:separate;border-spacing:2px;"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
+  wrap.innerHTML='<table class="tbl" style="border-collapse:separate;border-spacing:3px;"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
 }
 
 function sparkSVG(data){
   if(!Array.isArray(data)||!data.length)return"";
-  const w=70,h=20,max=Math.max(...data,1),n=data.length;
-  if(n===1)return'<svg width="'+w+'" height="'+h+'"><circle cx="'+(w/2)+'" cy="'+(h-(data[0]/max)*h).toFixed(1)+'" r="2" fill="#E8006E"/></svg>';
+  const w=72,h=22,max=Math.max(...data,1),n=data.length;
+  if(n===1)return'<svg width="'+w+'" height="'+h+'"><circle cx="'+(w/2)+'" cy="'+(h-(data[0]/max)*h).toFixed(1)+'" r="2.5" fill="#E8006E"/></svg>';
   const pts=data.map((v,i)=>(i/(n-1)*w).toFixed(1)+","+(h-(v/max)*h).toFixed(1)).join(" ");
   const col=data[n-1]>=data[n-2]?"#1a8f44":"#E8006E";
-  return'<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.5"/></svg>';
+  return'<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 
-// ---- Modèles ----
+// ─── Modèles ───
 function currentTpl(){return {agents:[...selAgents],kpis:[...selKPIs],camps:[...selCamps],kpi:curKPI,depth:trendDepth,hDeb:trendHDeb,hFin:trendHFin};}
 async function saveTpl(){
   const name=(document.getElementById("tpl-name").value||"").trim();
@@ -590,8 +745,8 @@ async function saveTpl(){
     const r=await fetch(INO_BASE+"/api/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"pilotageTpl",value:tplStore})});
     const d=await r.json();if(!d.ok)throw new Error(d.error||"erreur");
     renderTplSelect();document.getElementById("tpl-select").value=encodeURIComponent(name);
-    showToast("✓ Modèle « "+name+" » enregistré (partagé)");
-  }catch(e){showToast("⚠ Échec d'enregistrement — "+((e&&e.message)||e),"#dc2626");}
+    showToast("✓ Modèle « "+name+" » enregistré");
+  }catch(e){showToast("⚠ Échec — "+((e&&e.message)||e),"#dc2626");}
 }
 function applyTpl(){
   const sel=document.getElementById("tpl-select").value;if(!sel)return;
@@ -600,18 +755,22 @@ function applyTpl(){
   if(t.depth)document.getElementById("f-depth").value=String(t.depth);
   if(t.hDeb)document.getElementById("f-hdeb").value=t.hDeb;
   if(t.hFin)document.getElementById("f-hfin").value=t.hFin;
-  // Restaurer campagnes
   if(t.camps){
     selCamps=new Set(t.camps);
-    document.querySelectorAll("#pre-camps input[data-pc]").forEach(cb=>{cb.checked=selCamps.has(cb.value);});
+    document.querySelectorAll("#pre-camps .camp-pill[data-camp]").forEach(p=>{
+      const c=decodeURIComponent(p.dataset.camp);p.classList.toggle("selected",selCamps.has(c));
+    });
+    const allPill=document.querySelector("#pre-camps #camp-all");
+    if(allPill)allPill.classList.toggle("selected",selCamps.size===CAMPS.length);
+    updateCampCount();
   }
-  // Restaurer KPIs
   if(t.kpis){
     selKPIs=new Set(t.kpis);
-    document.querySelectorAll("#pre-kpis input[data-pk]").forEach(cb=>{cb.checked=selKPIs.has(cb.value);});
+    document.querySelectorAll("#pre-kpis .kpi-card[data-kpk]").forEach(c=>{c.classList.toggle("selected",selKPIs.has(c.dataset.kpk));});
+    updateKpiCount();
   }
   document.getElementById("tpl-name").value=name;
-  if(needReload||!pdata){showToast("Modèle « "+name+" » — rechargement de l'analyse…");loadAnalysis().then(()=>{applyTplSelection(t);});return;}
+  if(needReload||!pdata){showToast("Modèle « "+name+" » — rechargement…");loadAnalysis().then(()=>{applyTplSelection(t);});return;}
   applyTplSelection(t);showToast("✓ Modèle « "+name+" » appliqué");
 }
 function applyTplSelection(t){
@@ -627,11 +786,22 @@ async function delTpl(){
   try{await fetch(INO_BASE+"/api/store",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"pilotageTpl",value:tplStore})});renderTplSelect();showToast("✓ Modèle supprimé");}catch(e){showToast("⚠ Échec suppression","#dc2626");}
 }
 
-function showToast(msg,color){const t=document.getElementById("toast");t.textContent=msg;const c=color||"#1a8f44";t.style.borderColor=c;t.style.color=c;t.style.background=c+"1a";t.style.display="block";setTimeout(()=>t.style.display="none",4500);}
-function connectSSE(){const badge=document.getElementById("sse-badge");try{const es=new EventSource("/events");es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};}catch(e){}}
+function showToast(msg,color){
+  const t=document.getElementById("toast");t.textContent=msg;const c=color||"#1a8f44";
+  t.style.borderLeft="4px solid "+c;t.style.color=c;t.style.background="#fff";
+  t.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";
+  t.style.display="block";setTimeout(()=>t.style.display="none",4500);
+}
+function connectSSE(){
+  const badge=document.getElementById("sse-badge");
+  try{const es=new EventSource("/events");
+    es.onopen=()=>{badge.textContent="● INO connecté";badge.style.background="#0a1e12";badge.style.color="#30d158";};
+    es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};}
+  catch(e){}
+}
 
-// Init
-selKPIs=new Set(KPIS.map(k=>k.key)); // tous KPIs sélectionnés par défaut
+// ─── Init ───
+selKPIs=new Set(KPIS.map(k=>k.key));
 buildPreKPIs();
 const todayStr=isoLocal(new Date());
 const refInput=document.getElementById("ref-date");refInput.value=todayStr;refInput.max=todayStr;
@@ -641,7 +811,9 @@ document.getElementById("tpl-save").addEventListener("click",saveTpl);
 document.getElementById("tpl-load").addEventListener("click",applyTpl);
 document.getElementById("tpl-del").addEventListener("click",delTpl);
 document.querySelector("[data-all='agents']").addEventListener("click",()=>{
-  if(!pdata)return;const c=candidateAgents();selAgents=selAgents.size?new Set():new Set(c.map(a=>a.id));renderAgentList();renderAll();
+  if(!pdata)return;const c=candidateAgents();
+  selAgents=selAgents.size?new Set():new Set(c.map(a=>a.id));
+  renderAgentList();renderAll();
 });
 (async()=>{await loadConfig();await loadTplStore();})();
 connectSSE();
