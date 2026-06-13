@@ -220,8 +220,8 @@ const KPIS=[
   {key:"traites", label:"Appels traités",  fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
   {key:"actes",   label:"Actes totaux",    fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
   {key:"sortants",label:"Appels sortants", fmt:v=>String(Math.round(v)),                         betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
-  {key:"dmt",     label:"DMT",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Traitement (entrants)","Durée des entrants décrochés ÷ appels traités"]},
-  {key:"dmc",     label:"DMC",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Communication","Durée totale de communication ÷ (entrants + sortants)"]},
+  {key:"dmt",     label:"DMT",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW (identique au dashboard)"]},
+  {key:"dmc",     label:"DMC",             fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée de communication des entrants décrochés ÷ entrants décrochés (identique au dashboard)"]},
   {key:"acw",     label:"ACW (post-appel)",fmt:fmtMMSS,                                           betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
   {key:"decroche",label:"Taux décroché",   fmt:v=>v==null?"n.d.":Math.round(v)+"%",              betterUp:true,  vol:false, def:["Part des appels présentés que l'agent a décrochés","Appels traités ÷ appels présentés × 100"]},
   {key:"transfo", label:"Transformation",  fmt:v=>v==null?"n.d.":Math.round(v)+"%",              betterUp:true,  vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
@@ -248,8 +248,11 @@ function agentWeekKPIs(a){
   const total=traites+sortants;
   return {
     traites, sortants, actes:total, present:pres,
-    dmt:a.dmt||0,
-    dmc:total>0?Math.round((a.duree||0)/total):0,
+    // DMT = traitement complet = communication entrante (a.dmt serveur) + post-appel ACW — comme le dashboard.
+    dmt:(a.dmt||0)+(a.acwMoyen||0),
+    // DMC = communication entrante / entrants décrochés (champ serveur a.dmt, cohérent avec le dashboard).
+    // Auparavant : (comm IN+OUT)/(in+out) — formule incohérente avec le reste de la plateforme.
+    dmc:a.dmt||0,
     acw:a.acwMoyen||0,
     decroche:pres>0?Math.round(traites/pres*100):null,
     transfo:(typeof a.transfo==="number")?a.transfo:null,
