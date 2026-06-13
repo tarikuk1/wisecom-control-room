@@ -87,6 +87,10 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     <option value="21">Il y a 3 semaines</option>
     <option value="28">Il y a 4 semaines</option>
   </select>
+  <label for="r-hdeb" title="Plage horaire couverte par le radar (ex. flux du dimanche très matinal ou tardif)">Plage horaire</label>
+  <input type="time" id="r-hdeb" value="08:00" step="1800" style="width:92px;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;">
+  <span style="color:#888;">→</span>
+  <input type="time" id="r-hfin" value="20:00" step="1800" style="width:92px;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;">
   <button class="btn btn-pink" id="btn-radar-load">📡 Générer le radar</button>
   <span style="width:1px;height:22px;background:#e0e0e0;display:inline-block;"></span>
   <label>💾 Modèle</label>
@@ -168,7 +172,19 @@ function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   return names[new Date(dateStr+"T00:00:00").getDay()];
 }
-function hourLabel(h){return `${String(h+8).padStart(2,"0")}h–${String(h+9).padStart(2,"0")}h`;}
+// Libellé d'un créneau d'1h à partir de l'heure absolue (ex. 7 → "07h–08h")
+function hourLabel(hr){return `${String(hr).padStart(2,"0")}h–${String(hr+1).padStart(2,"0")}h`;}
+// Plage horaire choisie par l'utilisateur, normalisée en heures pleines [h0,h1[ (h1 exclu).
+// Une minute de fin > 0 (ex. 20:30) inclut l'heure entamée (jusqu'à 21h).
+function radarHours(){
+  const d0=(document.getElementById("r-hdeb").value||"08:00").split(":");
+  const f0=(document.getElementById("r-hfin").value||"20:00").split(":");
+  let h0=parseInt(d0[0],10)||0;
+  let h1=(parseInt(f0[0],10)||0)+((parseInt(f0[1],10)||0)>0?1:0);
+  if(h1<=h0)h1=h0+1;
+  if(h1>24)h1=24;
+  return {h0,h1};
+}
 // Prochain lundi (les plannings sont préparés une semaine à l'avance)
 function nextMonday(){
   const d=new Date();
@@ -269,21 +285,28 @@ function detectCampaign(queuesStr){
 // et la charge par agent qui en résulte. charge=null signifie "du volume mais aucun agent détecté" (tension critique).
 // camps = tableau de campagnes ; le profil agrège le volume et les agents de TOUT le
 // périmètre sélectionné (permet d'analyser une campagne seule ou un pôle de plusieurs).
-function extractCampaignProfile(dayData,camps){
+function extractCampaignProfile(dayData,camps,h0,h1){
   const campSet=new Set(Array.isArray(camps)?camps:[camps]);
+  const n=h1-h0;
   const slots=Array.isArray(dayData.slots)?dayData.slots:[];
-  const volByHour=Array(12).fill(0);
+  const volByHour=Array(n).fill(0);
   slots.forEach(sl=>{
     const h=parseInt((sl.lbl||"").split(":")[0],10);
-    if(isNaN(h)||h<8||h>=20)return;
-    const idx=h-8;
+    if(isNaN(h)||h<h0||h>=h1)return;
+    const idx=h-h0;
     const qs=sl.queues||{};
     Object.keys(qs).forEach(q=>{ if(campSet.has(detectCampaign(q))) volByHour[idx]+=qs[q]||0; });
   });
   const agents=Array.isArray(dayData.agents)?dayData.agents:[];
-  const activeByHour=Array(12).fill(0);
+  const activeByHour=Array(n).fill(0);
   agents.filter(a=>campSet.has(detectCampaign(a.queues))).forEach(a=>{
-    (a.spark||[]).forEach((v,idx)=>{ if(v>0&&idx<12) activeByHour[idx]++; });
+    const sh=Array.isArray(a.sparkH)?a.sparkH:null; // 24 h (nouveau serveur)
+    for(let h=h0;h<h1;h++){
+      let active=false;
+      if(sh){active=(sh[h]||0)>0;}
+      else if(h>=8&&h<20&&Array.isArray(a.spark)){active=(a.spark[h-8]||0)>0;} // repli ancien format 08–20
+      if(active)activeByHour[h-h0]++;
+    }
   });
   return volByHour.map((vol,idx)=>({
     vol,
@@ -322,11 +345,20 @@ function recommendedAgents(vol,baseline){
   return Math.max(1,Math.ceil(vol/baseline));
 }
 
+// On interroge TOUTE la journée (00:00→23:59) : la sélection de plage horaire devient un simple
+// filtre d'affichage (re-calcul instantané sans réinterroger INO), et aucun flux n'est masqué —
+// y compris les créneaux très matinaux/tardifs (ex. flux du dimanche hors 08–20).
 async function loadDay(date){
   if(dayCache.has(date))return dayCache.get(date);
-  const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=08:00&hFin=20:00`);
-  if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
-  const data=await res.json();
+  // Un échec INO ponctuel (token expiré, timeout) ne doit pas casser tout le radar : on retente une fois.
+  let data=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=00:00&hFin=23:59`);
+    if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
+    data=await res.json();
+    if(!data.error)break;                 // OK
+    if(attempt===0)await new Promise(r=>setTimeout(r,800)); // laisse le serveur renouveler son token INO
+  }
   const todayStr=isoLocal(new Date());
   if(date<todayStr&&!data.error)dayCache.set(date,data); // passé immuable -> cache
   return data;
@@ -343,6 +375,7 @@ async function loadRadar(){
   if(!camps.length){showToast("⚠ Choisissez au moins une campagne","#b45309");return;}
   if(!weekStart){showToast("⚠ Choisissez la semaine à préparer","#b45309");return;}
 
+  const {h0,h1}=radarHours();
   loading=true;
   btn.disabled=true;
   const prevLabel=btn.textContent;
@@ -357,15 +390,15 @@ async function loadRadar(){
       const fromCache=dayCache.has(refDate);
       stEl.textContent=`Analyse jour ${i+1}/7 — ${dayNames[i]} ${fmtDate(targetDate)} (référence : ${fmtDate(refDate)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
       const dayData=await loadDay(refDate);
-      const profile=(dayData&&!dayData.error&&Array.isArray(dayData.agents))?extractCampaignProfile(dayData,camps):null;
-      days.push({date:targetDate,refDate,profile,error:(dayData&&dayData.error)||null});
+      // On conserve la réponse brute (journée complète) : la plage horaire est appliquée au rendu,
+      // ce qui permet de la modifier ensuite sans réinterroger INO (rebuildRadar()).
+      days.push({date:targetDate,refDate,dayData:(dayData&&!dayData.error&&Array.isArray(dayData.agents))?dayData:null,error:(dayData&&dayData.error)||null});
     }
-    const baseline=computeBaseline(days.filter(d=>d.profile).map(d=>d.profile));
-    radarData={camp,camps,weekStart,offset:offsetDays,days,baseline};
-    stEl.textContent=`✓ Radar généré — semaine du ${fmtDate(weekStart)} au ${fmtDate(shiftDateStr(weekStart,6))}, projeté à partir de la semaine du ${fmtDate(refStart)}`;
-    renderHeatmap();
-    renderRadarSynthesis();
-    showToast("✓ Radar de couverture généré");
+    radarData={camp,camps,weekStart,offset:offsetDays,h0,h1,days,baseline:null};
+    rebuildRadar(); // calcule profils + baseline pour la plage horaire courante, puis rend
+    const nEchec=days.filter(d=>d.error).length;
+    stEl.textContent=`✓ Radar généré — semaine du ${fmtDate(weekStart)} au ${fmtDate(shiftDateStr(weekStart,6))}, projeté depuis la semaine du ${fmtDate(refStart)}${nEchec?` · ⚠ ${nEchec} jour(s) sans donnée INO`:""}`;
+    showToast(nEchec?`Radar généré — ${nEchec} jour(s) de référence indisponible(s) côté INO`:"✓ Radar de couverture généré",nEchec?"#b45309":undefined);
   }catch(e){
     const msg=e&&e.message||String(e);
     stEl.textContent="⚠ Génération interrompue — "+msg;
@@ -377,20 +410,34 @@ async function loadRadar(){
   }
 }
 
+// Recalcule les profils (volume/agents/charge par heure) de chaque jour pour la plage horaire
+// courante à partir des réponses INO déjà chargées, recalcule la charge habituelle (baseline)
+// puis redessine. Appelé à la génération ET à chaque changement de plage horaire (sans réseau).
+function rebuildRadar(){
+  if(!radarData)return;
+  const {camps,h0,h1,days}=radarData;
+  days.forEach(d=>{ d.profile=d.dayData?extractCampaignProfile(d.dayData,camps,h0,h1):null; });
+  radarData.baseline=computeBaseline(days.filter(d=>d.profile).map(d=>d.profile));
+  renderHeatmap();
+  renderRadarSynthesis();
+}
+
 function renderHeatmap(){
-  const {camp,days,baseline}=radarData;
+  const {camp,days,baseline,h0,h1}=radarData;
   document.getElementById("radar-camp-label").textContent=camp;
-  document.getElementById("radar-period").textContent=`Semaine du ${dayName(days[0].date)} ${fmtDate(days[0].date)} au ${dayName(days[6].date)} ${fmtDate(days[6].date)}`;
+  document.getElementById("radar-period").textContent=`Semaine du ${dayName(days[0].date)} ${fmtDate(days[0].date)} au ${dayName(days[6].date)} ${fmtDate(days[6].date)} · ${String(h0).padStart(2,"0")}h–${String(h1).padStart(2,"0")}h`;
   const todayStr=isoLocal(new Date());
   const isWk=d=>{const wd=new Date(d+"T00:00:00").getDay();return wd===0||wd===6;};
   // Garde-fou : le jour de référence doit tomber sur le MÊME jour de semaine que le jour projeté
   const misaligned=days.some(d=>new Date(d.date+"T00:00:00").getDay()!==new Date(d.refDate+"T00:00:00").getDay());
   const thead=`<tr><th>Créneau</th>${days.map(d=>`<th class="${isWk(d.date)?"wk":""}${d.date===todayStr?" today":""}" title="Projection basée sur ${dayName(d.refDate)} ${fmtDate(d.refDate)} (même jour de semaine)">${dayName(d.date)} ${fmtDate(d.date)}<br><span style="font-weight:400;color:#777;font-size:10px;">réf. ${dayName(d.refDate).slice(0,3).toLowerCase()} ${fmtDate(d.refDate)}</span></th>`).join("")}</tr>`;
   let tbody="";
-  for(let h=0;h<12;h++){
+  const nH=h1-h0;
+  for(let idx=0;idx<nH;idx++){
+    const h=h0+idx; // heure absolue
     tbody+=`<tr><td><b>${hourLabel(h)}</b></td>`;
     days.forEach(d=>{
-      const cell=d.profile?d.profile[h]:null;
+      const cell=d.profile?d.profile[idx]:null;
       const wkCls=isWk(d.date)?"wk":"";
       if(!cell){
         const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée INO pour le jour de référence ("+fmtDate(d.refDate)+")";
@@ -431,12 +478,13 @@ function renderHeatmap(){
 // Tableau plat (une ligne par jour×créneau) : exploitable en planification,
 // contrairement à la heatmap qui est une vue de lecture.
 function radarExportRows(){
-  const {camp,days,baseline}=radarData;
+  const {camp,days,baseline,h0,h1}=radarData;
   const rows=[["Campagne","Jour","Date","Créneau","Jour de référence","Volume projeté (appels)","Agents actifs (référence)","Charge/agent","Staffing recommandé","Tension"]];
   const LBL={none:"Pas d'activité",unknown:"Inconnue",normal:"Normale",moderate:"Modérée",high:"Forte",critical:"Critique (aucun agent)"};
   days.forEach(d=>{
-    for(let h=0;h<12;h++){
-      const cell=d.profile?d.profile[h]:null;
+    for(let idx=0;idx<(h1-h0);idx++){
+      const h=h0+idx;
+      const cell=d.profile?d.profile[idx]:null;
       if(!cell){rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),"n.d.","n.d.","n.d.","n.d.","Donnée indisponible"]);continue;}
       const reco=recommendedAgents(cell.vol,baseline);
       rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),
@@ -492,7 +540,7 @@ function exportRadarPDF(){
 }
 
 function renderRadarSynthesis(){
-  const {camp,days,baseline}=radarData;
+  const {camp,days,baseline,h0}=radarData;
   const box=document.getElementById("radar-synthesis");
   if(baseline==null){
     box.innerHTML='<div class="empty-hint">Pas assez de données sur la semaine de référence pour établir une charge habituelle pour cette campagne — essayez une autre semaine de référence.</div>';
@@ -501,10 +549,10 @@ function renderRadarSynthesis(){
   const tense=[];
   days.forEach(d=>{
     if(!d.profile)return;
-    d.profile.forEach((cell,h)=>{
+    d.profile.forEach((cell,idx)=>{
       const level=tensionLevel(cell,baseline);
       if(level==="high"||level==="critical"){
-        tense.push({d,h,cell,level,ratio:cell.charge!=null?cell.charge/baseline:Infinity});
+        tense.push({d,h:h0+idx,cell,level,ratio:cell.charge!=null?cell.charge/baseline:Infinity});
       }
     });
   });
@@ -545,7 +593,7 @@ function connectSSE(){
 }
 
 // ── Modèles nommés (partagés via sharedStore.radarTpl) ──
-function currentRadarTpl(){return {camps:getSelCamps(),offset:parseInt(document.getElementById("r-offset").value,10)};}
+function currentRadarTpl(){return {camps:getSelCamps(),offset:parseInt(document.getElementById("r-offset").value,10),hDeb:document.getElementById("r-hdeb").value,hFin:document.getElementById("r-hfin").value};}
 async function saveTpl(){
   const name=(document.getElementById("tpl-name").value||"").trim();
   if(!name){showToast("⚠ Donnez un nom au modèle","#b45309");return;}
@@ -564,6 +612,8 @@ function applyTpl(){
   const set=new Set(t.camps||[]);
   document.querySelectorAll(".camp-cb").forEach(cb=>{cb.checked=set.has(cb.value);});
   if(t.offset)document.getElementById("r-offset").value=String(t.offset);
+  if(t.hDeb)document.getElementById("r-hdeb").value=t.hDeb;
+  if(t.hFin)document.getElementById("r-hfin").value=t.hFin;
   document.getElementById("tpl-name").value=name;
   updateCampSummary();
   showToast("✓ Modèle « "+name+" » appliqué — cliquez sur « Générer le radar »");
@@ -585,6 +635,15 @@ weekInput.addEventListener("change",e=>{
   document.getElementById("radar-status").textContent="";
 });
 document.getElementById("btn-radar-load").addEventListener("click",loadRadar);
+// Changer la plage horaire après génération : re-filtre instantanément les données déjà chargées
+// (aucune nouvelle requête INO — la journée complète est en cache).
+["r-hdeb","r-hfin"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
+  if(!radarData)return;
+  const {h0,h1}=radarHours();
+  radarData.h0=h0;radarData.h1=h1;
+  rebuildRadar();
+  document.getElementById("radar-status").textContent=`✓ Plage horaire ${String(h0).padStart(2,"0")}h–${String(h1).padStart(2,"0")}h appliquée (recalcul instantané)`;
+}));
 document.getElementById("btn-radar-excel").addEventListener("click",exportRadarExcel);
 document.getElementById("btn-radar-pdf").addEventListener("click",exportRadarPDF);
 document.getElementById("tpl-save").addEventListener("click",saveTpl);

@@ -424,7 +424,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     }else{fluxSortants++;}
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
-    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0)};
+    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0),sparkH:Array(24).fill(0)};
     if(type==="in"){
       // Présenté = tout entrant routé à l'agent. Décroché = présenté pris (durée>0, non abandonné).
       agents[k].presentes++;
@@ -440,7 +440,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     if(dt>agents[k].derniereAction)agents[k].derniereAction=dt;
     if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
     tagQualif(agents[k],h.status);
-    if(dt){const _d=new Date(dt);const idx=parisHour(_d)-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;}
+    if(dt){const _d=new Date(dt);const _ph=parisHour(_d);const idx=_ph-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;if(_ph>=0&&_ph<24)agents[k].sparkH[_ph]++;}
     const sk=slotKey(dt);
     if(sk){
       if(!slotsMap[sk])slotsMap[sk]={lbl:sk,vol:0,out:0,aband:0,queues:{}};
@@ -510,7 +510,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       queues:Array.from(a.queues).join(", "),
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
-      spark:a.spark,
+      spark:a.spark,sparkH:a.sparkH,
       // Compétences déclarées dans /agent/list (competences/skills/queues). Disponibles sans
       // les droits /cc/*. Le bouton ↺ Compétences peut ensuite enrichir avec l'état actif/inactif
       // via /cc/agent/:id/flow/voice/skills/list quand le compte de service y a accès.

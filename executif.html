@@ -113,6 +113,9 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   <span style="color:#888;">→</span>
   <input type="time" id="f-hfin" value="23:59" step="1800" style="width:96px;" aria-label="Heure de fin">
   <button class="btn btn-pink" id="btn-load">🔄 Charger l'analyse</button>
+  <span style="width:1px;height:22px;background:#e0e0e0;display:inline-block;"></span>
+  <button class="btn btn-dark" id="btn-exec-excel" disabled title="Exporter toute l'analyse (KPIs, tendance, comparatif, synthèse) au format Excel">⬇ Excel</button>
+  <button class="btn btn-dark" id="btn-exec-pdf" disabled title="Exporter toute l'analyse au format PDF imprimable">⬇ PDF</button>
   <span id="trend-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
   <div style="flex-basis:100%;height:0;"></div>
   <span style="font-size:11px;color:#666;">Choisissez la <b>date de fin</b>, la <b>profondeur</b> (4 semaines, 2 ou 3 mois), la ou les <b>campagnes</b> à analyser et, si besoin, une <b>tranche horaire</b>, puis cliquez sur « Charger l'analyse ». Le filtre campagnes restreint immédiatement KPIs, tendance, comparatif et synthèse. L'agrégation interroge INO semaine par semaine et peut prendre une à deux minutes selon la profondeur.</span>
@@ -185,7 +188,7 @@ select:disabled{opacity:.5;cursor:not-allowed;}
         <tr><td><b>Volume traité</b></td><td>Appels entrants décrochés sur la période</td><td>Décrochés en file INO (<code>fluxCampagnes</code>) si disponibles, sinon somme des appels entrants des agents</td></tr>
         <tr><td><b>Volume présenté</b></td><td>Appels arrivés en file</td><td>Décrochés + abandons (file INO)</td></tr>
         <tr><td><b>QS</b> — Qualité de Service</td><td>Part des appels présentés qui ont été traités</td><td>Volume traité ÷ volume présenté × 100 — <b>abandons inclus</b> au dénominateur</td></tr>
-        <tr><td><b>DMC moyen</b></td><td>Durée Moyenne de Communication</td><td>Durée totale de communication des agents ÷ appels traités par les agents</td></tr>
+        <tr><td><b>DMC moyen</b></td><td>Durée Moyenne de Communication (entrants)</td><td>Durée de communication des appels <b>entrants décrochés</b> ÷ entrants décrochés, pondérée par le volume (même définition que le dashboard). Le temps de communication sortant n'est pas mélangé au dénominateur entrant.</td></tr>
         <tr><td><b>Agents actifs</b></td><td>Effectif ayant produit sur la campagne</td><td>Nombre d'agents distincts avec au moins 1 appel entrant ou sortant</td></tr>
         <tr><td><b>Charge / agent</b></td><td>Intensité de production par agent</td><td>Volume traité ÷ nombre d'agents actifs (appels traités par agent actif)</td></tr>
         <tr><td><b>Δ vs sem. préc.</b></td><td>Écart par rapport à la semaine précédente</td><td>Valeur sem. de référence − valeur semaine précédente (vert = favorable, rose = défavorable)</td></tr>
@@ -357,7 +360,11 @@ function aggregateByCampaign(rawAgents,fluxCamps){
     m.volTraite+=a.appelsIn||0;
     m.volPresente+=a.appelsPresentes||0;
     m.volSortant+=a.appelsOut||0;
-    m.duree+=a.duree||0;
+    // DMC = communication ENTRANTE uniquement : a.dmt (serveur) = durée comm entrante ÷ entrants
+    // décrochés. On reconstitue la durée comm entrante = dmt × décrochés pour la pondérer ensuite
+    // par le volume traité. (Bug corrigé : on accumulait a.duree = comm IN+OUT, puis on divisait par
+    // les seuls entrants → DMC gonflée pour toute campagne faisant du sortant. Aligné sur le dashboard.)
+    m.duree+=(a.dmt||0)*(a.appelsIn||0);
     if(((a.appelsIn||0)+(a.appelsOut||0))>0)m.agentIds.add(a.id);
   });
   // Campagnes avec du trafic en file mais aucun agent rattaché (mutualisation totale)
@@ -417,11 +424,12 @@ async function loadWeek(start,end,cacheable,hDeb,hFin){
     volTraite:hasFx?fxDec:agTraite,
     volPresente:hasFx?(fxDec+fxAb):agPresente,
     volSortant:hasFx?fxSort:agSortant,
-    duree:rawAgents.reduce((s,a)=>s+(a.duree||0),0),
+    // Durée de communication ENTRANTE (dmt × décrochés), pas IN+OUT — cohérence avec le dashboard
+    duree:rawAgents.reduce((s,a)=>s+(a.dmt||0)*(a.appelsIn||0),0),
     nbAgents:new Set(rawAgents.filter(a=>((a.appelsIn||0)+(a.appelsOut||0))>0).map(a=>a.id)).size
   };
   totals.qs=totals.volPresente>0?Math.round(totals.volTraite/totals.volPresente*1000)/10:null;
-  // DMC : durée de comm agents / appels décrochés par les agents (la file n'a pas de durée)
+  // DMC : durée de comm ENTRANTE des agents ÷ entrants décrochés (la file n'a pas de durée)
   totals.dmc=agTraite>0?Math.round(totals.duree/agTraite):0;
   const week={start,end,empty:rawAgents.length===0,byCamp,totals};
   if(cacheable)weekCache.set(key,week);
@@ -630,6 +638,99 @@ function renderAll(){
   renderTrend();
   renderCross();
   renderNarrative();
+  // Activer les exports une fois l'analyse disponible
+  const be=document.getElementById("btn-exec-excel"),bp=document.getElementById("btn-exec-pdf");
+  if(be)be.disabled=false;if(bp)bp.disabled=false;
+}
+
+// ── Exports PDF / Excel — toute l'analyse exécutive ───────────────────
+function execPeriodLabel(){
+  const w=weeksData.weeks,L=w.length;
+  return `${fmtDate(w[0].start)} → ${fmtDate(w[L-1].end)} (${L} sem.${(trendHDeb!=="00:00"||trendHFin!=="23:59")?", "+trendHDeb+"–"+trendHFin:""})`;
+}
+function execScopeLabel(){return campFilterActive()?[...selCampsExec].join(", "):"Toutes les campagnes";}
+
+// Lignes plates des KPIs de la semaine de référence (vs semaine précédente)
+function execKpiRows(){
+  const w=weeksData.weeks,L=w.length;
+  const cur=filteredTotals(w[L-1]),prev=filteredTotals(w[L-2]||w[L-1]);
+  const d=(a,b)=>a==null||b==null?"n.d.":(a-b>=0?"+":"")+(a-b);
+  return [
+    ["Indicateur","Semaine de référence","Semaine précédente","Écart"],
+    ["Volume traité",cur.volTraite,prev.volTraite,d(cur.volTraite,prev.volTraite)],
+    ["QS",cur.qs!=null?cur.qs+"%":"n.d.",prev.qs!=null?prev.qs+"%":"n.d.",d(cur.qs,prev.qs)],
+    ["DMC moyen",fmtMMSS(cur.dmc),fmtMMSS(prev.dmc),fmtMMSS((cur.dmc||0)-(prev.dmc||0))],
+    ["Agents actifs"+(cur._approxAgents?" (cumul camp.)":""),cur.nbAgents,prev.nbAgents,d(cur.nbAgents,prev.nbAgents)],
+    ["Charge / agent",cur.nbAgents>0?(cur.volTraite/cur.nbAgents).toFixed(1):"–",prev.nbAgents>0?(prev.volTraite/prev.nbAgents).toFixed(1):"–",""]
+  ];
+}
+// Tendance de la campagne sélectionnée, métrique × semaines
+function execTrendRows(){
+  const weeks=weeksData.weeks,L=weeks.length,camp=selectedCamp;
+  const head=["Métrique",...weeks.map((w,i)=>{const off=L-1-i;return (off===0?"Sem. réf.":"S-"+off)+" ("+fmtDate(w.start)+"–"+fmtDate(w.end)+")";})];
+  if(!camp)return [head];
+  const rows=weeks.map(w=>w.byCamp.find(x=>x.camp===camp)||{volTraite:0,qs:null,dmc:0,nbAgents:0,chargeParAgent:0});
+  return [
+    head,
+    ["Volume traité",...rows.map(r=>r.volTraite)],
+    ["QS",...rows.map(r=>r.qs!=null?r.qs+"%":"n.d.")],
+    ["DMC moyen",...rows.map(r=>fmtMMSS(r.dmc))],
+    ["Agents actifs",...rows.map(r=>r.nbAgents)],
+    ["Charge / agent",...rows.map(r=>(r.chargeParAgent||0).toFixed(1))]
+  ];
+}
+// Comparatif cross-campagnes (semaine de référence)
+function execCrossRows(){
+  const w=weeksData.weeks,latest=w[w.length-1];
+  const rows=weekRows(latest).slice().sort((a,b)=>b.volTraite-a.volTraite);
+  return [["Campagne","Volume traité","QS","DMC moy.","Agents actifs","Charge / agent"],
+    ...rows.map(c=>[c.camp,c.volTraite,c.qs!=null?c.qs+"%":"n.d.",fmtMMSS(c.dmc),c.nbAgents,(c.chargeParAgent||0).toFixed(1)])];
+}
+function tableToHtmlXls(rows){
+  return '<table border="1" cellspacing="0" cellpadding="3">'+rows.map((r,i)=>'<tr>'+r.map(c=>(i===0?'<th>':'<td>')+(c==null?"":c)+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+'</table>';
+}
+function exportExecExcel(){
+  if(!weeksData){showToast("⚠ Chargez d'abord une analyse","#b45309");return;}
+  const meta='<p style="font-family:Arial;font-size:11px;">Période : '+execPeriodLabel()+' · Périmètre : '+execScopeLabel()+' · Généré le '+new Date().toLocaleString("fr-FR")+'</p>';
+  let body='<h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Analyse exécutive Wisecom INO</h2>'+meta;
+  body+='<h3 style="color:#E8006E;font-family:Arial;font-size:12px;">KPIs — semaine de référence</h3>'+tableToHtmlXls(execKpiRows());
+  body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Tendance — '+(selectedCamp||"—")+'</h3>'+tableToHtmlXls(execTrendRows());
+  body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Comparatif cross-campagnes</h3>'+tableToHtmlXls(execCrossRows());
+  if(cmpData){
+    const c=document.getElementById("cmp-results");const t=c&&c.querySelector("table");
+    if(t)body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Comparateur jours × campagnes</h3>'+t.outerHTML.replace(/<table/,'<table border="1" cellspacing="0" cellpadding="3"');
+  }
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'+
+    '<style>table{border-collapse:collapse;font-family:Arial;font-size:11px;margin-bottom:6px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}</style></head><body>'+body+'</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);const el=document.createElement("a");
+  el.href=url;el.download="Executif_Wisecom_"+(weeksData.ref||"")+".xls";
+  document.body.appendChild(el);el.click();el.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showToast("✓ Export Excel téléchargé");
+}
+function exportExecPDF(){
+  if(!weeksData){showToast("⚠ Chargez d'abord une analyse","#b45309");return;}
+  const grab=id=>{const e=document.getElementById(id);return e?e.innerHTML:"";};
+  const w=window.open("","_blank");
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Analyse exécutive Wisecom</title>'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:14px;}'+
+    'table{border-collapse:collapse;width:100%;margin:4px 0;}td,th{border:1px solid #ccc;padding:4px 6px;font-size:9.5px;text-align:center;}th{background:#f0f0f0;}'+
+    'h1{font-size:15px;color:#E8006E;margin-bottom:4px;}h2{font-size:11px;color:#555;margin:12px 0 6px;font-weight:700;border-bottom:1px solid #eee;padding-bottom:3px;}'+
+    '.summary{display:flex;flex-wrap:wrap;gap:8px;}.card{border:1px solid #ddd;border-radius:6px;padding:8px 12px;min-width:120px;}'+
+    '.card-label{font-size:9px;color:#777;text-transform:uppercase;}.card-value{font-size:16px;font-weight:700;}.card-sub{font-size:8px;color:#888;}'+
+    '.signal,.signal-info,.signal-alert,.signal-ok{border:1px solid #e0d0d0;background:#fafafa;border-radius:6px;padding:6px 9px;margin:4px 0;font-size:10px;line-height:1.5;}'+
+    '@media print{@page{size:A4 landscape;margin:8mm;}}</style></head><body>'+
+    '<h1>📊 Analyse exécutive — Wisecom INO</h1>'+
+    '<div style="font-size:10px;color:#666;">Période : '+execPeriodLabel()+' · Périmètre : '+execScopeLabel()+' · Généré le '+new Date().toLocaleString("fr-FR")+'</div>'+
+    '<h2>KPIs — semaine de référence</h2><div class="summary">'+grab("kpis")+'</div>'+
+    '<h2>Tendance — '+(selectedCamp||"—")+'</h2>'+grab("trend-table-wrap")+grab("signals")+
+    '<h2>Comparatif cross-campagnes</h2>'+(document.getElementById("cross-table")?document.getElementById("cross-table").outerHTML:"")+
+    (cmpData?'<h2>Comparateur jours × campagnes</h2>'+grab("cmp-results"):"")+
+    '<h2>Synthèse &amp; signaux de pilotage</h2>'+grab("narrative")+
+    '</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 function renderKPIs(){
@@ -828,6 +929,8 @@ refInput.addEventListener("change",()=>{
   document.getElementById("trend-status").textContent="";
 });
 document.getElementById("btn-load").addEventListener("click",loadTrend);
+document.getElementById("btn-exec-excel").addEventListener("click",exportExecExcel);
+document.getElementById("btn-exec-pdf").addEventListener("click",exportExecPDF);
 document.getElementById("f-camp").addEventListener("change",e=>{selectedCamp=e.target.value;renderTrend();});
 
 // Comparateur jours × campagnes

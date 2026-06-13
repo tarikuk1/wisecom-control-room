@@ -184,6 +184,10 @@ ul{margin:6px 0 10px 22px;}
   <div class="tip">💡 Plus la profondeur est grande, plus l'agrégation interroge INO (13 semaines = 13 requêtes) — comptez une à deux minutes pour 3 mois. Les semaines entièrement passées sont mises en cache et rechargées instantanément.</div>
   <h3>Définitions des indicateurs ⓘ</h3>
   <p>Un panneau « ⓘ Définitions &amp; mode de calcul » en bas de page détaille chaque indicateur : <b>Volume traité</b>, <b>QS</b>, <b>DMC</b>, <b>Agents actifs</b> et <b>Charge / agent</b> (= volume traité ÷ agents actifs, soit le nombre d'appels traités par agent actif), ainsi que la source des données et l'effet de la tranche horaire.</p>
+  <h3>Export PDF &amp; Excel ⬇</h3>
+  <p>Deux boutons <b>⬇ Excel</b> et <b>⬇ PDF</b> (à côté de « Charger l'analyse ») exportent <b>toute l'analyse</b> pour la partager : KPIs de la semaine de référence, tableau de tendance de la campagne affichée, comparatif cross-campagnes, comparateur jours × campagnes (s'il a été lancé) et synthèse. L'Excel est un classeur de tableaux exploitables ; le PDF est une mise en page imprimable (A4 paysage). Les exports reprennent le périmètre de campagnes et la tranche horaire en cours.</p>
+  <h3>Fiabilité de la DMC</h3>
+  <p>La <b>DMC</b> (Durée Moyenne de Communication) suit désormais <b>partout la même définition</b> que le tableau de bord temps réel : durée de communication des <b>appels entrants décrochés ÷ entrants décrochés</b>, pondérée par le volume. Le temps de communication sortant n'est plus mélangé au dénominateur entrant (correction d'une formule qui gonflait la DMC des campagnes faisant du sortant).</p>
   <h3>Jours fériés 🏖</h3>
   <p>Les jours fériés légaux français (11 fériés fixes + Pâques dynamique) sont signalés par le badge <b>🏖</b> sur les colonnes de la matrice comparateur et dans le détail des données. Les volumes faibles sur ces jours sont donc normaux et attendus.</p>
   <h3>Comparateur jours & campagnes 🆚</h3>
@@ -198,13 +202,16 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="pilotage">
   <h2>5. Pilotage de la productivité 🎯</h2>
-  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. Comme l'Exécutif, choisissez d'abord la <b>date de fin</b>, la <b>profondeur</b> (4 sem. / 2 mois / 3 mois) et la <b>tranche horaire</b>, puis « Charger l'analyse ».</p>
-  <h3>Sélection</h3>
+  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. Tous les <b>critères se choisissent avant de lancer l'analyse</b> dans la barre de sélection : <b>date de fin</b>, <b>profondeur</b> (4 sem. / 2 mois / 3 mois), <b>tranche horaire</b>, <b>campagnes</b> à analyser, <b>indicateurs KPI</b> à afficher, et un <b>filtre par nom d'agent</b>. Puis « Charger l'analyse ».</p>
+  <h3>Sélection (avant chargement)</h3>
   <ul>
-    <li><b>Campagnes</b> et <b>Compétences</b> définissent le <b>vivier d'agents</b> analysés (un agent entre dans le vivier s'il appartient à une campagne cochée et possède une compétence cochée).</li>
-    <li><b>Agents</b> : cochez ceux à comparer (recherche par nom disponible). Par défaut, les 10 agents les plus actifs sont présélectionnés.</li>
-    <li><b>Indicateur</b> : appels traités, actes totaux, sortants, DMT, DMC, ACW, taux de décroché, transformation.</li>
+    <li><b>Campagnes</b> : cochez celles à analyser — elles définissent le <b>vivier d'agents</b>.</li>
+    <li><b>Indicateurs KPI</b> : cochez ceux à suivre (appels traités, actes, sortants, DMT, DMC, ACW, taux de décroché, transformation). Ils alimentent le benchmark équipe.</li>
+    <li><b>Nom d'agent</b> : tapez un nom pour restreindre la présélection d'agents au chargement.</li>
+    <li>Après chargement : cochez les <b>agents</b> à comparer (recherche par nom). Par défaut, les 10 agents les plus actifs du vivier sont présélectionnés.</li>
   </ul>
+  <h3>📐 Moyennes équipe — benchmark</h3>
+  <p>En haut des résultats, un panneau <b>« Moyennes équipe »</b> affiche, pour <b>chaque KPI sélectionné</b> et sur la <b>même période / tranche horaire</b>, la <b>moyenne de tout le vivier</b> (tous les agents des campagnes choisies, pas seulement ceux cochés). Un tableau détaillé compare chaque agent à cette moyenne équipe, semaine par semaine, avec un repère <b>▲ / ▼</b> selon que l'agent est au-dessus ou en dessous de la référence — pour évaluer un agent (ex. QS, actes/heure) face à la moyenne constatée de l'équipe. La moyenne équipe apparaît aussi en pointillé sur les courbes et en tête du classement.</p>
   <h3>Visualisations</h3>
   <ul>
     <li><b>📈 Évolution</b> : une courbe par agent sur les semaines de la période, pour l'indicateur choisi.</li>
@@ -221,8 +228,13 @@ ul{margin:6px 0 10px 22px;}
   <p>Anticipe les tensions de staffing par créneau horaire : le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel.</p>
   <h3>Une ou plusieurs campagnes</h3>
   <p>Le sélecteur <b>Campagnes</b> permet de cocher <b>plusieurs campagnes</b> : le radar agrège alors volume et effectif sur l'ensemble du périmètre — idéal pour analyser un <b>pôle mutualisé</b>. Cochez une seule campagne pour une analyse ciblée.</p>
+  <h3>Plage horaire 🕐</h3>
+  <p>Le radar interroge désormais la <b>journée complète</b> et la <b>plage horaire</b> (champs « Plage horaire ») devient un simple filtre d'affichage : la modifier après génération <b>recalcule instantanément</b> le tableau, sans réinterroger INO. Vous pouvez ainsi élargir au-delà de 08–20 pour faire apparaître des flux matinaux ou tardifs (ex. flux du <b>dimanche</b> hors horaires standards), ou resserrer sur un créneau précis. La plage est enregistrée dans les modèles.</p>
   <h3>Modèles nommés 💾</h3>
-  <p>Enregistrez un périmètre (campagnes + semaine de référence) sous un <b>nom</b> : le modèle est <b>partagé avec l'équipe</b> et réappliqué en un clic (« Appliquer »), puis « Générer le radar ».</p>
+  <p>Enregistrez un périmètre (campagnes + semaine de référence + plage horaire) sous un <b>nom</b> : le modèle est <b>partagé avec l'équipe</b> et réappliqué en un clic (« Appliquer »), puis « Générer le radar ».</p>
+  <h3>Export PDF &amp; Excel ⬇</h3>
+  <p>Les boutons <b>⬇ Excel</b> et <b>⬇ PDF</b> exportent le radar (heatmap + détail par jour et créneau + synthèse) pour le partager ou l'archiver.</p>
+  <div class="tip">💡 Si un jour de référence est indisponible côté INO, le radar le signale (« n.d. ») et retente automatiquement une fois — les autres jours restent exploitables.</div>
   <h3>Définitions ⓘ</h3>
   <p>Un panneau « ⓘ Définitions &amp; mode de calcul » détaille chaque indicateur : volume projeté, agents actifs de référence, <b>charge/agent</b>, charge habituelle (médiane), <b>staffing recommandé</b> (= volume ÷ charge habituelle, à ne pas confondre avec le volume d'appels) et les seuils de tension.</p>
 </section>
