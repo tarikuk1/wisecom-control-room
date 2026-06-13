@@ -101,6 +101,7 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
     <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
     <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/pilotage" class="nav-pill"><span class="n-icon">🎯</span> Pilotage</a>
     <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
     <a href="/astreinte" class="nav-pill"><span class="n-icon">🌙</span> Astreinte</a>
     <a href="/planning" class="nav-pill active"><span class="n-icon">🗓️</span> Planning</a>
@@ -158,6 +159,28 @@ select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6
       <b style="color:#E8006E;">🌙</b> un jour où l'agent est déjà inscrit au registre d'astreinte pour une campagne suivie.
       Le total hebdomadaire est calculé automatiquement à partir des créneaux saisis. Le planning est partagé entre superviseurs et enregistré automatiquement.
     </div>
+  </div>
+
+  <div class="panel" id="hist-panel" style="display:none;">
+    <div class="panel-title"><span>🗂️ Historique, duplication &amp; tendances — <span id="hist-camp-label" style="color:#E8006E;font-weight:700;">–</span></span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+      <button class="btn btn-dark" id="btn-dup-prev" title="Copier le planning de la semaine précédente dans la semaine affichée">⧉ Dupliquer la semaine précédente</button>
+      <label for="hist-from" style="font-size:11px;color:#777;">Dupliquer depuis</label>
+      <select id="hist-from"><option value="">—</option></select>
+      <button class="btn btn-dark" id="btn-dup-from">⧉ Copier vers la semaine affichée</button>
+    </div>
+    <div id="hist-list"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #efefef;">
+      <div style="font-size:11px;color:#777;margin-bottom:8px;">📈 <b>Tendance des jours équivalents</b> (aide à la planification) — volume d'appels moyen par jour de semaine, sur :</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-dark" data-trend="4">1 mois</button>
+        <button class="btn btn-dark" data-trend="8">2 mois</button>
+        <button class="btn btn-dark" data-trend="13">3 mois</button>
+        <span id="ptrend-status" style="font-size:11px;color:#888;"></span>
+      </div>
+      <div id="ptrend-wrap" style="margin-top:10px;"></div>
+    </div>
+    <div class="note">Les semaines passées de chaque campagne sont conservées automatiquement. « Dupliquer » copie le roster et tous les créneaux d'une semaine source dans la semaine affichée (écrase après confirmation) — pour repartir d'une base existante au lieu de tout ressaisir. La tendance interroge INO jour par jour (les jours passés sont mis en cache) et indique le volume d'appels habituel de chaque jour de semaine pour dimensionner le planning.</div>
   </div>
 
   <div class="panel" id="coverage-panel" style="display:none;">
@@ -663,6 +686,7 @@ function renderGrid(){
   const monday=currentMonday();
   const wrap=document.getElementById("planning-table-wrap");
   const dates=weekDates(monday);
+  renderHistoryPanel();
 
   // Période affichée de date à date, avec le jour complet pour faciliter la lecture
   const periodLbl=`${dayName(dates[0])} ${fmtDate(dates[0])} → ${dayName(dates[6])} ${fmtDate(dates[6])}`;
@@ -864,6 +888,130 @@ function setWeek(dateStr){
   document.getElementById("p-week").value=mondayOf(dateStr);
   callDist=null; // la répartition des appels dépend de la semaine — invalider
   renderGrid();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  HISTORIQUE · DUPLICATION · TENDANCES JOURS ÉQUIVALENTS
+//  Chaque semaine est déjà conservée sous la clé "camp|lundi" du store
+//  partagé. On expose ici la mémoire (liste), la duplication (gain de
+//  temps manager) et une tendance d'appels par jour de semaine (1/2/3 mois).
+// ════════════════════════════════════════════════════════════════════
+function savedWeeksFor(camp){
+  const pref=camp+"|";
+  return Object.keys(planning)
+    .filter(k=>k.indexOf(pref)===0&&planning[k]&&Array.isArray(planning[k].roster)&&planning[k].roster.length>0)
+    .map(k=>k.slice(pref.length))
+    .sort((a,b)=>b.localeCompare(a));
+}
+function renderHistoryPanel(){
+  const panel=document.getElementById("hist-panel");
+  if(!panel)return;
+  const campVal=currentCampValue();
+  if(isGroupView(campVal)||!campVal){panel.style.display="none";return;}
+  const camp=campVal,monday=currentMonday();
+  panel.style.display="";
+  document.getElementById("hist-camp-label").textContent=camp;
+  const weeks=savedWeeksFor(camp).filter(m=>m!==monday);
+  const listEl=document.getElementById("hist-list");
+  if(!weeks.length){
+    listEl.innerHTML='<div class="empty-hint" style="padding:10px;">Aucune semaine antérieure enregistrée pour cette campagne. Une fois un planning saisi, il sera réutilisable ici.</div>';
+  }else{
+    listEl.innerHTML='<table class="tbl"><thead><tr><th>Semaine enregistrée</th><th>Agents</th><th>Heures planifiées</th><th></th></tr></thead><tbody>'+
+      weeks.slice(0,12).map(m=>{
+        const e=planning[entryKey(camp,m)]||{roster:[],shifts:{}};
+        const wd=weekDates(m);
+        const hrs=(e.roster||[]).reduce((s,a)=>s+weekTotalMinutes(a,wd,e),0);
+        return '<tr><td><b>'+fmtDate(m)+'</b> → '+fmtDate(shiftDateStr(m,6))+'</td><td>'+(e.roster?e.roster.length:0)+'</td><td>'+(hrs/60).toFixed(1)+' h</td>'+
+          '<td style="white-space:nowrap;"><button class="btn btn-dark" data-go="'+m+'" style="font-size:10px;padding:3px 8px;">Voir</button> '+
+          '<button class="btn btn-dark" data-dup="'+m+'" style="font-size:10px;padding:3px 8px;">⧉ Dupliquer ici</button></td></tr>';
+      }).join("")+'</tbody></table>';
+    listEl.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>setWeek(b.dataset.go)));
+    listEl.querySelectorAll("[data-dup]").forEach(b=>b.addEventListener("click",()=>duplicateWeek(camp,b.dataset.dup,currentMonday())));
+  }
+  const fromSel=document.getElementById("hist-from");
+  fromSel.innerHTML=weeks.length?weeks.map(m=>'<option value="'+m+'">'+fmtDate(m)+' → '+fmtDate(shiftDateStr(m,6))+'</option>').join(""):'<option value="">— aucune —</option>';
+}
+async function duplicateWeek(camp,fromM,toM){
+  if(!camp){showToast("Choisissez une campagne","#b45309");return;}
+  if(!fromM){showToast("Choisissez une semaine source","#b45309");return;}
+  if(fromM===toM){showToast("Source et destination identiques","#b45309");return;}
+  const src=planning[entryKey(camp,fromM)];
+  if(!src||!Array.isArray(src.roster)||!src.roster.length){showToast("La semaine source est vide","#b45309");return;}
+  const dest=getEntry(camp,toM);
+  if(dest&&dest.roster&&dest.roster.length){
+    const ok=await confirmModal("Dupliquer le planning","La semaine affichée contient déjà un planning pour « "+camp+" ». L'écraser avec celui du "+fmtDate(fromM)+" → "+fmtDate(shiftDateStr(fromM,6))+" ?","Écraser");
+    if(!ok)return;
+  }
+  // Remappe chaque créneau (clé "agent|date") sur le même jour de la semaine cible
+  const fromDates=weekDates(fromM),toDates=weekDates(toM),newShifts={};
+  Object.keys(src.shifts||{}).forEach(k=>{
+    const sep=k.lastIndexOf("|"),ag=k.slice(0,sep),dt=k.slice(sep+1);
+    const di=fromDates.indexOf(dt);
+    const nd=di>=0?toDates[di]:dt;
+    newShifts[ag+"|"+nd]=JSON.parse(JSON.stringify(src.shifts[k]));
+  });
+  planning[entryKey(camp,toM)]={roster:src.roster.slice(),shifts:newShifts};
+  _dirtyKeys.add(entryKey(camp,toM));
+  pushPlanning();
+  renderGrid();
+  showToast("✓ Planning du "+fmtDate(fromM)+" dupliqué sur la semaine affichée","#1a8f44");
+}
+
+// Volume d'appels d'une campagne pour une journée /agents-day (file INO prioritaire)
+function campDayVolume(dayData,camp){
+  if(!dayData||dayData.error)return null;
+  const fx=dayData.fluxCampagnes;
+  if(fx&&typeof fx==="object"){
+    if(fx[camp])return (fx[camp].decroches||0)+(fx[camp].abandons||0);
+    return 0; // flux disponible mais aucune activité sur cette campagne ce jour
+  }
+  return null;
+}
+const ptrendDayCache=new Map();
+async function loadEquivTrend(weeksBack){
+  const camp=currentCamp();
+  if(!camp){showToast("Choisissez une campagne (vue simple)","#b45309");return;}
+  const st=document.getElementById("ptrend-status");
+  const monday=currentMonday(),todayStr=isoLocal(new Date());
+  const buckets=[[],[],[],[],[],[],[]]; // 0=Lundi … 6=Dimanche (ordre weekDates)
+  let done=0,total=weeksBack*7;
+  st.textContent="Chargement… 0/"+total;
+  try{
+    for(let w=1;w<=weeksBack;w++){
+      const wd=weekDates(shiftDateStr(monday,-7*w));
+      for(let di=0;di<7;di++){
+        const date=wd[di];
+        if(date>=todayStr){done++;continue;}
+        const ck=date+"|"+camp;
+        let vol;
+        if(ptrendDayCache.has(ck))vol=ptrendDayCache.get(ck);
+        else{
+          const r=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=00:00&hFin=23:59`);
+          const d=await r.json();
+          vol=campDayVolume(d,camp);
+          if(date<todayStr)ptrendDayCache.set(ck,vol);
+        }
+        if(vol!=null)buckets[di].push(vol);
+        done++;st.textContent="Chargement… "+done+"/"+total;
+      }
+    }
+    renderEquivTrend(buckets,weeksBack);
+    st.textContent="✓ "+weeksBack+" semaine(s) analysée(s)";
+  }catch(e){st.textContent="⚠ "+((e&&e.message)||e);}
+}
+function renderEquivTrend(buckets,weeksBack){
+  const names=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+  const avgs=buckets.map(arr=>arr.length?arr.reduce((s,v)=>s+v,0)/arr.length:null);
+  const max=Math.max(1,...avgs.filter(v=>v!=null));
+  const rows=names.map((nm,i)=>{
+    const a=avgs[i],arr=buckets[i];
+    const mn=arr.length?Math.min(...arr):null,mx=arr.length?Math.max(...arr):null;
+    const bar=a!=null?'<div style="background:#E8006E22;border-radius:3px;height:8px;width:130px;display:inline-block;vertical-align:middle;"><div style="background:#E8006E;height:100%;border-radius:3px;width:'+Math.round(a/max*100)+'%;"></div></div>':"";
+    return '<tr><td><b>'+nm+'</b></td><td>'+(a!=null?Math.round(a):'<span style="color:#bbb">n.d.</span>')+'</td><td>'+bar+'</td><td style="color:#888;">'+(arr.length?mn+'–'+mx+' ('+arr.length+' sem.)':'—')+'</td></tr>';
+  }).join("");
+  const lbl=weeksBack===4?"1 mois":weeksBack===8?"2 mois":"3 mois";
+  document.getElementById("ptrend-wrap").innerHTML='<table class="tbl"><thead><tr><th>Jour</th><th>Vol. moyen</th><th></th><th>min–max</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div style="font-size:10px;color:#999;margin-top:6px;">Volume = appels présentés en file (décrochés + abandons), même jour de semaine, sur '+lbl+'. Aide à dimensionner le planning par jour.</div>';
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1074,6 +1222,10 @@ document.getElementById("btn-poles-toggle").addEventListener("click",()=>{
 });
 document.getElementById("pole-create-btn").addEventListener("click",createPole);
 document.getElementById("pole-name-input").addEventListener("keydown",e=>{if(e.key==="Enter")createPole();});
+// Historique / duplication / tendances
+document.getElementById("btn-dup-prev").addEventListener("click",()=>{const c=currentCamp();duplicateWeek(c,shiftDateStr(currentMonday(),-7),currentMonday());});
+document.getElementById("btn-dup-from").addEventListener("click",()=>{const c=currentCamp();duplicateWeek(c,document.getElementById("hist-from").value,currentMonday());});
+document.querySelectorAll("#hist-panel [data-trend]").forEach(b=>b.addEventListener("click",()=>loadEquivTrend(parseInt(b.dataset.trend,10))));
 
 (async function init(){
   await loadConfig();

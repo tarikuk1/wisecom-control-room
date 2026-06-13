@@ -80,12 +80,13 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 <div class="header">
   <div>
     <div><span class="dot"></span><span class="title">TABLEAU DE BORD EXÉCUTIF</span></div>
-    <div class="subtitle">Wisecom · INO · Tendances 4 semaines par campagne · Pilotage staffing & formation</div>
+    <div class="subtitle">Wisecom · INO · Tendances par campagne (4 semaines, 2 ou 3 mois) · Pilotage staffing & formation</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
     <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
     <a href="/executif" class="nav-pill active"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/pilotage" class="nav-pill"><span class="n-icon">🎯</span> Pilotage</a>
     <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
     <a href="/astreinte" class="nav-pill"><span class="n-icon">🌙</span> Astreinte</a>
     <a href="/planning" class="nav-pill"><span class="n-icon">🗓️</span> Planning</a>
@@ -94,24 +95,40 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 </div>
 
 <div class="controls">
-  <label for="ref-date">Semaine de référence (date de fin)</label>
+  <label for="ref-date">Date de fin d'analyse</label>
   <input type="date" id="ref-date" min="2022-01-01">
-  <span style="font-size:11px;color:#444;max-width:320px;">4 semaines glissantes de 7 jours, alignées sur cette date</span>
-  <button class="btn btn-pink" id="btn-load">🔄 Charger les tendances 4 semaines</button>
+  <label for="f-depth">Profondeur</label>
+  <select id="f-depth" aria-label="Profondeur d'analyse" title="Nombre de semaines glissantes analysées">
+    <option value="4">4 semaines</option>
+    <option value="8">2 mois (8 sem.)</option>
+    <option value="13">3 mois (13 sem.)</option>
+  </select>
+  <label>Campagnes</label>
+  <details id="ec-camp-dd" style="position:relative;">
+    <summary id="ec-camp-sum" style="list-style:none;cursor:pointer;background:#fff;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;min-width:150px;display:inline-block;">Toutes</summary>
+    <div id="ec-camp-list" style="position:absolute;z-index:30;left:0;top:34px;background:#fff;border:1px solid #dedede;border-radius:8px;padding:6px 8px;max-height:260px;overflow:auto;min-width:230px;box-shadow:0 6px 18px rgba(0,0,0,.12);"></div>
+  </details>
+  <label for="f-hdeb" title="Restreint l'analyse à une tranche horaire (ex. 08:00–20:00)">Tranche horaire</label>
+  <input type="time" id="f-hdeb" value="00:00" step="1800" style="width:96px;" aria-label="Heure de début">
+  <span style="color:#888;">→</span>
+  <input type="time" id="f-hfin" value="23:59" step="1800" style="width:96px;" aria-label="Heure de fin">
+  <button class="btn btn-pink" id="btn-load">🔄 Charger l'analyse</button>
   <span id="trend-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+  <div style="flex-basis:100%;height:0;"></div>
+  <span style="font-size:11px;color:#666;">Choisissez la <b>date de fin</b>, la <b>profondeur</b> (4 semaines, 2 ou 3 mois), la ou les <b>campagnes</b> à analyser et, si besoin, une <b>tranche horaire</b>, puis cliquez sur « Charger l'analyse ». Le filtre campagnes restreint immédiatement KPIs, tendance, comparatif et synthèse. L'agrégation interroge INO semaine par semaine et peut prendre une à deux minutes selon la profondeur.</span>
 </div>
 
 <div class="content">
 
   <div class="panel">
     <div class="panel-title"><span>📌 KPIs exécutifs — semaine de référence</span><span id="kpi-period" style="color:#666;"></span></div>
-    <div class="summary" id="kpis"><div class="empty-hint">Choisissez une date de référence puis cliquez sur « Charger les tendances 4 semaines » pour afficher les indicateurs de pilotage.<br>⏳ L'agrégation sur 4 semaines interroge INO jour par jour et peut prendre une à deux minutes.</div></div>
+    <div class="summary" id="kpis"><div class="empty-hint">Choisissez la date de fin, la profondeur et la tranche horaire, puis cliquez sur « Charger l'analyse » pour afficher les indicateurs de pilotage.<br>⏳ L'agrégation interroge INO semaine par semaine et peut prendre une à deux minutes selon la profondeur.</div></div>
     <div id="kpi-src-note" style="margin-top:8px;"></div>
   </div>
 
   <div class="panel">
     <div class="panel-title">
-      <span>📊 Tendance 4 semaines — <span id="trend-camp-label" style="color:#E8006E;font-weight:700;">–</span></span>
+      <span>📊 Tendance <span id="trend-depth-label" style="color:#666;font-weight:400;"></span>— <span id="trend-camp-label" style="color:#E8006E;font-weight:700;">–</span></span>
       <select id="f-camp" disabled aria-label="Choisir la campagne à analyser"><option value="">Chargez les données pour choisir une campagne…</option></select>
     </div>
     <div id="trend-table-wrap" style="overflow-x:auto;"><div class="empty-hint">Aucune donnée chargée pour le moment.</div></div>
@@ -157,7 +174,26 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 
   <div class="panel">
     <div class="panel-title"><span>🧭 Synthèse & signaux de pilotage</span></div>
-    <div id="narrative"><div class="empty-hint">La synthèse automatique cross-campagnes apparaîtra ici une fois les 4 semaines chargées.</div></div>
+    <div id="narrative"><div class="empty-hint">La synthèse automatique cross-campagnes apparaîtra ici une fois l'analyse chargée.</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><span>ⓘ Définitions &amp; mode de calcul des indicateurs</span></div>
+    <table class="tbl">
+      <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
+      <tbody>
+        <tr><td><b>Volume traité</b></td><td>Appels entrants décrochés sur la période</td><td>Décrochés en file INO (<code>fluxCampagnes</code>) si disponibles, sinon somme des appels entrants des agents</td></tr>
+        <tr><td><b>Volume présenté</b></td><td>Appels arrivés en file</td><td>Décrochés + abandons (file INO)</td></tr>
+        <tr><td><b>QS</b> — Qualité de Service</td><td>Part des appels présentés qui ont été traités</td><td>Volume traité ÷ volume présenté × 100 — <b>abandons inclus</b> au dénominateur</td></tr>
+        <tr><td><b>DMC moyen</b></td><td>Durée Moyenne de Communication</td><td>Durée totale de communication des agents ÷ appels traités par les agents</td></tr>
+        <tr><td><b>Agents actifs</b></td><td>Effectif ayant produit sur la campagne</td><td>Nombre d'agents distincts avec au moins 1 appel entrant ou sortant</td></tr>
+        <tr><td><b>Charge / agent</b></td><td>Intensité de production par agent</td><td>Volume traité ÷ nombre d'agents actifs (appels traités par agent actif)</td></tr>
+        <tr><td><b>Δ vs sem. préc.</b></td><td>Écart par rapport à la semaine précédente</td><td>Valeur sem. de référence − valeur semaine précédente (vert = favorable, rose = défavorable)</td></tr>
+        <tr><td><b>Profondeur</b></td><td>Étendue de l'analyse de tendance</td><td>4 semaines, 2 mois (8 sem.) ou 3 mois (13 sem.) glissantes alignées sur la date de fin</td></tr>
+        <tr><td><b>🏖 Jour férié</b></td><td>Jour férié légal français</td><td>Activité naturellement faible — non comparable aux jours ouvrés</td></tr>
+      </tbody>
+    </table>
+    <div style="font-size:10px;color:#999;margin-top:8px;">Sources : files d'appel INO (<code>fluxCampagnes</code>) quand disponibles — plus fiables que l'agrégation par agent (abandons inclus, hors horaires exclus). La tranche horaire choisie restreint l'ensemble des indicateurs à ce créneau.</div>
   </div>
 
 </div>
@@ -172,7 +208,53 @@ let QUEUES_MAP = {};
 let weeksData = null;     // {ref, weeks:[{start,end,empty,byCamp:[...],totals:{...}}, ...]} — ordre chronologique S-3 → réf.
 let selectedCamp = null;
 let loading = false;
-const weekCache = new Map(); // clé "start|end" -> semaine agrégée (immuable une fois la semaine entièrement passée)
+let trendDepth = 4;       // nombre de semaines glissantes analysées (4 / 8 / 13)
+let trendHDeb = "00:00";  // tranche horaire de l'analyse (bornes incluses)
+let trendHFin = "23:59";
+let selCampsExec = new Set(); // campagnes retenues pour l'analyse (vide = toutes)
+
+// Filtre campagnes actif uniquement si une partie des campagnes est sélectionnée
+function campFilterActive(){return selCampsExec.size>0 && selCampsExec.size<CAMPS.length;}
+function activeCamps(){return campFilterActive()?selCampsExec:null;}
+// Lignes byCamp d'une semaine restreintes aux campagnes sélectionnées
+function weekRows(week){const ac=activeCamps();return ac?week.byCamp.filter(c=>ac.has(c.camp)):week.byCamp;}
+// Totaux recalculés sur le périmètre de campagnes choisi (sinon totaux globaux serveur)
+function filteredTotals(week){
+  if(!campFilterActive())return week.totals;
+  let vt=0,vp=0,vs=0,dur=0,ag=0;
+  weekRows(week).forEach(c=>{vt+=c.volTraite||0;vp+=c.volPresente||0;vs+=c.volSortant||0;dur+=(c.dmc||0)*(c.volTraite||0);ag+=c.nbAgents||0;});
+  // nbAgents = somme par campagne (un agent mutualisé peut être compté sur plusieurs campagnes)
+  return {volTraite:vt,volPresente:vp,volSortant:vs,nbAgents:ag,qs:vp>0?Math.round(vt/vp*1000)/10:null,dmc:vt>0?Math.round(dur/vt):0,_approxAgents:true};
+}
+function getSelCampsExec(){return Array.from(document.querySelectorAll(".ec-camp-cb:checked")).map(cb=>cb.value);}
+function updateExecCampSummary(){
+  const n=selCampsExec.size;
+  let t;
+  if(n===0||n===CAMPS.length)t="Toutes ("+CAMPS.length+")";
+  else if(n<=2)t=[...selCampsExec].join(" + ");
+  else t=n+" campagnes";
+  const el=document.getElementById("ec-camp-sum");if(el)el.textContent=t;
+}
+function onExecCampChange(){
+  selCampsExec=new Set(getSelCampsExec());
+  updateExecCampSummary();
+  if(weeksData){populateCampSelect();renderAll();}
+}
+function populateExecCampFilter(){
+  const list=document.getElementById("ec-camp-list");
+  if(!list)return;
+  if(!CAMPS.length){list.innerHTML='<div style="font-size:11px;color:#bbb;">Aucune campagne</div>';return;}
+  list.innerHTML='<div style="display:flex;gap:8px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:6px;">'+
+    '<button class="btn btn-dark" id="ec-all" style="font-size:10px;padding:3px 8px;">Tout</button>'+
+    '<button class="btn btn-dark" id="ec-none" style="font-size:10px;padding:3px 8px;">Aucun</button></div>'+
+    CAMPS.map(c=>'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#444;padding:2px 0;cursor:pointer;"><input type="checkbox" class="ec-camp-cb" value="'+c.replace(/"/g,"&quot;")+'" checked style="accent-color:#E8006E;">'+c+'</label>').join("");
+  selCampsExec=new Set(CAMPS);
+  list.addEventListener("change",onExecCampChange);
+  document.getElementById("ec-all").addEventListener("click",e=>{e.preventDefault();document.querySelectorAll(".ec-camp-cb").forEach(cb=>cb.checked=true);onExecCampChange();});
+  document.getElementById("ec-none").addEventListener("click",e=>{e.preventDefault();document.querySelectorAll(".ec-camp-cb").forEach(cb=>cb.checked=false);onExecCampChange();});
+  updateExecCampSummary();
+}
+const weekCache = new Map(); // clé "start|end|hDeb|hFin" -> semaine agrégée (immuable une fois la semaine entièrement passée)
 
 // État du comparateur jours × campagnes (indépendant de weeksData — interroge INO jour par jour à la demande)
 let cmpDays = [];        // jours sélectionnés "YYYY-MM-DD", triés chronologiquement
@@ -233,6 +315,7 @@ async function loadConfig(){
     showToast("⚠ Configuration des campagnes indisponible — détection approximative","#b45309");
   }
   renderCmpCampChecks();
+  populateExecCampFilter();
 }
 
 // Détection de la campagne principale d'un agent à partir de ses files INO brutes —
@@ -310,10 +393,11 @@ function weekRange(ref,n){
   return{start,end};
 }
 
-async function loadWeek(start,end,cacheable){
-  const key=`${start}|${end}`;
+async function loadWeek(start,end,cacheable,hDeb,hFin){
+  const hd=hDeb||trendHDeb||"00:00", hf=hFin||trendHFin||"23:59";
+  const key=`${start}|${end}|${hd}|${hf}`;
   if(cacheable&&weekCache.has(key))return weekCache.get(key);
-  const res=await fetch(`${INO_BASE}/agents-day?date=${start}&dateFin=${end}&hDeb=00:00&hFin=24:00`);
+  const res=await fetch(`${INO_BASE}/agents-day?date=${start}&dateFin=${end}&hDeb=${hd}&hFin=${hf}`);
   if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
   const data=await res.json();
   if(data.error)throw new Error(data.error);
@@ -349,29 +433,36 @@ async function loadTrend(){
   const ref=document.getElementById("ref-date").value;
   const stEl=document.getElementById("trend-status");
   const btn=document.getElementById("btn-load");
-  if(!ref){showToast("⚠ Choisissez une date de référence d'abord","#b45309");return;}
+  if(!ref){showToast("⚠ Choisissez une date de fin d'analyse d'abord","#b45309");return;}
+  // Lecture des paramètres choisis AVANT l'analyse (profondeur + tranche horaire)
+  trendDepth=parseInt((document.getElementById("f-depth")||{}).value,10)||4;
+  trendHDeb=(document.getElementById("f-hdeb")||{}).value||"00:00";
+  trendHFin=(document.getElementById("f-hfin")||{}).value||"23:59";
+  const N=trendDepth;
+  const slotLabel=(trendHDeb!=="00:00"||trendHFin!=="23:59")?`, ${trendHDeb}–${trendHFin}`:"";
   const todayStr=isoLocal(new Date());
   loading=true;
   btn.disabled=true;
   const prevLabel=btn.textContent;
   btn.textContent="⏳ Chargement…";
   try{
-    const ranges=[3,2,1,0].map(n=>weekRange(ref,n)); // ordre chronologique : S-3 (plus ancienne) → semaine de référence
+    // Ordre chronologique : semaine la plus ancienne (S-(N-1)) → semaine de référence (S-0)
+    const ranges=Array.from({length:N},(_,k)=>weekRange(ref,N-1-k));
     const weeks=[];
     for(let i=0;i<ranges.length;i++){
       const{start,end}=ranges[i];
       // Une semaine n'est immuable (donc cacheable sans risque) que si elle est entièrement passée
       const cacheable=end<todayStr;
-      const fromCache=cacheable&&weekCache.has(`${start}|${end}`);
-      stEl.textContent=`Chargement semaine ${i+1}/4 (${fmtDate(start)} → ${fmtDate(end)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
+      const fromCache=cacheable&&weekCache.has(`${start}|${end}|${trendHDeb}|${trendHFin}`);
+      stEl.textContent=`Chargement semaine ${i+1}/${N} (${fmtDate(start)} → ${fmtDate(end)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
       const w=await loadWeek(start,end,cacheable);
       weeks.push(w);
     }
     weeksData={ref,weeks};
-    stEl.textContent=`✓ Période chargée : ${fmtDate(weeks[0].start)} → ${fmtDate(weeks[3].end)} (4 semaines glissantes)`;
+    stEl.textContent=`✓ Période chargée : ${fmtDate(weeks[0].start)} → ${fmtDate(weeks[weeks.length-1].end)} (${N} semaines glissantes${slotLabel})`;
     populateCampSelect();
     renderAll();
-    showToast("✓ Tendances 4 semaines chargées avec succès");
+    showToast(`✓ Analyse ${N} semaines chargée avec succès`);
   }catch(e){
     const msg=e&&e.message||String(e);
     stEl.textContent="⚠ Chargement interrompu — "+msg;
@@ -387,9 +478,10 @@ function populateCampSelect(){
   if(!weeksData)return;
   const sel=document.getElementById("f-camp");
   const latest=weeksData.weeks[weeksData.weeks.length-1];
-  const order=latest.byCamp.map(c=>c.camp);
+  const ac=activeCamps();
+  const order=latest.byCamp.map(c=>c.camp).filter(c=>!ac||ac.has(c));
   const all=new Set();
-  weeksData.weeks.forEach(w=>w.byCamp.forEach(c=>all.add(c.camp)));
+  weeksData.weeks.forEach(w=>w.byCamp.forEach(c=>{if(!ac||ac.has(c.camp))all.add(c.camp);}));
   const sorted=[...all].sort((a,b)=>{
     const ia=order.indexOf(a),ib=order.indexOf(b);
     if(ia===-1&&ib===-1)return a.localeCompare(b);
@@ -460,10 +552,10 @@ async function runCompare(){
     for(let i=0;i<cmpDays.length;i++){
       const d=cmpDays[i];
       const cacheable=d<todayStr2;
-      const fromCache=cacheable&&weekCache.has(`${d}|${d}`);
+      const fromCache=cacheable&&weekCache.has(`${d}|${d}|00:00|23:59`);
       stEl.textContent=`Chargement jour ${i+1}/${cmpDays.length} (${fmtDate(d)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
       btn.textContent="⏳ Comparaison…";
-      const w=await loadWeek(d,d,cacheable); // hDeb=00:00&hFin=24:00 déjà dans loadWeek
+      const w=await loadWeek(d,d,cacheable,"00:00","23:59"); // comparateur = journée complète
       dayData.set(d,w);
     }
     cmpData={days:[...cmpDays],camps,dayData};
@@ -542,12 +634,14 @@ function renderAll(){
 
 function renderKPIs(){
   const weeks=weeksData.weeks;
-  const cur=weeks[3].totals,prev=weeks[2].totals;
+  const L=weeks.length;
+  const cur=filteredTotals(weeks[L-1]),prev=filteredTotals(weeks[L-2]||weeks[L-1]);
   const todayStr2=isoLocal(new Date());
-  const refEnd=weeks[3].end;
-  const partialDays=refEnd>todayStr2?Math.max(0,Math.round((new Date(todayStr2+"T00:00:00")-new Date(weeks[3].start+"T00:00:00"))/86400000)+1):7;
+  const refEnd=weeks[L-1].end;
+  const partialDays=refEnd>todayStr2?Math.max(0,Math.round((new Date(todayStr2+"T00:00:00")-new Date(weeks[L-1].start+"T00:00:00"))/86400000)+1):7;
   const partialLabel=refEnd>todayStr2?` (en cours — ${partialDays} j / 7)`:"";
-  document.getElementById("kpi-period").textContent=`${fmtDateLong(weeks[3].start)} → ${fmtDateLong(weeks[3].end)}${partialLabel}`;
+  const scopeLabel=campFilterActive()?` · ${selCampsExec.size} campagne(s) sélectionnée(s)`:"";
+  document.getElementById("kpi-period").textContent=`${fmtDateLong(weeks[L-1].start)} → ${fmtDateLong(weeks[L-1].end)}${partialLabel}${scopeLabel}`;
   // Note transparence source données
   const srcNote=document.getElementById("kpi-src-note");
   if(srcNote)srcNote.innerHTML='<span style="font-size:10px;color:#999;">Sources : files d\'appel INO (fluxCampagnes) quand disponibles — plus fiables que l\'agrégation agents. Les jours fériés (🏖) affichent naturellement une activité très basse.</span>';
@@ -557,22 +651,25 @@ function renderKPIs(){
     <div class="card"><div class="card-label">Volume traité</div><div class="card-value">${cur.volTraite}</div><div class="card-sub">${trendDelta(cur.volTraite,prev.volTraite,true,(d,p)=>d+(p>0?` (${(d/p*100).toFixed(0)}%)`:""))} vs sem. préc.</div></div>
     <div class="card"><div class="card-label">QS globale</div><div class="card-value" style="color:${qsColor}">${cur.qs!=null?cur.qs+"%":"–"}</div><div class="card-sub">${trendDelta(cur.qs,prev.qs,true,d=>d.toFixed(1)+" pt")} vs sem. préc.</div></div>
     <div class="card"><div class="card-label">DMC moyen</div><div class="card-value">${fmtMMSS(cur.dmc)}</div><div class="card-sub">${trendDelta(cur.dmc,prev.dmc,false,d=>fmtMMSS(d))} vs sem. préc.</div></div>
-    <div class="card"><div class="card-label">Agents actifs</div><div class="card-value" style="color:#E8006E;">${cur.nbAgents}</div><div class="card-sub">${trendDelta(cur.nbAgents,prev.nbAgents,null,d=>String(d))} vs sem. préc.</div></div>
+    <div class="card"><div class="card-label">Agents actifs${cur._approxAgents?' <span title="Cumul par campagne sélectionnée — un agent mutualisé peut être compté sur plusieurs campagnes" style="color:#bbb;cursor:help;">*</span>':''}</div><div class="card-value" style="color:#E8006E;">${cur.nbAgents}</div><div class="card-sub">${trendDelta(cur.nbAgents,prev.nbAgents,null,d=>String(d))} vs sem. préc.${cur._approxAgents?' · cumul campagnes':''}</div></div>
     <div class="card"><div class="card-label">Charge / agent</div><div class="card-value">${chargeAgent}</div><div class="card-sub">appels traités par agent actif</div></div>
   `;
 }
 
 function renderTrend(){
   const weeks=weeksData.weeks;
+  const L=weeks.length;
   const camp=selectedCamp;
   document.getElementById("trend-camp-label").textContent=camp||"–";
+  const _dl=document.getElementById("trend-depth-label");
+  if(_dl)_dl.textContent=`(${L} sem.${(trendHDeb!=="00:00"||trendHFin!=="23:59")?" · "+trendHDeb+"–"+trendHFin:""}) `;
   if(!camp){
     document.getElementById("trend-table-wrap").innerHTML='<div class="empty-hint">Aucune campagne active détectée sur cette période.</div>';
     document.getElementById("signals").innerHTML="";
     return;
   }
   const rows=weeks.map(w=>w.byCamp.find(x=>x.camp===camp)||{camp,volTraite:0,volPresente:0,volSortant:0,nbAgents:0,qs:null,dmc:0,chargeParAgent:0});
-  const lbl=i=>{const off=3-i;return off===0?"Sem. réf.":`S-${off}`;};
+  const lbl=i=>{const off=L-1-i;return off===0?"Sem. réf.":`S-${off}`;};
   const metrics=[
     {name:"Volume traité",vals:rows.map(r=>r.volTraite),fmt:v=>String(v),betterUp:true,diff:(d,p)=>d+(p>0?` (${(d/p*100).toFixed(0)}%)`:"")},
     {name:"QS",vals:rows.map(r=>r.qs),fmt:v=>v==null?"–":v+"%",betterUp:true,diff:d=>d.toFixed(1)+" pt"},
@@ -583,7 +680,7 @@ function renderTrend(){
   const thead=`<tr><th>Métrique</th>${weeks.map((w,i)=>`<th title="${fmtDateLong(w.start)} → ${fmtDateLong(w.end)}">${lbl(i)}<br><span style="font-weight:400;color:#555;font-size:10px;">${fmtDate(w.start)}–${fmtDate(w.end)}</span></th>`).join("")}<th>Tendance</th><th>Δ vs sem. préc.</th></tr>`;
   const tbody=metrics.map(m=>{
     const cells=m.vals.map(v=>`<td>${m.fmt(v)}</td>`).join("");
-    const last=m.vals[3],prev=m.vals[2];
+    const last=m.vals[L-1],prev=m.vals[L-2];
     const delta=trendDelta(last,prev,m.betterUp,(d,p)=>m.diff(d,prev));
     return`<tr><td><b>${m.name}</b></td>${cells}<td>${sparkSVG(m.vals.map(v=>v||0))}</td><td>${delta}</td></tr>`;
   }).join("");
@@ -599,24 +696,27 @@ function renderSignals(rows){
   const charge=rows.map(r=>r.chargeParAgent);
   const nbAg=rows.map(r=>r.nbAgents);
   const signals=[];
+  // Comparaison début → fin de période (robuste quelle que soit la profondeur : 4, 8 ou 13 sem.)
+  const f=0,l=rows.length-1;
+  const nbLbl=`${rows.length} dernières semaines`;
 
   const allPos=vol.every(v=>v>0);
-  if(allPos&&vol[1]>vol[0]*1.1&&vol[2]>vol[1]*1.1&&vol[3]>vol[2]*1.1){
-    signals.push({icon:"📈",cls:"signal-warn",txt:`Hausse continue du volume traité sur les 4 dernières semaines (${vol[0]} → ${vol[3]} appels, ${pctSigned(vol[3],vol[0])}) — un pic est probable : anticiper un renfort de staffing ou des heures supplémentaires sur cette campagne.`});
-  }else if(allPos&&vol[1]<vol[0]*0.9&&vol[2]<vol[1]*0.9&&vol[3]<vol[2]*0.9){
-    signals.push({icon:"📉",cls:"signal-info",txt:`Baisse continue du volume traité sur les 4 dernières semaines (${vol[0]} → ${vol[3]} appels, ${pctSigned(vol[3],vol[0])}) — opportunité de redéployer une partie des effectifs vers d'autres campagnes.`});
+  if(allPos&&vol[l]>vol[f]*1.15){
+    signals.push({icon:"📈",cls:"signal-warn",txt:`Hausse du volume traité sur les ${nbLbl} (${vol[f]} → ${vol[l]} appels, ${pctSigned(vol[l],vol[f])}) — un pic est probable : anticiper un renfort de staffing ou des heures supplémentaires sur cette campagne.`});
+  }else if(allPos&&vol[l]<vol[f]*0.85){
+    signals.push({icon:"📉",cls:"signal-info",txt:`Baisse du volume traité sur les ${nbLbl} (${vol[f]} → ${vol[l]} appels, ${pctSigned(vol[l],vol[f])}) — opportunité de redéployer une partie des effectifs vers d'autres campagnes.`});
   }
-  if(qs[0]!=null&&qs[3]!=null&&(qs[3]-qs[0])<=-5){
-    signals.push({icon:"⚠",cls:"signal-alert",txt:`Dégradation de la qualité de service de ${(qs[0]-qs[3]).toFixed(1)} pts entre S-3 et la semaine de référence (${qs[0]}% → ${qs[3]}%) — un point formation/coaching ciblé est recommandé.`});
+  if(qs[f]!=null&&qs[l]!=null&&(qs[l]-qs[f])<=-5){
+    signals.push({icon:"⚠",cls:"signal-alert",txt:`Dégradation de la qualité de service de ${(qs[f]-qs[l]).toFixed(1)} pts entre le début et la fin de la période (${qs[f]}% → ${qs[l]}%) — un point formation/coaching ciblé est recommandé.`});
   }
-  if(charge[0]>0&&charge[3]>charge[0]*1.15&&nbAg[3]<=nbAg[0]){
-    signals.push({icon:"⚠",cls:"signal-alert",txt:`La charge par agent augmente (${charge[0]} → ${charge[3]} appels/agent) sans renfort d'effectif (${nbAg[0]} → ${nbAg[3]} agents) — risque de surcharge à anticiper côté staffing.`});
+  if(charge[f]>0&&charge[l]>charge[f]*1.15&&nbAg[l]<=nbAg[f]){
+    signals.push({icon:"⚠",cls:"signal-alert",txt:`La charge par agent augmente (${charge[f]} → ${charge[l]} appels/agent) sans renfort d'effectif (${nbAg[f]} → ${nbAg[l]} agents) — risque de surcharge à anticiper côté staffing.`});
   }
-  if(dmc[0]>0&&(dmc[3]-dmc[0])>=30){
-    signals.push({icon:"ℹ",cls:"signal-info",txt:`La durée moyenne de communication s'allonge (${fmtMMSS(dmc[0])} → ${fmtMMSS(dmc[3])}) — à vérifier : complexité croissante des dossiers, besoin de formation ou de scripts d'aide.`});
+  if(dmc[f]>0&&(dmc[l]-dmc[f])>=30){
+    signals.push({icon:"ℹ",cls:"signal-info",txt:`La durée moyenne de communication s'allonge (${fmtMMSS(dmc[f])} → ${fmtMMSS(dmc[l])}) — à vérifier : complexité croissante des dossiers, besoin de formation ou de scripts d'aide.`});
   }
   if(signals.length===0){
-    signals.push({icon:"✓",cls:"signal-ok",txt:"Tendance globalement stable sur les 4 dernières semaines — aucun signal de management particulier détecté pour cette campagne."});
+    signals.push({icon:"✓",cls:"signal-ok",txt:`Tendance globalement stable sur les ${nbLbl} — aucun signal de management particulier détecté pour cette campagne.`});
   }
   document.getElementById("signals").innerHTML=signals.map(s=>`<div class="signal ${s.cls}"><span class="signal-icon">${s.icon}</span><span>${s.txt}</span></div>`).join("");
 }
@@ -624,7 +724,7 @@ function renderSignals(rows){
 function renderCross(){
   const latest=weeksData.weeks[weeksData.weeks.length-1];
   document.getElementById("cross-period").textContent=`(${fmtDateLong(latest.start)} → ${fmtDateLong(latest.end)})`;
-  const rows=latest.byCamp.filter(c=>c.volTraite>0||c.volPresente>0);
+  const rows=weekRows(latest).filter(c=>c.volTraite>0||c.volPresente>0);
   if(!rows.length){
     document.getElementById("cross-tbody").innerHTML='<tr><td colspan="6" class="loading">Aucune activité détectée sur cette période</td></tr>';
     return;
@@ -647,7 +747,8 @@ function renderCross(){
 function renderNarrative(){
   const weeks=weeksData.weeks;
   const oldest=weeks[0],latest=weeks[weeks.length-1];
-  const campsBoth=oldest.byCamp.map(c=>c.camp).filter(c=>latest.byCamp.some(x=>x.camp===c));
+  const ac=activeCamps();
+  const campsBoth=oldest.byCamp.map(c=>c.camp).filter(c=>latest.byCamp.some(x=>x.camp===c)&&(!ac||ac.has(c)));
   const deltas=campsBoth.map(camp=>{
     const o=oldest.byCamp.find(x=>x.camp===camp);
     const l=latest.byCamp.find(x=>x.camp===camp);
@@ -663,7 +764,9 @@ function renderNarrative(){
   const worstQs=byQs[0];
 
   const sentences=[];
-  sentences.push(`Sur les 4 dernières semaines (du ${fmtDateLong(oldest.start)} au ${fmtDateLong(latest.end)}), le volume global traité est passé de <b>${oldest.totals.volTraite}</b> à <b>${latest.totals.volTraite}</b> appels (${pctSigned(latest.totals.volTraite,oldest.totals.volTraite)}), pour une QS de <b>${latest.totals.qs!=null?latest.totals.qs+"%":"n.d."}</b> sur la semaine de référence.`);
+  const oT=filteredTotals(oldest),lT=filteredTotals(latest);
+  const scopeTxt=campFilterActive()?` (${selCampsExec.size} campagne(s) sélectionnée(s))`:"";
+  sentences.push(`Sur les ${weeks.length} dernières semaines (du ${fmtDateLong(oldest.start)} au ${fmtDateLong(latest.end)})${scopeTxt}, le volume traité est passé de <b>${oT.volTraite}</b> à <b>${lT.volTraite}</b> appels (${pctSigned(lT.volTraite,oT.volTraite)}), pour une QS de <b>${lT.qs!=null?lT.qs+"%":"n.d."}</b> sur la semaine de référence.`);
   if(topGrower&&topGrower.volChange>=10){
     sentences.push(`📈 <b>${topGrower.camp}</b> affiche la plus forte progression (${pctSigned(topGrower.l.volTraite,topGrower.o.volTraite)}, de ${topGrower.o.volTraite} à ${topGrower.l.volTraite} appels) — un pic est à anticiper : prévoir un renfort de staffing sur cette campagne.`);
   }
@@ -750,8 +853,9 @@ renderCmpChips();
 
 (async()=>{
   await loadConfig();
-  // Auto-charge les tendances 4 semaines au démarrage (date de référence = aujourd'hui)
-  loadTrend();
+  // Sélection-first : pas d'agrégation automatique. L'utilisateur choisit d'abord la date de
+  // fin, la profondeur (4 sem. / 2 mois / 3 mois) et la tranche horaire, puis clique
+  // « Charger l'analyse ». Plus cohérent et évite des requêtes INO inutiles à l'ouverture.
 })();
 connectSSE();
 </script>

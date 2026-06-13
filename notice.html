@@ -45,6 +45,7 @@ ul{margin:6px 0 10px 22px;}
     <button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button>
     <a href="/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🏠 Tour de contrôle</a>
     <a href="/executif" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📊 Exécutif</a>
+    <a href="/pilotage" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🎯 Pilotage</a>
     <a href="/couverture" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📡 Couverture</a>
     <a href="/astreinte" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🌙 Astreinte</a>
     <a href="/agents-jour" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📋 Agents jour</a>
@@ -61,6 +62,7 @@ ul{margin:6px 0 10px 22px;}
     <li><a href="#dashboard">Tour de contrôle (page principale)</a></li>
     <li><a href="#agents-jour">Agents du jour</a></li>
     <li><a href="#executif">Tableau de bord exécutif 📊</a></li>
+    <li><a href="#pilotage">Pilotage de la productivité 🎯</a></li>
     <li><a href="#couverture">Radar de couverture 📡</a></li>
     <li><a href="#astreinte">Registre d'astreinte 🌙</a></li>
     <li><a href="#planning">Planning de la semaine 🗓️</a></li>
@@ -113,6 +115,7 @@ ul{margin:6px 0 10px 22px;}
   </ul>
   <p>Le filtre <b>Statut</b> contient tous les états possibles d'un agent INO : <i>Actif · Traitement · Post-appel · Déconnecté · Inconnu · En pause · Déjeuner · Formation · Réunion · Back-office · Absent · n.d.</i> — cochez ou décochez pour affiner la vue.</p>
   <div class="tip">💡 Pour voir uniquement les agents actifs en ligne, décochez « Déconnecté » et « n.d. » dans le filtre Statut.</div>
+  <p>Le filtre <b>Compétences</b> se remplit <b>automatiquement</b> : les compétences INO de chaque agent sont chargées en arrière-plan dès l'arrivée des données (plus aucun bouton à cliquer dans les filtres). Tant que le chargement est en cours, le filtre affiche « ⏳ Chargement automatique des compétences… ». La couverture par campagne (agents mutualisés) reste fonctionnelle même avant le chargement complet, grâce aux files réellement traitées.</p>
 
   <h3>Répartition qualifications 🏷️</h3>
   <p>Dans l'onglet <b>Volumes & Tranches</b>, le panneau droit propose la répartition des qualifications. Sélectionnez une campagne et une plage de dates puis cliquez <b>Rechercher</b> pour charger les données depuis INO :</p>
@@ -156,6 +159,10 @@ ul{margin:6px 0 10px 22px;}
     <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager.</li>
   </ul>
   <div class="tip">💡 Si la fenêtre d'export PDF ne s'ouvre pas, autorisez les pop-ups pour ce site dans votre navigateur.</div>
+
+  <h3>Onglet Export WhatsApp — horodatage & définitions</h3>
+  <p>Chaque tableau (Affectation, Stat TC, Alertes) porte un en-tête <code>Période · date · 08:00–HH:MM · ⏱ généré à HH:MM</code>. Pour une consultation <b>en direct</b> du jour courant, la borne de droite reflète <b>l'heure réelle d'arrêt des données</b> (l'instant de génération), et non la fin théorique du créneau — ainsi « 08:00–20:00 » consulté à 11:18 s'affiche « 08:00–11:18 · ⏱ généré à 11:18 ». Cela permet de contrôler la fraîcheur et le périmètre exact des chiffres partagés.</p>
+  <p>Sous les tableaux, le bloc déroulant <b>ⓘ Définitions &amp; mode de calcul des indicateurs</b> détaille chaque colonne (Nbr opé, DMC, DMT, Occupation, QS, Appels Traités…) avec sa définition et sa formule. Les « Appels Traités » de Stat TC utilisent la <b>même source file INO</b> que les « Décrochés » du tableau Alertes : les deux tableaux affichent donc des totaux cohérents pour une sélection identique.</p>
 </section>
 
 <section id="agents-jour">
@@ -165,7 +172,18 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="executif">
   <h2>4. Tableau de bord exécutif 📊</h2>
-  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller). Les données et KPIs se <b>chargent automatiquement</b> à l'ouverture de la page.</p>
+  <p>Vue de pilotage en <b>semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
+  <h3>Choix de l'analyse (sélection d'abord)</h3>
+  <p>Vous choisissez d'abord les paramètres, <b>puis</b> cliquez sur « Charger l'analyse » (plus d'agrégation automatique à l'ouverture, ce qui évite des requêtes INO inutiles) :</p>
+  <ul>
+    <li><b>Date de fin d'analyse</b> : dernière semaine de la période (semaine de référence).</li>
+    <li><b>Profondeur</b> : <b>4 semaines</b>, <b>2 mois (8 sem.)</b> ou <b>3 mois (13 sem.)</b> glissantes — pour une vision plus large des tendances et des décisions de pilotage. La profondeur s'applique au tableau de tendance, aux KPIs et aux signaux.</li>
+    <li><b>Campagnes</b> : choisissez la ou les campagnes à analyser (Tout / Aucun). Le filtre restreint <b>immédiatement</b> les KPIs, le comparatif cross-campagnes, la synthèse et la liste de la tendance — sans recharger. (Le compteur « Agents actifs » devient alors un cumul par campagne, signalé par <code>*</code>.)</li>
+    <li><b>Tranche horaire</b> : restreint tous les indicateurs à un créneau (ex. 08:00–20:00). Laissez 00:00–23:59 pour la journée complète.</li>
+  </ul>
+  <div class="tip">💡 Plus la profondeur est grande, plus l'agrégation interroge INO (13 semaines = 13 requêtes) — comptez une à deux minutes pour 3 mois. Les semaines entièrement passées sont mises en cache et rechargées instantanément.</div>
+  <h3>Définitions des indicateurs ⓘ</h3>
+  <p>Un panneau « ⓘ Définitions &amp; mode de calcul » en bas de page détaille chaque indicateur : <b>Volume traité</b>, <b>QS</b>, <b>DMC</b>, <b>Agents actifs</b> et <b>Charge / agent</b> (= volume traité ÷ agents actifs, soit le nombre d'appels traités par agent actif), ainsi que la source des données et l'effet de la tranche horaire.</p>
   <h3>Jours fériés 🏖</h3>
   <p>Les jours fériés légaux français (11 fériés fixes + Pâques dynamique) sont signalés par le badge <b>🏖</b> sur les colonnes de la matrice comparateur et dans le détail des données. Les volumes faibles sur ces jours sont donc normaux et attendus.</p>
   <h3>Comparateur jours & campagnes 🆚</h3>
@@ -178,13 +196,39 @@ ul{margin:6px 0 10px 22px;}
   <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 dans le tableau confirme ce cas.</div>
 </section>
 
+<section id="pilotage">
+  <h2>5. Pilotage de la productivité 🎯</h2>
+  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. Comme l'Exécutif, choisissez d'abord la <b>date de fin</b>, la <b>profondeur</b> (4 sem. / 2 mois / 3 mois) et la <b>tranche horaire</b>, puis « Charger l'analyse ».</p>
+  <h3>Sélection</h3>
+  <ul>
+    <li><b>Campagnes</b> et <b>Compétences</b> définissent le <b>vivier d'agents</b> analysés (un agent entre dans le vivier s'il appartient à une campagne cochée et possède une compétence cochée).</li>
+    <li><b>Agents</b> : cochez ceux à comparer (recherche par nom disponible). Par défaut, les 10 agents les plus actifs sont présélectionnés.</li>
+    <li><b>Indicateur</b> : appels traités, actes totaux, sortants, DMT, DMC, ACW, taux de décroché, transformation.</li>
+  </ul>
+  <h3>Visualisations</h3>
+  <ul>
+    <li><b>📈 Évolution</b> : une courbe par agent sur les semaines de la période, pour l'indicateur choisi.</li>
+    <li><b>🏁 Classement & dispersion</b> : valeur par semaine + <b>min / moyenne / max</b> de chaque agent, meilleure semaine en vert, moins bonne en rose, et badges <b>▲ top</b> / <b>▼ bas</b> (meilleure et plus faible moyenne).</li>
+    <li><b>🔥 Heatmap</b> agent × période : intensité colorée selon la performance relative (vert = bon, rose = faible) en tenant compte du sens de l'indicateur (pour DMC/DMT/ACW, plus court = mieux).</li>
+  </ul>
+  <h3>Modèles nommés 💾</h3>
+  <p>Enregistrez une sélection complète (agents, compétences, campagnes, indicateur, profondeur, tranche) sous un <b>nom</b> : le modèle est <b>partagé avec toute l'équipe</b> et réutilisable en un clic (« Appliquer »). Idéal pour suivre une équipe ou un périmètre récurrent.</p>
+  <div class="tip">💡 Les durées (DMC, DMT, ACW) et taux n'utilisent que les semaines où l'agent a réellement été actif — une semaine d'absence n'abaisse pas artificiellement la moyenne.</div>
+</section>
+
 <section id="couverture">
-  <h2>5. Radar de couverture 📡</h2>
-  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel de la campagne.</p>
+  <h2>6. Radar de couverture 📡</h2>
+  <p>Anticipe les tensions de staffing par créneau horaire : le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel.</p>
+  <h3>Une ou plusieurs campagnes</h3>
+  <p>Le sélecteur <b>Campagnes</b> permet de cocher <b>plusieurs campagnes</b> : le radar agrège alors volume et effectif sur l'ensemble du périmètre — idéal pour analyser un <b>pôle mutualisé</b>. Cochez une seule campagne pour une analyse ciblée.</p>
+  <h3>Modèles nommés 💾</h3>
+  <p>Enregistrez un périmètre (campagnes + semaine de référence) sous un <b>nom</b> : le modèle est <b>partagé avec l'équipe</b> et réappliqué en un clic (« Appliquer »), puis « Générer le radar ».</p>
+  <h3>Définitions ⓘ</h3>
+  <p>Un panneau « ⓘ Définitions &amp; mode de calcul » détaille chaque indicateur : volume projeté, agents actifs de référence, <b>charge/agent</b>, charge habituelle (médiane), <b>staffing recommandé</b> (= volume ÷ charge habituelle, à ne pas confondre avec le volume d'appels) et les seuils de tension.</p>
 </section>
 
 <section id="astreinte">
-  <h2>6. Registre d'astreinte 🌙</h2>
+  <h2>7. Registre d'astreinte 🌙</h2>
   <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte.</p>
 
   <h3>Saisie agent + horaires + GSM</h3>
@@ -220,7 +264,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="planning">
-  <h2>7. Planning de la semaine 🗓️</h2>
+  <h2>8. Planning de la semaine 🗓️</h2>
   <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents, puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ».</p>
 
   <h3>Saisie de créneau avec pauses</h3>
@@ -251,6 +295,15 @@ ul{margin:6px 0 10px 22px;}
   </ul>
   <p>Le tableau de couverture (bas de page) affiche pour chaque <b>tranche de 1 heure</b> : le nombre d'agents effectivement présents (hors déjeuner), avec des badges <b>🍽−n</b> (agents en pause déjeuner) et <b>☕n</b> (agents en pause 15 min) pour identifier les tensions.</p>
 
+  <h3>Historique, duplication & tendances 🗂️</h3>
+  <p>Chaque semaine saisie est <b>conservée automatiquement</b>. Le panneau « 🗂️ Historique, duplication &amp; tendances » (sous le planning, en vue d'une seule campagne) permet de :</p>
+  <ul>
+    <li><b>Mémoire</b> : liste des semaines déjà planifiées pour la campagne (agents, heures planifiées) — bouton <b>Voir</b> pour y naviguer.</li>
+    <li><b>Dupliquer</b> : recopier le roster et tous les créneaux d'une semaine source dans la semaine affichée (<b>⧉ Dupliquer la semaine précédente</b>, ou choix d'une semaine via « Dupliquer depuis… », ou <b>⧉ Dupliquer ici</b> dans la liste). Les créneaux sont automatiquement <b>remappés sur le même jour de semaine</b>. Écrasement confirmé si la semaine cible contient déjà un planning.</li>
+    <li><b>Tendance des jours équivalents</b> : sur <b>1, 2 ou 3 mois</b>, le volume d'appels moyen de chaque jour de semaine (même jour), avec min–max — pour dimensionner le planning jour par jour. L'analyse interroge INO jour par jour (jours passés mis en cache).</li>
+  </ul>
+  <div class="tip">💡 Pour préparer une nouvelle semaine, dupliquez la précédente puis ajustez : bien plus rapide que tout ressaisir. La tendance 3 mois aide à repérer les jours structurellement chargés.</div>
+
   <h3>Vue globale « ALL »</h3>
   <p>Dans le sélecteur de campagne, l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes — lecture seule.</p>
 
@@ -266,7 +319,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="admin">
-  <h2>8. Administration ⚙</h2>
+  <h2>9. Administration ⚙</h2>
   <p>Réservée aux administrateurs :</p>
   <ul>
     <li><b>Statistiques système</b> : sessions actives, clients temps réel, état de la connexion INO, volumes du jour.</li>
@@ -277,7 +330,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="legende">
-  <h2>9. Légende des icônes & badges</h2>
+  <h2>10. Légende des icônes & badges</h2>
   <div class="icon-legend">
     <b>🎓</b><span>Agent en formation cette semaine (cliquable dans le planning pour activer/désactiver).</span>
     <b>⇄</b><span>Agent mutualisé — qualifié sur plusieurs campagnes.</span>
@@ -289,6 +342,7 @@ ul{margin:6px 0 10px 22px;}
     <b>☕n</b><span>n agents en pause 15 min sur ce créneau.</span>
     <b>🏖</b><span>Jour férié (tableaux exécutifs) — volumes naturellement plus faibles, non comparables.</span>
     <b>📊</b><span>Tableau de bord exécutif.</span>
+    <b>🎯</b><span>Pilotage de la productivité agent.</span>
     <b>📡</b><span>Radar de couverture.</span>
     <b>🗓️</b><span>Planning de la semaine.</span>
     <b>🗂️</b><span>Pôles — regroupements de campagnes nommés.</span>
@@ -298,7 +352,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="navigation">
-  <h2>10. Navigation entre pages</h2>
+  <h2>11. Navigation entre pages</h2>
   <p>Chaque page du Control Room affiche, en haut à droite, une barre de navigation sous forme de <b>pills</b> (pastilles arrondies icon + label). La page courante est mise en évidence en rose.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0;">
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🏠 Tour de contrôle</span>
@@ -309,11 +363,11 @@ ul{margin:6px 0 10px 22px;}
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🗓️ Planning</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📖 Notice</span>
   </div>
-  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre, contours subtils, icône + label court en majuscules. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
+  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre <b>encadré</b> (bordure et léger relief pour mieux les repérer), icône + label court. Au survol, le bouton passe en <b>rose Wisecom</b> pour confirmer qu'il est cliquable. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
   <p>Le bouton <span class="kbd">⚡ Simuler</span> (fond doré) génère des données de démonstration — uniquement pour les tests, jamais sur une session connectée à INO en production.</p>
 </section>
 
-<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour juin 2026 — document interne</div>
+<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour 13/06/2026 — document interne</div>
 
 </div>
 </body>
