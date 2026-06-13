@@ -170,7 +170,17 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="executif">
   <h2>4. Tableau de bord exécutif 📊</h2>
-  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller). Les données et KPIs se <b>chargent automatiquement</b> à l'ouverture de la page.</p>
+  <p>Vue de pilotage en <b>semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
+  <h3>Choix de l'analyse (sélection d'abord)</h3>
+  <p>Vous choisissez d'abord les paramètres, <b>puis</b> cliquez sur « Charger l'analyse » (plus d'agrégation automatique à l'ouverture, ce qui évite des requêtes INO inutiles) :</p>
+  <ul>
+    <li><b>Date de fin d'analyse</b> : dernière semaine de la période (semaine de référence).</li>
+    <li><b>Profondeur</b> : <b>4 semaines</b>, <b>2 mois (8 sem.)</b> ou <b>3 mois (13 sem.)</b> glissantes — pour une vision plus large des tendances et des décisions de pilotage. La profondeur s'applique au tableau de tendance, aux KPIs et aux signaux.</li>
+    <li><b>Tranche horaire</b> : restreint tous les indicateurs à un créneau (ex. 08:00–20:00). Laissez 00:00–23:59 pour la journée complète.</li>
+  </ul>
+  <div class="tip">💡 Plus la profondeur est grande, plus l'agrégation interroge INO (13 semaines = 13 requêtes) — comptez une à deux minutes pour 3 mois. Les semaines entièrement passées sont mises en cache et rechargées instantanément.</div>
+  <h3>Définitions des indicateurs ⓘ</h3>
+  <p>Un panneau « ⓘ Définitions &amp; mode de calcul » en bas de page détaille chaque indicateur : <b>Volume traité</b>, <b>QS</b>, <b>DMC</b>, <b>Agents actifs</b> et <b>Charge / agent</b> (= volume traité ÷ agents actifs, soit le nombre d'appels traités par agent actif), ainsi que la source des données et l'effet de la tranche horaire.</p>
   <h3>Jours fériés 🏖</h3>
   <p>Les jours fériés légaux français (11 fériés fixes + Pâques dynamique) sont signalés par le badge <b>🏖</b> sur les colonnes de la matrice comparateur et dans le détail des données. Les volumes faibles sur ces jours sont donc normaux et attendus.</p>
   <h3>Comparateur jours & campagnes 🆚</h3>
