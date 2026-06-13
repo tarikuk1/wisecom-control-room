@@ -188,14 +188,16 @@ body.light .btn-ghost{color:var(--t-muted);border-color:transparent;}
 body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);color:var(--t-disabled);}
 /* ── NAV PILLS — boutons de navigation topbar avec icône + label ── */
 .btn-nav{
-  background:var(--s-2);border:1px solid var(--s-4);
+  background:var(--s-3);border:1.5px solid #3d3d3d;
   border-radius:22px;padding:6px 14px;
-  color:var(--t-secondary);font-size:var(--fs-body);font-weight:var(--fw-medium);
+  color:#cfcfcf;font-size:var(--fs-body);font-weight:600;
   display:flex;align-items:center;gap:6px;
   text-decoration:none;white-space:nowrap;min-height:34px;
   transition:all var(--motion-fast);
+  box-shadow:0 1px 2px rgba(0,0,0,.35);
 }
-.btn-nav:hover{background:var(--s-3);border-color:var(--t-disabled);color:var(--c-white);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.3);}
+.btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(232,0,110,.35);}
+.btn-nav:focus-visible{outline:2px solid var(--c-pink);outline-offset:2px;}
 .btn-nav .n-icon{font-size:15px;line-height:1;flex-shrink:0;}
 .btn-nav .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
 .btn-nav-sim{border-color:#2a2a00;color:#cca000;background:#1a1500;}
@@ -1927,17 +1929,21 @@ function buildAllDropdowns(){
   const scopedSkills=getScopedSkills();
   const _loaded=skillsLoaded();
   if(!_loaded){
-    // Compétences INO pas encore chargées → état explicite, pas de liste globale trompeuse
+    // Compétences INO chargées AUTOMATIQUEMENT en arrière-plan (plus de bouton manuel
+    // dans les filtres). On affiche un statut discret ; clic = simple réessai si l'auto-
+    // chargement a échoué (réseau/droits INO).
     const wrap=document.getElementById("ck-skills");
     if(wrap){
-      const _lbl=_skillsLoadedAt
-        ?'<span style="color:#30d158;font-weight:600;font-size:10px">✓ Chargé le '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span><br><span style="color:var(--c-pink)">Cliquer pour recharger</span>'
-        :'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span>';
-      wrap.innerHTML='<button type="button" onclick="refreshSkills&&refreshSkills()" '
-        +'style="width:100%;background:var(--s-2);border:1px dashed var(--s-4);border-radius:8px;'
-        +'padding:7px 10px;color:var(--t-disabled);font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
-        +_lbl+'</button>';
+      const _failed=window._skillsLoadFailed;
+      const _lbl=_failed
+        ?'<span style="color:var(--c-orange,#ff9f0a);">⚠ Compétences indisponibles</span> · <span style="color:var(--c-pink)">réessayer</span>'
+        :'<span style="color:var(--t-disabled)">⏳ Chargement automatique des compétences…</span>';
+      wrap.innerHTML='<span role="status" onclick="refreshSkills&&refreshSkills()" title="Les compétences se chargent automatiquement depuis INO" '
+        +'style="display:block;width:100%;padding:7px 10px;font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
+        +_lbl+'</span>';
     }
+    // Garantit un chargement même si le hook de refreshFromINO n'a pas pu se déclencher
+    if(agents.length>0&&!window._skillsAutoKicked){window._skillsAutoKicked=true;setTimeout(function(){if(!skillsLoaded())refreshSkills();},400);}
     selSkills=[]; window._prevScopedSkills=[];
   }else{
     // Synchroniser selSkills sur le périmètre réel
@@ -2307,7 +2313,8 @@ async function refreshSkills(){
         }
       }catch(_e){/* fallback best-effort */}
     }
-    if(updated>0)_skillsLoadedAt=new Date();
+    if(updated>0){_skillsLoadedAt=new Date();window._skillsLoadFailed=false;}
+    else{window._skillsLoadFailed=true;}
     render();
     if(document.getElementById('skills-table'))renderSkills();
     clearInterval(_pt);if(_bar){_bar.style.width=updated>0?'100%':'0';_bar.style.animation='none';}
@@ -2323,6 +2330,7 @@ async function refreshSkills(){
       showToast(_diagMsg,'error',12000);
     }
   }catch(e){
+    window._skillsLoadFailed=true;
     clearInterval(_pt);if(_bar){_bar.style.width='0';_bar.style.animation='none';}if(_lbl)_lbl.textContent='Erreur — réessayez';
     setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);
     showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
@@ -5301,11 +5309,17 @@ function renderWA(){
   var _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
   var _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
   var _fmtFr=function(iso){if(!iso)return "";var p=iso.split("-");return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):iso;};
-  var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
-  var timeStr=_hDeb+"–"+_hFin;
-  // Indicateur si on consulte une date passée ou un créneau hors horaires courants
   var _todayIso=isoLocal(new Date());
+  var _nowHHMM=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var _isPast=_dFin&&_dFin<_todayIso;
+  var _isToday=(_dFin||_dDeb)===_todayIso;
+  // Heure de fin EFFECTIVE des données affichées : en direct sur le jour courant, les données
+  // s'arrêtent à l'instant présent — pas à la borne théorique _hFin du créneau. Permet de
+  // contrôler que "08:00–20:00" affiché à 11:18 correspond en réalité à 08:00–11:18.
+  var _hFinEff=(_isToday&&_nowHHMM<_hFin)?_nowHHMM:_hFin;
+  var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
+  // timeStr = fenêtre réelle des données + horodatage de génération (contrôle de fraîcheur)
+  var timeStr=_hDeb+"–"+_hFinEff+" · ⏱ généré à "+_nowHHMM;
   var _periodLabel=_isPast?"Historique":"Période";
   if(agents.length===0){
     if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr;
@@ -5365,7 +5379,36 @@ function renderWA(){
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
     '<div style="height:16px;"></div>'+
-    '<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>';
+    '<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>'+
+    waDefinitionsLegend();
+}
+// Légende : définitions et mode de calcul de chaque indicateur des tableaux WhatsApp.
+// Affichée sous les tableaux pour permettre le contrôle et l'interprétation par le manager.
+function waDefinitionsLegend(){
+  var defs=[
+    ['Nbr opé','Actes totaux de l\'agent sur la période','décrochés + appels sortants + mails'],
+    ['Co. INO','Statut de connexion INO au moment de la génération du tableau','état temps réel (OK / Déconnecté / absent)'],
+    ['Cumul (h)','Heures de production de l\'agent','temps connecté en statut productif'],
+    ['Affectations appels','Campagnes que l\'agent peut traiter','file réellement traitée OU campagne principale OU compétence INO active couvrant la file'],
+    ['Appels Traités','Appels décrochés en file sur la campagne','source file INO (mêmes chiffres que « Décrochés » du tableau Alertes)'],
+    ['DMC','Durée Moyenne de Communication','temps total de communication ÷ appels traités'],
+    ['DMT','Durée Moyenne de Traitement','DMC + temps de post-appel (ACW)'],
+    ['Appels Sortants','Appels émis par l\'agent / la campagne','compteur INO des appels sortants'],
+    ['Mails traités','Volume d\'e-mails traités','auto (INO) ou saisi manuellement via ✎'],
+    ['Occupation','Part du temps de présence réellement productive','(communication [+ ACW si activé]) ÷ (présence × min. productives-heure ÷ 60) — paramétrable par campagne dans ⚙ KPI'],
+    ['QS','Qualité de Service','appels traités ÷ appels présentés en file (abandons inclus)'],
+    ['◆','Campagne « flux-only »','flux réel couvert par des agents mutualisés rattachés à une autre campagne principale']
+  ];
+  var rows=defs.map(function(d){
+    return '<tr><td style="padding:4px 10px;font-weight:700;color:#E8006E;white-space:nowrap;vertical-align:top;">'+d[0]+'</td>'+
+      '<td style="padding:4px 10px;color:#333;vertical-align:top;">'+d[1]+'</td>'+
+      '<td style="padding:4px 10px;color:#666;font-style:italic;vertical-align:top;">'+d[2]+'</td></tr>';
+  }).join('');
+  return '<details style="margin-top:18px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:6px 10px;font-family:Arial,sans-serif;">'+
+    '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:#555;">ⓘ Définitions &amp; mode de calcul des indicateurs</summary>'+
+    '<table style="border-collapse:collapse;font-size:11px;margin-top:8px;width:100%;">'+
+    '<tr style="border-bottom:1px solid #eee;"><th style="text-align:left;padding:4px 10px;color:#999;">Indicateur</th><th style="text-align:left;padding:4px 10px;color:#999;">Définition</th><th style="text-align:left;padding:4px 10px;color:#999;">Calcul</th></tr>'+
+    rows+'</table></details>';
 }
 
 function exportWA_PDF(){

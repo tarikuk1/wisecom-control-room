@@ -113,6 +113,7 @@ ul{margin:6px 0 10px 22px;}
   </ul>
   <p>Le filtre <b>Statut</b> contient tous les états possibles d'un agent INO : <i>Actif · Traitement · Post-appel · Déconnecté · Inconnu · En pause · Déjeuner · Formation · Réunion · Back-office · Absent · n.d.</i> — cochez ou décochez pour affiner la vue.</p>
   <div class="tip">💡 Pour voir uniquement les agents actifs en ligne, décochez « Déconnecté » et « n.d. » dans le filtre Statut.</div>
+  <p>Le filtre <b>Compétences</b> se remplit <b>automatiquement</b> : les compétences INO de chaque agent sont chargées en arrière-plan dès l'arrivée des données (plus aucun bouton à cliquer dans les filtres). Tant que le chargement est en cours, le filtre affiche « ⏳ Chargement automatique des compétences… ». La couverture par campagne (agents mutualisés) reste fonctionnelle même avant le chargement complet, grâce aux files réellement traitées.</p>
 
   <h3>Répartition qualifications 🏷️</h3>
   <p>Dans l'onglet <b>Volumes & Tranches</b>, le panneau droit propose la répartition des qualifications. Sélectionnez une campagne et une plage de dates puis cliquez <b>Rechercher</b> pour charger les données depuis INO :</p>
@@ -156,6 +157,10 @@ ul{margin:6px 0 10px 22px;}
     <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager.</li>
   </ul>
   <div class="tip">💡 Si la fenêtre d'export PDF ne s'ouvre pas, autorisez les pop-ups pour ce site dans votre navigateur.</div>
+
+  <h3>Onglet Export WhatsApp — horodatage & définitions</h3>
+  <p>Chaque tableau (Affectation, Stat TC, Alertes) porte un en-tête <code>Période · date · 08:00–HH:MM · ⏱ généré à HH:MM</code>. Pour une consultation <b>en direct</b> du jour courant, la borne de droite reflète <b>l'heure réelle d'arrêt des données</b> (l'instant de génération), et non la fin théorique du créneau — ainsi « 08:00–20:00 » consulté à 11:18 s'affiche « 08:00–11:18 · ⏱ généré à 11:18 ». Cela permet de contrôler la fraîcheur et le périmètre exact des chiffres partagés.</p>
+  <p>Sous les tableaux, le bloc déroulant <b>ⓘ Définitions &amp; mode de calcul des indicateurs</b> détaille chaque colonne (Nbr opé, DMC, DMT, Occupation, QS, Appels Traités…) avec sa définition et sa formule. Les « Appels Traités » de Stat TC utilisent la <b>même source file INO</b> que les « Décrochés » du tableau Alertes : les deux tableaux affichent donc des totaux cohérents pour une sélection identique.</p>
 </section>
 
 <section id="agents-jour">
@@ -309,11 +314,11 @@ ul{margin:6px 0 10px 22px;}
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🗓️ Planning</span>
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📖 Notice</span>
   </div>
-  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre, contours subtils, icône + label court en majuscules. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
+  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre <b>encadré</b> (bordure et léger relief pour mieux les repérer), icône + label court. Au survol, le bouton passe en <b>rose Wisecom</b> pour confirmer qu'il est cliquable. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
   <p>Le bouton <span class="kbd">⚡ Simuler</span> (fond doré) génère des données de démonstration — uniquement pour les tests, jamais sur une session connectée à INO en production.</p>
 </section>
 
-<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour juin 2026 — document interne</div>
+<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour 13/06/2026 — document interne</div>
 
 </div>
 </body>
