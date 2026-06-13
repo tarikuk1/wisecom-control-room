@@ -150,7 +150,7 @@ function isCampOpenAt(camp,d){
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides","pilotageTpl","radarTpl","planningHist"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -1288,6 +1288,7 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/astreinte"){const p=path.join(__dirname,"astreinte.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/pilotage"){const p=path.join(__dirname,"pilotage.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   res.writeHead(404,{"Content-Type":"text/html"});res.end(make404());
 });
 

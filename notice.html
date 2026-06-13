@@ -45,6 +45,7 @@ ul{margin:6px 0 10px 22px;}
     <button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button>
     <a href="/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🏠 Tour de contrôle</a>
     <a href="/executif" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📊 Exécutif</a>
+    <a href="/pilotage" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🎯 Pilotage</a>
     <a href="/couverture" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📡 Couverture</a>
     <a href="/astreinte" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🌙 Astreinte</a>
     <a href="/agents-jour" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📋 Agents jour</a>
@@ -61,6 +62,7 @@ ul{margin:6px 0 10px 22px;}
     <li><a href="#dashboard">Tour de contrôle (page principale)</a></li>
     <li><a href="#agents-jour">Agents du jour</a></li>
     <li><a href="#executif">Tableau de bord exécutif 📊</a></li>
+    <li><a href="#pilotage">Pilotage de la productivité 🎯</a></li>
     <li><a href="#couverture">Radar de couverture 📡</a></li>
     <li><a href="#astreinte">Registre d'astreinte 🌙</a></li>
     <li><a href="#planning">Planning de la semaine 🗓️</a></li>
@@ -193,13 +195,33 @@ ul{margin:6px 0 10px 22px;}
   <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 dans le tableau confirme ce cas.</div>
 </section>
 
+<section id="pilotage">
+  <h2>5. Pilotage de la productivité 🎯</h2>
+  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. Comme l'Exécutif, choisissez d'abord la <b>date de fin</b>, la <b>profondeur</b> (4 sem. / 2 mois / 3 mois) et la <b>tranche horaire</b>, puis « Charger l'analyse ».</p>
+  <h3>Sélection</h3>
+  <ul>
+    <li><b>Campagnes</b> et <b>Compétences</b> définissent le <b>vivier d'agents</b> analysés (un agent entre dans le vivier s'il appartient à une campagne cochée et possède une compétence cochée).</li>
+    <li><b>Agents</b> : cochez ceux à comparer (recherche par nom disponible). Par défaut, les 10 agents les plus actifs sont présélectionnés.</li>
+    <li><b>Indicateur</b> : appels traités, actes totaux, sortants, DMT, DMC, ACW, taux de décroché, transformation.</li>
+  </ul>
+  <h3>Visualisations</h3>
+  <ul>
+    <li><b>📈 Évolution</b> : une courbe par agent sur les semaines de la période, pour l'indicateur choisi.</li>
+    <li><b>🏁 Classement & dispersion</b> : valeur par semaine + <b>min / moyenne / max</b> de chaque agent, meilleure semaine en vert, moins bonne en rose, et badges <b>▲ top</b> / <b>▼ bas</b> (meilleure et plus faible moyenne).</li>
+    <li><b>🔥 Heatmap</b> agent × période : intensité colorée selon la performance relative (vert = bon, rose = faible) en tenant compte du sens de l'indicateur (pour DMC/DMT/ACW, plus court = mieux).</li>
+  </ul>
+  <h3>Modèles nommés 💾</h3>
+  <p>Enregistrez une sélection complète (agents, compétences, campagnes, indicateur, profondeur, tranche) sous un <b>nom</b> : le modèle est <b>partagé avec toute l'équipe</b> et réutilisable en un clic (« Appliquer »). Idéal pour suivre une équipe ou un périmètre récurrent.</p>
+  <div class="tip">💡 Les durées (DMC, DMT, ACW) et taux n'utilisent que les semaines où l'agent a réellement été actif — une semaine d'absence n'abaisse pas artificiellement la moyenne.</div>
+</section>
+
 <section id="couverture">
-  <h2>5. Radar de couverture 📡</h2>
+  <h2>6. Radar de couverture 📡</h2>
   <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel de la campagne.</p>
 </section>
 
 <section id="astreinte">
-  <h2>6. Registre d'astreinte 🌙</h2>
+  <h2>7. Registre d'astreinte 🌙</h2>
   <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte.</p>
 
   <h3>Saisie agent + horaires + GSM</h3>
@@ -235,7 +257,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="planning">
-  <h2>7. Planning de la semaine 🗓️</h2>
+  <h2>8. Planning de la semaine 🗓️</h2>
   <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents, puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ».</p>
 
   <h3>Saisie de créneau avec pauses</h3>
@@ -281,7 +303,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="admin">
-  <h2>8. Administration ⚙</h2>
+  <h2>9. Administration ⚙</h2>
   <p>Réservée aux administrateurs :</p>
   <ul>
     <li><b>Statistiques système</b> : sessions actives, clients temps réel, état de la connexion INO, volumes du jour.</li>
@@ -292,7 +314,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="legende">
-  <h2>9. Légende des icônes & badges</h2>
+  <h2>10. Légende des icônes & badges</h2>
   <div class="icon-legend">
     <b>🎓</b><span>Agent en formation cette semaine (cliquable dans le planning pour activer/désactiver).</span>
     <b>⇄</b><span>Agent mutualisé — qualifié sur plusieurs campagnes.</span>
@@ -304,6 +326,7 @@ ul{margin:6px 0 10px 22px;}
     <b>☕n</b><span>n agents en pause 15 min sur ce créneau.</span>
     <b>🏖</b><span>Jour férié (tableaux exécutifs) — volumes naturellement plus faibles, non comparables.</span>
     <b>📊</b><span>Tableau de bord exécutif.</span>
+    <b>🎯</b><span>Pilotage de la productivité agent.</span>
     <b>📡</b><span>Radar de couverture.</span>
     <b>🗓️</b><span>Planning de la semaine.</span>
     <b>🗂️</b><span>Pôles — regroupements de campagnes nommés.</span>
@@ -313,7 +336,7 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="navigation">
-  <h2>10. Navigation entre pages</h2>
+  <h2>11. Navigation entre pages</h2>
   <p>Chaque page du Control Room affiche, en haut à droite, une barre de navigation sous forme de <b>pills</b> (pastilles arrondies icon + label). La page courante est mise en évidence en rose.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0;">
     <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🏠 Tour de contrôle</span>
