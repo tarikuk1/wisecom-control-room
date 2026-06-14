@@ -388,6 +388,7 @@ const KPIS=[
   {key:"traites",  label:"Appels traités",  icon:"📞", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
   {key:"recus",    label:"Appels reçus",    icon:"📨", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels présentés à l'agent (décrochés + non décrochés)","Somme appelsPresentes INO sur la semaine"]},
   {key:"actes",    label:"Actes totaux",    icon:"📋", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
+  {key:"actesH",   label:"Actes/H",         icon:"⚡", fmt:v=>v==null?"n.d.":(Math.round(v*10)/10).toFixed(1), betterUp:true, vol:false, def:["Cadence de production horaire","Actes totaux ÷ heures de présence cumulées (amplitude 1ʳᵉ → dernière action, jour par jour)"]},
   {key:"sortants", label:"Appels sortants", icon:"📤", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
   {key:"dmt",      label:"DMT",             icon:"⏱️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW"]},
   {key:"dmc",      label:"DMC",             icon:"🗣️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée comm. entrants décrochés ÷ entrants décrochés"]},
@@ -446,6 +447,7 @@ function agentWeekKPIs(a,camp){
   const occComm=a.duree||0, occAcw=(a.acwMoyen||0)*(a.appelsIn||0);
   return {
     traites, sortants, actes:total, recus:pres,
+    actesH:presSec>0?+(total/(presSec/3600)).toFixed(1):null,
     dmt:(a.dmt||0)+(a.acwMoyen||0),
     dmc:a.dmt||0,
     acw:a.acwMoyen||0,
@@ -568,7 +570,11 @@ async function loadWeek(start,end,cacheable){
   if(cacheable&&weekCache.has(key))return weekCache.get(key);
   const res=await fetch(INO_BASE+"/agents-day?date="+start+"&dateFin="+end+"&hDeb="+trendHDeb+"&hFin="+trendHFin);
   if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
-  const data=await res.json();
+  // INO renvoie parfois une page HTML (token expiré) au lieu de JSON → res.json() lève
+  // une SyntaxError peu lisible. On la transforme en message clair pour le superviseur.
+  let data;
+  try{data=await res.json();}
+  catch(e){throw new Error("Session INO expirée ou indisponible — reconnectez-vous puis relancez l'analyse.");}
   if(data.error)throw new Error(data.error);
   const agents=Array.isArray(data.agents)?data.agents:[];
   if(cacheable)weekCache.set(key,agents);
@@ -631,7 +637,7 @@ async function loadAnalysis(){
         rec.series[i]=agentWeekKPIs(a,rec.camp);
       });
     }
-    const nullEntry={traites:0,sortants:0,actes:0,recus:0,dmt:0,dmc:0,acw:0,occupation:null,decroche:null,transfo:null,active:false};
+    const nullEntry={traites:0,sortants:0,actes:0,recus:0,actesH:null,dmt:0,dmc:0,acw:0,occupation:null,decroche:null,transfo:null,active:false};
     agMap.forEach(rec=>{for(let i=0;i<N;i++){if(!rec.series[i])rec.series[i]={...nullEntry};}});
     pdata={weeks,agents:agMap};
     stEl.textContent="✓ "+agMap.size+" agents · "+N+" période"+(N>1?"s":"")+" ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?" · "+trendHDeb+"–"+trendHFin:"")+")";
