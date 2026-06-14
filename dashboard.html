@@ -625,6 +625,49 @@ body.light .backlog-card{background:var(--c-white);border-color:#e8e8e8;}
 .backlog-camp{font-size:var(--fs-body);color:var(--t-secondary);font-weight:var(--fw-medium);}
 body.light .backlog-camp{color:var(--s-4);}
 .backlog-input{width:60px;background:var(--s-0);border:1px solid var(--s-4);border-radius:var(--r-sm);padding:4px 6px;font-size:var(--fs-md);color:var(--c-pink);font-weight:var(--fw-bold);text-align:right;font-family:inherit;outline:none;}
+
+/* ── QUEUE STATUS — vue groupée par campagne ─────────────────────
+   Section par campagne : en-tête résumé + grille de cartes de files.
+   ─────────────────────────────────────────────────────────────── */
+.qs-camp-section{margin-bottom:18px;}
+.qs-camp-header{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;background:#111;
+  border-radius:7px 7px 0 0;border-bottom:2px solid var(--c-pink);
+}
+.qs-camp-name{font-size:11px;font-weight:800;color:#e2e2e2;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0;}
+.qs-camp-count{font-size:9px;font-weight:700;background:var(--c-pink);color:#fff;border-radius:10px;padding:2px 7px;flex-shrink:0;}
+.qs-camp-agg{margin-left:auto;display:flex;align-items:center;gap:18px;flex-shrink:0;}
+.qs-camp-agg-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.qs-camp-agg-val{font-size:14px;font-weight:800;line-height:1.1;}
+.qs-camp-agg-lbl{font-size:7px;color:#505050;text-transform:uppercase;letter-spacing:.07em;}
+.qs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;padding-top:7px;}
+.qs-card{
+  background:#161616;border:1px solid #222;border-left:3px solid #333;
+  border-radius:7px;padding:9px 11px;transition:border-color .12s;
+}
+.qs-card:hover{border-color:#383838;border-left-color:inherit;}
+.qs-card--ok  {border-left-color:#2aa24a;}
+.qs-card--warn{border-left-color:#c07800;}
+.qs-card--err {border-left-color:#c02828;}
+.qs-name{font-size:10px;font-weight:700;color:#c8c8c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.qs-obj{font-size:8px;font-weight:600;margin-bottom:8px;letter-spacing:.01em;}
+.qs-kpis{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:6px;}
+.qs-kpi-val{font-size:16px;font-weight:800;line-height:1.15;}
+.qs-kpi-lbl{font-size:7px;color:#484848;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+.qs-footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1px solid #1e1e1e;}
+.qs-foot-val{font-size:10px;font-weight:600;color:#606060;}
+.qs-foot-lbl{font-size:7px;color:#404040;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+body.light .qs-camp-header{background:#f3f3f8;border-bottom-color:var(--c-pink);}
+body.light .qs-camp-name{color:#1a1a2e;}
+body.light .qs-camp-agg-lbl{color:#9a9aaa;}
+body.light .qs-card{background:#fff;border-color:#e8e8f0;border-left-color:#c8c8d8;}
+body.light .qs-card:hover{border-color:#c4c4d4;}
+body.light .qs-name{color:#222;}
+body.light .qs-kpi-lbl{color:#aaa;}
+body.light .qs-foot-val{color:#555;}
+body.light .qs-foot-lbl{color:#bbb;}
+body.light .qs-footer{border-top-color:#f0f0f4;}
 .backlog-input:focus{border-color:var(--c-pink);background:#1a0a0f;}
 body.light .backlog-input{background:var(--s-light-accent);color:var(--c-pink-dark);border-color:var(--c-pink-subtle);}
 body.light .backlog-input:focus{background:var(--c-pink-subtle);border-color:var(--c-pink);}
@@ -1136,7 +1179,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         <span class="panel-title">Statut des Files d'attente <span id="queue-last-update" style="font-size:var(--fs-sm);color:var(--t-disabled);font-weight:var(--fw-regular);margin-left:8px"></span></span>
         <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Mis à jour à chaque <b style="color:var(--c-pink)">Rafraîchir</b></span>
       </div>
-      <div id="queue-status-grid" style="padding:10px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      <div id="queue-status-grid" style="padding:10px 14px;">
         <div style="color:var(--t-disabled);font-size:var(--fs-body);padding:8px">Données chargées au prochain rafraîchissement…</div>
       </div>
     </div>
@@ -1477,55 +1520,82 @@ async function loadQueueStatus(){
     if(grid)grid.innerHTML='<div style="color:#555;font-size:10px;padding:8px">Files : '+e.message+'</div>';
   }
 }
-// Rendu de la grille depuis le cache — appelé au rafraîchissement ET à chaque changement
-// de sélection campagnes (le panneau suit les filtres sans nouvel appel INO).
+// Retire le préfixe campagne du nom de file pour un affichage plus court sous l'en-tête groupe.
+function shortQName(name,camp){
+  if(!name)return'–';
+  let s=name;
+  if(camp){
+    const lc=s.toLowerCase(),lp=camp.toLowerCase();
+    if(lc.startsWith(lp+'_'))s=s.slice(camp.length+1);
+    else if(lc.startsWith(lp+' '))s=s.slice(camp.length+1);
+  }
+  return s.replace(/_/g,' ').trim()||name;
+}
+// Rendu groupé par campagne — appelé au rafraîchissement ET à chaque changement de filtres.
 function renderQueueStatus(){
   const grid=document.getElementById("queue-status-grid");
   const upd=document.getElementById("queue-last-update");
   if(!grid||!window._lastQueuesData)return;
-  {
-    let queues=window._lastQueuesData;
-    // Attribution campagne + filtrage par la sélection active (philosophie : tous les
-    // onglets s'adaptent aux filtres campagnes/horaire/dates)
-    const _filtreActif=campSelPartial();
-    queues=queues.map(function(q){return Object.assign({},q,{camp:campOfQueue(q.name)});});
-    if(_filtreActif)queues=queues.filter(function(q){return q.camp&&selCamps.includes(q.camp);});
-    if(queues.length===0){
-      grid.innerHTML='<div style="color:#555;font-size:11px;padding:8px">'+(_filtreActif?'Aucune file active pour les campagnes sélectionnées à cette date.':'Aucune file active pour cette date.')+'</div>';
-      if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+(_filtreActif?" · filtre campagne actif":"");
-      return;
-    }
-    const crit=loadCriteres();
-    const PK="#E8006E";
-    grid.innerHTML=queues.map(function(q){
-      const qs=q.qs||0;
-      const ta=q.tauxAbandon||0;
-      // Objectif QS de la campagne (critères) — repli 80 % si non configuré
-      const cc=(q.camp&&crit[q.camp])||{};
-      const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
-      const ecart=qs-objQS;
-      const atteint=ecart>=0;
-      const qsColor=atteint?"#30d158":(ecart>=-10?"#ff9f0a":"#ff3b30");
-      const taColor=ta<=5?"#30d158":ta<=15?PK:"#ff3b30";
-      const ecartTxt=(atteint?"+":"−")+Math.abs(ecart)+" pts";
-      const bord=atteint?"#2a2a2a":(ecart>=-10?"#5a3a10":"#5a1a1a");
-      return '<div style="background:#161616;border:1px solid '+bord+';border-radius:9px;padding:12px 14px">'
-        +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px">'
-        +'<div style="font-size:11px;font-weight:700;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(q.name||"")+'">'+( q.name||"–")+'</div>'
-        +(q.camp?'<span style="font-size:8px;color:#888;background:#222;border-radius:8px;padding:1px 7px;white-space:nowrap">'+q.camp+'</span>':'')
-        +'</div>'
-        +'<div style="font-size:9px;margin-bottom:8px;color:'+(atteint?"#30d158":qsColor)+'">Obj QS ≥ '+objQS+'% · écart <b>'+ecartTxt+'</b></div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Reçus</div><div style="font-size:16px;font-weight:800;color:'+PK+'">'+q.recus+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Décrochés</div><div style="font-size:16px;font-weight:800;color:#30d158">'+q.decroches+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">QS%</div><div style="font-size:13px;font-weight:700;color:'+qsColor+'">'+qs+'%</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Abandon%</div><div style="font-size:13px;font-weight:700;color:'+taColor+'">'+ta+'%</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Sortants</div><div style="font-size:12px;font-weight:600;color:#888">'+(q.sortants||0)+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">DMC</div><div style="font-size:12px;font-weight:600;color:#888">'+mmss(q.dmc||0)+'</div></div>'
-        +'</div></div>';
-    }).join("");
-    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
+  let queues=window._lastQueuesData;
+  const _filtreActif=campSelPartial();
+  queues=queues.map(q=>Object.assign({},q,{camp:campOfQueue(q.name)}));
+  if(_filtreActif)queues=queues.filter(q=>q.camp&&selCamps.includes(q.camp));
+  if(queues.length===0){
+    grid.innerHTML=`<div style="color:#555;font-size:11px;padding:8px">${_filtreActif?'Aucune file active pour les campagnes sélectionnées à cette date.':'Aucune file active pour cette date.'}</div>`;
+    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+(_filtreActif?" · filtre campagne actif":"");
+    return;
   }
+  const crit=loadCriteres();
+  // Grouper par campagne dans l'ordre de CAMPS
+  const byCamp={},campOrder=[];
+  queues.forEach(q=>{const c=q.camp||'Autres';if(!byCamp[c]){byCamp[c]=[];campOrder.push(c);}byCamp[c].push(q);});
+  campOrder.sort((a,b)=>{const ia=CAMPS.indexOf(a),ib=CAMPS.indexOf(b);if(ia<0&&ib<0)return a.localeCompare(b,'fr');return ia<0?1:ib<0?-1:ia-ib;});
+  let html='';
+  campOrder.forEach(camp=>{
+    const ql=byCamp[camp];
+    const cc=(crit[camp])||{};
+    const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
+    const totR=ql.reduce((s,q)=>s+(q.recus||0),0);
+    const totD=ql.reduce((s,q)=>s+(q.decroches||0),0);
+    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
+    html+=`<div class="qs-camp-section">
+<div class="qs-camp-header">
+  <span class="qs-camp-name">${camp}</span>
+  <span class="qs-camp-count">${ql.length} file${ql.length>1?'s':''}</span>
+  <div class="qs-camp-agg">
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-lbl">Reçus</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-lbl">Décrochés</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
+  </div>
+</div><div class="qs-grid">`;
+    ql.forEach(q=>{
+      const qs=q.qs||0,ta=q.tauxAbandon||0;
+      const ecart=qs-objQS,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
+      const qsC=atteint?'#30d158':warn?'#ff9f0a':'#ff3b30';
+      const taC=ta<=5?'#30d158':ta<=15?'#E8006E':'#ff3b30';
+      const cls=atteint?'qs-card--ok':warn?'qs-card--warn':'qs-card--err';
+      const eT=(atteint?'+':'−')+Math.abs(ecart)+' pts';
+      const sn=shortQName(q.name,camp);
+      html+=`<div class="qs-card ${cls}">
+  <div class="qs-name" title="${(q.name||'').replace(/"/g,'&quot;')}">${sn}</div>
+  <div class="qs-obj" style="color:${qsC}">Obj ${objQS}% · <b>${eT}</b></div>
+  <div class="qs-kpis">
+    <div><div class="qs-kpi-val" style="color:#E8006E">${q.recus}</div><div class="qs-kpi-lbl">Reçus</div></div>
+    <div><div class="qs-kpi-val" style="color:#30d158">${q.decroches}</div><div class="qs-kpi-lbl">Décrochés</div></div>
+    <div><div class="qs-kpi-val" style="color:${qsC}">${qs}%</div><div class="qs-kpi-lbl">Qlt. service</div></div>
+    <div><div class="qs-kpi-val" style="color:${taC}">${ta}%</div><div class="qs-kpi-lbl">Abandons</div></div>
+  </div>
+  <div class="qs-footer">
+    <div><div class="qs-foot-val">${q.sortants||0}</div><div class="qs-foot-lbl">Sortants</div></div>
+    <div style="text-align:right"><div class="qs-foot-val">${mmss(q.dmc||0)}</div><div class="qs-foot-lbl">DMC</div></div>
+  </div>
+</div>`;
+    });
+    html+=`</div></div>`;
+  });
+  grid.innerHTML=html;
+  if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
 }
 
 async function refreshFromINO(){
