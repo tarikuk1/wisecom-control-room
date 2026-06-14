@@ -3040,104 +3040,132 @@ function renderChart(){
     host.innerHTML=msg;
     return;
   }
-  // Dimensions agrandies + marges pour axes
-  const W=970,H=258,PAD={t:26,r:14,b:58,l:42};
+  // ── Rendu SVG : nouveau design ────────────────────────────────────────────
+  // Couleurs adaptées au mode clair/sombre
+  const _isLight=document.body.classList.contains('light');
+  const C_GRID =_isLight?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
+  const C_AXIS =_isLight?'#c8c8c8':'#2a2a2a';
+  const C_TK   =_isLight?'#888':'#666';
+  const C_TK2  =_isLight?'#bbb':'#444';
+  const C_IN   ='#E8006E';
+  const C_ABAND='rgba(232,0,110,0.28)';
+  const C_OUT  ='#4C9AFF';
+  const C_TC   ='#4C9AFF';
+
+  const W=970,H=300,PAD={t:16,r:20,b:62,l:44};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
-  const maxV=Math.max(...displaySlots.map(s=>_filtered?(s.vol||0):Math.max(s.vol||0,s.out||0,s.aband||0)),1);
-  // Échelle Y "ronde" : prochaine dizaine au-dessus
-  const yMax=Math.ceil(maxV/10)*10;
+
+  // Échelle Y : pic = Présentés (Décrochés+Abandons) ou Sortants
+  const maxV=Math.max(
+    ...displaySlots.map(s=>_filtered?(s.vol||0):Math.max((s.vol||0)+(s.aband||0),(s.out||0))),1);
+  // Pas Y : trouver un pas "rond" qui donne 3–6 lignes de grille
+  const _steps=[1,2,5,10,25,50,100,200,500,1000];
+  const yStep=_steps.find(s=>Math.ceil(maxV/s)>=3&&Math.ceil(maxV/s)<=6)||_steps.find(s=>Math.ceil(maxV/s)<=6)||10;
+  const yMax=Math.ceil(maxV/yStep)*yStep;
+  const nY=yMax/yStep;
   const bw=cw/displaySlots.length;
-  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:280px;display:block">
-    <style>
-      .axis{stroke:var(--axis,#333);stroke-width:1}
-      .grid{stroke:var(--grid,#1e1e1e);stroke-width:1;stroke-dasharray:2 3}
-      .tick{font-size:10px;fill:var(--tick,#888);font-family:inherit}
-      .hlbl{font-size:10px;fill:var(--tick,#888);font-family:inherit}
-      .legend{font-size:11px;fill:var(--tick,#888);font-family:inherit}
-      .chart-period{font-size:11px;fill:var(--tick,#aaa);font-family:inherit;font-weight:700}
-    </style>`;
-  // Bandeau période + volume directement sur le graphique (visible en vue agrandie et à l'export)
-  svg+=`<text class="chart-period" x="${PAD.l}" y="11">${_periodeLbl} · ${_hDeb}–${_hFin}</text>`;
-  svg+=`<text class="chart-period" x="${W-PAD.r}" y="11" text-anchor="end" style="fill:#E8006E">${_filtered?(_volIn+" entrants traités"):(_multi?("\u2248 "+_volIn+" entr./j"):(_volIn+" entrants · "+_volOut+" sortants"))}</text>`;
-  // Grille horizontale + labels Y (5 paliers)
-  for(let i=0;i<=5;i++){
-    const y=PAD.t+ch-(i/5)*ch;
-    const val=Math.round((i/5)*yMax);
-    svg+=`<line class="grid" x1="${PAD.l}" y1="${y}" x2="${W-PAD.r}" y2="${y}"/>`;
-    svg+=`<text class="tick" x="${PAD.l-6}" y="${y+3}" text-anchor="end">${val}</text>`;
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:310px;display:block;overflow:visible">`;
+
+  // Grille horizontale
+  for(let gi=0;gi<=nY;gi++){
+    const yv=gi*yStep;
+    const gy=PAD.t+ch-(yv/yMax)*ch;
+    svg+=`<line x1="${PAD.l}" y1="${gy.toFixed(1)}" x2="${W-PAD.r}" y2="${gy.toFixed(1)}" stroke="${C_GRID}" stroke-width="1" stroke-dasharray="${gi===0?'0':'3 4'}"/>`;
+    svg+=`<text x="${(PAD.l-7).toFixed(1)}" y="${(gy+3.5).toFixed(1)}" text-anchor="end" fill="${C_TK}" font-size="9.5" font-family="inherit">${yv}</text>`;
   }
-  // Axes
-  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
-  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
-  // Précomputer le nombre d'agents actifs par tranche (périmètre = getFiltered())
-  // Basé sur premiereAction → derniereAction de chaque agent
+  // Axe X
+  svg+=`<line x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}" stroke="${C_AXIS}" stroke-width="1"/>`;
+
+  // Agents actifs par tranche (présence = premiereAction→derniereAction)
   const _scopedAgents=typeof getFiltered==='function'?getFiltered():[];
   const _slotAgentCount=displaySlots.map(function(s){
-    var lbl=s.lbl||"";
-    var p=lbl.split(':');
-    var slotMin=parseInt(p[0])*60+parseInt(p[1]);
+    var p=(s.lbl||"").split(':'),sm=parseInt(p[0])*60+parseInt(p[1]);
     return _scopedAgents.filter(function(a){
       if(!a.premiereAction)return false;
-      var start=_parisSlotMin(a.premiereAction);
-      var end=_parisSlotMin(a.derniereAction||a.premiereAction);
-      return start>=0&&end>=0&&start<=(slotMin+29)&&end>=slotMin;
+      var st=_parisSlotMin(a.premiereAction),en=_parisSlotMin(a.derniereAction||a.premiereAction);
+      return st>=0&&en>=0&&st<=(sm+29)&&en>=sm;
     }).length;
   });
 
-  // Barres groupées par tranche : entrants traités / sortants / abandons.
-  // "Présentés" = décrochés+abandons affichés en fond pour mise en perspective
-  const C_IN="#E8006E", C_OUT="#4C9AFF", C_ABAND="#FF8A3D", C_PRES="rgba(232,0,110,0.18)";
+  // Barres
   displaySlots.forEach((s,i)=>{
-    const x=PAD.l+i*bw;
-    const vIn=s.vol||0, vOut=s.out||0, vAb=s.aband||0;
-    const hv=(vIn/yMax)*ch, ho=(vOut/yMax)*ch, ha=(vAb/yMax)*ch;
-    // 3 barres fines centrées dans la tranche
-    const barW=bw*.24, gap=bw*.04, group=barW*3+gap*2, x0=x+(bw-group)/2;
-    const xIn=_filtered?(x+(bw-barW)/2):x0, xOut=x0+barW+gap, xAb=x0+(barW+gap)*2;
-    const vPres=vIn+((!_filtered)?vAb:0); // présentés = décrochés + abandons (en mode filtré, aband déjà dans vIn)
-    const hPres=(vPres/yMax)*ch;
-    const mk=(xx,hh,col,lbl,val)=>val>0?`<rect x="${xx.toFixed(1)}" y="${(PAD.t+ch-hh).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hh,0).toFixed(1)}" fill="${col}" rx="1.5"><title>${s.lbl} · ${val} ${lbl}</title></rect>`:"";
-    // Barre de contexte "Présentés" (fond semi-transparent, même largeur que barre entrants)
-    if(vPres>vIn&&vPres>0){svg+=`<rect x="${xIn.toFixed(1)}" y="${(PAD.t+ch-hPres).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(hPres,0).toFixed(1)}" fill="${C_PRES}" rx="1.5"><title>${s.lbl} · ${vPres} présentés (dont ${vAb} abandons)</title></rect>`;}
-    svg+=mk(xIn,hv,C_IN,"décrochés",vIn);
-    if(!_filtered){
-      svg+=mk(xOut,ho,C_OUT,"sortants",vOut);
+    const bx=PAD.l+i*bw;
+    const vIn=s.vol||0,vOut=s.out||0,vAb=s.aband||0;
+    const isHour=!(s.lbl||"").endsWith(":30");
+
+    // Séparateur d'heure discret au début de chaque heure (sauf le premier slot)
+    if(isHour&&i>0){
+      svg+=`<line x1="${bx.toFixed(1)}" y1="${PAD.t}" x2="${bx.toFixed(1)}" y2="${(PAD.t+ch).toFixed(1)}" stroke="${C_GRID}" stroke-width="1"/>`;
     }
-    // Labels heure : toutes les heures (1 tranche sur 2)
-    if(i%2===0){
-      svg+=`<text class="hlbl" x="${(x+bw/2).toFixed(1)}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
+
+    if(_filtered){
+      // Mode campagne filtrée : une barre large centrée (Décrochés uniquement)
+      const bW=bw*0.66,bX=bx+(bw-bW)/2;
+      if(vIn>0){
+        const hIn=(vIn/yMax)*ch;
+        svg+=`<rect x="${bX.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
+      }
+    } else {
+      // Mode global : stack gauche (Décrochés + Abandons empilés) + barre droite (Sortants)
+      const sW=bw*0.55,oW=bw*0.22,gap=bw*0.07;
+      const xS=bx+bw*0.09,xO=xS+sW+gap;
+      const hIn=(vIn/yMax)*ch,hAb=(vAb/yMax)*ch,hOut=(vOut/yMax)*ch;
+
+      // Abandons (partie haute du stack, transparente) empilés AU-DESSUS des décrochés
+      if(vAb>0){
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn-hAb).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hAb,1.5).toFixed(1)}" fill="${C_ABAND}" rx="3"><title>${s.lbl} · ${vAb} abandons (${vIn+vAb} présentés)</title></rect>`;
+      }
+      // Décrochés (partie basse du stack, couleur pleine)
+      if(vIn>0){
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
+      }
+      // Sortants
+      if(vOut>0){
+        svg+=`<rect x="${xO.toFixed(1)}" y="${(PAD.t+ch-hOut).toFixed(1)}" width="${oW.toFixed(1)}" height="${Math.max(hOut,1.5).toFixed(1)}" fill="${C_OUT}" rx="3"><title>${s.lbl} · ${vOut} sortants</title></rect>`;
+      }
     }
-    // Nombre d'agents actifs sur cette tranche (small, under label)
-    var _ac=_slotAgentCount[i];
+
+    // Étiquette axe X : label complet sur les ":00", petit tick sur les ":30"
+    if(isHour){
+      svg+=`<text x="${(bx+bw/2).toFixed(1)}" y="${(PAD.t+ch+14).toFixed(1)}" text-anchor="middle" fill="${C_TK}" font-size="10" font-family="inherit" font-weight="700">${s.lbl}</text>`;
+    } else {
+      svg+=`<line x1="${(bx+bw/2).toFixed(1)}" y1="${(PAD.t+ch).toFixed(1)}" x2="${(bx+bw/2).toFixed(1)}" y2="${(PAD.t+ch+4).toFixed(1)}" stroke="${C_TK2}" stroke-width="1"/>`;
+    }
+
+    // TC agents : badge numérique au-dessus de la barre la plus haute du slot
+    const _ac=_slotAgentCount[i];
     if(_ac>0){
-      svg+=`<text style="font-size:8px;fill:#4C9AFF;font-family:inherit;" x="${(x+bw/2).toFixed(1)}" y="${PAD.t+ch+27}" text-anchor="middle" title="${_ac} TC actif(s) sur cette tranche">${_ac}TC</text>`;
+      const vPres=vIn+(_filtered?0:vAb);
+      const hTall=Math.max((vPres/yMax)*ch,(vOut/yMax)*ch);
+      const yBadge=Math.max(PAD.t+ch-hTall-7,PAD.t+5);
+      svg+=`<text x="${(bx+bw/2).toFixed(1)}" y="${yBadge.toFixed(1)}" text-anchor="middle" fill="${C_TC}" font-size="8.5" font-family="inherit" font-weight="700" opacity=".85">${_ac}TC</text>`;
     }
   });
-  // Légende sous l'axe X
-  const ly=PAD.t+ch+34;
+
+  // Légende
+  const ly=PAD.t+ch+38;
   const _volPres=_volIn+(_filtered?0:_volAb);
-  if(_filtered){
-    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_PRES}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Présentés · ${_volPres}</text>
-    <rect x="${PAD.l+110}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+126}" y="${ly}">Décrochés · ${_volIn}</text>
-    <rect x="${PAD.l+250}" y="${ly-9}" width="7" height="7" fill="#4C9AFF" rx="1" y="${ly-7}"/>
-    <text class="legend" x="${PAD.l+263}" y="${ly}" style="fill:#4C9AFF">nTC = agents actifs / tranche</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">max ${yMax}</text>`;
+  const _leg=(lx,col,txt,isCircle=false)=>{
+    const dot=isCircle
+      ?`<circle cx="${(lx+5).toFixed(1)}" cy="${(ly-5).toFixed(1)}" r="5" fill="${col}"/>`
+      :`<rect x="${lx}" y="${ly-10}" width="12" height="12" fill="${col}" rx="3"/>`;
+    return dot+`<text x="${lx+(isCircle?15:18)}" y="${ly}" fill="${C_TK}" font-size="11" font-family="inherit">${txt}</text>`;
+  };
+  let lx=PAD.l;
+  if(!_filtered){
+    svg+=_leg(lx,C_ABAND,`Présentés · ${_volPres}`);  lx+=150;
+    svg+=_leg(lx,C_IN,   `Décrochés · ${_volIn}`);    lx+=140;
+    svg+=_leg(lx,C_OUT,  `Sortants · ${_volOut}`);     lx+=130;
   } else {
-    svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_PRES}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Présentés · ${_volPres}</text>
-    <rect x="${PAD.l+120}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+136}" y="${ly}">Décrochés · ${_volIn}</text>
-    <rect x="${PAD.l+250}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
-    <text class="legend" x="${PAD.l+266}" y="${ly}">Sortants · ${_volOut}</text>
-    <rect x="${PAD.l+360}" y="${ly-9}" width="7" height="7" fill="#4C9AFF" rx="1" y="${ly-7}"/>
-    <text class="legend" x="${PAD.l+373}" y="${ly}" style="fill:#4C9AFF">nTC = agents actifs/tranche</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">max ${yMax}</text>`;
+    svg+=_leg(lx,C_IN,`Décrochés · ${_volIn} (campagne filtrée)`); lx+=230;
   }
+  svg+=_leg(lx,C_TC,`nTC = agents actifs/tranche`,true);
+  svg+=`<text x="${W-PAD.r}" y="${ly}" text-anchor="end" fill="${C_TK2}" font-size="10.5" font-family="inherit">max ${yMax}</text>`;
+
   svg+="</svg>";
   host.innerHTML=svg;
-  // Si la vue agrandie est ouverte, la rafraîchir aussi
+  // Vue agrandie : synchroniser
   const zo=document.getElementById("chart-zoom-content");
   if(zo&&document.getElementById("chart-overlay").style.display!=="none"){zo.innerHTML=svg;}
 
