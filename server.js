@@ -1288,6 +1288,7 @@ const server=http.createServer(async(req,res)=>{
     res.writeHead(200,{"Content-Type":"text/html;charset=utf-8"});return res.end(adminHtml);
   }
   const _HTML_HDRS={"Content-Type":"text/html;charset=utf-8","Cache-Control":"no-cache, no-store, must-revalidate","Pragma":"no-cache","Expires":"0"};
+  if(url==="/theme.js"){const p=path.join(__dirname,"theme.js");if(fs.existsSync(p)){res.writeHead(200,{"Content-Type":"application/javascript;charset=utf-8","Cache-Control":"no-cache"});return fs.createReadStream(p).pipe(res);}}
   if(url==="/"||url==="/dashboard"){const p=path.join(__dirname,"dashboard.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/agents-jour"){const p=path.join(__dirname,"agents_jour.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/executif"){const p=path.join(__dirname,"executif.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}

@@ -3780,7 +3780,7 @@ function simulate(){
   render();
 }
 
-function toggleTheme(){}
+function toggleTheme(){ if(window.wcrToggleTheme) window.wcrToggleTheme(); }
 
 function toggleFilters(){
   const b=document.getElementById("filter-btn");
@@ -5593,6 +5593,7 @@ pullStore();
     <div class="col-def-close"><button onclick="document.getElementById('col-def-overlay').classList.remove('open')">Fermer ×</button></div>
   </div>
 </div>
+<script src="/theme.js" defer></script>
 </body>
 </html>
 
