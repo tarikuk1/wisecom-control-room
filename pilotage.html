@@ -23,22 +23,24 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 
 /* ─── CONFIG ZONE ─── */
 .config-zone{padding:20px 24px;max-width:1400px;margin:0 auto;}
-
 .config-card{background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .config-card-title{font-size:11px;font-weight:800;color:#E8006E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
-.config-card-title svg{flex-shrink:0;}
 
-/* période + options row */
+/* Mode toggle */
+.mode-toggle{display:inline-flex;border:1.5px solid #e2e2e2;border-radius:8px;overflow:hidden;margin-bottom:14px;}
+.mode-btn{border:none;background:#f7f7f9;color:#666;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s;}
+.mode-btn.active{background:#E8006E;color:#fff;}
+.mode-btn:first-child{border-right:1.5px solid #e2e2e2;}
+
+/* Période fields */
 .period-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
 .period-field{display:flex;flex-direction:column;gap:5px;}
 .period-field label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;}
-.period-field input,
-.period-field select{background:#f7f7f9;color:#222;border:1.5px solid #e2e2e2;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;}
-.period-field input:focus,
-.period-field select:focus{border-color:#E8006E;background:#fff;}
+.period-field input,.period-field select{background:#f7f7f9;color:#222;border:1.5px solid #e2e2e2;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;}
+.period-field input:focus,.period-field select:focus{border-color:#E8006E;background:#fff;}
 .period-sep{color:#bbb;padding-bottom:9px;font-size:16px;}
 
-/* ─── CAMPAIGN PILLS ─── */
+/* Campaign pills */
 .camp-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .camp-pill{cursor:pointer;border:1.5px solid #e0e0e0;border-radius:22px;padding:6px 14px;font-size:12px;font-weight:600;color:#555;background:#f7f7f9;transition:all .15s;user-select:none;white-space:nowrap;}
 .camp-pill:hover{border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
@@ -46,44 +48,41 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 .camp-pill-all{border-style:dashed;border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
 .camp-pill-all.selected{border-style:solid;background:#E8006E;color:#fff;}
 
-/* ─── KPI CARDS ─── */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
 .kpi-card{cursor:pointer;border:1.5px solid #e8e8e8;border-radius:10px;padding:12px 14px;background:#f9f9fb;transition:all .15s;user-select:none;}
 .kpi-card:hover{border-color:#E8006E88;background:#fff5f9;transform:translateY(-1px);}
 .kpi-card.selected{border-color:#E8006E;background:#fff0f6;box-shadow:0 0 0 3px #E8006E18;}
-.kpi-card-icon{font-size:20px;margin-bottom:6px;line-height:1;}
+.kpi-card-icon{font-size:18px;margin-bottom:5px;line-height:1;}
 .kpi-card-label{font-size:12px;font-weight:700;color:#222;}
 .kpi-card-def{font-size:10px;color:#999;margin-top:2px;line-height:1.4;}
 .kpi-card.selected .kpi-card-label{color:#E8006E;}
-.kpi-check{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid #ccc;float:right;margin-top:1px;position:relative;}
+.kpi-check{display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid #ccc;float:right;margin-top:1px;position:relative;flex-shrink:0;}
 .kpi-card.selected .kpi-check{background:#E8006E;border-color:#E8006E;}
 .kpi-card.selected .kpi-check::after{content:'';display:block;position:absolute;top:1px;left:3px;width:5px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg);}
 
-/* ─── LAUNCH BUTTON ─── */
+/* Launch */
 .launch-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:6px;}
 .btn-launch{background:linear-gradient(135deg,#E8006E,#c4005a);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;box-shadow:0 4px 14px #E8006E44;}
 .btn-launch:hover{transform:translateY(-1px);box-shadow:0 6px 18px #E8006E55;}
 .btn-launch:disabled{opacity:.5;cursor:wait;transform:none;box-shadow:none;}
-.btn-launch svg{flex-shrink:0;}
 #status{font-size:11px;color:#888;}
 
 /* ─── CONTENT ─── */
-.content{padding:0 24px 24px;max-width:1400px;margin:0 auto;}
-
-/* ─── PANELS ─── */
+.content{padding:0 24px 32px;max-width:1400px;margin:0 auto;}
 .panel{background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .panel-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
 .panel-title{font-size:13px;font-weight:700;color:#222;display:flex;align-items:center;gap:7px;}
 .panel-sub{font-size:10px;color:#aaa;margin-top:2px;}
 
-/* ─── TEAM BENCHMARK CARDS ─── */
-.bench-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:18px;}
+/* Benchmark cards */
+.bench-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:18px;}
 .bench-card{background:linear-gradient(135deg,#fff0f6,#fff);border:1.5px solid #f5c6de;border-radius:12px;padding:14px 16px;}
 .bench-card-kpi{font-size:10px;font-weight:800;color:#E8006E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.bench-card-val{font-size:24px;font-weight:800;color:#1a1a1a;line-height:1;}
+.bench-card-val{font-size:22px;font-weight:800;color:#1a1a1a;line-height:1;}
 .bench-card-sub{font-size:10px;color:#aaa;margin-top:4px;}
 
-/* ─── AGENT SELECTOR ─── */
+/* Agent selector */
 .agent-zone{display:flex;gap:14px;flex-wrap:wrap;}
 .agent-col{flex:1;min-width:220px;}
 .agent-col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -100,23 +99,25 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 .agent-item-camp{font-size:10px;color:#bbb;}
 .agent-count-badge{font-size:10px;color:#999;font-weight:400;}
 
-/* ─── TEMPLATE BAR ─── */
+/* Template bar */
 .tpl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fdf2f8;border:1.5px solid #f5c6de;border-radius:10px;padding:10px 14px;margin-bottom:16px;}
 .tpl-bar label{font-size:11px;color:#a3105e;font-weight:800;}
 .tpl-input{border:1.5px solid #e3b9d1;border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;outline:none;}
 .tpl-input:focus{border-color:#E8006E;}
 .tpl-select{border:1.5px solid #e3b9d1;border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;background:#fff;outline:none;}
-.btn-sm{border:none;border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:700;}
+.btn-sm{border:none;border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:700;font-family:inherit;}
 .btn-sm-pink{background:#E8006E;color:#fff;}
 .btn-sm-ghost{background:#fff;color:#555;border:1.5px solid #ddd;}
+.btn-sm-export{background:#f5f5f5;color:#444;border:1.5px solid #ddd;}
+.btn-sm-export:hover{background:#fff5f9;border-color:#E8006E;color:#E8006E;}
 
-/* ─── KPI TABS ─── */
+/* KPI tabs */
 .kpi-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
 .kpi-tab{border:1.5px solid #e2e2e2;background:#f7f7f9;color:#666;border-radius:8px;padding:6px 14px;font-size:11px;cursor:pointer;font-weight:700;transition:all .15s;font-family:inherit;}
 .kpi-tab:hover{border-color:#E8006E88;color:#E8006E;background:#fff5f9;}
 .kpi-tab.active{background:#E8006E;color:#fff;border-color:#E8006E;}
 
-/* ─── TABLES ─── */
+/* Tables */
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
 .tbl th{padding:8px 10px;color:#888;font-weight:700;text-align:left;border-bottom:2px solid #f0f0f0;background:#fafafa;white-space:nowrap;font-size:11px;}
 .tbl td{padding:7px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle;white-space:nowrap;}
@@ -127,14 +128,19 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 .cell-team{background:#fff0f8;color:#a3105e;}
 .legend-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle;}
 
-/* ─── INTRO / EMPTY ─── */
+/* Intro / empty */
 .intro-card{background:#fff;border:1.5px dashed #e8c8db;border-radius:14px;padding:48px 32px;text-align:center;color:#bbb;}
 .intro-card h2{font-size:16px;color:#E8006E;font-weight:800;margin-bottom:10px;}
 .intro-card p{font-size:12px;line-height:1.7;color:#999;max-width:520px;margin:0 auto;}
 .empty-hint{color:#bbb;font-size:12px;padding:28px 16px;text-align:center;line-height:1.7;}
 
-/* ─── TOAST ─── */
-.success-toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:700;display:none;z-index:999;max-width:380px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
+/* Defs toggle */
+.defs-toggle{display:inline-flex;align-items:center;gap:6px;border:1.5px solid #e2e2e2;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:#888;background:#fafafa;cursor:pointer;font-family:inherit;margin-bottom:0;}
+.defs-toggle:hover{border-color:#E8006E55;color:#E8006E;background:#fff5f9;}
+.defs-body{margin-top:14px;}
+
+/* Toast */
+.success-toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:700;display:none;z-index:999;max-width:380px;box-shadow:0 6px 20px rgba(0,0,0,.12);border-left:4px solid #1a8f44;background:#fff;color:#1a8f44;}
 
 @media(max-width:700px){
   .header{padding:0 14px;height:auto;padding-top:10px;padding-bottom:10px;}
@@ -147,7 +153,7 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 </head>
 <body>
 
-<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<!-- HEADER -->
 <div class="header">
   <div class="header-left">
     <div class="dot"></div>
@@ -169,16 +175,22 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
   </div>
 </div>
 
-<!-- ═══════════════════════════ CONFIGURATION ═══════════════════════════ -->
+<!-- CONFIGURATION -->
 <div class="config-zone">
 
-  <!-- Bloc 1 : Période & paramètres -->
+  <!-- Bloc 1 : Période -->
   <div class="config-card">
     <div class="config-card-title">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M5 1a1 1 0 0 1 2 0v1h2V1a1 1 0 0 1 2 0v1h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2V1zm-2 4v8h10V5H3z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="#E8006E"><path d="M5 1a1 1 0 0 1 2 0v1h2V1a1 1 0 0 1 2 0v1h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h2V1zm-2 4v8h10V5H3z"/></svg>
       Période d'analyse
     </div>
-    <div class="period-row">
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-weeks">Semaines glissantes</button>
+      <button class="mode-btn" id="mode-range">Plage libre</button>
+    </div>
+    <!-- Mode semaines -->
+    <div id="period-weeks" class="period-row">
       <div class="period-field">
         <label>Date de fin</label>
         <input type="date" id="ref-date" min="2022-01-01">
@@ -200,34 +212,51 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
         </div>
       </div>
     </div>
+    <!-- Mode plage libre -->
+    <div id="period-range" class="period-row" style="display:none;">
+      <div class="period-field">
+        <label>Date de début</label>
+        <input type="date" id="range-start" min="2022-01-01">
+      </div>
+      <div class="period-field">
+        <label>Date de fin</label>
+        <input type="date" id="range-end" min="2022-01-01">
+      </div>
+      <div class="period-field">
+        <label>Tranche horaire</label>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <input type="time" id="f-hdeb2" value="00:00" step="1800" style="width:100px;">
+          <span class="period-sep">→</span>
+          <input type="time" id="f-hfin2" value="23:59" step="1800" style="width:100px;">
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Bloc 2 : Campagnes -->
   <div class="config-card">
     <div class="config-card-title">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 4a1 1 0 0 1 .117 1.993L8 6H6a1 1 0 0 1 0-2h2zm-2.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="#E8006E"><path d="M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
       Campagnes à analyser
       <span id="camp-count" style="font-weight:400;color:#ccc;font-size:10px;text-transform:none;letter-spacing:0;"></span>
     </div>
-    <div class="camp-pills" id="pre-camps">
-      <span style="color:#bbb;font-size:12px;">chargement…</span>
-    </div>
+    <div class="camp-pills" id="pre-camps"><span style="color:#bbb;font-size:12px;">chargement…</span></div>
   </div>
 
   <!-- Bloc 3 : KPIs -->
   <div class="config-card">
     <div class="config-card-title">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="#E8006E"><path d="M1 11h2v3H1v-3zm3-4h2v7H4V7zm3-3h2v10H7V4zm3 2h2v8h-2V6zm3-5h2v13h-2V1z"/></svg>
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="#E8006E"><path d="M1 11h2v3H1v-3zm3-4h2v7H4V7zm3-3h2v10H7V4zm3 2h2v8h-2V6zm3-5h2v13h-2V1z"/></svg>
       Indicateurs KPI
       <span id="kpi-count" style="font-weight:400;color:#ccc;font-size:10px;text-transform:none;letter-spacing:0;"></span>
     </div>
     <div class="kpi-grid" id="pre-kpis"></div>
   </div>
 
-  <!-- Bouton lancement -->
+  <!-- Lancement -->
   <div class="launch-row">
     <button class="btn-launch" id="btn-load">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.596 8.697l-6.363 3.692C4.48 12.71 4 12.407 4 11.9V4.1c0-.507.48-.81.733-.489L11.596 7.3c.238.225.238.712 0 .937z"/></svg>
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11.596 8.697l-6.363 3.692C4.48 12.71 4 12.407 4 11.9V4.1c0-.507.48-.81.733-.489L11.596 7.3c.238.225.238.712 0 .937z"/></svg>
       Lancer l'analyse
     </button>
     <span id="status" aria-live="polite"></span>
@@ -235,34 +264,31 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 
 </div><!-- /config-zone -->
 
-<!-- ═══════════════════════════ RÉSULTATS ═══════════════════════════ -->
+<!-- RÉSULTATS -->
 <div class="content">
 
-  <!-- Intro -->
   <div id="intro-panel" class="intro-card">
     <h2>🎯 Configurez votre analyse</h2>
-    <p>Sélectionnez les campagnes, les indicateurs et la période ci-dessus, puis lancez l'analyse.<br>Vous obtiendrez : la moyenne équipe de référence, les courbes d'évolution, le classement avec min/moy/max, et la heatmap agent × période.</p>
+    <p>Sélectionnez les campagnes, les indicateurs et la période ci-dessus, puis lancez l'analyse.<br>Vous obtiendrez la moyenne équipe de référence, un tableau comparatif agent × semaine avec min/moy/max, et la heatmap de performance.</p>
   </div>
 
-  <!-- Panel sélection agents + modèles -->
+  <!-- Agents + modèles -->
   <div class="panel" id="filters-panel" style="display:none;">
     <div class="panel-header">
       <div>
-        <div class="panel-title">👤 Sélection des agents à comparer</div>
-        <div class="panel-sub">Choisissez les agents à inclure dans les graphiques et tableaux</div>
+        <div class="panel-title">👤 Sélection des agents</div>
+        <div class="panel-sub">Cochez les agents à inclure dans le tableau comparatif</div>
       </div>
     </div>
-    <!-- Modèles -->
     <div class="tpl-bar">
       <label>💾 Modèles</label>
-      <select id="tpl-select" class="tpl-select" style="min-width:180px;"><option value="">— charger un modèle —</option></select>
+      <select id="tpl-select" class="tpl-select" style="min-width:175px;"><option value="">— charger un modèle —</option></select>
       <button class="btn-sm btn-sm-ghost" id="tpl-load">Appliquer</button>
       <button class="btn-sm btn-sm-ghost" id="tpl-del">Supprimer</button>
       <div style="width:1px;height:20px;background:#e3b9d1;flex-shrink:0;"></div>
       <input type="text" id="tpl-name" class="tpl-input" placeholder="Nom du modèle (ex. Équipe Vivest)" style="min-width:200px;">
       <button class="btn-sm btn-sm-pink" id="tpl-save">Enregistrer</button>
     </div>
-    <!-- Agent list -->
     <div class="agent-zone">
       <div class="agent-col">
         <div class="agent-col-head">
@@ -273,7 +299,7 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
         <div class="agent-list" id="fb-agents"></div>
       </div>
     </div>
-    <div style="font-size:10px;color:#bbb;margin-top:10px;">Les filtres Campagnes &amp; KPI appliqués ci-dessus définissent le vivier. Cochez les agents à comparer individuellement.</div>
+    <div style="font-size:10px;color:#bbb;margin-top:10px;">Les filtres Campagnes &amp; KPI définissent le vivier d'agents. Cochez ceux à comparer individuellement.</div>
   </div>
 
   <!-- Benchmark équipe -->
@@ -281,35 +307,24 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
     <div class="panel-header">
       <div>
         <div class="panel-title">📐 Moyennes équipe — benchmark de référence</div>
-        <div class="panel-sub">Calculé sur tous les agents actifs du vivier (campagnes sélectionnées) · même période et tranche horaire</div>
+        <div class="panel-sub">Calculé sur tous les agents actifs du vivier · même période et tranche horaire</div>
       </div>
     </div>
     <div class="bench-cards" id="team-cards"></div>
     <div style="overflow-x:auto;" id="team-table-wrap"></div>
-    <div style="font-size:10px;color:#bbb;margin-top:10px;">La ligne <i>Moy. équipe</i> est calculée sur l'ensemble du vivier, pas uniquement les agents cochés. Elle sert de référence de comparaison.</div>
+    <div style="font-size:10px;color:#bbb;margin-top:10px;"><i>Moy. équipe</i> = vivier complet, pas uniquement les agents cochés. Référence de comparaison.</div>
   </div>
 
-  <!-- Évolution -->
-  <div class="panel" id="evo-panel" style="display:none;">
-    <div class="panel-header">
-      <div>
-        <div class="panel-title">📈 Évolution dans le temps</div>
-        <div class="panel-sub">Courbe par agent · pointillés roses = moyenne équipe</div>
-      </div>
-    </div>
-    <div class="kpi-tabs" id="kpi-tabs"></div>
-    <div id="evo-chart" style="overflow-x:auto;"></div>
-    <div id="evo-legend" style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:11px;"></div>
-  </div>
-
-  <!-- Classement -->
+  <!-- Tableau comparatif principal -->
   <div class="panel" id="rank-panel" style="display:none;">
     <div class="panel-header">
       <div>
-        <div class="panel-title">🏁 Classement &amp; dispersion — <span id="rank-kpi" style="color:#E8006E;"></span></div>
-        <div class="panel-sub">Vert = meilleure semaine · rose = moins bonne · ligne rose = moy. équipe</div>
+        <div class="panel-title">📊 Tableau comparatif agent × période — <span id="rank-kpi" style="color:#E8006E;"></span></div>
+        <div class="panel-sub">Vert = meilleure valeur · rouge = moins bonne · ligne rose = moyenne équipe · cliquez un KPI pour changer l'indicateur</div>
       </div>
+      <button class="btn-sm btn-sm-export" id="btn-export-csv">⬇ Export CSV</button>
     </div>
+    <div class="kpi-tabs" id="kpi-tabs"></div>
     <div style="overflow-x:auto;" id="rank-wrap"></div>
   </div>
 
@@ -317,23 +332,26 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
   <div class="panel" id="heat-panel" style="display:none;">
     <div class="panel-header">
       <div>
-        <div class="panel-title">🔥 Heatmap agent × période</div>
-        <div class="panel-sub">Intensité = performance relative sur l'indicateur choisi</div>
+        <div class="panel-title">🔥 Heatmap — <span id="heat-kpi" style="color:#E8006E;"></span></div>
+        <div class="panel-sub">Intensité de performance relative par agent et par semaine</div>
       </div>
     </div>
     <div style="overflow-x:auto;" id="heat-wrap"></div>
   </div>
 
-  <!-- Définitions -->
+  <!-- Définitions (collapsible) -->
   <div class="panel" id="defs-panel" style="display:none;">
-    <div class="panel-header">
-      <div class="panel-title">ⓘ Définitions &amp; mode de calcul</div>
+    <div class="panel-header" style="margin-bottom:0;">
+      <div class="panel-title">ⓘ Définitions des indicateurs</div>
+      <button class="defs-toggle" id="defs-toggle-btn">▼ Afficher les modes de calcul</button>
     </div>
-    <table class="tbl">
-      <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
-      <tbody id="defs-body"></tbody>
-    </table>
-    <div style="font-size:10px;color:#bbb;margin-top:10px;">Chaque point = une semaine glissante de 7 jours. <b>min / moy / max</b> = plus basse, moyenne et plus haute valeur de l'agent sur la période (semaines sans activité ignorées pour les durées et taux).</div>
+    <div class="defs-body" id="defs-body-wrap" style="display:none;">
+      <table class="tbl" style="margin-top:14px;">
+        <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
+        <tbody id="defs-body"></tbody>
+      </table>
+      <div style="font-size:10px;color:#bbb;margin-top:10px;">Chaque point = une semaine glissante de 7 jours. <b>min / moy / max</b> = plus basse, moyenne et plus haute valeur de l'agent sur la période (semaines sans activité ignorées pour les durées et taux).</div>
+    </div>
   </div>
 
 </div>
@@ -344,6 +362,7 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
 const INO_BASE="";
 let CAMPS=[],QUEUES_MAP={};
 let trendDepth=4,trendHDeb="00:00",trendHFin="23:59";
+let periodMode="weeks"; // "weeks" | "range"
 let loading=false;
 const weekCache=new Map();
 let pdata=null;
@@ -354,16 +373,16 @@ let selAgents=new Set();
 let tplStore={};
 
 const KPIS=[
-  {key:"traites", label:"Appels traités",  icon:"📞", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
-  {key:"actes",   label:"Actes totaux",    icon:"📋", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
-  {key:"sortants",label:"Appels sortants", icon:"📤", fmt:v=>String(Math.round(v)), betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
-  {key:"dmt",     label:"DMT",             icon:"⏱️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW"]},
-  {key:"dmc",     label:"DMC",             icon:"🗣️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée comm. entrants décrochés ÷ entrants décrochés"]},
-  {key:"acw",     label:"ACW (post-appel)",icon:"✍️", fmt:fmtMMSS,                   betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
-  {key:"decroche",label:"Taux décroché",   icon:"🎯", fmt:v=>v==null?"n.d.":Math.round(v)+"%", betterUp:true, vol:false, def:["Part des appels présentés décrochés","Appels traités ÷ appels présentés × 100"]},
-  {key:"transfo", label:"Transformation",  icon:"✅", fmt:v=>v==null?"n.d.":Math.round(v)+"%", betterUp:true, vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
+  {key:"traites",  label:"Appels traités",  icon:"📞", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
+  {key:"recus",    label:"Appels reçus",    icon:"📨", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels présentés à l'agent (décrochés + non décrochés)","Somme appelsPresentes INO sur la semaine"]},
+  {key:"actes",    label:"Actes totaux",    icon:"📋", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Production totale (entrant + sortant)","Appels traités + appels sortants"]},
+  {key:"sortants", label:"Appels sortants", icon:"📤", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels émis par l'agent","Compteur INO des sortants"]},
+  {key:"dmt",      label:"DMT",             icon:"⏱️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW"]},
+  {key:"dmc",      label:"DMC",             icon:"🗣️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée comm. entrants décrochés ÷ entrants décrochés"]},
+  {key:"acw",      label:"ACW post-appel",  icon:"✍️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
+  {key:"decroche", label:"Taux décroché",   icon:"🎯", fmt:v=>v==null?"n.d.":Math.round(v)+"%",             betterUp:true,  vol:false, def:["Part des appels présentés que l'agent a décrochés","Appels traités ÷ appels présentés × 100"]},
+  {key:"transfo",  label:"Transformation",  icon:"✅", fmt:v=>v==null?"n.d.":Math.round(v)+"%",             betterUp:true,  vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
 ];
-const PALETTE=["#E8006E","#1F77B4","#2CA02C","#FF7F0E","#9467BD","#17BECF","#8C564B","#D62728","#BCBD22","#7F7F7F","#E377C2","#1a8f44"];
 
 function fmtMMSS(s){const v=Math.round(s||0);const m=Math.floor(v/60);return String(m).padStart(2,"0")+":"+String(v%60).padStart(2,"0");}
 function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -384,7 +403,7 @@ function agentWeekKPIs(a){
   const traites=a.appelsIn||0, sortants=a.appelsOut||0, pres=a.appelsPresentes||0;
   const total=traites+sortants;
   return {
-    traites, sortants, actes:total, present:pres,
+    traites, sortants, actes:total, recus:pres,
     dmt:(a.dmt||0)+(a.acwMoyen||0),
     dmc:a.dmt||0,
     acw:a.acwMoyen||0,
@@ -409,7 +428,7 @@ async function loadTplStore(){
   renderTplSelect();
 }
 
-// ─── Build campaign pills ───
+// ─── Campaign pills ───
 function buildPreCamps(){
   const el=document.getElementById("pre-camps");
   if(!CAMPS.length){el.innerHTML='<span style="color:#bbb;font-size:12px;">aucune campagne configurée</span>';return;}
@@ -421,17 +440,13 @@ function buildPreCamps(){
     const pill=e.target.closest(".camp-pill");
     if(!pill)return;
     if(pill.id==="camp-all"){
-      if(selCamps.size===CAMPS.length){selCamps=new Set();}else{selCamps=new Set(CAMPS);}
+      selCamps=selCamps.size===CAMPS.length?new Set():new Set(CAMPS);
     } else {
       const c=decodeURIComponent(pill.dataset.camp||"");
       if(selCamps.has(c))selCamps.delete(c);else selCamps.add(c);
     }
-    el.querySelectorAll(".camp-pill[data-camp]").forEach(p=>{
-      const c=decodeURIComponent(p.dataset.camp);
-      p.classList.toggle("selected",selCamps.has(c));
-    });
-    const allPill=el.querySelector("#camp-all");
-    if(allPill)allPill.classList.toggle("selected",selCamps.size===CAMPS.length);
+    el.querySelectorAll(".camp-pill[data-camp]").forEach(p=>{p.classList.toggle("selected",selCamps.has(decodeURIComponent(p.dataset.camp)));});
+    const ap=el.querySelector("#camp-all");if(ap)ap.classList.toggle("selected",selCamps.size===CAMPS.length);
     updateCampCount();
   });
 }
@@ -440,7 +455,7 @@ function updateCampCount(){
   if(el)el.textContent=selCamps.size===CAMPS.length?"(toutes)":"("+selCamps.size+" / "+CAMPS.length+")";
 }
 
-// ─── Build KPI cards ───
+// ─── KPI cards ───
 function buildPreKPIs(){
   const el=document.getElementById("pre-kpis");
   el.innerHTML=KPIS.map(k=>`<div class="kpi-card${selKPIs.has(k.key)?" selected":""}" data-kpk="${k.key}">
@@ -459,7 +474,7 @@ function buildPreKPIs(){
     if(selKPIs.has(key))selKPIs.delete(key);else selKPIs.add(key);
     card.classList.toggle("selected",selKPIs.has(key));
     updateKpiCount();
-    if(pdata){renderTeamAvg();renderRank();}
+    if(pdata){renderTeamAvg();}
   });
 }
 function updateKpiCount(){
@@ -467,7 +482,23 @@ function updateKpiCount(){
   if(el)el.textContent="("+selKPIs.size+" / "+KPIS.length+")";
 }
 
-// ─── Chargement ───
+// ─── Period mode toggle ───
+document.getElementById("mode-weeks").addEventListener("click",()=>{
+  periodMode="weeks";
+  document.getElementById("mode-weeks").classList.add("active");
+  document.getElementById("mode-range").classList.remove("active");
+  document.getElementById("period-weeks").style.display="flex";
+  document.getElementById("period-range").style.display="none";
+});
+document.getElementById("mode-range").addEventListener("click",()=>{
+  periodMode="range";
+  document.getElementById("mode-range").classList.add("active");
+  document.getElementById("mode-weeks").classList.remove("active");
+  document.getElementById("period-range").style.display="flex";
+  document.getElementById("period-weeks").style.display="none";
+});
+
+// ─── Data loading ───
 async function loadWeek(start,end,cacheable){
   const key=start+"|"+end+"|"+trendHDeb+"|"+trendHFin;
   if(cacheable&&weekCache.has(key))return weekCache.get(key);
@@ -482,22 +513,45 @@ async function loadWeek(start,end,cacheable){
 
 async function loadAnalysis(){
   if(loading)return;
-  const ref=document.getElementById("ref-date").value;
   const stEl=document.getElementById("status");
   const btn=document.getElementById("btn-load");
-  if(!ref){showToast("⚠ Choisissez une date de fin d'analyse","#b45309");return;}
-  trendDepth=parseInt(document.getElementById("f-depth").value,10)||4;
-  trendHDeb=document.getElementById("f-hdeb").value||"00:00";
-  trendHFin=document.getElementById("f-hfin").value||"23:59";
   if(!selCamps.size){showToast("⚠ Sélectionnez au moins une campagne","#b45309");return;}
   if(!selKPIs.size)selKPIs=new Set(KPIS.map(k=>k.key));
-  const N=trendDepth, todayStr=isoLocal(new Date());
+
+  // Compute week ranges based on mode
+  let ranges=[];
+  if(periodMode==="weeks"){
+    const ref=document.getElementById("ref-date").value;
+    if(!ref){showToast("⚠ Choisissez une date de fin","#b45309");return;}
+    trendDepth=parseInt(document.getElementById("f-depth").value,10)||4;
+    trendHDeb=document.getElementById("f-hdeb").value||"00:00";
+    trendHFin=document.getElementById("f-hfin").value||"23:59";
+    ranges=Array.from({length:trendDepth},(_,i)=>weekRange(ref,trendDepth-1-i));
+  } else {
+    const rs=document.getElementById("range-start").value;
+    const re=document.getElementById("range-end").value;
+    if(!rs||!re){showToast("⚠ Choisissez une date de début et de fin","#b45309");return;}
+    if(rs>re){showToast("⚠ La date de début doit être avant la date de fin","#b45309");return;}
+    trendHDeb=document.getElementById("f-hdeb2").value||"00:00";
+    trendHFin=document.getElementById("f-hfin2").value||"23:59";
+    // Split range into 7-day chunks (max 13)
+    let cur=rs;
+    while(cur<=re && ranges.length<13){
+      const end2=shiftDateStr(cur,6);
+      ranges.push({start:cur,end:end2>re?re:end2});
+      cur=shiftDateStr(end2,1);
+    }
+    trendDepth=ranges.length;
+  }
+
+  const N=ranges.length;
+  const todayStr=isoLocal(new Date());
   loading=true;btn.disabled=true;
   const prevHTML=btn.innerHTML;
   btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 1a7 7 0 1 0 7 7h-2a5 5 0 1 1-5-5V1z"/></svg> Chargement…';
-  const style=document.createElement("style");style.textContent="@keyframes spin{to{transform:rotate(360deg)}}";document.head.appendChild(style);
+  const spinStyle=document.getElementById("spin-style")||document.createElement("style");
+  spinStyle.id="spin-style";spinStyle.textContent="@keyframes spin{to{transform:rotate(360deg)}}";document.head.appendChild(spinStyle);
   try{
-    const ranges=Array.from({length:N},(_,i2)=>weekRange(ref,N-1-i2));
     const weeks=[],agMap=new Map();
     for(let i=0;i<ranges.length;i++){
       const{start,end}=ranges[i];
@@ -513,12 +567,13 @@ async function loadAnalysis(){
         rec.series[i]=agentWeekKPIs(a);
       });
     }
-    agMap.forEach(rec=>{for(let i=0;i<N;i++){if(!rec.series[i])rec.series[i]={traites:0,sortants:0,actes:0,present:0,dmt:0,dmc:0,acw:0,decroche:null,transfo:null,active:false};}});
+    const nullEntry={traites:0,sortants:0,actes:0,recus:0,dmt:0,dmc:0,acw:0,decroche:null,transfo:null,active:false};
+    agMap.forEach(rec=>{for(let i=0;i<N;i++){if(!rec.series[i])rec.series[i]={...nullEntry};}});
     pdata={weeks,agents:agMap};
-    stEl.textContent="✓ "+agMap.size+" agents · "+N+" sem. ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?" · "+trendHDeb+"–"+trendHFin:"")+")";
+    stEl.textContent="✓ "+agMap.size+" agents · "+N+" période"+(N>1?"s":"")+" ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?" · "+trendHDeb+"–"+trendHFin:"")+")";
     initSelections();
     document.getElementById("intro-panel").style.display="none";
-    ["filters-panel","team-panel","evo-panel","rank-panel","heat-panel","defs-panel"].forEach(id=>document.getElementById(id).style.display="");
+    ["filters-panel","team-panel","rank-panel","heat-panel","defs-panel"].forEach(id=>document.getElementById(id).style.display="");
     renderDefs();renderKpiTabs();renderAgentList();renderAll();
     showToast("✓ Analyse chargée — "+agMap.size+" agents");
   }catch(e){
@@ -528,9 +583,14 @@ async function loadAnalysis(){
   }finally{loading=false;btn.disabled=false;btn.innerHTML=prevHTML;}
 }
 
-// ─── Sélections ───
+// ─── Agent selection ───
 function allAgentsArr(){return [...pdata.agents.values()];}
-function candidateAgents(){return allAgentsArr().filter(a=>!selCamps.size||selCamps.has(a.camp));}
+// When all camps are selected (or filter is broad), include agents whose camp is unrecognised ("Autre")
+// to avoid silently hiding agents from campaigns with non-standard queue names (e.g. Verspieren)
+function candidateAgents(){
+  if(!selCamps.size||selCamps.size>=CAMPS.length)return allAgentsArr();
+  return allAgentsArr().filter(a=>selCamps.has(a.camp));
+}
 function selectedAgentRecs(){return candidateAgents().filter(a=>selAgents.has(a.id));}
 
 function initSelections(){
@@ -545,9 +605,6 @@ function seriesAvg(rec,key){
   const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));
   if(!vals.length)return 0;return vals.reduce((s,v)=>s+v,0)/vals.length;
 }
-function seriesMin(rec,key){const k=kpi(key);const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));return vals.length?Math.min(...vals):null;}
-function seriesMax(rec,key){const k=kpi(key);const vals=rec.series.map((s,i)=>s?s[key]:null).filter((v,i)=>v!=null&&(k.vol?true:rec.series[i].active));return vals.length?Math.max(...vals):null;}
-
 function teamWeekAvg(key,weekIdx){
   const k=kpi(key);
   const cands=candidateAgents().filter(a=>a.series[weekIdx]&&(k.vol?a.series[weekIdx][key]>0:a.series[weekIdx].active));
@@ -570,7 +627,7 @@ function renderKpiTabs(){
 }
 function renderDefs(){
   document.getElementById("defs-body").innerHTML=KPIS.map(k=>'<tr><td><b>'+k.icon+' '+k.label+'</b></td><td>'+k.def[0]+'</td><td>'+k.def[1]+'</td></tr>').join("")+
-    '<tr><td><b>min / moy / max</b></td><td>Dispersion de l\'agent sur la période</td><td>Plus basse, moyenne et plus haute valeur sur les '+(pdata?pdata.weeks.length:"N")+' semaines</td></tr>';
+    '<tr><td><b>min / moy / max</b></td><td>Dispersion de l\'agent sur la période</td><td>Plus basse, moyenne et plus haute valeur sur les '+(pdata?pdata.weeks.length:"N")+(pdata&&pdata.weeks.length>1?" semaines":" semaine")+'</td></tr>';
 }
 function renderTplSelect(){
   const names=Object.keys(tplStore).sort((a,b)=>a.localeCompare(b));
@@ -586,8 +643,8 @@ function renderTeamAvg(){
   const N=pdata.weeks.length;
   cardsEl.innerHTML=kpiKeys.map(key=>{
     const k=kpi(key);const v=teamOverallAvg(key);
-    const cands=candidateAgents().filter(a=>a.series.some((s,i)=>s&&(k.vol?s[key]>0:s.active)));
-    return '<div class="bench-card"><div class="bench-card-kpi">'+k.icon+' '+k.label+'</div><div class="bench-card-val">'+(v!=null?k.fmt(v):"n.d.")+'</div><div class="bench-card-sub">moy. équipe · '+cands.length+' agents actifs</div></div>';
+    const cnt=candidateAgents().filter(a=>a.series.some((s,i)=>s&&(k.vol?s[key]>0:s.active))).length;
+    return '<div class="bench-card"><div class="bench-card-kpi">'+k.icon+' '+k.label+'</div><div class="bench-card-val">'+(v!=null?k.fmt(v):"n.d.")+'</div><div class="bench-card-sub">moy. équipe · '+cnt+' agents actifs</div></div>';
   }).join("");
   if(!selectedAgentRecs().length){wrapEl.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent pour voir la comparaison détaillée.</div>';return;}
   const recs=selectedAgentRecs().sort((a,b)=>seriesAvg(b,kpiKeys[0])-seriesAvg(a,kpiKeys[0]));
@@ -619,14 +676,14 @@ function renderAgentList(){
   const cands=candidateAgents().sort((a,b)=>a.nom.localeCompare(b.nom)).filter(a=>!q||a.nom.toLowerCase().includes(q));
   const candIds=new Set(candidateAgents().map(a=>a.id));
   [...selAgents].forEach(id=>{if(!candIds.has(id))selAgents.delete(id);});
-  document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sélectionnés / "+candidateAgents().length+")";
+  document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sél. / "+candidateAgents().length+")";
   const el=document.getElementById("fb-agents");
   if(!cands.length){el.innerHTML='<div style="font-size:12px;color:#bbb;padding:12px 10px;">Aucun agent dans ces campagnes</div>';return;}
   el.innerHTML=cands.map(a=>'<label class="agent-item"><input type="checkbox" value="'+a.id+'"'+(selAgents.has(a.id)?" checked":"")+'>'+
     '<span class="agent-item-name">'+a.nom+'</span><span class="agent-item-camp">'+a.camp+'</span></label>').join("");
   el.oninput=e=>{
     toggleSet(selAgents,isNaN(+e.target.value)?e.target.value:+e.target.value,e.target.checked);
-    document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sélectionnés / "+candidateAgents().length+")";
+    document.getElementById("ag-count").textContent="("+selectedAgentRecs().length+" sél. / "+candidateAgents().length+")";
     renderAll();
   };
 }
@@ -637,43 +694,10 @@ function toggleSet(set,val,on){
 
 function renderAll(){
   if(!pdata)return;
-  document.getElementById("rank-kpi").textContent=kpi(curKPI).icon+" "+kpi(curKPI).label;
-  renderTeamAvg();renderEvo();renderRank();renderHeat();
-}
-
-function renderEvo(){
-  const recs=selectedAgentRecs();
-  const wrap=document.getElementById("evo-chart"),leg=document.getElementById("evo-legend");
-  if(!recs.length){wrap.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent.</div>';leg.innerHTML="";return;}
-  const k=kpi(curKPI),W=880,H=320,mL=58,mR=16,mT=14,mB=44,N=pdata.weeks.length;
-  const shown=recs.slice(0,12);
-  let vmax=0,vmin=Infinity;
-  shown.forEach(r=>seriesVals(r,curKPI).forEach((v,i)=>{if(v!=null&&(k.vol||r.series[i].active)){if(v>vmax)vmax=v;if(v<vmin)vmin=v;}}));
-  for(let i=0;i<N;i++){const tv=teamWeekAvg(curKPI,i);if(tv!=null){if(tv>vmax)vmax=tv;if(tv<vmin)vmin=tv;}}
-  if(!isFinite(vmin))vmin=0;if(vmax<=0)vmax=1;
-  const lo=k.vol?0:Math.max(0,Math.floor(vmin*0.9)),hi=Math.ceil(vmax*1.05)||1;
-  const x=i=>mL+(N<=1?0:(i/(N-1))*(W-mL-mR));
-  const y=v=>H-mB-((v-lo)/((hi-lo)||1))*(H-mT-mB);
-  let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="min-width:560px;font-family:\'Segoe UI\',Arial;" role="img">';
-  // Grid
-  for(let g=0;g<=4;g++){const vv=lo+(hi-lo)*g/4,yy=y(vv);svg+='<line x1="'+mL+'" y1="'+yy+'" x2="'+(W-mR)+'" y2="'+yy+'" stroke="#f0f0f0" stroke-width="1"/><text x="'+(mL-8)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#aaa">'+k.fmt(vv)+'</text>';}
-  // Week labels
-  pdata.weeks.forEach((w,i)=>{const off=N-1-i;const lbl=off===0?"réf.":"S-"+off;svg+='<text x="'+x(i)+'" y="'+(H-mB+16)+'" text-anchor="middle" font-size="9.5" fill="#888" font-weight="600">'+lbl+'</text><text x="'+x(i)+'" y="'+(H-mB+28)+'" text-anchor="middle" font-size="8" fill="#bbb">'+fmtDate(w.start)+'</text>';});
-  // Équipe
-  const teamPts=[];for(let i=0;i<N;i++){const tv=teamWeekAvg(curKPI,i);if(tv!=null)teamPts.push([x(i),y(tv)]);}
-  if(teamPts.length>1)svg+='<polyline points="'+teamPts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="#E8006E" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>';
-  // Agents
-  shown.forEach((r,ci)=>{
-    const col=PALETTE[ci%PALETTE.length];const pts=[];
-    seriesVals(r,curKPI).forEach((v,i)=>{if(v!=null&&(k.vol||r.series[i].active))pts.push([x(i),y(v)]);});
-    if(pts.length>1)svg+='<polyline points="'+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
-    pts.forEach(p=>{svg+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3" fill="'+col+'" stroke="#fff" stroke-width="1.5"/>';});
-  });
-  svg+='</svg>';
-  wrap.innerHTML=svg;
-  leg.innerHTML='<span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:none;border:1.5px dashed #E8006E;opacity:.7;"></span>Moy. équipe</span>'+
-    shown.map((r,ci)=>'<span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:'+PALETTE[ci%PALETTE.length]+'"></span>'+r.nom+'</span>').join("")+
-    (recs.length>12?'<span style="color:#bbb;">+'+(recs.length-12)+' autres</span>':"");
+  const k=kpi(curKPI);
+  document.getElementById("rank-kpi").textContent=k.icon+" "+k.label;
+  document.getElementById("heat-kpi").textContent=k.icon+" "+k.label;
+  renderTeamAvg();renderRank();renderHeat();
 }
 
 function renderRank(){
@@ -681,9 +705,9 @@ function renderRank(){
   const wrap=document.getElementById("rank-wrap");
   if(!recs.length){wrap.innerHTML='<div class="empty-hint">Sélectionnez au moins un agent.</div>';return;}
   const sorted=[...recs].sort((a,b)=>{const av=seriesAvg(a,curKPI),bv=seriesAvg(b,curKPI);return k.betterUp?bv-av:av-bv;});
-  const head='<tr><th>Agent</th><th>Camp.</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th title="'+w.start+'→'+w.end+'">'+(off===0?"réf.":"S-"+off)+'</th>';}).join("")+'<th>min</th><th>moy</th><th>max</th><th>tendance</th></tr>';
+  const head='<tr><th>Agent</th><th>Camp.</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th title="'+w.start+' → '+w.end+'">'+(off===0?"réf.":"S-"+off)+'<br><span style="font-weight:400;color:#bbb;font-size:9px;">'+fmtDate(w.start)+'</span></th>';}).join("")+'<th>min</th><th>moy</th><th>max</th><th>tendance</th></tr>';
   const teamCells=pdata.weeks.map((_,i)=>{const tv=teamWeekAvg(curKPI,i);return '<td class="cell-team">'+(tv!=null?k.fmt(tv):"–")+'</td>';}).join("");
-  const teamRow='<tr class="avg-row"><td colspan="2"><b>Moy. équipe</b> <span style="font-size:10px;color:#ddd;">(vivier campagnes)</span></td>'+teamCells+'<td>–</td><td class="cell-team"><b>'+(teamOverallAvg(curKPI)!=null?k.fmt(teamOverallAvg(curKPI)):"–")+'</b></td><td>–</td><td></td></tr>';
+  const teamRow='<tr class="avg-row"><td colspan="2"><b>Moy. équipe</b></td>'+teamCells+'<td>–</td><td class="cell-team"><b>'+(teamOverallAvg(curKPI)!=null?k.fmt(teamOverallAvg(curKPI)):"–")+'</b></td><td>–</td><td></td></tr>';
   const body=sorted.map((r,idx)=>{
     const vals=seriesVals(r,curKPI);
     const num=vals.map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:null).filter(v=>v!=null);
@@ -694,9 +718,9 @@ function renderRank(){
       return '<td class="'+cls+'">'+(valid?k.fmt(v):'<span style="color:#ddd">–</span>')+'</td>';
     }).join("");
     const avg=seriesAvg(r,curKPI);
-    const rankBadge=idx===0?' <span style="color:#1a8f44;font-size:10px;">▲ top</span>':(idx===sorted.length-1&&sorted.length>1?' <span style="color:#dc2626;font-size:10px;">▼ bas</span>':"");
+    const rankBadge=idx===0?' <span style="color:#1a8f44;font-size:10px;font-weight:700;">▲</span>':(idx===sorted.length-1&&sorted.length>1?' <span style="color:#dc2626;font-size:10px;font-weight:700;">▼</span>':"");
     return '<tr><td><b>'+r.nom+'</b>'+rankBadge+'</td><td style="color:#aaa;font-size:11px;">'+r.camp+'</td>'+cells+
-      '<td>'+(mn!=null?k.fmt(mn):"–")+'</td><td><b>'+k.fmt(avg)+'</b></td><td>'+(mx!=null?k.fmt(mx):"–")+'</td><td>'+sparkSVG(vals.map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:0))+'</td></tr>';
+      '<td style="color:#888;">'+(mn!=null?k.fmt(mn):"–")+'</td><td><b>'+k.fmt(avg)+'</b></td><td style="color:#888;">'+(mx!=null?k.fmt(mx):"–")+'</td><td>'+sparkSVG(vals.map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:0))+'</td></tr>';
   }).join("");
   wrap.innerHTML='<table class="tbl"><thead>'+head+'</thead><tbody>'+teamRow+body+'</tbody></table>';
 }
@@ -717,10 +741,10 @@ function renderHeat(){
     return "background:rgb("+mix[0]+","+mix[1]+","+mix[2]+");color:#222;";
   }
   const sorted=[...recs].sort((a,b)=>{const av=seriesAvg(a,curKPI),bv=seriesAvg(b,curKPI);return k.betterUp?bv-av:av-bv;});
-  const head='<tr><th>Agent</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th style="text-align:center;">'+(off===0?"réf.":"S-"+off)+'</th>';}).join("")+'</tr>';
+  const head='<tr><th>Agent</th>'+pdata.weeks.map((w,i)=>{const off=N-1-i;return '<th style="text-align:center;">'+(off===0?"réf.":"S-"+off)+'<br><span style="font-weight:400;color:#bbb;font-size:9px;">'+fmtDate(w.start)+'</span></th>';}).join("")+'<th>Moy.</th></tr>';
   const body=sorted.map(r=>{
-    const cells=seriesVals(r,curKPI).map((v,i)=>{const valid=v!=null&&(k.vol||r.series[i].active);return '<td style="text-align:center;border-radius:5px;'+cellColor(v,valid)+'">'+(valid?k.fmt(v):"–")+'</td>';}).join("");
-    return '<tr><td style="white-space:nowrap;font-weight:600;">'+r.nom+'</td>'+cells+'</tr>';
+    const cells=seriesVals(r,curKPI).map((v,i)=>{const valid=v!=null&&(k.vol||r.series[i].active);return '<td style="text-align:center;border-radius:5px;font-weight:600;'+cellColor(v,valid)+'">'+(valid?k.fmt(v):"–")+'</td>';}).join("");
+    return '<tr><td style="white-space:nowrap;font-weight:700;">'+r.nom+'</td>'+cells+'<td style="font-weight:800;color:#E8006E;">'+k.fmt(seriesAvg(r,curKPI))+'</td></tr>';
   }).join("");
   wrap.innerHTML='<table class="tbl" style="border-collapse:separate;border-spacing:3px;"><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
 }
@@ -728,14 +752,37 @@ function renderHeat(){
 function sparkSVG(data){
   if(!Array.isArray(data)||!data.length)return"";
   const w=72,h=22,max=Math.max(...data,1),n=data.length;
-  if(n===1)return'<svg width="'+w+'" height="'+h+'"><circle cx="'+(w/2)+'" cy="'+(h-(data[0]/max)*h).toFixed(1)+'" r="2.5" fill="#E8006E"/></svg>';
+  if(n===1)return'<svg width="'+w+'" height="'+h+'"><circle cx="'+Math.round(w/2)+'" cy="'+Math.round(h-(data[0]/max)*h)+'" r="2.5" fill="#E8006E"/></svg>';
   const pts=data.map((v,i)=>(i/(n-1)*w).toFixed(1)+","+(h-(v/max)*h).toFixed(1)).join(" ");
   const col=data[n-1]>=data[n-2]?"#1a8f44":"#E8006E";
   return'<svg width="'+w+'" height="'+h+'" style="vertical-align:middle"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 
-// ─── Modèles ───
-function currentTpl(){return {agents:[...selAgents],kpis:[...selKPIs],camps:[...selCamps],kpi:curKPI,depth:trendDepth,hDeb:trendHDeb,hFin:trendHFin};}
+// ─── Export CSV ───
+function exportCSV(){
+  if(!pdata)return;
+  const recs=selectedAgentRecs();const k=kpi(curKPI),N=pdata.weeks.length;
+  const sorted=[...recs].sort((a,b)=>{const av=seriesAvg(a,curKPI),bv=seriesAvg(b,curKPI);return k.betterUp?bv-av:av-bv;});
+  const header=["Agent","Campagne",...pdata.weeks.map((w,i)=>{const off=N-1-i;return off===0?"Réf. "+w.start:"S-"+off+" "+w.start;}),"Min","Moy","Max"];
+  const rows=[header];
+  // Team row
+  const teamVals=pdata.weeks.map((_,i)=>{const v=teamWeekAvg(curKPI,i);return v!=null?k.fmt(v):"";});
+  rows.push(["Moy. équipe","",...teamVals,"",teamOverallAvg(curKPI)!=null?k.fmt(teamOverallAvg(curKPI)):""]);
+  sorted.forEach(r=>{
+    const vals=seriesVals(r,curKPI).map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?k.fmt(v):"");
+    const num=seriesVals(r,curKPI).map((v,i)=>(v!=null&&(k.vol||r.series[i].active))?v:null).filter(v=>v!=null);
+    rows.push([r.nom,r.camp,...vals,num.length?k.fmt(Math.min(...num)):"",k.fmt(seriesAvg(r,curKPI)),num.length?k.fmt(Math.max(...num)):""]);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+(String(c).replace(/"/g,'""'))+'"').join(",")).join("\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="pilotage_"+curKPI+"_"+isoLocal(new Date())+".csv";a.click();
+  URL.revokeObjectURL(url);
+  showToast("✓ Export CSV — "+k.label);
+}
+
+// ─── Templates ───
+function currentTpl(){return {agents:[...selAgents],kpis:[...selKPIs],camps:[...selCamps],kpi:curKPI,depth:trendDepth,hDeb:trendHDeb,hFin:trendHFin,mode:periodMode};}
 async function saveTpl(){
   const name=(document.getElementById("tpl-name").value||"").trim();
   if(!name){showToast("⚠ Donnez un nom au modèle","#b45309");return;}
@@ -751,17 +798,13 @@ async function saveTpl(){
 function applyTpl(){
   const sel=document.getElementById("tpl-select").value;if(!sel)return;
   const name=decodeURIComponent(sel),t=tplStore[name];if(!t)return;
-  const needReload=(t.depth&&t.depth!==trendDepth)||(t.hDeb&&t.hDeb!==trendHDeb)||(t.hFin&&t.hFin!==trendHFin);
   if(t.depth)document.getElementById("f-depth").value=String(t.depth);
   if(t.hDeb)document.getElementById("f-hdeb").value=t.hDeb;
   if(t.hFin)document.getElementById("f-hfin").value=t.hFin;
   if(t.camps){
     selCamps=new Set(t.camps);
-    document.querySelectorAll("#pre-camps .camp-pill[data-camp]").forEach(p=>{
-      const c=decodeURIComponent(p.dataset.camp);p.classList.toggle("selected",selCamps.has(c));
-    });
-    const allPill=document.querySelector("#pre-camps #camp-all");
-    if(allPill)allPill.classList.toggle("selected",selCamps.size===CAMPS.length);
+    document.querySelectorAll("#pre-camps .camp-pill[data-camp]").forEach(p=>{p.classList.toggle("selected",selCamps.has(decodeURIComponent(p.dataset.camp)));});
+    const ap=document.querySelector("#pre-camps #camp-all");if(ap)ap.classList.toggle("selected",selCamps.size===CAMPS.length);
     updateCampCount();
   }
   if(t.kpis){
@@ -770,7 +813,8 @@ function applyTpl(){
     updateKpiCount();
   }
   document.getElementById("tpl-name").value=name;
-  if(needReload||!pdata){showToast("Modèle « "+name+" » — rechargement…");loadAnalysis().then(()=>{applyTplSelection(t);});return;}
+  const needReload=!pdata;
+  if(needReload){showToast("Modèle « "+name+" » — rechargement…");loadAnalysis().then(()=>applyTplSelection(t));return;}
   applyTplSelection(t);showToast("✓ Modèle « "+name+" » appliqué");
 }
 function applyTplSelection(t){
@@ -788,9 +832,7 @@ async function delTpl(){
 
 function showToast(msg,color){
   const t=document.getElementById("toast");t.textContent=msg;const c=color||"#1a8f44";
-  t.style.borderLeft="4px solid "+c;t.style.color=c;t.style.background="#fff";
-  t.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";
-  t.style.display="block";setTimeout(()=>t.style.display="none",4500);
+  t.style.borderLeftColor=c;t.style.color=c;t.style.display="block";setTimeout(()=>t.style.display="none",4500);
 }
 function connectSSE(){
   const badge=document.getElementById("sse-badge");
@@ -805,15 +847,23 @@ selKPIs=new Set(KPIS.map(k=>k.key));
 buildPreKPIs();
 const todayStr=isoLocal(new Date());
 const refInput=document.getElementById("ref-date");refInput.value=todayStr;refInput.max=todayStr;
+const rEnd=document.getElementById("range-end");rEnd.value=todayStr;rEnd.max=todayStr;
 document.getElementById("btn-load").addEventListener("click",loadAnalysis);
 document.getElementById("ag-search").addEventListener("input",renderAgentList);
 document.getElementById("tpl-save").addEventListener("click",saveTpl);
 document.getElementById("tpl-load").addEventListener("click",applyTpl);
 document.getElementById("tpl-del").addEventListener("click",delTpl);
+document.getElementById("btn-export-csv").addEventListener("click",exportCSV);
 document.querySelector("[data-all='agents']").addEventListener("click",()=>{
   if(!pdata)return;const c=candidateAgents();
   selAgents=selAgents.size?new Set():new Set(c.map(a=>a.id));
   renderAgentList();renderAll();
+});
+document.getElementById("defs-toggle-btn").addEventListener("click",function(){
+  const body=document.getElementById("defs-body-wrap");
+  const open=body.style.display==="none";
+  body.style.display=open?"":"none";
+  this.textContent=open?"▲ Masquer les modes de calcul":"▼ Afficher les modes de calcul";
 });
 (async()=>{await loadConfig();await loadTplStore();})();
 connectSSE();

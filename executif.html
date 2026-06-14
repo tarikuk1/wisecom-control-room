@@ -152,27 +152,49 @@ select:disabled{opacity:.5;cursor:not-allowed;}
 
   <div class="panel" id="compare-panel">
     <div class="panel-title"><span>🆚 Comparateur — jours &amp; campagnes</span></div>
-    <div style="font-size:11px;color:#888;margin-bottom:14px;">Sélectionnez un ou plusieurs jours et une ou plusieurs campagnes (parmi toutes les campagnes actives) pour comparer leurs indicateurs côte à côte.</div>
     <div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:14px;">
-      <div style="min-width:230px;">
-        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📅 Jours à comparer</div>
+      <!-- Sélection des jours -->
+      <div style="min-width:260px;">
+        <div style="font-size:11px;color:#999;margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📅 Jours à comparer</div>
+        <!-- Sélection manuelle -->
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
           <input type="date" id="cmp-day-input" min="2022-01-01">
           <button class="btn btn-dark" id="cmp-add-day">+ Ajouter</button>
         </div>
+        <!-- Raccourcis rapides -->
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-dark" id="cmp-add-s1" title="Ajoute les mêmes jours sélectionnés décalés de −7 jours" style="font-size:10px;padding:4px 8px;">−7j (sem. préc.)</button>
+          <button class="btn btn-dark" id="cmp-add-4w" title="Ajoute les 4 dernières occurrences du même jour de semaine" style="font-size:10px;padding:4px 8px;">4× même jour</button>
+        </div>
+        <!-- Plage date à date -->
+        <details style="margin-bottom:8px;">
+          <summary style="cursor:pointer;font-size:11px;color:#888;user-select:none;">📆 Plage date à date…</summary>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;padding:8px;background:#fafafa;border:1px solid #eee;border-radius:8px;">
+            <label style="font-size:11px;color:#999;">De</label>
+            <input type="date" id="cmp-range-start" min="2022-01-01" style="font-size:12px;">
+            <label style="font-size:11px;color:#999;">à</label>
+            <input type="date" id="cmp-range-end" min="2022-01-01" style="font-size:12px;">
+            <button class="btn btn-dark" id="cmp-range-apply" style="font-size:11px;">Ajouter</button>
+          </div>
+        </details>
+        <!-- Chips jours sélectionnés -->
         <div id="cmp-days-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:26px;"></div>
       </div>
+      <!-- Campagnes -->
       <div style="min-width:260px;flex:1;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <span style="font-size:11px;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">📋 Campagnes à comparer</span>
           <button class="btn btn-dark" id="cmp-toggle-camps" style="font-size:10px;padding:3px 9px;">Tout désélectionner</button>
         </div>
         <div id="cmp-camps-checks" style="display:flex;flex-wrap:wrap;gap:8px 18px;"><span style="font-size:11px;color:#bbb;">Chargement des campagnes…</span></div>
       </div>
     </div>
-    <button class="btn btn-pink" id="cmp-run">🔍 Comparer</button>
-    <span id="cmp-status" aria-live="polite" style="font-size:11px;color:#888;margin-left:10px;"></span>
-    <div id="cmp-results" style="margin-top:16px;"><div class="empty-hint">Ajoutez des jours et choisissez des campagnes, puis cliquez sur « Comparer » pour afficher le tableau comparatif.</div></div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-pink" id="cmp-run">🔍 Comparer</button>
+      <span id="cmp-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+    </div>
+    <div style="font-size:10px;color:#bbb;margin-top:8px;line-height:1.5;">⚠ <b>DMC = 00:00 / Agents = 0 avec volume traité &gt; 0</b> : peut arriver les dimanches ou jours à faible activité — les appels sont tracés dans la file (fluxCampagnes) mais aucun agent n'est identifié individuellement dans INO. Cela reflète un routage externe ou des appels hors périmètre agent.</div>
+    <div id="cmp-results" style="margin-top:16px;"><div class="empty-hint">Ajoutez des jours et choisissez des campagnes, puis cliquez sur « Comparer ».</div></div>
   </div>
 
   <div class="panel">
@@ -181,22 +203,26 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   </div>
 
   <div class="panel">
-    <div class="panel-title"><span>ⓘ Définitions &amp; mode de calcul des indicateurs</span></div>
-    <table class="tbl">
-      <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
-      <tbody>
-        <tr><td><b>Volume traité</b></td><td>Appels entrants décrochés sur la période</td><td>Décrochés en file INO (<code>fluxCampagnes</code>) si disponibles, sinon somme des appels entrants des agents</td></tr>
-        <tr><td><b>Volume présenté</b></td><td>Appels arrivés en file</td><td>Décrochés + abandons (file INO)</td></tr>
-        <tr><td><b>QS</b> — Qualité de Service</td><td>Part des appels présentés qui ont été traités</td><td>Volume traité ÷ volume présenté × 100 — <b>abandons inclus</b> au dénominateur</td></tr>
-        <tr><td><b>DMC moyen</b></td><td>Durée Moyenne de Communication (entrants)</td><td>Durée de communication des appels <b>entrants décrochés</b> ÷ entrants décrochés, pondérée par le volume (même définition que le dashboard). Le temps de communication sortant n'est pas mélangé au dénominateur entrant.</td></tr>
-        <tr><td><b>Agents actifs</b></td><td>Effectif ayant produit sur la campagne</td><td>Nombre d'agents distincts avec au moins 1 appel entrant ou sortant</td></tr>
-        <tr><td><b>Charge / agent</b></td><td>Intensité de production par agent</td><td>Volume traité ÷ nombre d'agents actifs (appels traités par agent actif)</td></tr>
-        <tr><td><b>Δ vs sem. préc.</b></td><td>Écart par rapport à la semaine précédente</td><td>Valeur sem. de référence − valeur semaine précédente (vert = favorable, rose = défavorable)</td></tr>
-        <tr><td><b>Profondeur</b></td><td>Étendue de l'analyse de tendance</td><td>4 semaines, 2 mois (8 sem.) ou 3 mois (13 sem.) glissantes alignées sur la date de fin</td></tr>
-        <tr><td><b>🏖 Jour férié</b></td><td>Jour férié légal français</td><td>Activité naturellement faible — non comparable aux jours ouvrés</td></tr>
-      </tbody>
-    </table>
-    <div style="font-size:10px;color:#999;margin-top:8px;">Sources : files d'appel INO (<code>fluxCampagnes</code>) quand disponibles — plus fiables que l'agrégation par agent (abandons inclus, hors horaires exclus). La tranche horaire choisie restreint l'ensemble des indicateurs à ce créneau.</div>
+    <div class="panel-title" style="justify-content:space-between;">
+      <span>ⓘ Définitions &amp; mode de calcul</span>
+      <button id="exec-defs-toggle" style="border:1px solid #ddd;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;color:#888;background:#fafafa;cursor:pointer;">▼ Afficher</button>
+    </div>
+    <div id="exec-defs-body" style="display:none;margin-top:14px;">
+      <table class="tbl">
+        <thead><tr><th>Indicateur</th><th>Définition</th><th>Mode de calcul</th></tr></thead>
+        <tbody>
+          <tr><td><b>Volume traité</b></td><td>Appels entrants décrochés sur la période</td><td>Décrochés en file INO (<code>fluxCampagnes</code>) si disponibles, sinon somme des appels entrants des agents</td></tr>
+          <tr><td><b>Volume reçu</b></td><td>Appels arrivés en file (présentés)</td><td>Décrochés + abandons (file INO)</td></tr>
+          <tr><td><b>QS</b> — Qualité de Service</td><td>Part des appels présentés qui ont été traités</td><td>Volume traité ÷ volume présenté × 100 — abandons inclus au dénominateur</td></tr>
+          <tr><td><b>DMC moyen</b></td><td>Durée Moyenne de Communication (entrants)</td><td>Durée de communication des appels entrants décrochés ÷ entrants décrochés, pondérée par volume. Le temps sortant n'est pas mélangé.</td></tr>
+          <tr><td><b>Agents actifs</b></td><td>Effectif ayant produit sur la campagne</td><td>Nombre d'agents distincts avec au moins 1 appel entrant ou sortant</td></tr>
+          <tr><td><b>Charge / agent</b></td><td>Intensité de production par agent</td><td>Volume traité ÷ nombre d'agents actifs</td></tr>
+          <tr><td><b>Δ vs sem. préc.</b></td><td>Écart par rapport à la semaine précédente</td><td>Valeur sem. de référence − valeur sem. précédente (vert = favorable, rose = défavorable)</td></tr>
+          <tr><td><b>🏖 Jour férié</b></td><td>Jour férié légal français</td><td>Activité naturellement faible — non comparable aux jours ouvrés</td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:10px;color:#999;margin-top:8px;">Sources : files d'appel INO (<code>fluxCampagnes</code>) quand disponibles. La tranche horaire restreint l'ensemble des indicateurs à ce créneau.</div>
+    </div>
   </div>
 
 </div>
@@ -266,6 +292,7 @@ let cmpMetric = "volTraite";
 let cmpLoading = false;
 const CMP_METRICS = [
   {key:"volTraite",     label:"Volume traité",   fmt:v=>String(v),               betterUp:true},
+  {key:"volPresente",   label:"Volume reçu",     fmt:v=>String(v),               betterUp:null},
   {key:"qs",            label:"QS",              fmt:v=>v==null?"n.d.":v+"%",    betterUp:true},
   {key:"dmc",           label:"DMC moyen",       fmt:v=>fmtMMSS(v),              betterUp:false},
   {key:"nbAgents",      label:"Agents actifs",   fmt:v=>String(v),               betterUp:null},
@@ -615,12 +642,12 @@ function renderCompare(){
       const r=getCmpRow(d,camp);
       if(!r)return;
       const ferie=isFrenchHoliday(d);
-      detailRows+=`<tr${ferie?' style="background:#fffdf0;"':''}><td>${fmtDateLong(d)}${ferie?' 🏖':""}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
+      detailRows+=`<tr${ferie?' style="background:#fffdf0;"':''}><td>${fmtDateLong(d)}${ferie?' 🏖':""}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.volPresente||0}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
     });
   });
   const detailHtml=`<details style="margin-top:16px;">
     <summary style="cursor:pointer;font-size:11px;color:#888;">📋 Détail complet — tous les indicateurs, jour par jour (${days.length*camps.length} ligne${days.length*camps.length>1?"s":""})</summary>
-    <div style="overflow-x:auto;margin-top:8px;"><table class="tbl"><thead><tr><th>Jour</th><th>Campagne</th><th>Volume traité</th><th>QS</th><th>DMC moy.</th><th>Agents actifs</th><th>Charge / agent</th></tr></thead><tbody>${detailRows}</tbody></table></div>
+    <div style="overflow-x:auto;margin-top:8px;"><table class="tbl"><thead><tr><th>Jour</th><th>Campagne</th><th>Volume traité</th><th>Volume reçu</th><th>QS</th><th>DMC moy.</th><th>Agents actifs</th><th>Charge / agent</th></tr></thead><tbody>${detailRows}</tbody></table></div>
   </details>`;
 
   wrap.innerHTML=`
@@ -936,12 +963,51 @@ document.getElementById("f-camp").addEventListener("change",e=>{selectedCamp=e.t
 // Comparateur jours × campagnes
 const cmpDayInput=document.getElementById("cmp-day-input");
 cmpDayInput.max=todayStr;
+document.getElementById("cmp-range-end").max=todayStr;
 document.getElementById("cmp-add-day").addEventListener("click",addCmpDay);
 document.getElementById("cmp-days-chips").addEventListener("click",e=>{
   const btn=e.target.closest("button[data-day]");
   if(!btn)return;
   cmpDays=cmpDays.filter(d=>d!==btn.dataset.day);
   renderCmpChips();
+});
+// Raccourci : même jours -7j (semaine précédente)
+document.getElementById("cmp-add-s1").addEventListener("click",()=>{
+  if(!cmpDays.length){showToast("ℹ Ajoutez d'abord au moins un jour","#666");return;}
+  let added=0;
+  cmpDays.slice().forEach(d=>{
+    const prev=shiftDateStr(d,-7);
+    if(!cmpDays.includes(prev)){cmpDays.push(prev);added++;}
+  });
+  cmpDays.sort();renderCmpChips();
+  showToast(added?("✓ "+added+" jour"+( added>1?"s":"")+" ajouté"+(added>1?"s":"")+" (−7j)"):"ℹ Tous déjà présents","#1a8f44");
+});
+// Raccourci : 4 dernières occurrences du même jour de semaine
+document.getElementById("cmp-add-4w").addEventListener("click",()=>{
+  const inp=document.getElementById("cmp-day-input").value||todayStr;
+  const base=new Date(inp+"T00:00:00");
+  let added=0;
+  for(let w=1;w<=4;w++){
+    const d2=new Date(base);d2.setDate(d2.getDate()-7*w);
+    const s=isoLocal(d2);
+    if(!cmpDays.includes(s)){cmpDays.push(s);added++;}
+  }
+  cmpDays.sort();renderCmpChips();
+  showToast(added?("✓ "+added+" jour"+( added>1?"s":"")+" ajouté"+(added>1?"s":"")+" (4 sem. équivalentes)"):"ℹ Tous déjà présents","#1a8f44");
+});
+// Plage date à date
+document.getElementById("cmp-range-apply").addEventListener("click",()=>{
+  const s=document.getElementById("cmp-range-start").value;
+  const e2=document.getElementById("cmp-range-end").value;
+  if(!s||!e2){showToast("⚠ Choisissez une date de début et de fin","#b45309");return;}
+  if(s>e2){showToast("⚠ Date de début > date de fin","#b45309");return;}
+  let cur=s,added=0;
+  while(cur<=e2){
+    if(!cmpDays.includes(cur)){cmpDays.push(cur);added++;}
+    cur=shiftDateStr(cur,1);
+  }
+  cmpDays.sort();renderCmpChips();
+  showToast(added?"✓ "+added+" jour"+(added>1?"s":"")+" ajouté"+(added>1?"s":"")+" (plage)":"ℹ Tous déjà présents","#1a8f44");
 });
 let cmpAllChecked=true;
 document.getElementById("cmp-toggle-camps").addEventListener("click",e=>{
@@ -954,11 +1020,15 @@ document.getElementById("cmp-run").addEventListener("click",runCompare);
 cmpDays=[shiftDateStr(todayStr,-7),todayStr];
 renderCmpChips();
 
+// Définitions toggle
+document.getElementById("exec-defs-toggle").addEventListener("click",function(){
+  const body=document.getElementById("exec-defs-body");
+  const open=body.style.display==="none";
+  body.style.display=open?"":"none";
+  this.textContent=open?"▲ Masquer":"▼ Afficher";
+});
 (async()=>{
   await loadConfig();
-  // Sélection-first : pas d'agrégation automatique. L'utilisateur choisit d'abord la date de
-  // fin, la profondeur (4 sem. / 2 mois / 3 mois) et la tranche horaire, puis clique
-  // « Charger l'analyse ». Plus cohérent et évite des requêtes INO inutiles à l'ouverture.
 })();
 connectSSE();
 </script>
