@@ -269,6 +269,8 @@ details summary{color:var(--txt-2);}
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <button class="btn btn-pink" id="cmp-run">🔍 Comparer</button>
+      <button class="btn btn-dark" id="btn-cmp-excel" disabled title="Exporter le comparateur — toutes métriques + détail — en Excel">⬇ Excel</button>
+      <button class="btn btn-dark" id="btn-cmp-pdf" disabled title="Exporter le comparateur en PDF imprimable">⬇ PDF</button>
       <span id="cmp-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
     </div>
     <div style="font-size:10px;color:#bbb;margin-top:8px;line-height:1.5;">⚠ <b>DMC = 00:00 / Agents = 0 avec volume traité &gt; 0</b> : peut arriver les dimanches ou jours à faible activité — les appels sont tracés dans la file (fluxCampagnes) mais aucun agent n'est identifié individuellement dans INO. Cela reflète un routage externe ou des appels hors périmètre agent.</div>
@@ -674,6 +676,8 @@ async function runCompare(){
     cmpData={days:[...cmpDays],camps,dayData};
     stEl.textContent=`✓ Comparaison chargée — ${cmpDays.length} jour(s) × ${camps.length} campagne(s)`;
     renderCompare();
+    const _bcEx=document.getElementById("btn-cmp-excel"),_bcPdf=document.getElementById("btn-cmp-pdf");
+    if(_bcEx)_bcEx.disabled=false; if(_bcPdf)_bcPdf.disabled=false;
     showToast("✓ Comparaison mise à jour");
   }catch(e){
     const msg=e&&e.message||String(e);
@@ -794,6 +798,78 @@ function execCrossRows(){
 function tableToHtmlXls(rows){
   return '<table border="1" cellspacing="0" cellpadding="3">'+rows.map((r,i)=>'<tr>'+r.map(c=>(i===0?'<th>':'<td>')+(c==null?"":c)+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+'</table>';
 }
+// ── Helpers export comparateur ─────────────────────────────────────────
+function cmpMetaLabel(){
+  if(!cmpData)return "";
+  return "Jours : "+cmpData.days.map(fmtDate).join(", ")+" · Campagnes : "+cmpData.camps.join(", ")+" · Généré le "+new Date().toLocaleString("fr-FR");
+}
+function cmpAllMetricsTables(asHtml){
+  // Génère un bloc HTML avec un tableau par métrique + le détail plat
+  let out="";
+  const{days,camps}=cmpData;
+  const XLS_STYLE='color:#E8006E;font-family:Arial;font-size:12px;';
+  for(const m of CMP_METRICS){
+    const head=["Campagne",...days.map(d=>fmtDate(d)+" "+new Date(d+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short"}))];
+    const rows=camps.map(camp=>[camp,...days.map(d=>{const r=getCmpRow(d,camp);return r!=null?m.fmt(r[m.key]):"n.d.";})]);
+    out+=`<br><h3 style="${XLS_STYLE}">${m.label}</h3>`+tableToHtmlXls([head,...rows]);
+  }
+  // Détail plat
+  const dHead=["Jour","Campagne","Vol. traité","Vol. reçu","QS","DMC moy.","Agents actifs","Charge / agent"];
+  const dRows=[];
+  days.forEach(d=>camps.forEach(camp=>{
+    const r=getCmpRow(d,camp);if(!r)return;
+    dRows.push([fmtDateLong(d),camp,r.volTraite,r.volPresente||0,r.qs!=null?r.qs+"%":"n.d.",fmtMMSS(r.dmc),r.nbAgents,r.chargeParAgent.toFixed(1)]);
+  }));
+  out+=`<br><h3 style="${XLS_STYLE}">Détail complet — tous les indicateurs, jour par jour</h3>`+tableToHtmlXls([dHead,...dRows]);
+  return out;
+}
+function exportCmpExcel(){
+  if(!cmpData){showToast("⚠ Lancez d'abord la comparaison","#b45309");return;}
+  const meta=`<p style="font-family:Arial;font-size:11px;">${cmpMetaLabel()}</p>`;
+  const body='<h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Comparateur jours × campagnes — Wisecom INO</h2>'+meta+cmpAllMetricsTables();
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'+
+    '<style>table{border-collapse:collapse;font-family:Arial;font-size:11px;margin-bottom:6px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}td:first-child,th:first-child{text-align:left;}</style></head><body>'+body+'</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);const el=document.createElement("a");
+  el.href=url;el.download="Comparateur_Wisecom_"+cmpData.days[0]+"_"+cmpData.days[cmpData.days.length-1]+".xls";
+  document.body.appendChild(el);el.click();el.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showToast("✓ Export Excel comparateur téléchargé");
+}
+function exportCmpPDF(){
+  if(!cmpData){showToast("⚠ Lancez d'abord la comparaison","#b45309");return;}
+  const {days,camps}=cmpData;
+  let metricsHtml="";
+  for(const m of CMP_METRICS){
+    const theadCols=days.map(d=>`<th>${fmtDate(d)}<br><span style="font-weight:400;font-size:8px;color:#777;">${new Date(d+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short"})}</span></th>`).join("");
+    const rows=camps.map(camp=>{
+      const cells=days.map(d=>{const r=getCmpRow(d,camp);return`<td>${r!=null?m.fmt(r[m.key]):"n.d."}</td>`;}).join("");
+      return`<tr><td><b>${camp}</b></td>${cells}</tr>`;
+    }).join("");
+    metricsHtml+=`<h2>${m.label}</h2><table><thead><tr><th>Campagne</th>${theadCols}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  let detailRows="";
+  days.forEach(d=>camps.forEach(camp=>{
+    const r=getCmpRow(d,camp);if(!r)return;
+    const fe=isFrenchHoliday(d);
+    detailRows+=`<tr${fe?' style="background:#fffdf0;"':''}><td>${fmtDateLong(d)}${fe?" 🏖":""}</td><td><b>${camp}</b></td><td>${r.volTraite}</td><td>${r.volPresente||0}</td><td>${r.qs!=null?r.qs+"%":"n.d."}</td><td>${fmtMMSS(r.dmc)}</td><td>${r.nbAgents}</td><td>${r.chargeParAgent.toFixed(1)}</td></tr>`;
+  }));
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comparateur Wisecom</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:14px;}
+table{border-collapse:collapse;width:100%;margin:4px 0 16px;}td,th{border:1px solid #ccc;padding:4px 6px;font-size:9.5px;text-align:center;}th{background:#f0f0f0;}td:first-child,th:first-child{text-align:left;}
+h1{font-size:15px;color:#E8006E;margin-bottom:4px;}h2{font-size:11px;color:#555;margin:14px 0 6px;font-weight:700;border-bottom:1px solid #eee;padding-bottom:3px;}
+@media print{@page{size:A4 landscape;margin:8mm;}}</style></head>
+<body>
+<h1>🆚 Comparateur jours × campagnes — Wisecom INO</h1>
+<div style="font-size:10px;color:#666;margin-bottom:12px;">${cmpMetaLabel()}</div>
+${metricsHtml}
+<h2>Détail complet — tous les indicateurs, jour par jour</h2>
+<table><thead><tr><th>Jour</th><th>Campagne</th><th>Vol. traité</th><th>Vol. reçu</th><th>QS</th><th>DMC moy.</th><th>Agents</th><th>Charge/ag.</th></tr></thead><tbody>${detailRows}</tbody></table>
+</body></html>`);
+  w.document.close();setTimeout(()=>w.print(),500);
+}
+
 function exportExecExcel(){
   if(!weeksData){showToast("⚠ Chargez d'abord une analyse","#b45309");return;}
   const meta='<p style="font-family:Arial;font-size:11px;">Période : '+execPeriodLabel()+' · Périmètre : '+execScopeLabel()+' · Généré le '+new Date().toLocaleString("fr-FR")+'</p>';
@@ -801,12 +877,9 @@ function exportExecExcel(){
   body+='<h3 style="color:#E8006E;font-family:Arial;font-size:12px;">KPIs — semaine de référence</h3>'+tableToHtmlXls(execKpiRows());
   body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Tendance — '+(selectedCamp||"—")+'</h3>'+tableToHtmlXls(execTrendRows());
   body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Comparatif cross-campagnes</h3>'+tableToHtmlXls(execCrossRows());
-  if(cmpData){
-    const c=document.getElementById("cmp-results");const t=c&&c.querySelector("table");
-    if(t)body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Comparateur jours × campagnes</h3>'+t.outerHTML.replace(/<table/,'<table border="1" cellspacing="0" cellpadding="3"');
-  }
+  if(cmpData)body+='<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Comparateur jours × campagnes</h3><p style="font-family:Arial;font-size:10px;">'+cmpMetaLabel()+'</p>'+cmpAllMetricsTables();
   const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">'+
-    '<style>table{border-collapse:collapse;font-family:Arial;font-size:11px;margin-bottom:6px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}</style></head><body>'+body+'</body></html>';
+    '<style>table{border-collapse:collapse;font-family:Arial;font-size:11px;margin-bottom:6px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}td:first-child,th:first-child{text-align:left;}</style></head><body>'+body+'</body></html>';
   const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
   const url=URL.createObjectURL(blob);const el=document.createElement("a");
   el.href=url;el.download="Executif_Wisecom_"+(weeksData.ref||"")+".xls";
@@ -1094,6 +1167,8 @@ document.getElementById("cmp-toggle-camps").addEventListener("click",e=>{
   e.currentTarget.textContent=cmpAllChecked?"Tout désélectionner":"Tout sélectionner";
 });
 document.getElementById("cmp-run").addEventListener("click",runCompare);
+document.getElementById("btn-cmp-excel").addEventListener("click",exportCmpExcel);
+document.getElementById("btn-cmp-pdf").addEventListener("click",exportCmpPDF);
 // Pré-remplissage utile : aujourd'hui vs. même jour la semaine précédente
 cmpDays=[shiftDateStr(todayStr,-7),todayStr];
 renderCmpChips();
