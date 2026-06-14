@@ -3011,7 +3011,12 @@ function renderChart(){
   const _dFin=(document.getElementById("f-date-fin")||{}).value||_dDeb;
   const _periodeLbl=(_dDeb===_dFin)?_fr(_dDeb):(_fr(_dDeb)+" → "+_fr(_dFin));
   const _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
-  const _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  let _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  // Heure de fin effective : si on visualise aujourd'hui en direct, on affiche
+  // l'heure courante plutôt que la borne théorique (ex. 14:06 et non 20:00).
+  {const _todayIso=isoLocal(new Date());
+   const _nowHHMM=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+   if(_dDeb===_dFin&&_dDeb===_todayIso&&_nowHHMM<_hFin)_hFin=_nowHHMM;}
   const _volIn=displaySlots.reduce((s,x)=>s+(x.vol||0),0);
   const _volOut=displaySlots.reduce((s,x)=>s+(x.out||0),0);
   const _volAb=displaySlots.reduce((s,x)=>s+(x.aband||0),0);

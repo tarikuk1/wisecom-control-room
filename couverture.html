@@ -481,8 +481,10 @@ function renderHeatmap(){
       const cell=d.profile?d.profile[idx]:null;
       const wkCls=isWk(d.date)?"wk":"";
       if(!cell){
-        const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée INO pour le jour de référence ("+fmtDate(d.refDate)+")";
-        tbody+=`<td class="${wkCls}" style="text-align:center;color:#999;" title="${reason}"><span style="font-size:10px;">n.d.</span></td>`;
+        const reason=d.error
+          ?`Erreur INO pour le ${fmtDate(d.refDate)} : ${d.error}`
+          :`Aucune donnée INO pour le ${fmtDate(d.refDate)}`;
+        tbody+=`<td class="${wkCls}" style="text-align:center;color:#dc2626;" title="${reason}"><span style="font-size:9px;">⚠ n.d.</span></td>`;
         return;
       }
       const level=tensionLevel(cell,baseline);
@@ -581,10 +583,40 @@ function exportRadarPDF(){
 }
 
 function renderRadarSynthesis(){
-  const {camp,days,baseline,h0}=radarData;
+  const {camp,camps,days,baseline,h0}=radarData;
   const box=document.getElementById("radar-synthesis");
   if(baseline==null){
-    box.innerHTML='<div class="empty-hint">Pas assez de données sur la semaine de référence pour établir une charge habituelle pour cette campagne — essayez une autre semaine de référence.</div>';
+    // Distinguer les causes : échec API vs pas de données pour cette campagne
+    const nFailed=days.filter(d=>!d.profile).length;
+    const nEmpty=days.filter(d=>d.profile&&d.profile.every(c=>c.vol===0)).length;
+    const nTotal=days.length;
+    if(nFailed===nTotal){
+      // Tous les jours ont échoué → problème INO/token
+      const sampleErr=days.find(d=>d.error)?.error||"réponse invalide";
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">⚠</span><span>
+        <b>Données INO indisponibles pour toutes les journées de référence</b> — la connexion INO ne peut pas accéder aux historiques de cette période.<br>
+        <small>Détail : ${sampleErr}</small><br>
+        Vérifiez que l'indicateur INO est vert en haut de page, puis réessayez. Si l'erreur persiste, essayez une semaine de référence plus récente.
+      </span></div>`;
+    } else if(nFailed>0){
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">⚠</span><span>
+        <b>${nFailed}/${nTotal} jour(s) de référence indisponibles</b> côté INO — les données partielles ne permettent pas d'établir une charge de référence fiable pour <b>${camp}</b>.<br>
+        Essayez une autre semaine de référence, ou attendez que la connexion INO soit rétablie.
+      </span></div>`;
+    } else if(nEmpty===nTotal){
+      // Tous les jours chargés, mais aucun appel pour cette campagne
+      const firstDayQueues=days[0]?.dayData?.slots?.flatMap(s=>Object.keys(s.queues||{})).filter((v,i,a)=>a.indexOf(v)===i).slice(0,6)||[];
+      const queuesHint=firstDayQueues.length?`<br><small>Files détectées dans INO ce jour-là : ${firstDayQueues.join(", ")||"(aucune)"}</small>`:"";
+      const confQueues=(QUEUES_MAP[camps&&camps[0]]||[]).join(", ")||"(aucune)";
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">ℹ</span><span>
+        <b>Aucun appel détecté pour <i>${camp}</i> sur la semaine de référence.</b><br>
+        Causes possibles : campagne absente d'INO cette semaine, ou noms de files mal configurés.<br>
+        Files configurées pour cette campagne : <code>${confQueues}</code>${queuesHint}<br>
+        <a href="/admin" style="color:var(--pink);">→ Admin / Config campagnes</a> pour ajuster le mapping des files, ou essayez une autre semaine de référence.
+      </span></div>`;
+    } else {
+      box.innerHTML='<div class="empty-hint">Pas assez de données sur la semaine de référence pour établir une charge habituelle pour cette campagne — essayez une autre semaine de référence.</div>';
+    }
     return;
   }
   const tense=[];
