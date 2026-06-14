@@ -9,224 +9,334 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --pink:#FF0A78; --pink-soft:rgba(255,10,120,.14); --pink-dim:rgba(255,10,120,.5);
-  --green:#3ED598; --green-soft:rgba(62,213,152,.14);
+  --green:#2ECC71; --green-soft:rgba(46,204,113,.14);
   --amber:#FFB23E; --amber-soft:rgba(255,178,62,.14);
   --red:#FF5C5C;   --red-soft:rgba(255,92,92,.14);
 }
-body{background:#0a0b0d;color:#7a7d85;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:13px;padding:0 0 90px;-webkit-font-smoothing:antialiased;}
+
+/* ── BASE ── */
+body{
+  background:#0a0b0d;color:#7a7d85;
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:13px;
+  padding:0 0 90px;-webkit-font-smoothing:antialiased;
+  transition:background .25s,color .25s;
+}
 ::-webkit-scrollbar{width:9px;height:9px;}
 ::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:5px;}
-::-webkit-scrollbar-track{background:transparent;}
 
-.test-head{position:sticky;top:0;z-index:10;background:rgba(12,13,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);padding:15px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.test-head .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#FF0A78,#c4005a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 14px rgba(255,10,120,.45);}
+/* ── LIGHT MODE BASE ── */
+body.light{background:#f0f1f6;color:#6e7180;}
+body.light ::-webkit-scrollbar-thumb{background:#c8cad4;}
+
+/* ── HEADER ── */
+.test-head{
+  position:sticky;top:0;z-index:10;
+  background:rgba(10,11,13,.88);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:13px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+body.light .test-head{background:rgba(240,241,246,.92);border-bottom-color:rgba(0,0,0,.07);}
+.test-head .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#FF0A78,#c4005a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 14px rgba(255,10,120,.45);flex-shrink:0;}
 .test-head h1{font-size:15px;color:#f5f6f8;font-weight:700;letter-spacing:.01em;}
+body.light .test-head h1{color:#111318;}
 .test-head .hint{font-size:11.5px;color:#5a5d65;margin-left:auto;}
+body.light .test-head .hint{color:#9a9da8;}
 
-.variant{max-width:1200px;margin:34px auto 0;padding:24px 28px 30px;border-radius:18px;}
-.variant-label{display:flex;align-items:flex-start;gap:13px;margin-bottom:22px;}
+/* ── MODE TOGGLE ── */
+.mode-toggle{display:flex;align-items:center;gap:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px;flex-shrink:0;}
+body.light .mode-toggle{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1);}
+.mode-toggle button{border:none;border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .18s;background:transparent;color:#6e7180;font-family:inherit;}
+body.light .mode-toggle button{color:#8a8d9a;}
+.mode-toggle button.active{background:#FF0A78;color:#fff;box-shadow:0 2px 8px rgba(255,10,120,.35);}
+
+/* ── VARIANT WRAPPER ── */
+.variant{max-width:1200px;margin:30px auto 0;padding:22px 26px 28px;border-radius:18px;transition:background .25s;}
+.variant-label{display:flex;align-items:flex-start;gap:13px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.05);}
+body.light .variant-label{border-bottom-color:rgba(0,0,0,.07);}
 .variant-num{width:30px;height:30px;border-radius:9px;background:var(--pink);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(255,10,120,.4);}
-.variant-name{font-size:16px;font-weight:700;color:#f0f1f3;letter-spacing:.01em;}
-.variant-desc{font-size:11.5px;color:#6e7178;margin-top:3px;line-height:1.5;max-width:760px;}
+.variant-name{font-size:15px;font-weight:700;letter-spacing:.01em;color:#f0f1f3;}
+body.light .variant-name{color:#111318;}
+.variant-desc{font-size:11.5px;margin-top:3px;line-height:1.5;max-width:760px;color:#6e7180;}
+body.light .variant-desc{color:#5a5d6a;}
 
-.demo-kpis{display:grid;gap:14px;margin-bottom:18px;}
-.demo-two{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start;}
+.demo-kpis{display:grid;gap:12px;margin-bottom:16px;}
+.demo-two{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start;}
 @media(max-width:860px){.demo-two{grid-template-columns:1fr;}}
 
-/* éléments communs data-viz */
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.4;}
-.chip.up{background:var(--green-soft);color:var(--green);}
-.chip.down{background:var(--red-soft);color:var(--red);}
-.chip.ok{background:var(--green-soft);color:var(--green);}
+/* ── CHIPS (sémantiques — identiques dark/light) ── */
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.4;}
+.chip.up,.chip.ok{background:var(--green-soft);color:var(--green);}
+.chip.down,.chip.err{background:var(--red-soft);color:var(--red);}
 .chip.warn{background:var(--amber-soft);color:var(--amber);}
-.chip.err{background:var(--red-soft);color:var(--red);}
 
-/* ══════════════════════════════════════════════════════════════════
-   VARIANTE 1 — « STUDIO »  raffiné, neutre froid, sparklines & chips
-   ══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   VARIANTE 1 — STUDIO
+   ═══════════════════════════════════════════════════════ */
 .v1{background:#0c0d10;}
+body.light .v1{background:#ebedf4;}
 .v1 .demo-kpis{grid-template-columns:repeat(4,1fr);}
 @media(max-width:860px){.v1 .demo-kpis{grid-template-columns:repeat(2,1fr);}}
-.v1 .card{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.4);}
+
+.v1 .card{background:#141618;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.5);transition:background .25s,border-color .25s,box-shadow .25s;}
+body.light .v1 .card{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);}
+
 .v1 .k-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
-.v1 .k-lbl{font-size:11px;color:#878a92;font-weight:600;letter-spacing:.01em;}
+.v1 .k-lbl{font-size:11px;color:#7a7d85;font-weight:600;letter-spacing:.01em;}
+body.light .v1 .k-lbl{color:#8a8da0;}
 .v1 .k-val{font-size:28px;font-weight:750;color:#f6f7f9;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
-.v1 .k-foot{display:flex;align-items:center;gap:8px;margin-top:11px;}
+body.light .v1 .k-val{color:#111318;}
+.v1 .k-foot{margin-top:10px;}
 .v1 .k-foot small{font-size:10.5px;color:#5e616a;}
-.v1 .panel{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.4);}
-.v1 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;letter-spacing:.01em;display:flex;justify-content:space-between;align-items:center;}
+body.light .v1 .k-foot small{color:#9a9daa;}
+.v1 .bar{height:4px;border-radius:2px;background:rgba(255,255,255,.06);margin-top:12px;overflow:hidden;}
+body.light .v1 .bar{background:rgba(0,0,0,.07);}
+.v1 .bar i{display:block;height:100%;border-radius:2px;}
+
+.v1 .panel{background:#141618;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.5);transition:background .25s,border-color .25s;}
+body.light .v1 .panel{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.v1 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;letter-spacing:.01em;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.06);}
+body.light .v1 .panel-h{color:#111318;border-bottom-color:rgba(0,0,0,.06);}
 .v1 .panel-h small{font-size:10.5px;color:#5e616a;font-weight:500;}
+body.light .v1 .panel-h small{color:#9a9daa;}
+
 .v1 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.v1 th{text-align:left;padding:8px 18px;font-size:10px;color:#6a6d75;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.v1 th{text-align:left;padding:8px 18px;font-size:10px;color:#606368;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+body.light .v1 th{color:#aab0c0;}
 .v1 th:not(:first-child),.v1 td:not(:first-child){text-align:right;}
 .v1 td{padding:11px 18px;color:#d4d6db;border-top:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;}
+body.light .v1 td{color:#2a2d3a;border-top-color:rgba(0,0,0,.05);}
+.v1 tbody tr:hover td{background:rgba(255,255,255,.03);}
+body.light .v1 tbody tr:hover td{background:rgba(255,10,120,.03);}
 .v1 .nm{color:#f3f4f6;font-weight:600;text-align:left!important;display:flex;align-items:center;gap:9px;}
-.v1 .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#2a2d35,#1c1e24);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#9a9da5;flex-shrink:0;}
-.v1 .qcard{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 15px;margin-bottom:11px;box-shadow:0 1px 2px rgba(0,0,0,.4);}
+body.light .v1 .nm{color:#111318;}
+.v1 .av{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#9a9da5;flex-shrink:0;border:1px solid rgba(255,255,255,.08);}
+body.light .v1 .av{background:#f0f1f8;color:#8a8da5;border-color:rgba(0,0,0,.07);}
+
+.v1 .qcard{background:#141618;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 15px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.5);transition:background .25s,border-color .25s;}
+body.light .v1 .qcard{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .v1 .q-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
 .v1 .q-nm{font-size:12px;font-weight:650;color:#e6e7ea;}
+body.light .v1 .q-nm{color:#111318;}
 .v1 .q-grid{display:flex;gap:20px;}
 .v1 .q-grid b{font-size:17px;font-weight:750;color:#f0f1f3;display:block;font-variant-numeric:tabular-nums;}
-.v1 .q-grid span{font-size:9px;color:#62656d;text-transform:uppercase;letter-spacing:.04em;}
+body.light .v1 .q-grid b{color:#111318;}
+.v1 .q-grid span{font-size:9px;color:#60636a;text-transform:uppercase;letter-spacing:.04em;}
+body.light .v1 .q-grid span{color:#aab0c0;}
 .v1 .q-grid .pk{color:var(--pink);}
-.v1 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.06);margin-top:12px;overflow:hidden;}
-.v1 .bar i{display:block;height:100%;border-radius:3px;}
 
-/* ══════════════════════════════════════════════════════════════════
-   VARIANTE 2 — « BENTO »  mosaïque moderne, anneaux & barres intégrés
-   ══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   VARIANTE 2 — BENTO
+   ═══════════════════════════════════════════════════════ */
 .v2{background:#0a0b0e;}
-.v2 .bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:118px;gap:14px;}
+body.light .v2{background:#eaebf2;}
+.v2 .bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:118px;gap:13px;}
 @media(max-width:860px){.v2 .bento{grid-template-columns:repeat(2,1fr);}}
-.v2 .bx{background:radial-gradient(120% 120% at 0% 0%,#17181d,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.v2 .bx{background:radial-gradient(120% 120% at 0% 0%,#17181e,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;transition:background .25s,border-color .25s,box-shadow .25s;}
+body.light .v2 .bx{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .v2 .bx.tall{grid-row:span 2;}
 .v2 .bx.wide{grid-column:span 2;}
 .v2 .bx.hero{background:radial-gradient(130% 130% at 100% 0%,rgba(255,10,120,.22),#121116);border-color:rgba(255,10,120,.3);}
-.v2 .b-lbl{font-size:11px;color:#8a8d95;font-weight:600;}
+body.light .v2 .bx.hero{background:linear-gradient(135deg,#fff0f7,#fff);border-color:rgba(255,10,120,.25);box-shadow:0 2px 14px rgba(255,10,120,.1);}
+.v2 .bx.hero::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,#FF0A78,transparent);}
+.v2 .b-lbl{font-size:11px;color:#888c96;font-weight:600;}
+body.light .v2 .b-lbl{color:#9a9daa;}
+.v2 .bx.hero .b-lbl{color:#ffb8d8;}
+body.light .v2 .bx.hero .b-lbl{color:#FF0A78;}
 .v2 .b-val{font-size:30px;font-weight:780;color:#f6f7f9;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
-.v2 .bx.hero .b-val{font-size:38px;color:#fff;}
-.v2 .b-sub{font-size:10.5px;color:#62656d;}
+body.light .v2 .b-val{color:#111318;}
+.v2 .bx.hero .b-val{color:#fff;}
+body.light .v2 .bx.hero .b-val{color:#FF0A78;}
+.v2 .b-sub{font-size:10.5px;color:#5e616a;}
+body.light .v2 .b-sub{color:#9a9daa;}
+.v2 .bx.hero .b-sub{color:#ffb8d8;}
+body.light .v2 .bx.hero .b-sub{color:#FF0A78;}
 .v2 .ring-wrap{display:flex;align-items:center;gap:14px;}
 .v2 .ring-txt{font-size:24px;font-weight:780;color:#f6f7f9;font-variant-numeric:tabular-nums;}
-.v2 .panel{background:radial-gradient(120% 120% at 0% 0%,#17181d,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;margin-top:14px;}
-.v2 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;}
+body.light .v2 .ring-txt{color:#111318;}
+
+.v2 .panel{background:radial-gradient(120% 120% at 0% 0%,#17181e,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;margin-top:14px;transition:background .25s,border-color .25s;}
+body.light .v2 .panel{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.v2 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;border-bottom:1px solid rgba(255,255,255,.06);}
+body.light .v2 .panel-h{color:#111318;border-bottom-color:rgba(0,0,0,.06);}
 .v2 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.v2 th{text-align:left;padding:8px 18px;font-size:10px;color:#6a6d75;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.v2 th{text-align:left;padding:8px 18px;font-size:10px;color:#60636a;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+body.light .v2 th{color:#aab0c0;}
 .v2 th:not(:first-child),.v2 td:not(:first-child){text-align:right;}
 .v2 td{padding:11px 18px;color:#d4d6db;border-top:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;}
+body.light .v2 td{color:#2a2d3a;border-top-color:rgba(0,0,0,.05);}
+.v2 tbody tr:hover td{background:rgba(255,10,120,.05);}
 .v2 .nm{color:#f3f4f6;font-weight:600;text-align:left!important;}
+body.light .v2 .nm{color:#111318;}
 
-/* ══════════════════════════════════════════════════════════════════
-   VARIANTE 3 — « COCKPIT »  dense, pro, jauges & barres de progression
-   ══════════════════════════════════════════════════════════════════ */
-.v3{background:#0b0c0e;}
+/* ═══════════════════════════════════════════════════════
+   VARIANTE 3 — COCKPIT
+   ═══════════════════════════════════════════════════════ */
+.v3{background:#0b0c0f;}
+body.light .v3{background:#ecedf4;}
 .v3 .demo-kpis{grid-template-columns:repeat(4,1fr);}
 @media(max-width:860px){.v3 .demo-kpis{grid-template-columns:repeat(2,1fr);}}
-.v3 .card{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:13px 15px;border-left:2px solid #2a2d33;}
+.v3 .card{background:#131418;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:13px 15px;border-left:3px solid transparent;transition:background .25s,border-color .25s,box-shadow .25s;}
+body.light .v3 .card{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .v3 .card.b-pink{border-left-color:var(--pink);}
 .v3 .card.b-green{border-left-color:var(--green);}
 .v3 .card.b-amber{border-left-color:var(--amber);}
-.v3 .k-lbl{font-size:10px;color:#7a7d85;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:9px;}
+.v3 .k-lbl{font-size:10px;color:#72757e;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:9px;}
+body.light .v3 .k-lbl{color:#9a9daa;}
 .v3 .k-val{font-size:23px;font-weight:750;color:#f2f3f5;line-height:1;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;}
-.v3 .k-val small{font-size:12px;color:#6a6d75;font-weight:600;}
+body.light .v3 .k-val{color:#111318;}
+.v3 .k-val small{font-size:12px;color:#5e616a;font-weight:600;}
+body.light .v3 .k-val small{color:#aab0c0;}
 .v3 .pgbar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:11px;overflow:hidden;}
+body.light .v3 .pgbar{background:rgba(0,0,0,.07);}
 .v3 .pgbar i{display:block;height:100%;border-radius:2px;}
 .v3 .pgmeta{display:flex;justify-content:space-between;font-size:9px;color:#5e616a;margin-top:5px;font-variant-numeric:tabular-nums;}
-.v3 .panel{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;}
-.v3 .panel-h{padding:13px 16px;font-size:11px;font-weight:700;color:#cdcfd4;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.06);background:#0e0f12;}
+body.light .v3 .pgmeta{color:#aab0c0;}
+
+.v3 .panel{background:#131418;border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;transition:background .25s,border-color .25s;}
+body.light .v3 .panel{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.v3 .panel-h{padding:11px 16px;font-size:10px;font-weight:700;color:#b0b3ba;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.2);}
+body.light .v3 .panel-h{color:#7a7d8a;border-bottom-color:rgba(0,0,0,.06);background:rgba(0,0,0,.03);}
 .v3 table{width:100%;border-collapse:collapse;font-size:12px;}
-.v3 th{text-align:left;padding:8px 16px;font-size:9px;color:#62656d;text-transform:uppercase;letter-spacing:.06em;font-weight:600;background:#0e0f12;}
+.v3 th{text-align:left;padding:8px 16px;font-size:9px;color:#60636a;text-transform:uppercase;letter-spacing:.07em;font-weight:600;}
+body.light .v3 th{color:#aab0c0;}
 .v3 th:not(:first-child),.v3 td:not(:first-child){text-align:right;}
 .v3 td{padding:9px 16px;color:#d0d2d7;border-top:1px solid rgba(255,255,255,.04);font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;font-size:11.5px;}
+body.light .v3 td{color:#2a2d3a;border-top-color:rgba(0,0,0,.04);}
+.v3 tbody tr:hover td{background:rgba(255,255,255,.02);}
+body.light .v3 tbody tr:hover td{background:rgba(0,0,0,.02);}
 .v3 .nm{color:#f0f1f3;font-weight:600;text-align:left!important;font-family:inherit;}
-.v3 .qcard{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+body.light .v3 .nm{color:#111318;}
+
+.v3 .qcard{background:#131418;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:background .25s,border-color .25s;}
+body.light .v3 .qcard{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 1px 3px rgba(0,0,0,.05);}
 .v3 .q-tick{width:3px;align-self:stretch;border-radius:2px;flex-shrink:0;}
 .v3 .q-main{flex:1;}
 .v3 .q-nm{font-size:11.5px;font-weight:650;color:#e4e5e8;margin-bottom:8px;}
+body.light .v3 .q-nm{color:#111318;}
 .v3 .q-stats{display:flex;gap:18px;}
 .v3 .q-stats b{font-size:14px;font-weight:750;color:#eef0f2;display:block;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;}
+body.light .v3 .q-stats b{color:#111318;}
 .v3 .q-stats span{font-size:8px;color:#5e616a;text-transform:uppercase;letter-spacing:.05em;}
+body.light .v3 .q-stats span{color:#aab0c0;}
 </style>
 </head>
 <body>
 
 <div class="test-head">
   <div class="mark">W</div>
-  <h1>TEST DESIGN — 3 directions modernes</h1>
-  <span class="hint">Data-viz intégrée · noir neutre · rose de marque · dites-moi le n° (ou un mix)</span>
+  <h1>TEST DESIGN — 3 directions · dark vs light</h1>
+  <div class="mode-toggle" id="mode-toggle">
+    <button class="active" onclick="setMode('dark')">◑ Sombre</button>
+    <button onclick="setMode('light')">☀ Clair</button>
+  </div>
+  <span class="hint">Choisissez un numéro (ou un mix) — j'applique aux vraies pages</span>
 </div>
 
-<!-- ══════════ VARIANTE 1 — STUDIO ══════════ -->
+<!-- ═══════ VARIANTE 1 — STUDIO ═══════ -->
 <div class="variant v1">
   <div class="variant-label">
     <div class="variant-num">1</div>
     <div>
-      <div class="variant-name">Studio — raffiné, sparklines & badges d'évolution</div>
-      <div class="variant-desc">Noir neutre froid, cartes douces aux bords très fins, chaque KPI porte un mini-graphe de tendance (sparkline) et un badge ±%. Statuts en pastilles colorées discrètes. Style produit SaaS haut de gamme (Stripe / Vercel).</div>
+      <div class="variant-name">Studio — sparklines, badges ±%, avatars</div>
+      <div class="variant-desc">Noir neutre froid, cartes douces, chaque KPI avec sparkline de tendance + badge évolution. Statuts en chips colorées. Lignes de tableau avec avatar. Style SaaS haut de gamme.</div>
     </div>
   </div>
   <div class="demo-kpis">
     <div class="card">
       <div class="k-top"><span class="k-lbl">Appels traités</span><span class="chip up">▲ 8%</span></div>
       <div class="k-val">1 284</div>
-      <svg width="100%" height="30" viewBox="0 0 120 30" preserveAspectRatio="none" style="margin-top:8px"><polyline points="0,24 15,20 30,22 45,15 60,16 75,10 90,12 105,6 120,4" fill="none" stroke="#FF0A78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polygon points="0,24 15,20 30,22 45,15 60,16 75,10 90,12 105,6 120,4 120,30 0,30" fill="url(#g1)" opacity=".18"/><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF0A78"/><stop offset="1" stop-color="#FF0A78" stop-opacity="0"/></linearGradient></defs></svg>
+      <svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" style="margin-top:8px;display:block;"><polyline points="0,22 15,18 30,20 45,13 60,14 75,8 90,10 105,4 120,2" fill="none" stroke="var(--pink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polygon points="0,22 15,18 30,20 45,13 60,14 75,8 90,10 105,4 120,2 120,28 0,28" fill="url(#g1)" opacity=".15"/><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF0A78"/><stop offset="1" stop-color="#FF0A78" stop-opacity="0"/></linearGradient></defs></svg>
     </div>
     <div class="card">
-      <div class="k-top"><span class="k-lbl">Qualité service</span><span class="chip up">▲ 3%</span></div>
+      <div class="k-top"><span class="k-lbl">Qualité service</span><span class="chip up">▲ 3 pts</span></div>
       <div class="k-val">87%</div>
-      <div class="bar"><i style="width:87%;background:var(--green)"></i></div>
-      <div class="k-foot"><small style="color:#5e616a;font-size:10.5px">Objectif 80% · atteint</small></div>
+      <div class="bar" style="margin-top:12px"><i style="width:87%;background:var(--green)"></i></div>
+      <div class="k-foot"><small>Objectif 80% · atteint</small></div>
     </div>
     <div class="card">
-      <div class="k-top"><span class="k-lbl">Taux occupation</span><span class="chip down">▼ 2%</span></div>
+      <div class="k-top"><span class="k-lbl">Taux occupation</span><span class="chip warn">→ stable</span></div>
       <div class="k-val">73%</div>
-      <div class="bar"><i style="width:73%;background:var(--amber)"></i></div>
-      <div class="k-foot"><small style="color:#5e616a;font-size:10.5px">Cible 70–80%</small></div>
+      <div class="bar" style="margin-top:12px"><i style="width:73%;background:var(--amber)"></i></div>
+      <div class="k-foot"><small>Cible 70–80%</small></div>
     </div>
     <div class="card">
       <div class="k-top"><span class="k-lbl">Backlog mails</span><span class="chip down">▼ 12</span></div>
       <div class="k-val">42</div>
-      <svg width="100%" height="30" viewBox="0 0 120 30" preserveAspectRatio="none" style="margin-top:8px"><polyline points="0,8 15,12 30,10 45,16 60,14 75,20 90,18 105,22 120,24" fill="none" stroke="#3ED598" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none" style="margin-top:8px;display:block;"><polyline points="0,6 15,10 30,8 45,14 60,12 75,18 90,16 105,20 120,22" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
   </div>
   <div class="demo-two">
     <div class="panel">
       <div class="panel-h">Agents — top production <small>semaine en cours</small></div>
-      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
-      <tbody>
-        <tr><td class="nm"><span class="av">MD</span>M. Dupont</td><td>148</td><td><span class="chip ok">91%</span></td><td>03:12</td><td>78%</td></tr>
-        <tr><td class="nm"><span class="av">SL</span>S. Lambert</td><td>132</td><td><span class="chip ok">88%</span></td><td>03:45</td><td>74%</td></tr>
-        <tr><td class="nm"><span class="av">AB</span>A. Bernard</td><td>119</td><td><span class="chip warn">84%</span></td><td>04:02</td><td>71%</td></tr>
-        <tr><td class="nm"><span class="av">LP</span>L. Petit</td><td>97</td><td><span class="chip err">79%</span></td><td>04:30</td><td>66%</td></tr>
-      </tbody></table>
+      <table>
+        <thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+        <tbody>
+          <tr><td class="nm"><span class="av">MD</span>M. Dupont</td><td>148</td><td><span class="chip ok">91%</span></td><td>03:12</td><td>78%</td></tr>
+          <tr><td class="nm"><span class="av">SL</span>S. Lambert</td><td>132</td><td><span class="chip ok">88%</span></td><td>03:45</td><td>74%</td></tr>
+          <tr><td class="nm"><span class="av">AB</span>A. Bernard</td><td>119</td><td><span class="chip warn">84%</span></td><td>04:02</td><td>71%</td></tr>
+          <tr><td class="nm"><span class="av">LP</span>L. Petit</td><td>97</td><td><span class="chip err">79%</span></td><td>04:30</td><td>66%</td></tr>
+        </tbody>
+      </table>
     </div>
     <div>
-      <div class="qcard"><div class="q-top"><span class="q-nm">Voltalis · Assistance</span><span class="chip ok">+11 pts</span></div><div class="q-grid"><div><b class="pk">45</b><span>Reçus</span></div><div><b>41</b><span>Décrochés</span></div><div><b style="color:var(--green)">91%</b><span>QS</span></div></div><div class="bar"><i style="width:91%;background:var(--green)"></i></div></div>
-      <div class="qcard"><div class="q-top"><span class="q-nm">LBE · Facture</span><span class="chip warn">−7 pts</span></div><div class="q-grid"><div><b class="pk">22</b><span>Reçus</span></div><div><b>16</b><span>Décrochés</span></div><div><b style="color:var(--amber)">73%</b><span>QS</span></div></div><div class="bar"><i style="width:73%;background:var(--amber)"></i></div></div>
-      <div class="qcard"><div class="q-top"><span class="q-nm">SOS · MA</span><span class="chip err">−27 pts</span></div><div class="q-grid"><div><b class="pk">38</b><span>Reçus</span></div><div><b>20</b><span>Décrochés</span></div><div><b style="color:var(--red)">53%</b><span>QS</span></div></div><div class="bar"><i style="width:53%;background:var(--red)"></i></div></div>
+      <div class="qcard">
+        <div class="q-top"><span class="q-nm">Voltalis · Assistance</span><span class="chip ok">+11 pts</span></div>
+        <div class="q-grid"><div><b class="pk">45</b><span>Reçus</span></div><div><b>41</b><span>Décr.</span></div><div><b style="color:var(--green)">91%</b><span>QS</span></div></div>
+        <div class="bar" style="margin-top:10px"><i style="width:91%;background:var(--green)"></i></div>
+      </div>
+      <div class="qcard">
+        <div class="q-top"><span class="q-nm">LBE · Facture</span><span class="chip warn">−7 pts</span></div>
+        <div class="q-grid"><div><b class="pk">22</b><span>Reçus</span></div><div><b>16</b><span>Décr.</span></div><div><b style="color:var(--amber)">73%</b><span>QS</span></div></div>
+        <div class="bar" style="margin-top:10px"><i style="width:73%;background:var(--amber)"></i></div>
+      </div>
+      <div class="qcard">
+        <div class="q-top"><span class="q-nm">SOS · MA</span><span class="chip err">−27 pts</span></div>
+        <div class="q-grid"><div><b class="pk">38</b><span>Reçus</span></div><div><b>20</b><span>Décr.</span></div><div><b style="color:var(--red)">53%</b><span>QS</span></div></div>
+        <div class="bar" style="margin-top:10px"><i style="width:53%;background:var(--red)"></i></div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ VARIANTE 2 — BENTO ══════════ -->
+<!-- ═══════ VARIANTE 2 — BENTO ═══════ -->
 <div class="variant v2">
   <div class="variant-label">
     <div class="variant-num">2</div>
     <div>
-      <div class="variant-name">Bento — mosaïque moderne, anneaux & visuels intégrés</div>
-      <div class="variant-desc">Grille « bento » aux cartes de tailles variées, dégradés radiaux subtils. La métrique-phare domine avec un halo rose, les autres intègrent anneau de progression et mini-barres. Très contemporain (style 2024-2025).</div>
+      <div class="variant-name">Bento — mosaïque, anneaux & bar-charts</div>
+      <div class="variant-desc">Grille bento aux cartes de tailles variées, anneaux de progression SVG, mini bar-charts volumes. La métrique-phare domine avec halo rose. Style dashboard 2024-25.</div>
     </div>
   </div>
   <div class="bento">
     <div class="bx hero tall">
-      <div class="b-lbl" style="color:#ffb8d6">Appels traités</div>
-      <div><div class="b-val">1 284</div><div class="b-sub" style="color:#ffb8d6">▲ 8% vs semaine précédente</div></div>
-      <svg width="100%" height="42" viewBox="0 0 200 42" preserveAspectRatio="none"><polyline points="0,34 25,28 50,30 75,20 100,22 125,13 150,16 175,7 200,5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>
+      <div class="b-lbl">Appels traités</div>
+      <div><div class="b-val">1 284</div><div class="b-sub">▲ 8% vs semaine précédente</div></div>
+      <svg width="100%" height="44" viewBox="0 0 200 44" preserveAspectRatio="none" style="opacity:.9"><polyline points="0,36 25,28 50,32 75,20 100,22 125,13 150,16 175,7 200,5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="bw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="0,36 25,28 50,32 75,20 100,22 125,13 150,16 175,7 200,5 200,44 0,44" fill="url(#bw)"/></svg>
     </div>
     <div class="bx">
       <div class="b-lbl">Qualité service</div>
       <div class="ring-wrap">
-        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="#3ED598" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="15.5" transform="rotate(-90 23 23)"/></svg>
-        <div><div class="ring-txt">87%</div><div class="b-sub">obj. 80%</div></div>
+        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(128,128,128,.15)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--green)" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="15.5" transform="rotate(-90 23 23)"/></svg>
+        <div><div class="ring-txt">87%</div><div class="b-sub">obj 80%</div></div>
       </div>
     </div>
     <div class="bx">
       <div class="b-lbl">Taux occupation</div>
       <div class="ring-wrap">
-        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="#FFB23E" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="32.2" transform="rotate(-90 23 23)"/></svg>
+        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(128,128,128,.15)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--amber)" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="32.2" transform="rotate(-90 23 23)"/></svg>
         <div><div class="ring-txt">73%</div><div class="b-sub">cible 70-80</div></div>
       </div>
     </div>
     <div class="bx wide">
       <div class="b-lbl">Volume reçu — 7 derniers jours</div>
-      <svg width="100%" height="44" viewBox="0 0 280 44" preserveAspectRatio="none">
-        <rect x="4"   y="18" width="30" height="26" rx="3" fill="#FF0A78" opacity=".55"/>
-        <rect x="42"  y="10" width="30" height="34" rx="3" fill="#FF0A78" opacity=".65"/>
-        <rect x="80"  y="22" width="30" height="22" rx="3" fill="#FF0A78" opacity=".5"/>
-        <rect x="118" y="6"  width="30" height="38" rx="3" fill="#FF0A78" opacity=".75"/>
-        <rect x="156" y="14" width="30" height="30" rx="3" fill="#FF0A78" opacity=".6"/>
-        <rect x="194" y="2"  width="30" height="42" rx="3" fill="#FF0A78"/>
-        <rect x="232" y="20" width="30" height="24" rx="3" fill="#FF0A78" opacity=".5"/>
+      <svg width="100%" height="46" viewBox="0 0 280 46" preserveAspectRatio="none" style="margin-top:4px">
+        <rect x="4"   y="20" width="28" height="26" rx="4" fill="var(--pink)" opacity=".45"/>
+        <rect x="42"  y="10" width="28" height="36" rx="4" fill="var(--pink)" opacity=".6"/>
+        <rect x="80"  y="24" width="28" height="22" rx="4" fill="var(--pink)" opacity=".4"/>
+        <rect x="118" y="4"  width="28" height="42" rx="4" fill="var(--pink)" opacity=".8"/>
+        <rect x="156" y="14" width="28" height="32" rx="4" fill="var(--pink)" opacity=".55"/>
+        <rect x="194" y="0"  width="28" height="46" rx="4" fill="var(--pink)"/>
+        <rect x="232" y="18" width="28" height="28" rx="4" fill="var(--pink)" opacity=".45"/>
       </svg>
     </div>
     <div class="bx">
@@ -234,54 +344,119 @@ body{background:#0a0b0d;color:#7a7d85;font-family:'Inter','Segoe UI',system-ui,s
       <div><div class="b-val">42</div><div class="b-sub" style="color:var(--green)">▼ 12 vs hier</div></div>
     </div>
     <div class="bx">
-      <div class="b-lbl">Appels/heure</div>
-      <div><div class="b-val">18,4</div><div class="b-sub">cadence moyenne</div></div>
+      <div class="b-lbl">Actes / heure</div>
+      <div><div class="b-val">18,4</div><div class="b-sub">cadence moy.</div></div>
     </div>
   </div>
   <div class="panel">
     <div class="panel-h">Statut des files</div>
-    <table><thead><tr><th>File</th><th>Reçus</th><th>Décrochés</th><th>QS</th><th>Écart</th></tr></thead>
-    <tbody>
-      <tr><td class="nm">Voltalis · Assistance</td><td>45</td><td>41</td><td style="color:var(--green)">91%</td><td><span class="chip ok">+11</span></td></tr>
-      <tr><td class="nm">LBE · Facture</td><td>22</td><td>16</td><td style="color:var(--amber)">73%</td><td><span class="chip warn">−7</span></td></tr>
-      <tr><td class="nm">SOS · MA</td><td>38</td><td>20</td><td style="color:var(--red)">53%</td><td><span class="chip err">−27</span></td></tr>
-    </tbody></table>
+    <table>
+      <thead><tr><th>File</th><th>Reçus</th><th>Décrochés</th><th>QS</th><th>Écart</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">Voltalis · Assistance</td><td>45</td><td>41</td><td style="color:var(--green)">91%</td><td><span class="chip ok">+11</span></td></tr>
+        <tr><td class="nm">LBE · Facture</td><td>22</td><td>16</td><td style="color:var(--amber)">73%</td><td><span class="chip warn">−7</span></td></tr>
+        <tr><td class="nm">SOS · MA</td><td>38</td><td>20</td><td style="color:var(--red)">53%</td><td><span class="chip err">−27</span></td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
-<!-- ══════════ VARIANTE 3 — COCKPIT ══════════ -->
+<!-- ═══════ VARIANTE 3 — COCKPIT ═══════ -->
 <div class="variant v3">
   <div class="variant-label">
     <div class="variant-num">3</div>
     <div>
-      <div class="variant-name">Cockpit — dense, pro, jauges & chiffres monospace</div>
-      <div class="variant-desc">Information riche et compacte pour le pilotage intensif. Chiffres en police monospace (alignement parfait), barres de progression sous chaque KPI, accent latéral coloré par statut. Esprit salle de marché / supervision pro.</div>
+      <div class="variant-name">Cockpit — dense, monospace, barres de progression</div>
+      <div class="variant-desc">Information riche et compacte. Chiffres monospace alignés, barres de progression sous chaque KPI, accent latéral coloré par statut. Esprit salle de marché / supervision intensive.</div>
     </div>
   </div>
   <div class="demo-kpis">
-    <div class="card b-pink"><div class="k-lbl">Appels traités</div><div class="k-val">1 284 <small>▲8%</small></div><div class="pgbar"><i style="width:82%;background:var(--pink)"></i></div><div class="pgmeta"><span>S-1 : 1 189</span><span>obj 1 200</span></div></div>
-    <div class="card b-green"><div class="k-lbl">Qualité service</div><div class="k-val">87<small>%</small></div><div class="pgbar"><i style="width:87%;background:var(--green)"></i></div><div class="pgmeta"><span>objectif 80%</span><span>+7 pts</span></div></div>
-    <div class="card b-amber"><div class="k-lbl">Taux occupation</div><div class="k-val">73<small>%</small></div><div class="pgbar"><i style="width:73%;background:var(--amber)"></i></div><div class="pgmeta"><span>cible 70-80%</span><span>OK</span></div></div>
-    <div class="card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="pgbar"><i style="width:35%;background:#7a7d85"></i></div><div class="pgmeta"><span>3 campagnes</span><span>▼12</span></div></div>
+    <div class="card b-pink">
+      <div class="k-lbl">Appels traités</div>
+      <div class="k-val">1 284 <small>▲8%</small></div>
+      <div class="pgbar"><i style="width:82%;background:var(--pink)"></i></div>
+      <div class="pgmeta"><span>S-1 : 1 189</span><span>obj 1 200</span></div>
+    </div>
+    <div class="card b-green">
+      <div class="k-lbl">Qualité service</div>
+      <div class="k-val">87<small>%</small></div>
+      <div class="pgbar"><i style="width:87%;background:var(--green)"></i></div>
+      <div class="pgmeta"><span>objectif 80%</span><span>+7 pts</span></div>
+    </div>
+    <div class="card b-amber">
+      <div class="k-lbl">Taux occupation</div>
+      <div class="k-val">73<small>%</small></div>
+      <div class="pgbar"><i style="width:73%;background:var(--amber)"></i></div>
+      <div class="pgmeta"><span>cible 70-80%</span><span>OK</span></div>
+    </div>
+    <div class="card">
+      <div class="k-lbl">Backlog mails</div>
+      <div class="k-val">42 <small>▼12</small></div>
+      <div class="pgbar"><i style="width:35%;background:var(--pink)" opacity=".5"></i></div>
+      <div class="pgmeta"><span>3 campagnes</span><span>en baisse</span></div>
+    </div>
   </div>
   <div class="demo-two">
     <div class="panel">
       <div class="panel-h">Agents — production</div>
-      <table><thead><tr><th>Agent</th><th>Trait.</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
-      <tbody>
-        <tr><td class="nm">M. Dupont</td><td>148</td><td style="color:var(--green)">91%</td><td>03:12</td><td>78%</td></tr>
-        <tr><td class="nm">S. Lambert</td><td>132</td><td style="color:var(--green)">88%</td><td>03:45</td><td>74%</td></tr>
-        <tr><td class="nm">A. Bernard</td><td>119</td><td style="color:var(--amber)">84%</td><td>04:02</td><td>71%</td></tr>
-        <tr><td class="nm">L. Petit</td><td>97</td><td style="color:var(--red)">79%</td><td>04:30</td><td>66%</td></tr>
-      </tbody></table>
+      <table>
+        <thead><tr><th>Agent</th><th>Trait.</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+        <tbody>
+          <tr><td class="nm">M. Dupont</td><td>148</td><td style="color:var(--green)">91%</td><td>03:12</td><td>78%</td></tr>
+          <tr><td class="nm">S. Lambert</td><td>132</td><td style="color:var(--green)">88%</td><td>03:45</td><td>74%</td></tr>
+          <tr><td class="nm">A. Bernard</td><td>119</td><td style="color:var(--amber)">84%</td><td>04:02</td><td>71%</td></tr>
+          <tr><td class="nm">L. Petit</td><td>97</td><td style="color:var(--red)">79%</td><td>04:30</td><td>66%</td></tr>
+        </tbody>
+      </table>
     </div>
     <div>
-      <div class="qcard"><div class="q-tick" style="background:var(--green)"></div><div class="q-main"><div class="q-nm">Voltalis · Assistance</div><div class="q-stats"><div><b style="color:var(--pink)">45</b><span>Reçus</span></div><div><b>41</b><span>Décr.</span></div><div><b style="color:var(--green)">91%</b><span>QS</span></div><div><b style="color:var(--green)">+11</b><span>Écart</span></div></div></div></div>
-      <div class="qcard"><div class="q-tick" style="background:var(--amber)"></div><div class="q-main"><div class="q-nm">LBE · Facture</div><div class="q-stats"><div><b style="color:var(--pink)">22</b><span>Reçus</span></div><div><b>16</b><span>Décr.</span></div><div><b style="color:var(--amber)">73%</b><span>QS</span></div><div><b style="color:var(--amber)">−7</b><span>Écart</span></div></div></div></div>
-      <div class="qcard"><div class="q-tick" style="background:var(--red)"></div><div class="q-main"><div class="q-nm">SOS · MA</div><div class="q-stats"><div><b style="color:var(--pink)">38</b><span>Reçus</span></div><div><b>20</b><span>Décr.</span></div><div><b style="color:var(--red)">53%</b><span>QS</span></div><div><b style="color:var(--red)">−27</b><span>Écart</span></div></div></div></div>
+      <div class="qcard">
+        <div class="q-tick" style="background:var(--green)"></div>
+        <div class="q-main">
+          <div class="q-nm">Voltalis · Assistance</div>
+          <div class="q-stats">
+            <div><b style="color:var(--pink)">45</b><span>Reçus</span></div>
+            <div><b>41</b><span>Décr.</span></div>
+            <div><b style="color:var(--green)">91%</b><span>QS</span></div>
+            <div><b style="color:var(--green)">+11</b><span>Écart</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="qcard">
+        <div class="q-tick" style="background:var(--amber)"></div>
+        <div class="q-main">
+          <div class="q-nm">LBE · Facture</div>
+          <div class="q-stats">
+            <div><b style="color:var(--pink)">22</b><span>Reçus</span></div>
+            <div><b>16</b><span>Décr.</span></div>
+            <div><b style="color:var(--amber)">73%</b><span>QS</span></div>
+            <div><b style="color:var(--amber)">−7</b><span>Écart</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="qcard">
+        <div class="q-tick" style="background:var(--red)"></div>
+        <div class="q-main">
+          <div class="q-nm">SOS · MA</div>
+          <div class="q-stats">
+            <div><b style="color:var(--pink)">38</b><span>Reçus</span></div>
+            <div><b>20</b><span>Décr.</span></div>
+            <div><b style="color:var(--red)">53%</b><span>QS</span></div>
+            <div><b style="color:var(--red)">−27</b><span>Écart</span></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
+<script>
+function setMode(m){
+  document.body.classList.toggle('light', m==='light');
+  document.querySelectorAll('.mode-toggle button').forEach((b,i)=>{
+    b.classList.toggle('active', (i===0&&m==='dark')||(i===1&&m==='light'));
+  });
+}
+</script>
 </body>
 </html>
