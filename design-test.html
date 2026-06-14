@@ -7,222 +7,278 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#080808;color:#888;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;padding:0 0 80px;}
-::-webkit-scrollbar{width:8px;height:8px;}
-::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+:root{
+  --pink:#FF0A78; --pink-soft:rgba(255,10,120,.14); --pink-dim:rgba(255,10,120,.5);
+  --green:#3ED598; --green-soft:rgba(62,213,152,.14);
+  --amber:#FFB23E; --amber-soft:rgba(255,178,62,.14);
+  --red:#FF5C5C;   --red-soft:rgba(255,92,92,.14);
+}
+body{background:#0a0b0d;color:#7a7d85;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:13px;padding:0 0 90px;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:5px;}
+::-webkit-scrollbar-track{background:transparent;}
 
-/* ── En-tête de la page de test ── */
-.test-head{position:sticky;top:0;z-index:10;background:#0c0c0c;border-bottom:1px solid #222;padding:14px 26px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.test-head h1{font-size:15px;color:#fff;font-weight:800;letter-spacing:.04em;}
-.test-head .mark{width:24px;height:24px;border-radius:7px;background:#E8006E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 0 10px rgba(232,0,110,.4);}
-.test-head .hint{font-size:11px;color:#666;margin-left:auto;}
+.test-head{position:sticky;top:0;z-index:10;background:rgba(12,13,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);padding:15px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.test-head .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#FF0A78,#c4005a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 2px 14px rgba(255,10,120,.45);}
+.test-head h1{font-size:15px;color:#f5f6f8;font-weight:700;letter-spacing:.01em;}
+.test-head .hint{font-size:11.5px;color:#5a5d65;margin-left:auto;}
 
-/* ── Conteneur de variante ── */
-.variant{max-width:1180px;margin:30px auto 0;padding:0 26px;}
-.variant-label{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px dashed #2a2a2a;}
-.variant-num{width:30px;height:30px;border-radius:8px;background:#E8006E;color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.variant-name{font-size:16px;font-weight:800;color:#eee;letter-spacing:.02em;}
-.variant-desc{font-size:11.5px;color:#777;margin-top:2px;line-height:1.4;}
+.variant{max-width:1200px;margin:34px auto 0;padding:24px 28px 30px;border-radius:18px;}
+.variant-label{display:flex;align-items:flex-start;gap:13px;margin-bottom:22px;}
+.variant-num{width:30px;height:30px;border-radius:9px;background:var(--pink);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(255,10,120,.4);}
+.variant-name{font-size:16px;font-weight:700;color:#f0f1f3;letter-spacing:.01em;}
+.variant-desc{font-size:11.5px;color:#6e7178;margin-top:3px;line-height:1.5;max-width:760px;}
 
-/* Grille des composants dans chaque variante */
-.demo-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-.demo-two{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
-@media(max-width:840px){.demo-two{grid-template-columns:1fr;}}
+.demo-kpis{display:grid;gap:14px;margin-bottom:18px;}
+.demo-two{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start;}
+@media(max-width:860px){.demo-two{grid-template-columns:1fr;}}
 
-/* ════════════════════════════════════════════════════════════════
-   VARIANTE 1 — « STRATIFIÉ »  (surfaces nettes, élévation calme)
-   ════════════════════════════════════════════════════════════════ */
-.v1{--bg:#0a0a0a;--surf:#1b1b1b;--surf2:#202020;--bord:#333;--num:#fff;--lbl:#8a8a8a;--data:#dcdcdc;--pink:#E8006E;}
-.v1 .demo-card{background:var(--surf);border:1px solid var(--bord);border-radius:12px;padding:14px 16px;flex:1;min-width:120px;}
-.v1 .demo-card.hero{border-top:2px solid var(--pink);}
-.v1 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:7px;}
-.v1 .k-val{font-size:26px;font-weight:800;color:var(--num);line-height:1;font-variant-numeric:tabular-nums;}
-.v1 .k-sub{font-size:10px;color:#666;margin-top:6px;}
-.v1 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:12px;overflow:hidden;}
-.v1 .panel-h{padding:12px 16px;border-bottom:1px solid var(--bord);font-size:11px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.05em;}
-.v1 table{width:100%;border-collapse:collapse;font-size:12px;}
-.v1 th{text-align:left;padding:9px 14px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;font-weight:700;background:#151515;}
-.v1 td{padding:9px 14px;color:var(--data);border-top:1px solid #232323;}
-.v1 tbody tr:nth-child(even) td{background:#1e1e1e;}
-.v1 .nm{color:#fff;font-weight:600;}
-.v1 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:10px;padding:11px 13px;margin-bottom:9px;}
-.v1 .qcard.ok{border-left:3px solid #2ecc71;}
-.v1 .qcard.warn{border-left:3px solid #f39c12;}
-.v1 .qcard.err{border-left:3px solid #e74c3c;}
-.v1 .q-nm{font-size:11px;font-weight:700;color:#ddd;margin-bottom:6px;}
-.v1 .q-row{display:flex;gap:18px;}
-.v1 .q-row b{font-size:15px;font-weight:800;}
-.v1 .q-row span{font-size:8px;color:#666;text-transform:uppercase;display:block;letter-spacing:.04em;}
+/* éléments communs data-viz */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.4;}
+.chip.up{background:var(--green-soft);color:var(--green);}
+.chip.down{background:var(--red-soft);color:var(--red);}
+.chip.ok{background:var(--green-soft);color:var(--green);}
+.chip.warn{background:var(--amber-soft);color:var(--amber);}
+.chip.err{background:var(--red-soft);color:var(--red);}
 
-/* ════════════════════════════════════════════════════════════════
-   VARIANTE 2 — « NÉON CONSOLE »  (accents rose lumineux, fond profond)
-   ════════════════════════════════════════════════════════════════ */
-.v2{--bg:#0b0b0b;--surf:#141414;--bord:#262626;--num:#fff;--lbl:#7d7d7d;--data:#cfcfcf;--pink:#E8006E;}
-.v2 .demo-card{background:var(--surf);border:1px solid var(--bord);border-radius:10px;padding:14px 16px;flex:1;min-width:120px;position:relative;overflow:hidden;}
-.v2 .demo-card.hero{border-color:rgba(232,0,110,.4);background:linear-gradient(135deg,#1c0a12,#141414);box-shadow:inset 0 0 24px rgba(232,0,110,.08);}
-.v2 .demo-card.hero::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--pink),transparent);}
-.v2 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:7px;}
-.v2 .demo-card.hero .k-lbl{color:var(--pink);}
-.v2 .k-val{font-size:26px;font-weight:800;color:var(--num);line-height:1;font-variant-numeric:tabular-nums;}
-.v2 .demo-card.hero .k-val{color:var(--pink);text-shadow:0 0 18px rgba(232,0,110,.35);}
-.v2 .k-sub{font-size:10px;color:#666;margin-top:6px;}
-.v2 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:10px;overflow:hidden;}
-.v2 .panel-h{padding:12px 16px;font-size:11px;font-weight:800;color:#ccc;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bord);position:relative;}
-.v2 .panel-h::after{content:"";position:absolute;bottom:-1px;left:0;width:120px;height:2px;background:linear-gradient(90deg,var(--pink),transparent);}
-.v2 table{width:100%;border-collapse:collapse;font-size:12px;}
-.v2 th{text-align:left;padding:9px 14px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;font-weight:700;background:#1a0a10;border-bottom:1px solid #2a1019;}
-.v2 td{padding:9px 14px;color:var(--data);border-bottom:1px solid #1c1c1c;}
-.v2 tbody tr:hover td{background:rgba(232,0,110,.06);}
-.v2 .nm{color:#fff;font-weight:600;}
-.v2 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:9px;padding:11px 13px;margin-bottom:9px;}
-.v2 .qcard.ok{box-shadow:inset 3px 0 0 #2ecc71;}
-.v2 .qcard.warn{box-shadow:inset 3px 0 0 #f39c12;}
-.v2 .qcard.err{box-shadow:inset 3px 0 0 #e74c3c,inset 0 0 22px rgba(231,76,60,.07);border-color:rgba(231,76,60,.25);}
-.v2 .q-nm{font-size:11px;font-weight:700;color:#ddd;margin-bottom:6px;}
-.v2 .q-row{display:flex;gap:18px;}
-.v2 .q-row b{font-size:15px;font-weight:800;}
-.v2 .q-row span{font-size:8px;color:#666;text-transform:uppercase;display:block;letter-spacing:.04em;}
+/* ══════════════════════════════════════════════════════════════════
+   VARIANTE 1 — « STUDIO »  raffiné, neutre froid, sparklines & chips
+   ══════════════════════════════════════════════════════════════════ */
+.v1{background:#0c0d10;}
+.v1 .demo-kpis{grid-template-columns:repeat(4,1fr);}
+@media(max-width:860px){.v1 .demo-kpis{grid-template-columns:repeat(2,1fr);}}
+.v1 .card{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.4);}
+.v1 .k-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.v1 .k-lbl{font-size:11px;color:#878a92;font-weight:600;letter-spacing:.01em;}
+.v1 .k-val{font-size:28px;font-weight:750;color:#f6f7f9;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+.v1 .k-foot{display:flex;align-items:center;gap:8px;margin-top:11px;}
+.v1 .k-foot small{font-size:10.5px;color:#5e616a;}
+.v1 .panel{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.4);}
+.v1 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;letter-spacing:.01em;display:flex;justify-content:space-between;align-items:center;}
+.v1 .panel-h small{font-size:10.5px;color:#5e616a;font-weight:500;}
+.v1 table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.v1 th{text-align:left;padding:8px 18px;font-size:10px;color:#6a6d75;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.v1 th:not(:first-child),.v1 td:not(:first-child){text-align:right;}
+.v1 td{padding:11px 18px;color:#d4d6db;border-top:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;}
+.v1 .nm{color:#f3f4f6;font-weight:600;text-align:left!important;display:flex;align-items:center;gap:9px;}
+.v1 .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#2a2d35,#1c1e24);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#9a9da5;flex-shrink:0;}
+.v1 .qcard{background:#141518;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 15px;margin-bottom:11px;box-shadow:0 1px 2px rgba(0,0,0,.4);}
+.v1 .q-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.v1 .q-nm{font-size:12px;font-weight:650;color:#e6e7ea;}
+.v1 .q-grid{display:flex;gap:20px;}
+.v1 .q-grid b{font-size:17px;font-weight:750;color:#f0f1f3;display:block;font-variant-numeric:tabular-nums;}
+.v1 .q-grid span{font-size:9px;color:#62656d;text-transform:uppercase;letter-spacing:.04em;}
+.v1 .q-grid .pk{color:var(--pink);}
+.v1 .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.06);margin-top:12px;overflow:hidden;}
+.v1 .bar i{display:block;height:100%;border-radius:3px;}
 
-/* ════════════════════════════════════════════════════════════════
-   VARIANTE 3 — « ÉDITORIAL »  (typo forte, bordures fines, beaucoup d'air)
-   ════════════════════════════════════════════════════════════════ */
-.v3{--bg:#0f0f0f;--surf:#131313;--bord:#242424;--num:#fff;--lbl:#6e6e6e;--data:#d6d6d6;--pink:#E8006E;}
-.v3 .demo-card{background:transparent;border:none;border-left:1px solid var(--bord);padding:6px 22px;flex:1;min-width:130px;}
-.v3 .demo-card:first-child{border-left:none;padding-left:6px;}
-.v3 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.14em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.v3 .demo-card.hero .k-lbl::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);}
-.v3 .k-val{font-size:34px;font-weight:800;color:var(--num);line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
-.v3 .demo-card.hero .k-val{color:var(--pink);}
-.v3 .k-sub{font-size:10px;color:#5a5a5a;margin-top:9px;}
-.v3 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:6px;overflow:hidden;}
-.v3 .panel-h{padding:16px 20px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.12em;}
-.v3 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.v3 th{text-align:left;padding:6px 20px 12px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
-.v3 td{padding:13px 20px;color:var(--data);border-top:1px solid #1c1c1c;}
-.v3 .nm{color:#fff;font-weight:600;}
-.v3 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:15px 17px;margin-bottom:10px;position:relative;}
-.v3 .q-dot{position:absolute;top:17px;right:15px;width:7px;height:7px;border-radius:50%;}
-.v3 .qcard.ok .q-dot{background:#2ecc71;}
-.v3 .qcard.warn .q-dot{background:#f39c12;}
-.v3 .qcard.err .q-dot{background:#e74c3c;box-shadow:0 0 8px rgba(231,76,60,.6);}
-.v3 .q-nm{font-size:12px;font-weight:700;color:#e0e0e0;margin-bottom:11px;}
-.v3 .q-row{display:flex;gap:26px;}
-.v3 .q-row b{font-size:19px;font-weight:800;}
-.v3 .q-row span{font-size:8px;color:#5a5a5a;text-transform:uppercase;display:block;letter-spacing:.06em;margin-top:2px;}
+/* ══════════════════════════════════════════════════════════════════
+   VARIANTE 2 — « BENTO »  mosaïque moderne, anneaux & barres intégrés
+   ══════════════════════════════════════════════════════════════════ */
+.v2{background:#0a0b0e;}
+.v2 .bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:118px;gap:14px;}
+@media(max-width:860px){.v2 .bento{grid-template-columns:repeat(2,1fr);}}
+.v2 .bx{background:radial-gradient(120% 120% at 0% 0%,#17181d,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.v2 .bx.tall{grid-row:span 2;}
+.v2 .bx.wide{grid-column:span 2;}
+.v2 .bx.hero{background:radial-gradient(130% 130% at 100% 0%,rgba(255,10,120,.22),#121116);border-color:rgba(255,10,120,.3);}
+.v2 .b-lbl{font-size:11px;color:#8a8d95;font-weight:600;}
+.v2 .b-val{font-size:30px;font-weight:780;color:#f6f7f9;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+.v2 .bx.hero .b-val{font-size:38px;color:#fff;}
+.v2 .b-sub{font-size:10.5px;color:#62656d;}
+.v2 .ring-wrap{display:flex;align-items:center;gap:14px;}
+.v2 .ring-txt{font-size:24px;font-weight:780;color:#f6f7f9;font-variant-numeric:tabular-nums;}
+.v2 .panel{background:radial-gradient(120% 120% at 0% 0%,#17181d,#101115);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;margin-top:14px;}
+.v2 .panel-h{padding:15px 18px 13px;font-size:13px;font-weight:700;color:#e8e9ec;}
+.v2 table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.v2 th{text-align:left;padding:8px 18px;font-size:10px;color:#6a6d75;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.v2 th:not(:first-child),.v2 td:not(:first-child){text-align:right;}
+.v2 td{padding:11px 18px;color:#d4d6db;border-top:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;}
+.v2 .nm{color:#f3f4f6;font-weight:600;text-align:left!important;}
 
-/* fonds de page par variante (appliqué au bloc) */
-.variant.v1,.variant.v2,.variant.v3{padding-top:22px;padding-bottom:26px;border-radius:14px;margin-top:30px;}
-.variant.v1{background:#0a0a0a;}
-.variant.v2{background:#0b0b0b;}
-.variant.v3{background:#0f0f0f;}
+/* ══════════════════════════════════════════════════════════════════
+   VARIANTE 3 — « COCKPIT »  dense, pro, jauges & barres de progression
+   ══════════════════════════════════════════════════════════════════ */
+.v3{background:#0b0c0e;}
+.v3 .demo-kpis{grid-template-columns:repeat(4,1fr);}
+@media(max-width:860px){.v3 .demo-kpis{grid-template-columns:repeat(2,1fr);}}
+.v3 .card{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:13px 15px;border-left:2px solid #2a2d33;}
+.v3 .card.b-pink{border-left-color:var(--pink);}
+.v3 .card.b-green{border-left-color:var(--green);}
+.v3 .card.b-amber{border-left-color:var(--amber);}
+.v3 .k-lbl{font-size:10px;color:#7a7d85;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:9px;}
+.v3 .k-val{font-size:23px;font-weight:750;color:#f2f3f5;line-height:1;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;}
+.v3 .k-val small{font-size:12px;color:#6a6d75;font-weight:600;}
+.v3 .pgbar{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:11px;overflow:hidden;}
+.v3 .pgbar i{display:block;height:100%;border-radius:2px;}
+.v3 .pgmeta{display:flex;justify-content:space-between;font-size:9px;color:#5e616a;margin-top:5px;font-variant-numeric:tabular-nums;}
+.v3 .panel{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;}
+.v3 .panel-h{padding:13px 16px;font-size:11px;font-weight:700;color:#cdcfd4;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.06);background:#0e0f12;}
+.v3 table{width:100%;border-collapse:collapse;font-size:12px;}
+.v3 th{text-align:left;padding:8px 16px;font-size:9px;color:#62656d;text-transform:uppercase;letter-spacing:.06em;font-weight:600;background:#0e0f12;}
+.v3 th:not(:first-child),.v3 td:not(:first-child){text-align:right;}
+.v3 td{padding:9px 16px;color:#d0d2d7;border-top:1px solid rgba(255,255,255,.04);font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;font-size:11.5px;}
+.v3 .nm{color:#f0f1f3;font-weight:600;text-align:left!important;font-family:inherit;}
+.v3 .qcard{background:#121317;border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+.v3 .q-tick{width:3px;align-self:stretch;border-radius:2px;flex-shrink:0;}
+.v3 .q-main{flex:1;}
+.v3 .q-nm{font-size:11.5px;font-weight:650;color:#e4e5e8;margin-bottom:8px;}
+.v3 .q-stats{display:flex;gap:18px;}
+.v3 .q-stats b{font-size:14px;font-weight:750;color:#eef0f2;display:block;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',ui-monospace,monospace;}
+.v3 .q-stats span{font-size:8px;color:#5e616a;text-transform:uppercase;letter-spacing:.05em;}
 </style>
 </head>
 <body>
 
 <div class="test-head">
   <div class="mark">W</div>
-  <h1>TEST DESIGN — 3 directions (rose / gris / noir)</h1>
-  <span class="hint">Comparez les mêmes composants rendus en 3 ambiances · dites-moi le n° qui vous parle</span>
+  <h1>TEST DESIGN — 3 directions modernes</h1>
+  <span class="hint">Data-viz intégrée · noir neutre · rose de marque · dites-moi le n° (ou un mix)</span>
 </div>
 
-<!-- ══ VARIANTE 1 ══ -->
+<!-- ══════════ VARIANTE 1 — STUDIO ══════════ -->
 <div class="variant v1">
   <div class="variant-label">
     <div class="variant-num">1</div>
     <div>
-      <div class="variant-name">Stratifié — surfaces nettes & élévation calme</div>
-      <div class="variant-desc">Cartes sur fond clairement surélevé (#1b1b1b), bordures franches, zébrures de tableau. Le rose n'apparaît qu'en filet sur la carte prioritaire. Ambiance SaaS sobre et reposante.</div>
+      <div class="variant-name">Studio — raffiné, sparklines & badges d'évolution</div>
+      <div class="variant-desc">Noir neutre froid, cartes douces aux bords très fins, chaque KPI porte un mini-graphe de tendance (sparkline) et un badge ±%. Statuts en pastilles colorées discrètes. Style produit SaaS haut de gamme (Stripe / Vercel).</div>
     </div>
   </div>
   <div class="demo-kpis">
-    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
-    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+    <div class="card">
+      <div class="k-top"><span class="k-lbl">Appels traités</span><span class="chip up">▲ 8%</span></div>
+      <div class="k-val">1 284</div>
+      <svg width="100%" height="30" viewBox="0 0 120 30" preserveAspectRatio="none" style="margin-top:8px"><polyline points="0,24 15,20 30,22 45,15 60,16 75,10 90,12 105,6 120,4" fill="none" stroke="#FF0A78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polygon points="0,24 15,20 30,22 45,15 60,16 75,10 90,12 105,6 120,4 120,30 0,30" fill="url(#g1)" opacity=".18"/><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF0A78"/><stop offset="1" stop-color="#FF0A78" stop-opacity="0"/></linearGradient></defs></svg>
+    </div>
+    <div class="card">
+      <div class="k-top"><span class="k-lbl">Qualité service</span><span class="chip up">▲ 3%</span></div>
+      <div class="k-val">87%</div>
+      <div class="bar"><i style="width:87%;background:var(--green)"></i></div>
+      <div class="k-foot"><small style="color:#5e616a;font-size:10.5px">Objectif 80% · atteint</small></div>
+    </div>
+    <div class="card">
+      <div class="k-top"><span class="k-lbl">Taux occupation</span><span class="chip down">▼ 2%</span></div>
+      <div class="k-val">73%</div>
+      <div class="bar"><i style="width:73%;background:var(--amber)"></i></div>
+      <div class="k-foot"><small style="color:#5e616a;font-size:10.5px">Cible 70–80%</small></div>
+    </div>
+    <div class="card">
+      <div class="k-top"><span class="k-lbl">Backlog mails</span><span class="chip down">▼ 12</span></div>
+      <div class="k-val">42</div>
+      <svg width="100%" height="30" viewBox="0 0 120 30" preserveAspectRatio="none" style="margin-top:8px"><polyline points="0,8 15,12 30,10 45,16 60,14 75,20 90,18 105,22 120,24" fill="none" stroke="#3ED598" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
   </div>
   <div class="demo-two">
     <div class="panel">
-      <div class="panel-h">Agents — top production</div>
+      <div class="panel-h">Agents — top production <small>semaine en cours</small></div>
       <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
       <tbody>
-        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
-        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
-        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
-        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
+        <tr><td class="nm"><span class="av">MD</span>M. Dupont</td><td>148</td><td><span class="chip ok">91%</span></td><td>03:12</td><td>78%</td></tr>
+        <tr><td class="nm"><span class="av">SL</span>S. Lambert</td><td>132</td><td><span class="chip ok">88%</span></td><td>03:45</td><td>74%</td></tr>
+        <tr><td class="nm"><span class="av">AB</span>A. Bernard</td><td>119</td><td><span class="chip warn">84%</span></td><td>04:02</td><td>71%</td></tr>
+        <tr><td class="nm"><span class="av">LP</span>L. Petit</td><td>97</td><td><span class="chip err">79%</span></td><td>04:30</td><td>66%</td></tr>
       </tbody></table>
     </div>
     <div>
-      <div class="qcard ok"><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b style="color:#2ecc71">41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
-      <div class="qcard warn"><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b style="color:#2ecc71">16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
-      <div class="qcard err"><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b style="color:#2ecc71">20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
+      <div class="qcard"><div class="q-top"><span class="q-nm">Voltalis · Assistance</span><span class="chip ok">+11 pts</span></div><div class="q-grid"><div><b class="pk">45</b><span>Reçus</span></div><div><b>41</b><span>Décrochés</span></div><div><b style="color:var(--green)">91%</b><span>QS</span></div></div><div class="bar"><i style="width:91%;background:var(--green)"></i></div></div>
+      <div class="qcard"><div class="q-top"><span class="q-nm">LBE · Facture</span><span class="chip warn">−7 pts</span></div><div class="q-grid"><div><b class="pk">22</b><span>Reçus</span></div><div><b>16</b><span>Décrochés</span></div><div><b style="color:var(--amber)">73%</b><span>QS</span></div></div><div class="bar"><i style="width:73%;background:var(--amber)"></i></div></div>
+      <div class="qcard"><div class="q-top"><span class="q-nm">SOS · MA</span><span class="chip err">−27 pts</span></div><div class="q-grid"><div><b class="pk">38</b><span>Reçus</span></div><div><b>20</b><span>Décrochés</span></div><div><b style="color:var(--red)">53%</b><span>QS</span></div></div><div class="bar"><i style="width:53%;background:var(--red)"></i></div></div>
     </div>
   </div>
 </div>
 
-<!-- ══ VARIANTE 2 ══ -->
+<!-- ══════════ VARIANTE 2 — BENTO ══════════ -->
 <div class="variant v2">
   <div class="variant-label">
     <div class="variant-num">2</div>
     <div>
-      <div class="variant-name">Néon console — accents rose lumineux sur fond profond</div>
-      <div class="variant-desc">Fond très sombre, la donnée-phare brille en rose (halo), liseré rose dégradé sous les titres, survol de ligne teinté. Ambiance « tour de contrôle live », énergique et orientée pilotage.</div>
+      <div class="variant-name">Bento — mosaïque moderne, anneaux & visuels intégrés</div>
+      <div class="variant-desc">Grille « bento » aux cartes de tailles variées, dégradés radiaux subtils. La métrique-phare domine avec un halo rose, les autres intègrent anneau de progression et mini-barres. Très contemporain (style 2024-2025).</div>
     </div>
   </div>
-  <div class="demo-kpis">
-    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
-    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+  <div class="bento">
+    <div class="bx hero tall">
+      <div class="b-lbl" style="color:#ffb8d6">Appels traités</div>
+      <div><div class="b-val">1 284</div><div class="b-sub" style="color:#ffb8d6">▲ 8% vs semaine précédente</div></div>
+      <svg width="100%" height="42" viewBox="0 0 200 42" preserveAspectRatio="none"><polyline points="0,34 25,28 50,30 75,20 100,22 125,13 150,16 175,7 200,5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>
+    </div>
+    <div class="bx">
+      <div class="b-lbl">Qualité service</div>
+      <div class="ring-wrap">
+        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="#3ED598" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="15.5" transform="rotate(-90 23 23)"/></svg>
+        <div><div class="ring-txt">87%</div><div class="b-sub">obj. 80%</div></div>
+      </div>
+    </div>
+    <div class="bx">
+      <div class="b-lbl">Taux occupation</div>
+      <div class="ring-wrap">
+        <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5"/><circle cx="23" cy="23" r="19" fill="none" stroke="#FFB23E" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="32.2" transform="rotate(-90 23 23)"/></svg>
+        <div><div class="ring-txt">73%</div><div class="b-sub">cible 70-80</div></div>
+      </div>
+    </div>
+    <div class="bx wide">
+      <div class="b-lbl">Volume reçu — 7 derniers jours</div>
+      <svg width="100%" height="44" viewBox="0 0 280 44" preserveAspectRatio="none">
+        <rect x="4"   y="18" width="30" height="26" rx="3" fill="#FF0A78" opacity=".55"/>
+        <rect x="42"  y="10" width="30" height="34" rx="3" fill="#FF0A78" opacity=".65"/>
+        <rect x="80"  y="22" width="30" height="22" rx="3" fill="#FF0A78" opacity=".5"/>
+        <rect x="118" y="6"  width="30" height="38" rx="3" fill="#FF0A78" opacity=".75"/>
+        <rect x="156" y="14" width="30" height="30" rx="3" fill="#FF0A78" opacity=".6"/>
+        <rect x="194" y="2"  width="30" height="42" rx="3" fill="#FF0A78"/>
+        <rect x="232" y="20" width="30" height="24" rx="3" fill="#FF0A78" opacity=".5"/>
+      </svg>
+    </div>
+    <div class="bx">
+      <div class="b-lbl">Backlog mails</div>
+      <div><div class="b-val">42</div><div class="b-sub" style="color:var(--green)">▼ 12 vs hier</div></div>
+    </div>
+    <div class="bx">
+      <div class="b-lbl">Appels/heure</div>
+      <div><div class="b-val">18,4</div><div class="b-sub">cadence moyenne</div></div>
+    </div>
   </div>
-  <div class="demo-two">
-    <div class="panel">
-      <div class="panel-h">Agents — top production</div>
-      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
-      <tbody>
-        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
-        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
-        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
-        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
-      </tbody></table>
-    </div>
-    <div>
-      <div class="qcard ok"><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b style="color:#2ecc71">41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
-      <div class="qcard warn"><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b style="color:#2ecc71">16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
-      <div class="qcard err"><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b style="color:#2ecc71">20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
-    </div>
+  <div class="panel">
+    <div class="panel-h">Statut des files</div>
+    <table><thead><tr><th>File</th><th>Reçus</th><th>Décrochés</th><th>QS</th><th>Écart</th></tr></thead>
+    <tbody>
+      <tr><td class="nm">Voltalis · Assistance</td><td>45</td><td>41</td><td style="color:var(--green)">91%</td><td><span class="chip ok">+11</span></td></tr>
+      <tr><td class="nm">LBE · Facture</td><td>22</td><td>16</td><td style="color:var(--amber)">73%</td><td><span class="chip warn">−7</span></td></tr>
+      <tr><td class="nm">SOS · MA</td><td>38</td><td>20</td><td style="color:var(--red)">53%</td><td><span class="chip err">−27</span></td></tr>
+    </tbody></table>
   </div>
 </div>
 
-<!-- ══ VARIANTE 3 ══ -->
+<!-- ══════════ VARIANTE 3 — COCKPIT ══════════ -->
 <div class="variant v3">
   <div class="variant-label">
     <div class="variant-num">3</div>
     <div>
-      <div class="variant-name">Éditorial — typographie forte, bordures fines, beaucoup d'air</div>
-      <div class="variant-desc">Très grands chiffres, KPI séparés par de fins traits verticaux, lignes de tableau aérées. Le rose se réduit à une pastille de statut et au chiffre-phare. Ambiance premium, épurée, moins « chargée ».</div>
+      <div class="variant-name">Cockpit — dense, pro, jauges & chiffres monospace</div>
+      <div class="variant-desc">Information riche et compacte pour le pilotage intensif. Chiffres en police monospace (alignement parfait), barres de progression sous chaque KPI, accent latéral coloré par statut. Esprit salle de marché / supervision pro.</div>
     </div>
   </div>
   <div class="demo-kpis">
-    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
-    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
-    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+    <div class="card b-pink"><div class="k-lbl">Appels traités</div><div class="k-val">1 284 <small>▲8%</small></div><div class="pgbar"><i style="width:82%;background:var(--pink)"></i></div><div class="pgmeta"><span>S-1 : 1 189</span><span>obj 1 200</span></div></div>
+    <div class="card b-green"><div class="k-lbl">Qualité service</div><div class="k-val">87<small>%</small></div><div class="pgbar"><i style="width:87%;background:var(--green)"></i></div><div class="pgmeta"><span>objectif 80%</span><span>+7 pts</span></div></div>
+    <div class="card b-amber"><div class="k-lbl">Taux occupation</div><div class="k-val">73<small>%</small></div><div class="pgbar"><i style="width:73%;background:var(--amber)"></i></div><div class="pgmeta"><span>cible 70-80%</span><span>OK</span></div></div>
+    <div class="card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="pgbar"><i style="width:35%;background:#7a7d85"></i></div><div class="pgmeta"><span>3 campagnes</span><span>▼12</span></div></div>
   </div>
   <div class="demo-two">
     <div class="panel">
-      <div class="panel-h">Agents — top production</div>
-      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+      <div class="panel-h">Agents — production</div>
+      <table><thead><tr><th>Agent</th><th>Trait.</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
       <tbody>
-        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
-        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
-        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
-        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
+        <tr><td class="nm">M. Dupont</td><td>148</td><td style="color:var(--green)">91%</td><td>03:12</td><td>78%</td></tr>
+        <tr><td class="nm">S. Lambert</td><td>132</td><td style="color:var(--green)">88%</td><td>03:45</td><td>74%</td></tr>
+        <tr><td class="nm">A. Bernard</td><td>119</td><td style="color:var(--amber)">84%</td><td>04:02</td><td>71%</td></tr>
+        <tr><td class="nm">L. Petit</td><td>97</td><td style="color:var(--red)">79%</td><td>04:30</td><td>66%</td></tr>
       </tbody></table>
     </div>
     <div>
-      <div class="qcard ok"><div class="q-dot"></div><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b>41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
-      <div class="qcard warn"><div class="q-dot"></div><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b>16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
-      <div class="qcard err"><div class="q-dot"></div><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b>20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
+      <div class="qcard"><div class="q-tick" style="background:var(--green)"></div><div class="q-main"><div class="q-nm">Voltalis · Assistance</div><div class="q-stats"><div><b style="color:var(--pink)">45</b><span>Reçus</span></div><div><b>41</b><span>Décr.</span></div><div><b style="color:var(--green)">91%</b><span>QS</span></div><div><b style="color:var(--green)">+11</b><span>Écart</span></div></div></div></div>
+      <div class="qcard"><div class="q-tick" style="background:var(--amber)"></div><div class="q-main"><div class="q-nm">LBE · Facture</div><div class="q-stats"><div><b style="color:var(--pink)">22</b><span>Reçus</span></div><div><b>16</b><span>Décr.</span></div><div><b style="color:var(--amber)">73%</b><span>QS</span></div><div><b style="color:var(--amber)">−7</b><span>Écart</span></div></div></div></div>
+      <div class="qcard"><div class="q-tick" style="background:var(--red)"></div><div class="q-main"><div class="q-nm">SOS · MA</div><div class="q-stats"><div><b style="color:var(--pink)">38</b><span>Reçus</span></div><div><b>20</b><span>Décr.</span></div><div><b style="color:var(--red)">53%</b><span>QS</span></div><div><b style="color:var(--red)">−27</b><span>Écart</span></div></div></div></div>
     </div>
   </div>
 </div>
