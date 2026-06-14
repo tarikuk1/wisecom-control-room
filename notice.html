@@ -193,34 +193,49 @@ ul{margin:6px 0 10px 22px;}
   <h3>Comparateur jours & campagnes 🆚</h3>
   <p>Le panneau « Comparateur » confronte un ou plusieurs jours sur une ou plusieurs campagnes. Cliquez sur « Comparer » :</p>
   <ul>
-    <li>La <b>matrice</b> affiche volume traité, QS, DMC, agents actifs ou charge/agent par campagne × jour.</li>
+    <li>La <b>matrice</b> affiche volume traité, <b>volume reçu</b>, QS, DMC, agents actifs ou charge/agent par campagne × jour.</li>
     <li>La meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
     <li>Les colonnes de jours fériés ont un fond jaune pâle et un badge 🏖.</li>
   </ul>
-  <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 dans le tableau confirme ce cas.</div>
+  <h3>Sélection rapide des jours</h3>
+  <p>Au-delà de l'ajout manuel jour par jour, trois raccourcis facilitent le choix :</p>
+  <ul>
+    <li><b>−7j (sem. préc.)</b> : ajoute automatiquement chaque jour déjà sélectionné <b>décalé d'une semaine</b> (comparer un jour à son équivalent la semaine d'avant).</li>
+    <li><b>4× même jour</b> : ajoute les <b>4 dernières occurrences</b> du même jour de semaine que la date saisie (ex. les 4 derniers lundis).</li>
+    <li><b>📆 Plage date à date</b> : ajoute en bloc tous les jours entre deux dates (ex. lundi → vendredi d'une semaine), pour une sélection libre par le manager.</li>
+  </ul>
+  <div class="tip">💡 <b>DMC = 00:00 / Agents actifs = 0 alors que le volume traité &gt; 0</b> : ce cas peut survenir les dimanches ou jours à faible activité — les appels sont tracés dans la file mais aucun agent n'est identifié individuellement par INO (routage externe ou flux hors périmètre agent). Une note le rappelle sous le bouton « Comparer ».</div>
+  <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 le confirme.</div>
 </section>
 
 <section id="pilotage">
   <h2>5. Pilotage de la productivité 🎯</h2>
-  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. Tous les <b>critères se choisissent avant de lancer l'analyse</b> dans la barre de sélection : <b>date de fin</b>, <b>profondeur</b> (4 sem. / 2 mois / 3 mois), <b>tranche horaire</b>, <b>campagnes</b> à analyser, <b>indicateurs KPI</b> à afficher, et un <b>filtre par nom d'agent</b>. Puis « Charger l'analyse ».</p>
-  <h3>Sélection (avant chargement)</h3>
+  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. La configuration se fait dans <b>trois cartes</b> (Période, Campagnes, Indicateurs KPI) avant de cliquer « Lancer l'analyse ».</p>
+  <h3>Période — deux modes</h3>
   <ul>
-    <li><b>Campagnes</b> : cochez celles à analyser — elles définissent le <b>vivier d'agents</b>.</li>
-    <li><b>Indicateurs KPI</b> : cochez ceux à suivre (appels traités, actes, sortants, DMT, DMC, ACW, taux de décroché, transformation). Ils alimentent le benchmark équipe.</li>
-    <li><b>Nom d'agent</b> : tapez un nom pour restreindre la présélection d'agents au chargement.</li>
+    <li><b>Semaines glissantes</b> : date de fin + profondeur (4 sem. / 2 mois / 3 mois) + tranche horaire.</li>
+    <li><b>Plage libre</b> : choisissez vous-même une <b>date de début</b> et une <b>date de fin</b> (découpées automatiquement en tranches de 7 jours). Pratique pour cadrer une période précise hors semaines standard.</li>
+  </ul>
+  <h3>Campagnes &amp; indicateurs</h3>
+  <ul>
+    <li><b>Campagnes</b> : sélectionnées sous forme de <b>pastilles</b> cliquables — elles définissent le <b>vivier d'agents</b>.</li>
+    <li><b>Indicateurs KPI</b> : cartes visuelles à cocher — appels traités, <b>appels reçus</b>, actes, sortants, DMT, DMC, ACW, <b>taux d'occupation</b>, taux de décroché, transformation.</li>
     <li>Après chargement : cochez les <b>agents</b> à comparer (recherche par nom). Par défaut, les 10 agents les plus actifs du vivier sont présélectionnés.</li>
   </ul>
+  <h3>⏳ Taux d'occupation</h3>
+  <p>Calculé avec la <b>même formule que le tour de contrôle</b> : (temps de communication [+ ACW si activé]) ÷ (présence × min productives/h). La présence est mesurée <b>jour par jour puis sommée</b> sur la période (jamais l'écart global début→fin de période). Le diviseur (min/h) et l'inclusion de l'ACW sont <b>paramétrables par campagne</b> dans le dashboard ⚙ Critères &amp; KPI. Affiché « n.d. » quand la présence n'est pas mesurable (mode honnête, aucune valeur inventée).</p>
+  <h3>📬 Backlog mails</h3>
+  <p>Un panneau restitue le <b>backlog mails saisi par les superviseurs</b> (instantané enregistré dans le tour de contrôle) pour les campagnes sélectionnées, avec le total. La saisie se fait depuis le dashboard ; le Pilotage l'affiche en lecture.</p>
   <h3>📐 Moyennes équipe — benchmark</h3>
-  <p>En haut des résultats, un panneau <b>« Moyennes équipe »</b> affiche, pour <b>chaque KPI sélectionné</b> et sur la <b>même période / tranche horaire</b>, la <b>moyenne de tout le vivier</b> (tous les agents des campagnes choisies, pas seulement ceux cochés). Un tableau détaillé compare chaque agent à cette moyenne équipe, semaine par semaine, avec un repère <b>▲ / ▼</b> selon que l'agent est au-dessus ou en dessous de la référence — pour évaluer un agent (ex. QS, actes/heure) face à la moyenne constatée de l'équipe. La moyenne équipe apparaît aussi en pointillé sur les courbes et en tête du classement.</p>
-  <h3>Visualisations</h3>
+  <p>En haut des résultats, le panneau <b>« Moyennes équipe »</b> affiche, pour chaque KPI sélectionné et sur la même période, la <b>moyenne de tout le vivier</b> (tous les agents des campagnes choisies, pas seulement ceux cochés). Un tableau détaillé compare chaque agent à cette référence, semaine par semaine, avec un repère <b>▲ / ▼</b>.</p>
+  <h3>📊 Tableau comparatif &amp; heatmap</h3>
   <ul>
-    <li><b>📈 Évolution</b> : une courbe par agent sur les semaines de la période, pour l'indicateur choisi.</li>
-    <li><b>🏁 Classement & dispersion</b> : valeur par semaine + <b>min / moyenne / max</b> de chaque agent, meilleure semaine en vert, moins bonne en rose, et badges <b>▲ top</b> / <b>▼ bas</b> (meilleure et plus faible moyenne).</li>
-    <li><b>🔥 Heatmap</b> agent × période : intensité colorée selon la performance relative (vert = bon, rose = faible) en tenant compte du sens de l'indicateur (pour DMC/DMT/ACW, plus court = mieux).</li>
+    <li><b>Tableau comparatif agent × période</b> : valeur par semaine + <b>min / moyenne / max</b>, meilleure valeur en vert, moins bonne en rouge, sparkline de tendance, ligne moyenne équipe. <b>Exportable en CSV</b> via le bouton ⬇.</li>
+    <li><b>🔥 Heatmap</b> agent × période : intensité colorée selon la performance relative (vert = bon, rouge = faible), en tenant compte du sens de l'indicateur (DMC/DMT/ACW : plus court = mieux).</li>
   </ul>
   <h3>Modèles nommés 💾</h3>
-  <p>Enregistrez une sélection complète (agents, compétences, campagnes, indicateur, profondeur, tranche) sous un <b>nom</b> : le modèle est <b>partagé avec toute l'équipe</b> et réutilisable en un clic (« Appliquer »). Idéal pour suivre une équipe ou un périmètre récurrent.</p>
-  <div class="tip">💡 Les durées (DMC, DMT, ACW) et taux n'utilisent que les semaines où l'agent a réellement été actif — une semaine d'absence n'abaisse pas artificiellement la moyenne.</div>
+  <p>Enregistrez une sélection complète (agents, campagnes, indicateur, profondeur, tranche) sous un <b>nom</b> : le modèle est <b>partagé avec toute l'équipe</b> et réutilisable en un clic.</p>
+  <div class="tip">💡 Les durées (DMC, DMT, ACW), taux et occupation n'utilisent que les semaines où l'agent a réellement été actif — une semaine d'absence n'abaisse pas artificiellement la moyenne. Le détail des modes de calcul est masqué par défaut : cliquez « Afficher les modes de calcul » pour comprendre une colonne.</div>
 </section>
 
 <section id="couverture">

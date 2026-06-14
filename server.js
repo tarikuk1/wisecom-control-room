@@ -424,7 +424,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     }else{fluxSortants++;}
     if(!h.agent||!h.agent.id||!h.agent.firstname)return;
     const k=h.agent.id;
-    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0),sparkH:Array(24).fill(0)};
+    if(!agents[k])agents[k]={id:k,nom:h.agent.firstname+" "+h.agent.lastname,username:h.agent.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,premiereAction:h.callDate||h.acdDate,derniereAction:h.callDate||h.acdDate,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0),sparkH:Array(24).fill(0),daySpan:{}};
     if(type==="in"){
       // Présenté = tout entrant routé à l'agent. Décroché = présenté pris (durée>0, non abandonné).
       agents[k].presentes++;
@@ -438,6 +438,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     const dt=h.callDate||h.acdDate;
     if(dt<agents[k].premiereAction)agents[k].premiereAction=dt;
     if(dt>agents[k].derniereAction)agents[k].derniereAction=dt;
+    // Présence par jour : amplitude (1ère→dernière action) calculée JOUR PAR JOUR puis sommée,
+    // pour que le taux d'occupation reste correct sur une plage multi-jours (sinon la présence
+    // = écart entre le 1er appel du lundi et le dernier du dimanche = ~7 jours, ce qui écrase tout).
+    if(dt){const _dd=new Date(dt);const _dk=parisDateStr(_dd);const _ts=_dd.getTime();const _sp=agents[k].daySpan[_dk];if(!_sp)agents[k].daySpan[_dk]={min:_ts,max:_ts};else{if(_ts<_sp.min)_sp.min=_ts;if(_ts>_sp.max)_sp.max=_ts;}}
     if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
     tagQualif(agents[k],h.status);
     if(dt){const _d=new Date(dt);const _ph=parisHour(_d);const idx=_ph-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;if(_ph>=0&&_ph<24)agents[k].sparkH[_ph]++;}
@@ -506,6 +510,9 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       // DMT = durée moyenne des ENTRANTS décrochés uniquement (a.duree cumule IN+OUT,
       // la diviser par appelsIn gonflait le DMT de tout agent faisant du sortant)
       duree:a.duree,dmt:a.appelsIn>0?Math.round((a.dureeIn||0)/a.appelsIn):0,
+      // Présence cumulée = somme des amplitudes journalières (sec). Sur 1 jour = écart 1er→dernier
+      // appel ; sur N jours = somme jour par jour (jamais l'écart global lundi→dimanche).
+      presenceSec:Math.round(Object.values(a.daySpan||{}).reduce((s,sp)=>s+(sp.max-sp.min)/1000,0)),
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
       queues:Array.from(a.queues).join(", "),
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
