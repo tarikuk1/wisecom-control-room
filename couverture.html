@@ -7,35 +7,85 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#999;margin-top:2px;}
-.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#fff;border-bottom:1px solid #dedede;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#777;}
-input[type=date]{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
-select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+:root{
+  --pink:#E8006E; --pink-dark:#c2005a;
+  --green:#30d158; --amber:#ff9f0a; --red:#ff3b30;
+  --green-soft:rgba(48,209,88,.15); --amber-soft:rgba(255,159,10,.15); --red-soft:rgba(255,59,48,.15);
+  /* DARK (défaut) */
+  --bg:#0c0d10; --card:#141618; --border:rgba(255,255,255,.07);
+  --txt:#e8e9ec; --txt2:#9a9da5; --txt3:#6e7180;
+  --shadow:0 1px 3px rgba(0,0,0,.5);
+  --field-bg:rgba(255,255,255,.04); --field-border:rgba(255,255,255,.1);
+  --hover:rgba(255,255,255,.03); --wk:rgba(255,255,255,.025);
+  --scroll:#2a2d33;
+}
+body.light{
+  --bg:#f0f1f6; --card:#fff; --border:rgba(0,0,0,.07);
+  --txt:#111318; --txt2:#5a5d6a; --txt3:#9a9daa;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+  --field-bg:#fafafa; --field-border:#dedede;
+  --hover:rgba(232,0,110,.03); --wk:rgba(0,0,0,.025);
+  --scroll:#c8cad4;
+}
+body{background:var(--bg);color:var(--txt2);font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:5px;}
+
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;transition:background .25s,border-color .25s;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;color:var(--txt);}
+.subtitle{font-size:11px;color:var(--txt3);margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);display:inline-block;margin-right:8px;}
+.controls{background:var(--card);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;transition:background .25s,border-color .25s;}
+.controls label{font-size:11px;color:var(--txt3);}
+input[type=date],input[type=time],input[type=text]{background:var(--field-bg);color:var(--txt);border:1px solid var(--field-border);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;}
+select{background:var(--field-bg);color:var(--txt);border:1px solid var(--field-border);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;}
 select:disabled{opacity:.5;cursor:not-allowed;}
-.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
-.btn-pink{background:#E8006E;color:#fff;}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;}
+.btn-pink{background:var(--pink);color:#fff;}
+.btn-pink:hover{background:var(--pink-dark);}
 .btn-pink:disabled{opacity:.5;cursor:wait;}
-.btn-dark{background:#fafafa;color:#161616;border:1px solid #dedede;}
+.btn-dark{background:var(--field-bg);color:var(--txt);border:1px solid var(--field-border);}
+.btn-dark:hover{border-color:var(--pink);color:var(--pink);}
 .content{padding:16px 20px;}
-.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);transition:background .25s,border-color .25s,box-shadow .25s;}
+.panel-title{font-size:12px;color:var(--txt2);font-weight:600;margin-bottom:12px;padding-bottom:11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.panel-title b,.panel-title strong{color:var(--txt);}
+
+/* ── CHIPS (statuts sémantiques) ── */
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.4;}
+.chip.ok,.chip.up{background:var(--green-soft);color:var(--green);}
+.chip.warn{background:var(--amber-soft);color:var(--amber);}
+.chip.err,.chip.down{background:var(--red-soft);color:var(--red);}
+
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:8px 10px;color:#999;font-weight:500;text-align:left;border-bottom:1px solid #dedede;white-space:nowrap;background:#fafafa;}
-.tbl td{padding:7px 10px;border-bottom:1px solid #efefef;vertical-align:middle;white-space:nowrap;}
-.tbl tr:hover td{background:#fff8fc;}
-.loading{text-align:center;padding:30px;color:#999;}
-.empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.signal{display:flex;gap:10px;align-items:flex-start;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#444;}
+.tbl th{padding:9px 10px;color:var(--txt3);font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:.04em;font-size:10px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--card);}
+.tbl th:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:2;}
+.tbl td{padding:7px 10px;color:var(--txt);border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:center;}
+.tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1;border-right:1px solid var(--border);}
+.tbl tbody tr:nth-child(even) td{background-clip:padding-box;}
+.tbl tr:hover td{box-shadow:inset 0 0 0 99px var(--hover);}
+.tbl th.wk,.tbl td.wk{background:var(--wk);}
+.tbl th.today{box-shadow:inset 0 -3px 0 var(--pink);}
+.loading{text-align:center;padding:30px;color:var(--txt3);}
+.empty-hint{color:var(--txt2);font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:var(--green-soft);border:1px solid var(--green);color:var(--green);padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--txt2);text-decoration:none;background:var(--field-bg);transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:var(--pink);color:#fff;background:var(--pink);}
+.nav-pill.active{border-color:var(--pink);color:var(--pink);background:rgba(232,0,110,.12);}
+.nav-pill .n-icon{font-size:11px;}
+.signal{display:flex;gap:10px;align-items:flex-start;background:var(--field-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;line-height:1.55;color:var(--txt2);}
+.signal b{color:var(--txt);}
 .signal-icon{font-size:15px;flex-shrink:0;}
-.signal-alert{border-color:#ffd0d0;background:#fff5f5;}
-.signal-ok{border-color:#bfead0;background:#f0fff5;color:#1a8f44;}
+.signal-alert{border-color:var(--red-soft);background:var(--red-soft);color:var(--txt);}
+.signal-alert b{color:var(--txt);}
+.signal-ok{border-color:var(--green-soft);background:var(--green-soft);color:var(--green);}
+.signal-ok b{color:var(--green);}
 .legend-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:4px;}
+
+/* Dropdown campagnes (summary + liste) */
+#camp-dd-sum{background:var(--field-bg);border:1px solid var(--field-border);color:var(--txt);}
+#camp-dd-list{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);color:var(--txt);}
+#camp-dd-list label{color:var(--txt2)!important;}
 
 @media (max-width:600px){
   .header,.controls,.content{padding-left:14px;padding-right:14px;}
@@ -53,13 +103,22 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
-    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+    <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
+    <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/pilotage" class="nav-pill"><span class="n-icon">🎯</span> Pilotage</a>
+    <a href="/couverture" class="nav-pill active"><span class="n-icon">📡</span> Couverture</a>
+    <a href="/astreinte" class="nav-pill"><span class="n-icon">🌙</span> Astreinte</a>
+    <a href="/planning" class="nav-pill"><span class="n-icon">🗓️</span> Planning</a>
+    <a href="/notice" class="nav-pill"><span class="n-icon">📖</span> Notice</a>
   </div>
 </div>
 
 <div class="controls">
-  <label for="r-camp">Campagne</label>
-  <select id="r-camp"><option value="">Chargement…</option></select>
+  <label>Campagnes</label>
+  <details id="camp-dd" style="position:relative;">
+    <summary id="camp-dd-sum" style="list-style:none;cursor:pointer;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;min-width:170px;display:inline-block;">Chargement…</summary>
+    <div id="camp-dd-list" style="position:absolute;z-index:30;left:0;top:34px;background:#fff;border:1px solid #dedede;border-radius:8px;padding:6px 8px;max-height:260px;overflow:auto;min-width:230px;box-shadow:0 6px 18px rgba(0,0,0,.12);"></div>
+  </details>
   <label for="r-week">Semaine à préparer (jour de début)</label>
   <input type="date" id="r-week">
   <label for="r-offset">Semaine de référence</label>
@@ -69,8 +128,19 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     <option value="21">Il y a 3 semaines</option>
     <option value="28">Il y a 4 semaines</option>
   </select>
+  <label for="r-hdeb" title="Plage horaire couverte par le radar (ex. flux du dimanche très matinal ou tardif)">Plage horaire</label>
+  <input type="time" id="r-hdeb" value="08:00" step="1800" style="width:92px;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;">
+  <span style="color:#888;">→</span>
+  <input type="time" id="r-hfin" value="20:00" step="1800" style="width:92px;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;">
   <button class="btn btn-pink" id="btn-radar-load">📡 Générer le radar</button>
-  <span id="radar-status" aria-live="polite" style="font-size:11px;color:#888;"></span>
+  <span style="width:1px;height:22px;background:#e0e0e0;display:inline-block;"></span>
+  <label>💾 Modèle</label>
+  <select id="tpl-select" title="Modèles enregistrés (partagés)"><option value="">— charger —</option></select>
+  <button class="btn btn-dark" id="tpl-load" title="Appliquer le modèle">Appliquer</button>
+  <input type="text" id="tpl-name" placeholder="Nommer le modèle…" style="width:150px;background:#fafafa;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;">
+  <button class="btn btn-dark" id="tpl-save" title="Enregistrer la sélection actuelle">Enregistrer</button>
+  <button class="btn btn-dark" id="tpl-del" title="Supprimer le modèle sélectionné">🗑</button>
+  <span id="radar-status" aria-live="polite" style="font-size:11px;color:#888;flex-basis:100%;"></span>
 </div>
 
 <div class="content">
@@ -78,11 +148,15 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   <div class="panel">
     <div class="panel-title">
       <span>📡 Charge projetée par créneau — <span id="radar-camp-label" style="color:#E8006E;font-weight:700;">–</span></span>
-      <span id="radar-period" style="color:#666;"></span>
+      <span style="display:flex;gap:8px;align-items:center;">
+        <span id="radar-period" style="color:#666;"></span>
+        <button class="btn btn-dark" id="btn-radar-excel" disabled title="Exporter le radar au format Excel">⬇ Excel</button>
+        <button class="btn btn-dark" id="btn-radar-pdf" disabled title="Exporter le radar au format PDF">⬇ PDF</button>
+      </span>
     </div>
     <div id="radar-table-wrap" style="overflow-x:auto;">
       <div class="empty-hint">
-        Choisissez une campagne et la semaine à préparer, puis cliquez sur « Générer le radar ».<br>
+        Choisissez une ou plusieurs campagnes et la semaine à préparer, puis cliquez sur « Générer le radar ». Plusieurs campagnes = analyse agrégée d'un pôle.<br>
         Le radar compare, heure par heure, le volume d'appels et le nombre d'agents actifs observés sur le jour comparable le plus récent (même jour de semaine, semaine de référence choisie) — et repère les créneaux où la charge par agent dépasse nettement la normale habituelle de cette campagne, pour anticiper où renforcer le planning.<br>
         ⏳ L'analyse interroge INO jour par jour (7 jours) et peut prendre une à deux minutes la première fois.
       </div>
@@ -101,6 +175,22 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     <div id="radar-synthesis"><div class="empty-hint">La synthèse apparaîtra ici une fois le radar généré.</div></div>
   </div>
 
+  <div class="panel">
+    <div class="panel-title"><span>ⓘ Définitions &amp; mode de calcul</span></div>
+    <table class="tbl" style="font-size:12px;">
+      <thead><tr><th style="text-align:left;">Indicateur</th><th style="text-align:left;">Définition</th><th style="text-align:left;">Mode de calcul</th></tr></thead>
+      <tbody>
+        <tr><td><b>Volume projeté</b></td><td>Appels attendus sur le créneau</td><td>Appels reçus du même jour de semaine dans la semaine de référence, pour le périmètre de campagnes choisi</td></tr>
+        <tr><td><b>Agents actifs (réf.)</b></td><td>Effectif observé sur le créneau de référence</td><td>Nombre d'agents du périmètre ayant traité au moins un appel sur ce créneau (signal <code>spark</code> INO)</td></tr>
+        <tr><td><b>Charge / agent</b></td><td>Intensité de travail par agent</td><td>Volume ÷ agents actifs. <code>⚠ aucun agent</code> = du volume sans agent détecté (tension critique)</td></tr>
+        <tr><td><b>Charge habituelle (réf.)</b></td><td>Rythme normal de la campagne</td><td><b>Médiane</b> de toutes les charges/agent positives observées sur la semaine de référence — auto-calibrée, sans seuil arbitraire</td></tr>
+        <tr><td><b>Staffing recommandé</b></td><td>Effectif nécessaire au rythme habituel</td><td>Volume projeté ÷ charge habituelle, arrondi au supérieur (≠ volume d'appels)</td></tr>
+        <tr><td><b>Tension</b></td><td>Écart à la normale</td><td><span style="color:#1a8f44;">normale</span> &lt; +15% · <span style="color:#b45309;">modérée</span> ≥ +15% · <span style="color:#dc2626;">forte</span> ≥ +50% ou aucun agent</td></tr>
+        <tr><td><b>Plusieurs campagnes</b></td><td>Analyse d'un pôle</td><td>Volume et agents <b>agrégés</b> sur l'ensemble des campagnes cochées — pratique pour un groupe mutualisé</td></tr>
+      </tbody>
+    </table>
+  </div>
+
 </div>
 
 <div class="success-toast" id="toast"></div>
@@ -114,19 +204,41 @@ let radarData = null;   // {camp, weekStart, days:[{date,refDate,profile,error}]
 let loading = false;
 const dayCache = new Map(); // clé "YYYY-MM-DD" -> réponse /agents-day brute (immuable une fois le jour entièrement passé)
 
+// Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
+// et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   return names[new Date(dateStr+"T00:00:00").getDay()];
 }
-function hourLabel(h){return `${String(h+8).padStart(2,"0")}h–${String(h+9).padStart(2,"0")}h`;}
+// Libellé d'un créneau d'1h à partir de l'heure absolue (ex. 7 → "07h–08h")
+function hourLabel(hr){return `${String(hr).padStart(2,"0")}h–${String(hr+1).padStart(2,"0")}h`;}
+// Plage horaire choisie par l'utilisateur, normalisée en heures pleines [h0,h1[ (h1 exclu).
+// Une minute de fin > 0 (ex. 20:30) inclut l'heure entamée (jusqu'à 21h).
+function radarHours(){
+  const d0=(document.getElementById("r-hdeb").value||"08:00").split(":");
+  const f0=(document.getElementById("r-hfin").value||"20:00").split(":");
+  let h0=parseInt(d0[0],10)||0;
+  let h1=(parseInt(f0[0],10)||0)+((parseInt(f0[1],10)||0)>0?1:0);
+  if(h1<=h0)h1=h0+1;
+  if(h1>24)h1=24;
+  return {h0,h1};
+}
 // Prochain lundi (les plannings sont préparés une semaine à l'avance)
 function nextMonday(){
   const d=new Date();
   const diff=((8-d.getDay())%7)||7;
   d.setDate(d.getDate()+diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
+}
+// Recale n'importe quelle date sur le lundi de sa semaine (les semaines commencent le lundi)
+function mondayOf(dateStr){
+  const d=new Date((dateStr||nextMonday())+"T00:00:00");
+  const diff=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-diff);
+  return isoLocal(d);
 }
 
 function showToast(msg,color){
@@ -149,8 +261,39 @@ async function loadConfig(){
   }catch(e){
     showToast("⚠ Configuration des campagnes indisponible — détection approximative","#b45309");
   }
-  const sel=document.getElementById("r-camp");
-  sel.innerHTML=CAMPS.length?CAMPS.map(c=>`<option value="${c}">${c}</option>`).join(""):'<option value="">Aucune campagne disponible</option>';
+  const list=document.getElementById("camp-dd-list");
+  if(CAMPS.length){
+    list.innerHTML='<div style="display:flex;gap:8px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:6px;">'+
+      '<button class="btn btn-dark" id="camp-all" style="font-size:10px;padding:3px 8px;">Tout</button>'+
+      '<button class="btn btn-dark" id="camp-none" style="font-size:10px;padding:3px 8px;">Aucun</button></div>'+
+      CAMPS.map(c=>'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#444;padding:2px 0;cursor:pointer;"><input type="checkbox" class="camp-cb" value="'+c.replace(/"/g,"&quot;")+'" checked style="accent-color:#E8006E;">'+c+'</label>').join("");
+    list.addEventListener("change",updateCampSummary);
+    document.getElementById("camp-all").addEventListener("click",e=>{e.preventDefault();document.querySelectorAll(".camp-cb").forEach(cb=>cb.checked=true);updateCampSummary();});
+    document.getElementById("camp-none").addEventListener("click",e=>{e.preventDefault();document.querySelectorAll(".camp-cb").forEach(cb=>cb.checked=false);updateCampSummary();});
+  }else{
+    list.innerHTML='<div style="font-size:11px;color:#bbb;">Aucune campagne disponible</div>';
+  }
+  updateCampSummary();
+}
+function getSelCamps(){return Array.from(document.querySelectorAll(".camp-cb:checked")).map(cb=>cb.value);}
+function campLabel(camps){
+  if(!camps.length)return "Aucune campagne";
+  if(camps.length===CAMPS.length)return "Toutes les campagnes ("+camps.length+")";
+  if(camps.length<=2)return camps.join(" + ");
+  return camps.slice(0,2).join(" + ")+" +"+(camps.length-2);
+}
+function updateCampSummary(){
+  const sel=getSelCamps();
+  document.getElementById("camp-dd-sum").textContent=campLabel(sel)||"Choisir…";
+}
+let tplStore={};
+async function loadTplStore(){
+  try{const r=await fetch(`${INO_BASE}/api/store`);const d=await r.json();tplStore=(d&&d.radarTpl&&typeof d.radarTpl==="object")?d.radarTpl:{};}catch(e){tplStore={};}
+  renderTplSelect();
+}
+function renderTplSelect(){
+  const names=Object.keys(tplStore).sort((a,b)=>a.localeCompare(b));
+  document.getElementById("tpl-select").innerHTML='<option value="">— charger —</option>'+names.map(n=>'<option value="'+encodeURIComponent(n)+'">'+n+'</option>').join("");
 }
 
 // Détection de la campagne d'une queue ou d'un agent — même cascade que dashboard.html / executif.html
@@ -181,20 +324,30 @@ function detectCampaign(queuesStr){
 // Extrait, pour une campagne donnée et une journée /agents-day, le profil heure par heure (08h→20h) :
 // volume reçu (slots filtrés par campagne), agents actifs (spark[] des agents détectés sur cette campagne),
 // et la charge par agent qui en résulte. charge=null signifie "du volume mais aucun agent détecté" (tension critique).
-function extractCampaignProfile(dayData,camp){
+// camps = tableau de campagnes ; le profil agrège le volume et les agents de TOUT le
+// périmètre sélectionné (permet d'analyser une campagne seule ou un pôle de plusieurs).
+function extractCampaignProfile(dayData,camps,h0,h1){
+  const campSet=new Set(Array.isArray(camps)?camps:[camps]);
+  const n=h1-h0;
   const slots=Array.isArray(dayData.slots)?dayData.slots:[];
-  const volByHour=Array(12).fill(0);
+  const volByHour=Array(n).fill(0);
   slots.forEach(sl=>{
     const h=parseInt((sl.lbl||"").split(":")[0],10);
-    if(isNaN(h)||h<8||h>=20)return;
-    const idx=h-8;
+    if(isNaN(h)||h<h0||h>=h1)return;
+    const idx=h-h0;
     const qs=sl.queues||{};
-    Object.keys(qs).forEach(q=>{ if(detectCampaign(q)===camp) volByHour[idx]+=qs[q]||0; });
+    Object.keys(qs).forEach(q=>{ if(campSet.has(detectCampaign(q))) volByHour[idx]+=qs[q]||0; });
   });
   const agents=Array.isArray(dayData.agents)?dayData.agents:[];
-  const activeByHour=Array(12).fill(0);
-  agents.filter(a=>detectCampaign(a.queues)===camp).forEach(a=>{
-    (a.spark||[]).forEach((v,idx)=>{ if(v>0&&idx<12) activeByHour[idx]++; });
+  const activeByHour=Array(n).fill(0);
+  agents.filter(a=>campSet.has(detectCampaign(a.queues))).forEach(a=>{
+    const sh=Array.isArray(a.sparkH)?a.sparkH:null; // 24 h (nouveau serveur)
+    for(let h=h0;h<h1;h++){
+      let active=false;
+      if(sh){active=(sh[h]||0)>0;}
+      else if(h>=8&&h<20&&Array.isArray(a.spark)){active=(a.spark[h-8]||0)>0;} // repli ancien format 08–20
+      if(active)activeByHour[h-h0]++;
+    }
   });
   return volByHour.map((vol,idx)=>({
     vol,
@@ -233,26 +386,37 @@ function recommendedAgents(vol,baseline){
   return Math.max(1,Math.ceil(vol/baseline));
 }
 
+// On interroge TOUTE la journée (00:00→23:59) : la sélection de plage horaire devient un simple
+// filtre d'affichage (re-calcul instantané sans réinterroger INO), et aucun flux n'est masqué —
+// y compris les créneaux très matinaux/tardifs (ex. flux du dimanche hors 08–20).
 async function loadDay(date){
   if(dayCache.has(date))return dayCache.get(date);
-  const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=08:00&hFin=20:00`);
-  if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
-  const data=await res.json();
-  const todayStr=new Date().toISOString().slice(0,10);
+  // Un échec INO ponctuel (token expiré, timeout) ne doit pas casser tout le radar : on retente une fois.
+  let data=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const res=await fetch(`${INO_BASE}/agents-day?date=${date}&hDeb=00:00&hFin=23:59`);
+    if(!res.ok)throw new Error("Serveur non disponible ("+res.status+")");
+    try{data=await res.json();}catch(e){data={error:"Réponse non JSON (token INO expiré) — "+e.message};}
+    if(!data.error)break;                 // OK
+    if(attempt===0)await new Promise(r=>setTimeout(r,800)); // laisse le serveur renouveler son token INO
+  }
+  const todayStr=isoLocal(new Date());
   if(date<todayStr&&!data.error)dayCache.set(date,data); // passé immuable -> cache
   return data;
 }
 
 async function loadRadar(){
   if(loading)return;
-  const camp=document.getElementById("r-camp").value;
-  const weekStart=document.getElementById("r-week").value;
+  const camps=getSelCamps();
+  const camp=campLabel(camps); // libellé combiné (affichage) ; l'extraction agrège tout le périmètre
+  const weekStart=mondayOf(document.getElementById("r-week").value); // semaine = lundi → dimanche, toujours
   const offsetDays=parseInt(document.getElementById("r-offset").value,10);
   const stEl=document.getElementById("radar-status");
   const btn=document.getElementById("btn-radar-load");
-  if(!camp){showToast("⚠ Choisissez une campagne d'abord","#b45309");return;}
+  if(!camps.length){showToast("⚠ Choisissez au moins une campagne","#b45309");return;}
   if(!weekStart){showToast("⚠ Choisissez la semaine à préparer","#b45309");return;}
 
+  const {h0,h1}=radarHours();
   loading=true;
   btn.disabled=true;
   const prevLabel=btn.textContent;
@@ -267,15 +431,15 @@ async function loadRadar(){
       const fromCache=dayCache.has(refDate);
       stEl.textContent=`Analyse jour ${i+1}/7 — ${dayNames[i]} ${fmtDate(targetDate)} (référence : ${fmtDate(refDate)})${fromCache?" — déjà en cache":" — interrogation INO…"}`;
       const dayData=await loadDay(refDate);
-      const profile=(dayData&&!dayData.error&&Array.isArray(dayData.agents))?extractCampaignProfile(dayData,camp):null;
-      days.push({date:targetDate,refDate,profile,error:(dayData&&dayData.error)||null});
+      // On conserve la réponse brute (journée complète) : la plage horaire est appliquée au rendu,
+      // ce qui permet de la modifier ensuite sans réinterroger INO (rebuildRadar()).
+      days.push({date:targetDate,refDate,dayData:(dayData&&!dayData.error&&Array.isArray(dayData.agents))?dayData:null,error:(dayData&&dayData.error)||null});
     }
-    const baseline=computeBaseline(days.filter(d=>d.profile).map(d=>d.profile));
-    radarData={camp,weekStart,days,baseline};
-    stEl.textContent=`✓ Radar généré — semaine du ${fmtDate(weekStart)} au ${fmtDate(shiftDateStr(weekStart,6))}, projeté à partir de la semaine du ${fmtDate(refStart)}`;
-    renderHeatmap();
-    renderRadarSynthesis();
-    showToast("✓ Radar de couverture généré");
+    radarData={camp,camps,weekStart,offset:offsetDays,h0,h1,days,baseline:null};
+    rebuildRadar(); // calcule profils + baseline pour la plage horaire courante, puis rend
+    const nEchec=days.filter(d=>d.error).length;
+    stEl.textContent=`✓ Radar généré — semaine du ${fmtDate(weekStart)} au ${fmtDate(shiftDateStr(weekStart,6))}, projeté depuis la semaine du ${fmtDate(refStart)}${nEchec?` · ⚠ ${nEchec} jour(s) sans donnée INO`:""}`;
+    showToast(nEchec?`Radar généré — ${nEchec} jour(s) de référence indisponible(s) côté INO`:"✓ Radar de couverture généré",nEchec?"#b45309":undefined);
   }catch(e){
     const msg=e&&e.message||String(e);
     stEl.textContent="⚠ Génération interrompue — "+msg;
@@ -287,49 +451,181 @@ async function loadRadar(){
   }
 }
 
+// Recalcule les profils (volume/agents/charge par heure) de chaque jour pour la plage horaire
+// courante à partir des réponses INO déjà chargées, recalcule la charge habituelle (baseline)
+// puis redessine. Appelé à la génération ET à chaque changement de plage horaire (sans réseau).
+function rebuildRadar(){
+  if(!radarData)return;
+  const {camps,h0,h1,days}=radarData;
+  days.forEach(d=>{ d.profile=d.dayData?extractCampaignProfile(d.dayData,camps,h0,h1):null; });
+  radarData.baseline=computeBaseline(days.filter(d=>d.profile).map(d=>d.profile));
+  renderHeatmap();
+  renderRadarSynthesis();
+}
+
 function renderHeatmap(){
-  const {camp,days,baseline}=radarData;
+  const {camp,days,baseline,h0,h1}=radarData;
   document.getElementById("radar-camp-label").textContent=camp;
-  document.getElementById("radar-period").textContent=`Semaine du ${fmtDate(days[0].date)} au ${fmtDate(days[6].date)}`;
-  const thead=`<tr><th>Créneau</th>${days.map(d=>`<th title="Projection basée sur ${dayName(d.refDate)} ${fmtDate(d.refDate)}">${dayName(d.date)} ${fmtDate(d.date)}<br><span style="font-weight:400;color:#555;font-size:10px;">proj. base ${fmtDate(d.refDate)}</span></th>`).join("")}</tr>`;
+  document.getElementById("radar-period").textContent=`Semaine du ${dayName(days[0].date)} ${fmtDate(days[0].date)} au ${dayName(days[6].date)} ${fmtDate(days[6].date)} · ${String(h0).padStart(2,"0")}h–${String(h1).padStart(2,"0")}h`;
+  const todayStr=isoLocal(new Date());
+  const isWk=d=>{const wd=new Date(d+"T00:00:00").getDay();return wd===0||wd===6;};
+  // Garde-fou : le jour de référence doit tomber sur le MÊME jour de semaine que le jour projeté
+  const misaligned=days.some(d=>new Date(d.date+"T00:00:00").getDay()!==new Date(d.refDate+"T00:00:00").getDay());
+  const thead=`<tr><th>Créneau</th>${days.map(d=>`<th class="${isWk(d.date)?"wk":""}${d.date===todayStr?" today":""}" title="Projection basée sur ${dayName(d.refDate)} ${fmtDate(d.refDate)} (même jour de semaine)">${dayName(d.date)} ${fmtDate(d.date)}<br><span style="font-weight:400;color:#777;font-size:10px;">réf. ${dayName(d.refDate).slice(0,3).toLowerCase()} ${fmtDate(d.refDate)}</span></th>`).join("")}</tr>`;
   let tbody="";
-  for(let h=0;h<12;h++){
+  const nH=h1-h0;
+  for(let idx=0;idx<nH;idx++){
+    const h=h0+idx; // heure absolue
     tbody+=`<tr><td><b>${hourLabel(h)}</b></td>`;
     days.forEach(d=>{
-      const cell=d.profile?d.profile[h]:null;
+      const cell=d.profile?d.profile[idx]:null;
+      const wkCls=isWk(d.date)?"wk":"";
       if(!cell){
-        const reason=d.error?`Donnée indisponible pour le ${fmtDate(d.refDate)} — ${d.error}`:"Aucune donnée";
-        tbody+=`<td style="text-align:center;color:#444;" title="${reason}">n.d.</td>`;
+        const reason=d.error
+          ?`Erreur INO pour le ${fmtDate(d.refDate)} : ${d.error}`
+          :`Aucune donnée INO pour le ${fmtDate(d.refDate)}`;
+        tbody+=`<td class="${wkCls}" style="text-align:center;color:#dc2626;" title="${reason}"><span style="font-size:9px;">⚠ n.d.</span></td>`;
         return;
       }
       const level=tensionLevel(cell,baseline);
       const color=TENSION_COLOR[level];
-      const display=cell.vol===0?"–":(cell.charge===null?"⚠":cell.charge.toFixed(1));
       const reco=recommendedAgents(cell.vol,baseline);
-      const recoTxt=reco==null?"":` · Agents recommandés pour ce volume au rythme habituel (${baseline.toFixed(1)} appels/agent) : ${reco}`;
-      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}${recoTxt}`;
-      tbody+=`<td style="text-align:center;background:${color}1a;color:${color};font-weight:700;" title="${title}">${display}</td>`;
+      if(cell.vol===0){
+        // Pas d'activité habituelle sur ce créneau — affiché explicitement, pas une case vide
+        tbody+=`<td class="${wkCls}" style="text-align:center;color:#bbb;" title="Aucun appel ${camp} observé sur ce créneau le ${fmtDate(d.refDate)} — pas de staffing requis a priori"><span style="font-size:10px;">0 appel</span></td>`;
+        return;
+      }
+      // Cellule riche : volume + staffing recommandé vs référence + charge/agent
+      const chargeTxt=cell.charge===null?'<span style="font-size:10px;">⚠ aucun agent</span>':`${cell.charge.toFixed(1)}/ag`;
+      const recoTxt=reco==null?"":`${reco} TC reco`;
+      const refTxt=`réf ${cell.agents}`;
+      const title=`Volume projeté : ${cell.vol} appel(s) · Agents actifs (référence ${fmtDate(d.refDate)}) : ${cell.agents} · Charge/agent : ${cell.charge==null?"n.d. — aucun agent détecté sur ce créneau dans la référence":cell.charge}${reco!=null?` · Staffing recommandé au rythme habituel (${baseline!=null?baseline.toFixed(1):"?"} appels/agent) : ${reco} agent(s)`:""}`;
+      tbody+=`<td style="text-align:center;background:${color}1a;padding:4px 8px;" title="${title}">
+        <div style="font-weight:700;color:${color};font-size:13px;">${cell.vol} <span style="font-size:9px;font-weight:500;">appels</span></div>
+        <div style="font-size:10px;color:#333;font-weight:600;">${recoTxt}${recoTxt&&refTxt?" · ":""}<span style="color:#888;font-weight:400;">${refTxt}</span></div>
+        <div style="font-size:10px;color:${color};">${chargeTxt}</div>
+      </td>`;
     });
     tbody+="</tr>";
   }
-  document.getElementById("radar-table-wrap").innerHTML=`<table class="tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
-    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> — survolez une cellule pour le détail.</div>`;
+  document.getElementById("radar-table-wrap").innerHTML=
+    (misaligned?`<div style="background:#fff5f5;border:1px solid #ffd0d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#dc2626;font-weight:600;">⚠ Incohérence calendrier détectée : un jour projeté ne correspond pas au même jour de semaine que sa référence — régénérez le radar. Si le problème persiste, signalez-le.</div>`:"")
+    +`<table class="tbl" id="radar-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <div style="margin-top:8px;font-size:11px;color:#555;">Charge/agent habituelle de référence pour <b style="color:#161616;">${camp}</b> sur la période : <b style="color:#161616;">${baseline!=null?baseline.toFixed(1)+" appels/agent":"n.d. (pas assez de données)"}</b> · Lecture d'une cellule : <b>volume projeté</b> · <b>staffing recommandé</b> (vs agents en référence) · <b>charge/agent</b>.</div>`;
+  // Activer les exports
+  document.getElementById("btn-radar-excel").disabled=false;
+  document.getElementById("btn-radar-pdf").disabled=false;
+}
+
+// ── Exports Excel / PDF ──────────────────────────────────────────────
+// Tableau plat (une ligne par jour×créneau) : exploitable en planification,
+// contrairement à la heatmap qui est une vue de lecture.
+function radarExportRows(){
+  const {camp,days,baseline,h0,h1}=radarData;
+  const rows=[["Campagne","Jour","Date","Créneau","Jour de référence","Volume projeté (appels)","Agents actifs (référence)","Charge/agent","Staffing recommandé","Tension"]];
+  const LBL={none:"Pas d'activité",unknown:"Inconnue",normal:"Normale",moderate:"Modérée",high:"Forte",critical:"Critique (aucun agent)"};
+  days.forEach(d=>{
+    for(let idx=0;idx<(h1-h0);idx++){
+      const h=h0+idx;
+      const cell=d.profile?d.profile[idx]:null;
+      if(!cell){rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),"n.d.","n.d.","n.d.","n.d.","Donnée indisponible"]);continue;}
+      const reco=recommendedAgents(cell.vol,baseline);
+      rows.push([camp,dayName(d.date),fmtDate(d.date),hourLabel(h),fmtDate(d.refDate),
+        cell.vol,cell.agents,
+        cell.charge==null?"n.d.":cell.charge,
+        reco==null?"n.d.":reco,
+        LBL[tensionLevel(cell,baseline)]||""]);
+    }
+  });
+  return rows;
+}
+
+function exportRadarExcel(){
+  if(!radarData){showToast("⚠ Générez d'abord le radar","#b45309");return;}
+  const {camp,days,baseline}=radarData;
+  const heat=document.getElementById("radar-table");
+  const flat=radarExportRows();
+  const flatHtml='<table border="1" cellspacing="0" cellpadding="3">'+flat.map((r,i)=>'<tr>'+r.map(c=>(i===0?'<th style="background:#2F3640;color:#fff;">':'<td>')+c+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+'</table>';
+  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'+
+    '<head><meta charset="UTF-8"><style>table{border-collapse:collapse;font-family:Arial;font-size:11px;}td,th{border:1pt solid #555;padding:3px 6px;text-align:center;}th{background:#2F3640;color:#fff;font-weight:700;}</style></head>'+
+    '<body><h2 style="color:#E8006E;font-family:Arial;font-size:13px;">Radar de couverture — '+camp+' — semaine du '+fmtDate(days[0].date)+' au '+fmtDate(days[6].date)+'</h2>'+
+    '<p style="font-family:Arial;font-size:11px;">Charge/agent de référence : '+(baseline!=null?baseline.toFixed(1)+' appels/agent':'n.d.')+'</p>'+
+    (heat?heat.outerHTML.replace(/<table/,'<table border="1" cellspacing="0" cellpadding="3"'):'')+
+    '<br><h3 style="color:#E8006E;font-family:Arial;font-size:12px;">Détail par jour et créneau (données de planification)</h3>'+flatHtml+'</body></html>';
+  const blob=new Blob([html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const el=document.createElement("a");
+  el.href=url;el.download="Radar_couverture_"+camp.replace(/[^\w]/g,"_")+"_"+radarData.weekStart+".xls";
+  document.body.appendChild(el);el.click();el.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showToast("✓ Export Excel téléchargé");
+}
+
+function exportRadarPDF(){
+  if(!radarData){showToast("⚠ Générez d'abord le radar","#b45309");return;}
+  const {camp,days,baseline}=radarData;
+  const heat=document.getElementById("radar-table-wrap");
+  const synth=document.getElementById("radar-synthesis");
+  const w=window.open("","_blank");
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Radar de couverture '+camp+'</title>'+
+    '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:14px;}'+
+    'table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;padding:4px 6px;font-size:9.5px;text-align:center;}'+
+    'th{background:#f0f0f0;}h1{font-size:15px;color:#E8006E;margin-bottom:4px;}h2{font-size:11px;color:#555;margin:10px 0 6px;font-weight:600;}'+
+    '.signal{border:1px solid #e0c0c0;background:#fff5f5;border-radius:6px;padding:7px 10px;margin:5px 0;font-size:10px;line-height:1.5;}'+
+    '@media print{@page{size:A4 landscape;margin:8mm;}}</style></head><body>'+
+    '<h1>📡 Radar de couverture — '+camp+'</h1>'+
+    '<div style="font-size:10px;color:#666;">Semaine du '+fmtDate(days[0].date)+' au '+fmtDate(days[6].date)+' · Charge/agent de référence : '+(baseline!=null?baseline.toFixed(1)+' appels/agent':'n.d.')+' · Généré le '+new Date().toLocaleString("fr-FR")+'</div>'+
+    '<h2>Charge projetée par créneau</h2>'+(heat?heat.innerHTML:'')+
+    '<h2>Synthèse — créneaux à anticiper</h2>'+(synth?synth.innerHTML:'')+
+    '</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 
 function renderRadarSynthesis(){
-  const {camp,days,baseline}=radarData;
+  const {camp,camps,days,baseline,h0}=radarData;
   const box=document.getElementById("radar-synthesis");
   if(baseline==null){
-    box.innerHTML='<div class="empty-hint">Pas assez de données sur la semaine de référence pour établir une charge habituelle pour cette campagne — essayez une autre semaine de référence.</div>';
+    // Distinguer les causes : échec API vs pas de données pour cette campagne
+    const nFailed=days.filter(d=>!d.profile).length;
+    const nEmpty=days.filter(d=>d.profile&&d.profile.every(c=>c.vol===0)).length;
+    const nTotal=days.length;
+    if(nFailed===nTotal){
+      // Tous les jours ont échoué → problème INO/token
+      const sampleErr=days.find(d=>d.error)?.error||"réponse invalide";
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">⚠</span><span>
+        <b>Données INO indisponibles pour toutes les journées de référence</b> — la connexion INO ne peut pas accéder aux historiques de cette période.<br>
+        <small>Détail : ${sampleErr}</small><br>
+        Vérifiez que l'indicateur INO est vert en haut de page, puis réessayez. Si l'erreur persiste, essayez une semaine de référence plus récente.
+      </span></div>`;
+    } else if(nFailed>0){
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">⚠</span><span>
+        <b>${nFailed}/${nTotal} jour(s) de référence indisponibles</b> côté INO — les données partielles ne permettent pas d'établir une charge de référence fiable pour <b>${camp}</b>.<br>
+        Essayez une autre semaine de référence, ou attendez que la connexion INO soit rétablie.
+      </span></div>`;
+    } else if(nEmpty===nTotal){
+      // Tous les jours chargés, mais aucun appel pour cette campagne
+      const firstDayQueues=days[0]?.dayData?.slots?.flatMap(s=>Object.keys(s.queues||{})).filter((v,i,a)=>a.indexOf(v)===i).slice(0,6)||[];
+      const queuesHint=firstDayQueues.length?`<br><small>Files détectées dans INO ce jour-là : ${firstDayQueues.join(", ")||"(aucune)"}</small>`:"";
+      const confQueues=(QUEUES_MAP[camps&&camps[0]]||[]).join(", ")||"(aucune)";
+      box.innerHTML=`<div class="signal signal-alert"><span class="signal-icon">ℹ</span><span>
+        <b>Aucun appel détecté pour <i>${camp}</i> sur la semaine de référence.</b><br>
+        Causes possibles : campagne absente d'INO cette semaine, ou noms de files mal configurés.<br>
+        Files configurées pour cette campagne : <code>${confQueues}</code>${queuesHint}<br>
+        <a href="/admin" style="color:var(--pink);">→ Admin / Config campagnes</a> pour ajuster le mapping des files, ou essayez une autre semaine de référence.
+      </span></div>`;
+    } else {
+      box.innerHTML='<div class="empty-hint">Pas assez de données sur la semaine de référence pour établir une charge habituelle pour cette campagne — essayez une autre semaine de référence.</div>';
+    }
     return;
   }
   const tense=[];
   days.forEach(d=>{
     if(!d.profile)return;
-    d.profile.forEach((cell,h)=>{
+    d.profile.forEach((cell,idx)=>{
       const level=tensionLevel(cell,baseline);
       if(level==="high"||level==="critical"){
-        tense.push({d,h,cell,level,ratio:cell.charge!=null?cell.charge/baseline:Infinity});
+        tense.push({d,h:h0+idx,cell,level,ratio:cell.charge!=null?cell.charge/baseline:Infinity});
       }
     });
   });
@@ -369,14 +665,67 @@ function connectSSE(){
   es.onerror=()=>{badge.textContent="✕ Hors ligne";badge.style.background="#1e0a0a";badge.style.color="#dc2626";es.close();setTimeout(connectSSE,10000);};
 }
 
+// ── Modèles nommés (partagés via sharedStore.radarTpl) ──
+function currentRadarTpl(){return {camps:getSelCamps(),offset:parseInt(document.getElementById("r-offset").value,10),hDeb:document.getElementById("r-hdeb").value,hFin:document.getElementById("r-hfin").value};}
+async function saveTpl(){
+  const name=(document.getElementById("tpl-name").value||"").trim();
+  if(!name){showToast("⚠ Donnez un nom au modèle","#b45309");return;}
+  if(!getSelCamps().length){showToast("⚠ Sélectionnez au moins une campagne","#b45309");return;}
+  tplStore[name]=currentRadarTpl();
+  try{
+    const r=await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"radarTpl",value:tplStore})});
+    const d=await r.json();if(!d.ok)throw new Error(d.error||"erreur");
+    renderTplSelect();document.getElementById("tpl-select").value=encodeURIComponent(name);
+    showToast("✓ Modèle « "+name+" » enregistré (partagé)");
+  }catch(e){showToast("⚠ Échec — "+((e&&e.message)||e),"#dc2626");}
+}
+function applyTpl(){
+  const sel=document.getElementById("tpl-select").value;if(!sel){showToast("ℹ Choisissez un modèle","#666");return;}
+  const name=decodeURIComponent(sel),t=tplStore[name];if(!t)return;
+  const set=new Set(t.camps||[]);
+  document.querySelectorAll(".camp-cb").forEach(cb=>{cb.checked=set.has(cb.value);});
+  if(t.offset)document.getElementById("r-offset").value=String(t.offset);
+  if(t.hDeb)document.getElementById("r-hdeb").value=t.hDeb;
+  if(t.hFin)document.getElementById("r-hfin").value=t.hFin;
+  document.getElementById("tpl-name").value=name;
+  updateCampSummary();
+  showToast("✓ Modèle « "+name+" » appliqué — cliquez sur « Générer le radar »");
+}
+async function delTpl(){
+  const sel=document.getElementById("tpl-select").value;if(!sel){showToast("ℹ Choisissez un modèle à supprimer","#666");return;}
+  const name=decodeURIComponent(sel);if(!tplStore[name])return;
+  if(!confirm('Supprimer le modèle « '+name+' » ?'))return;
+  delete tplStore[name];
+  try{await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"radarTpl",value:tplStore})});renderTplSelect();showToast("✓ Modèle supprimé");}catch(e){showToast("⚠ Échec suppression","#dc2626");}
+}
+
 // Init
 const weekInput=document.getElementById("r-week");
 weekInput.value=nextMonday();
-weekInput.addEventListener("change",()=>{document.getElementById("radar-status").textContent="";});
+weekInput.addEventListener("change",e=>{
+  // Toujours recaler sur le lundi : garantit l'alignement jour de semaine ↔ jour de référence
+  if(e.target.value)e.target.value=mondayOf(e.target.value);
+  document.getElementById("radar-status").textContent="";
+});
 document.getElementById("btn-radar-load").addEventListener("click",loadRadar);
+// Changer la plage horaire après génération : re-filtre instantanément les données déjà chargées
+// (aucune nouvelle requête INO — la journée complète est en cache).
+["r-hdeb","r-hfin"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
+  if(!radarData)return;
+  const {h0,h1}=radarHours();
+  radarData.h0=h0;radarData.h1=h1;
+  rebuildRadar();
+  document.getElementById("radar-status").textContent=`✓ Plage horaire ${String(h0).padStart(2,"0")}h–${String(h1).padStart(2,"0")}h appliquée (recalcul instantané)`;
+}));
+document.getElementById("btn-radar-excel").addEventListener("click",exportRadarExcel);
+document.getElementById("btn-radar-pdf").addEventListener("click",exportRadarPDF);
+document.getElementById("tpl-save").addEventListener("click",saveTpl);
+document.getElementById("tpl-load").addEventListener("click",applyTpl);
+document.getElementById("tpl-del").addEventListener("click",delTpl);
 
-loadConfig();
+loadConfig().then(loadTplStore);
 connectSSE();
 </script>
+<script src="/theme.js" defer></script>
 </body>
 </html>

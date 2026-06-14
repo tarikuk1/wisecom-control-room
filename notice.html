@@ -7,31 +7,131 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;}
-.header{background:#fff;border-bottom:1px solid #dedede;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10;}
-.title{font-weight:800;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#999;margin-top:2px;}
-.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.btn{border:1px solid #dedede;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;background:#fafafa;color:#161616;text-decoration:none;display:inline-block;}
-.btn:hover{border-color:#E8006E55;color:#E8006E;}
+:root{
+  --pink:#E8006E; --pink-dark:#c2005a;
+  --green:#30d158; --amber:#ff9f0a; --red:#ff3b30;
+  --green-soft:rgba(48,209,88,.14); --amber-soft:rgba(255,159,10,.14); --red-soft:rgba(255,59,48,.14);
+
+  /* DARK (default) */
+  --bg:#0c0d10; --card:#141618;
+  --border:rgba(255,255,255,.07); --border-soft:rgba(255,255,255,.06);
+  --shadow:0 1px 3px rgba(0,0,0,.5);
+  --txt:#e8e9ec; --txt-2:#9a9da5; --txt-3:#6e7180;
+  --code-bg:rgba(255,255,255,.05); --code-bd:rgba(255,255,255,.1);
+  --hover:rgba(255,255,255,.03);
+  --tip-bg:rgba(232,0,110,.1); --tip-bd:rgba(232,0,110,.32); --tip-txt:#ffa8cf;
+}
+/* LIGHT */
+body.light{
+  --bg:#f0f1f6; --card:#fff;
+  --border:rgba(0,0,0,.07); --border-soft:rgba(0,0,0,.06);
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+  --txt:#111318; --txt-2:#5a5d6a; --txt-3:#9a9daa;
+  --code-bg:#f4f5f8; --code-bd:rgba(0,0,0,.1);
+  --hover:rgba(232,0,110,.03);
+  --tip-bg:#fdeef5; --tip-bd:#f5b8d3; --tip-txt:#a3105e;
+}
+
+body{
+  background:var(--bg);color:var(--txt-2);
+  font-family:'Inter','Segoe UI',Arial,system-ui,sans-serif;font-size:13px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  transition:background .25s,color .25s;
+}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:5px;}
+body.light ::-webkit-scrollbar-thumb{background:#c8cad4;}
+
+.header{
+  background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:10;
+  transition:background .25s,border-color .25s;
+}
+.title{font-weight:800;font-size:15px;letter-spacing:.05em;color:var(--txt);}
+.subtitle{font-size:11px;color:var(--txt-3);margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);display:inline-block;margin-right:8px;}
+.btn{
+  border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;
+  font-weight:600;background:var(--card);color:var(--txt);text-decoration:none;display:inline-block;
+  transition:border-color .15s,color .15s,background .15s;
+}
+.btn:hover{border-color:var(--pink);color:var(--pink);}
 .wrap{max-width:980px;margin:0 auto;padding:24px 20px 60px;}
-.toc{background:#fff;border:1px solid #dedede;border-radius:10px;padding:18px 22px;margin-bottom:20px;}
-.toc-title{font-size:12px;font-weight:700;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+
+.toc{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 22px;margin-bottom:20px;box-shadow:var(--shadow);transition:background .25s,border-color .25s;}
+.toc-title{font-size:12px;font-weight:700;color:var(--pink);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
 .toc ol{margin-left:20px;}
-.toc li{margin-bottom:4px;}
-.toc a{color:#444;text-decoration:none;font-size:12px;}
-.toc a:hover{color:#E8006E;}
-section{background:#fff;border:1px solid #dedede;border-radius:10px;padding:22px;margin-bottom:18px;scroll-margin-top:80px;}
-h2{font-size:15px;color:#E8006E;font-weight:800;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #efefef;display:flex;align-items:center;gap:8px;}
-h3{font-size:13px;color:#161616;font-weight:700;margin:16px 0 6px;}
-p,li{font-size:12px;color:#444;}
+.toc li{margin-bottom:4px;color:var(--txt-3);}
+.toc a{color:var(--txt-2);text-decoration:none;font-size:12px;transition:color .15s;}
+.toc a:hover{color:var(--pink);}
+
+section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:18px;scroll-margin-top:80px;box-shadow:var(--shadow);transition:background .25s,border-color .25s;}
+h2{font-size:15px;color:var(--pink);font-weight:800;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:8px;}
+h3{font-size:13px;color:var(--txt);font-weight:700;margin:16px 0 6px;}
+p,li{font-size:12px;color:var(--txt-2);}
+b{color:var(--txt);}
+a{color:var(--pink);}
 ul{margin:6px 0 10px 22px;}
-.tip{background:#fdeef5;border:1px solid #f5b8d3;border-radius:8px;padding:10px 14px;font-size:11px;color:#a3105e;margin:10px 0;}
-.kbd{display:inline-block;background:#fafafa;border:1px solid #dedede;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;color:#161616;white-space:nowrap;}
-.icon-legend{display:grid;grid-template-columns:36px 1fr;gap:4px 10px;margin:8px 0 4px;align-items:baseline;}
-.icon-legend b{font-size:14px;text-align:center;}
-.foot{font-size:10px;color:#999;text-align:center;margin-top:30px;}
-@media print{.header .btn{display:none}body{background:#fff}section,.toc{border:none;padding:10px 0}}
+
+.tip{background:var(--tip-bg);border:1px solid var(--tip-bd);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--tip-txt);margin:10px 0;}
+.tip b{color:var(--tip-txt);}
+
+.kbd,code{
+  display:inline-block;background:var(--code-bg);border:1px solid var(--code-bd);border-radius:5px;
+  padding:1px 7px;font-size:11px;font-weight:600;color:var(--txt);white-space:nowrap;
+  font-family:'SF Mono','Consolas',ui-monospace,monospace;
+}
+code{font-weight:500;}
+
+.icon-legend{display:grid;grid-template-columns:36px 1fr;gap:6px 10px;margin:8px 0 4px;align-items:baseline;}
+.icon-legend b{font-size:14px;text-align:center;color:var(--txt);}
+.icon-legend span{color:var(--txt-2);font-size:12px;}
+.foot{font-size:10px;color:var(--txt-3);text-align:center;margin-top:30px;}
+
+/* ── EXAMPLE / DEMO BLOCKS (themed) ── */
+.demo{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:11px;color:var(--txt-2);transition:background .25s,border-color .25s;}
+.demo.mono{font-family:'SF Mono','Consolas',ui-monospace,monospace;overflow-x:auto;}
+.demo-cap{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.demo-note{margin-top:8px;font-size:9px;color:var(--txt-3);}
+
+/* staffing chips */
+.sc{border-radius:6px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;border:1px solid var(--border);background:var(--card);color:var(--txt-2);}
+.sc .t{color:var(--txt-3);}
+.sc.green{color:var(--green);border-color:var(--green-soft);background:var(--green-soft);}
+.sc.red{color:var(--red);border-color:var(--red-soft);background:var(--red-soft);}
+.sc.amber{color:var(--amber);border-color:var(--amber-soft);background:var(--amber-soft);}
+.sc .mut{font-size:9px;color:var(--amber);}
+.sc .alert{font-size:9px;color:var(--red);}
+.sc .night{font-size:9px;color:var(--green);}
+
+/* GSM banner example */
+.gsm-demo{background:var(--amber-soft);border:2px solid var(--amber);border-radius:10px;padding:8px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--amber);}
+.gsm-demo b{color:var(--amber);}
+
+/* form mock */
+.mock{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.mock select,.mock input[type=time]{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:10px;color:var(--txt);font-family:inherit;}
+.mock label{color:var(--txt-2);}
+.mock .muted{color:var(--txt-3);}
+.mock .lunch{background:color-mix(in srgb,var(--pink) 8%,transparent);border:1px solid var(--tip-bd);border-radius:5px;padding:5px 7px;margin-bottom:5px;font-size:10px;color:var(--txt-2);}
+input[type=checkbox]{accent-color:var(--pink);}
+
+/* qualification example bars */
+.qrow{display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;}
+.qrow .lbl{font-size:10px;font-weight:600;color:var(--txt-2);}
+.qrow .track{height:7px;border-radius:3px;background:var(--code-bg);}
+.qrow .track i{display:block;height:100%;border-radius:3px;}
+.qrow .val{font-size:10px;text-align:right;}
+.qrow .pct{font-size:9px;color:var(--txt-3);text-align:right;}
+.chip-go{background:var(--pink);color:#fff;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;display:inline-block;}
+.chip-mini{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--txt-2);display:inline-block;}
+
+/* nav pills example */
+.pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--txt-2);background:var(--card);}
+.pill.active{border-color:var(--pink);color:var(--pink);background:color-mix(in srgb,var(--pink) 8%,transparent);}
+
+@media print{.header .btn{display:none}body{background:#fff;color:#161616}section,.toc{border:none;padding:10px 0;box-shadow:none}}
 </style>
 </head>
 <body>
@@ -43,7 +143,13 @@ ul{margin:6px 0 10px 22px;}
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button>
-    <a href="/" class="btn">← Tour de contrôle</a>
+    <a href="/" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🏠 Tour de contrôle</a>
+    <a href="/executif" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📊 Exécutif</a>
+    <a href="/pilotage" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🎯 Pilotage</a>
+    <a href="/couverture" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📡 Couverture</a>
+    <a href="/astreinte" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🌙 Astreinte</a>
+    <a href="/agents-jour" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📋 Agents jour</a>
+    <a href="/planning" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗓️ Planning</a>
   </div>
 </div>
 
@@ -56,11 +162,13 @@ ul{margin:6px 0 10px 22px;}
     <li><a href="#dashboard">Tour de contrôle (page principale)</a></li>
     <li><a href="#agents-jour">Agents du jour</a></li>
     <li><a href="#executif">Tableau de bord exécutif 📊</a></li>
+    <li><a href="#pilotage">Pilotage de la productivité 🎯</a></li>
     <li><a href="#couverture">Radar de couverture 📡</a></li>
     <li><a href="#astreinte">Registre d'astreinte 🌙</a></li>
-    <li><a href="#planning">Planning de la semaine 🗓️ (exports, vue globale, pôles)</a></li>
+    <li><a href="#planning">Planning de la semaine 🗓️</a></li>
     <li><a href="#admin">Administration ⚙</a></li>
     <li><a href="#legende">Légende des icônes & badges</a></li>
+    <li><a href="#navigation">Navigation entre pages</a></li>
   </ol>
 </div>
 
@@ -72,24 +180,89 @@ ul{margin:6px 0 10px 22px;}
 <section id="dashboard">
   <h2>2. Tour de contrôle (page principale)</h2>
   <p>C'est la vue temps réel de l'activité : agents connectés, appels, statuts, files d'attente. Les données arrivent en continu depuis INO (badge « ● INO connecté » en haut de page).</p>
-  <h3>Bandeau staffing</h3>
-  <p>En haut, le bandeau récapitule par campagne le nombre d'agents et les alertes. Si l'option est activée dans les critères (voir ci-dessous), un badge <b>🌙 astreinte</b> y indique la couverture d'astreinte de la semaine : vert = 7 jours sur 7 couverts, orange = couverture partielle, rouge = aucun jour couvert.</p>
+
+  <h3>Bandeau staffing par campagne</h3>
+  <p>En bas du tableau agents, le bandeau liste <b>toutes les campagnes configurées</b>, même celles sans agent connecté. Pour chaque campagne : nombre d'agents actifs / total, alertes couleur.</p>
+  <div style="background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:11px;color:#ccc;margin:10px 0;overflow-x:auto;">
+    <div style="color:#666;margin-bottom:6px;">── Bandeau staffing ────────────────────────────────────────────</div>
+    <span style="background:#0d1a10;border:1px solid rgba(48,209,88,.4);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#30d158">Voltalis <b>5</b><span style="color:#555">/8</span></span>
+    <span style="background:#1a0d0d;border:1px solid rgba(255,59,48,.4);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ff3b30">ELECTROSUR <b>0</b><span style="color:#555">/0</span> <span style="font-size:9px;color:#ff3b30">⚠ ALERTE</span></span>
+    <span style="background:#111;border:1px solid #2a2a2a;border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ccc">Vivest <b>2</b><span style="color:#555">/3</span> <span style="font-size:9px;color:#30d158">🌙 7/7</span></span>
+    <span style="background:#141a0f;border:1px solid rgba(255,159,10,.25);border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#ff9f0a">Antargaz <b>1</b><span style="color:#555">/0+2</span> <span style="font-size:9px;color:#ff9f0a">↔ mut.</span></span>
+    <span style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:3px 8px;margin:2px;display:inline-block;font-size:10px;color:#888">Alcéane <b>0</b><span style="color:#555">/0</span></span>
+  </div>
+  <ul>
+    <li><b style="color:#30d158">Vert</b> : agents actifs sur la campagne.</li>
+    <li><b style="color:#ff3b30">⚠ ALERTE rouge</b> : service ouvert ET 0 agent actif — vérifier le staffing.</li>
+    <li><b style="color:#ff9f0a">↔ mut.</b> : aucun agent principal mais des agents <b>mutualisés</b> (compétences multi-campagnes) couvrent la campagne — pas d'alerte rouge.</li>
+    <li><b>🌙 X/7</b> : couverture d'astreinte de la semaine (si activé dans Critères & KPI).</li>
+    <li>Le compteur affiché est <code>actifs / total+mutualisés</code> si des mutualisés sont détectés.</li>
+  </ul>
+
+  <h3>Alerte GSM astreinte 📱</h3>
+  <p>30 minutes avant le début d'une astreinte nécessitant le transfert GSM, une <b>bannière orange</b> apparaît en haut de la page principale. Pendant l'astreinte active, elle passe en <b>rose / rouge</b>. La bannière indique le ou les TC concernés, la campagne et l'heure d'activation.</p>
+  <div style="background:#1a1000;border:2px solid #ff9f0a;border-radius:8px;padding:8px 14px;margin:10px 0;display:flex;align-items:center;gap:10px;font-size:11px;color:#ffd000;">
+    <span style="font-size:18px;">📱</span>
+    <span><b>GSM astreinte à activer dans 25 min</b> — Dupont (Vivest) · Début à 20:00</span>
+  </div>
+  <div class="tip">💡 Fermez la bannière en cliquant sur × — elle réapparaîtra à la prochaine vérification automatique (toutes les 60 secondes).</div>
+
   <h3>Filtres & tri</h3>
-  <p>Filtrez par campagne, statut ou agent ; cliquez sur les en-têtes de colonnes pour trier. Un clic sur l'intitulé d'une colonne affiche sa définition et sa formule de calcul.</p>
+  <p>La barre de filtres (sous l'en-tête) contient deux rangées :</p>
+  <ul>
+    <li><b>Rangée A</b> — Période (dates début→fin), Horaire, Tendance (comparer à S-1…S-5), Vues sauvegardées.</li>
+    <li><b>Rangée B</b> — Dropdowns multi-sélection : Campagnes · Files · Agents · Compétences · <b>Statut</b>.</li>
+  </ul>
+  <p>Le filtre <b>Statut</b> contient tous les états possibles d'un agent INO : <i>Actif · Traitement · Post-appel · Déconnecté · Inconnu · En pause · Déjeuner · Formation · Réunion · Back-office · Absent · n.d.</i> — cochez ou décochez pour affiner la vue.</p>
+  <div class="tip">💡 Pour voir uniquement les agents actifs en ligne, décochez « Déconnecté » et « n.d. » dans le filtre Statut.</div>
+  <p>Le filtre <b>Compétences</b> se remplit <b>automatiquement</b> : les compétences INO de chaque agent sont chargées en arrière-plan dès l'arrivée des données (plus aucun bouton à cliquer dans les filtres). Tant que le chargement est en cours, le filtre affiche « ⏳ Chargement automatique des compétences… ». La couverture par campagne (agents mutualisés) reste fonctionnelle même avant le chargement complet, grâce aux files réellement traitées.</p>
+
+  <h3>Répartition qualifications 🏷️</h3>
+  <p>Dans l'onglet <b>Volumes & Tranches</b>, le panneau droit propose la répartition des qualifications. Sélectionnez une campagne et une plage de dates puis cliquez <b>Rechercher</b> pour charger les données depuis INO :</p>
+  <div style="background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;color:#ccc;">
+    <div style="font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">🏷️ Répartition qualifications</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">— Toutes campagnes — ▼</span>
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">2026-06-01</span>
+      <span style="color:#666;font-size:10px;">→</span>
+      <span style="background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">2026-06-11</span>
+      <span style="background:#E8006E;color:#fff;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">Rechercher</span>
+      <span style="background:#1e1e1e;color:#666;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;">Export CSV</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;">100 % KO</span><div style="background:#ff3b3055;height:7px;border-radius:3px;"><div style="background:#ff3b30;width:62%;height:100%;border-radius:3px;"></div></div><span style="font-size:10px;color:#ff3b30;text-align:right;">32</span><span style="font-size:9px;color:#666;text-align:right;">28%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;font-weight:600;">RDV pris / Int.</span><div style="background:#30d15855;height:7px;border-radius:3px;"><div style="background:#30d158;width:48%;height:100%;border-radius:3px;"></div></div><span style="font-size:10px;color:#30d158;text-align:right;">25</span><span style="font-size:9px;color:#666;text-align:right;">22%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:110px 1fr 36px 28px;gap:4px;align-items:center;">
+        <span style="font-size:10px;color:#666;font-weight:600;">Hors SVI</span><div style="background:#1e1e1e;height:7px;border-radius:3px;"></div><span style="font-size:10px;color:#555;text-align:right;">n.d.</span><span style="font-size:9px;color:#555;text-align:right;"></span>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:9px;color:#555;">Toutes · 2026-06-01 → 2026-06-11 · 24 agents · Total : 114 appels</div>
+  </div>
+  <p>Le bouton <b>Export CSV</b> (disponible après une recherche) télécharge la répartition complète avec les pourcentages, les totaux et la source des données.</p>
+  <div class="tip">💡 Certaines qualifications (Hors SVI, Rappel) ne sont pas distinguables au niveau de l'API INO — elles apparaissent en grisé avec la mention « n.d. ». Utilisez « Sans suite » et « RDV pris / Intéressé » qui agrègent les résultats disponibles.</div>
+
   <h3>Définitions des KPI ⓘ</h3>
-  <p>Chaque carte du bandeau KPI (QS, % Réalisé, Flux, DMC…) porte une icône <b>ⓘ</b> : cliquez dessus pour afficher la définition complète de l'indicateur, sa formule de calcul, sa source et ses seuils de lecture. À noter : en filtre par campagne(s), la QS et les flux sont calculés au niveau de la file INO (abandons inclus, comme l'écran RA) ; dès qu'un filtre agent est actif, ils basculent sur les données des agents sélectionnés.</p>
+  <p>Chaque carte du bandeau KPI (QS, % Réalisé, Flux, DMC…) porte une icône <b>ⓘ</b> : cliquez dessus pour afficher la définition complète de l'indicateur, sa formule de calcul, sa source et ses seuils de lecture.</p>
+
   <h3>Critères & KPI par campagne</h3>
-  <p>Le panneau « Critères & KPI » permet, campagne par campagne, de régler les objectifs et les alertes (QS cible, backlog, alerte « aucun agent », jours/horaires surveillés…). C'est aussi là que s'active l'affichage du badge 🌙 astreinte d'une campagne dans le bandeau staffing — disponible dès que la campagne est suivie dans le <a href="/astreinte">registre d'astreinte</a>. Cliquez sur « Enregistrer » pour appliquer : les réglages sont partagés entre superviseurs.</p>
+  <p>Le bouton <span class="kbd">KPI</span> en haut à droite ouvre le panneau de réglages par campagne : objectifs d'appels, QS cible, backlog, alerte, horaires, badge 🌙 astreinte. Les réglages sont partagés entre superviseurs.</p>
+
   <h3>Exports</h3>
   <ul>
-    <li><b>Excel / CSV</b> : exporte le tableau des agents tel que filtré et trié.</li>
-    <li><b>PDF</b> : version imprimable du tableau (la fenêtre qui s'ouvre propose « Imprimer / Enregistrer en PDF »).</li>
+    <li><b>📊 Excel / CSV</b> : exporte le tableau agents filtré et trié.</li>
+    <li><b>📄 PDF</b> : version imprimable du tableau.</li>
     <li><b>Matrice de compétences (PDF)</b> : cartographie agents × compétences INO.</li>
-    <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager (aperçu, PDF ou Excel).</li>
+    <li><b>Export WhatsApp</b> : tableaux d'affectation et de stats prêts à partager.</li>
   </ul>
   <div class="tip">💡 Si la fenêtre d'export PDF ne s'ouvre pas, autorisez les pop-ups pour ce site dans votre navigateur.</div>
-  <h3>Pages liées (boutons en haut à droite)</h3>
-  <p>📊 Exécutif · 📡 Couverture · 🌙 Astreinte · 🗓️ Planning · ⚙ Administration · 📖 cette notice. Chaque page s'ouvre dans un nouvel onglet.</p>
+
+  <h3>Onglet Export WhatsApp — horodatage & définitions</h3>
+  <p>Chaque tableau (Affectation, Stat TC, Alertes) porte un en-tête <code>Période · date · 08:00–HH:MM · ⏱ généré à HH:MM</code>. Pour une consultation <b>en direct</b> du jour courant, la borne de droite reflète <b>l'heure réelle d'arrêt des données</b> (l'instant de génération), et non la fin théorique du créneau — ainsi « 08:00–20:00 » consulté à 11:18 s'affiche « 08:00–11:18 · ⏱ généré à 11:18 ». Cela permet de contrôler la fraîcheur et le périmètre exact des chiffres partagés.</p>
+  <p>Sous les tableaux, le bloc déroulant <b>ⓘ Définitions &amp; mode de calcul des indicateurs</b> détaille chaque colonne (Nbr opé, DMC, DMT, Occupation, QS, Appels Traités…) avec sa définition et sa formule. Les « Appels Traités » de Stat TC utilisent la <b>même source file INO</b> que les « Décrochés » du tableau Alertes : les deux tableaux affichent donc des totaux cohérents pour une sélection identique.</p>
 </section>
 
 <section id="agents-jour">
@@ -99,47 +272,181 @@ ul{margin:6px 0 10px 22px;}
 
 <section id="executif">
   <h2>4. Tableau de bord exécutif 📊</h2>
-  <p>Vue de pilotage sur <b>4 semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
-  <h3>Comparateur jours & campagnes 🆚</h3>
-  <p>Le panneau « Comparateur » permet de confronter <b>un ou plusieurs jours</b> (ajoutez chaque date puis « + Ajouter ce jour ») sur <b>une ou plusieurs campagnes</b> (cochez celles à comparer — toutes les campagnes actives sont proposées). Cliquez sur « Comparer » :</p>
+  <p>Vue de pilotage en <b>semaines glissantes</b> : tendances de volume, QS, DMC et effectifs, globalement et par campagne, avec signaux automatiques (améliorations, dérives à surveiller).</p>
+  <h3>Choix de l'analyse (sélection d'abord)</h3>
+  <p>Vous choisissez d'abord les paramètres, <b>puis</b> cliquez sur « Charger l'analyse » (plus d'agrégation automatique à l'ouverture, ce qui évite des requêtes INO inutiles) :</p>
   <ul>
-    <li>La <b>matrice</b> affiche, pour la métrique choisie (volume traité, QS, DMC, agents actifs, charge/agent), une ligne par campagne et une colonne par jour ; la meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
-    <li>Les onglets au-dessus de la matrice changent de métrique instantanément.</li>
-    <li>Le « détail complet » (dépliable) liste toutes les valeurs jour × campagne.</li>
+    <li><b>Date de fin d'analyse</b> : dernière semaine de la période (semaine de référence).</li>
+    <li><b>Profondeur</b> : <b>4 semaines</b>, <b>2 mois (8 sem.)</b> ou <b>3 mois (13 sem.)</b> glissantes — pour une vision plus large des tendances et des décisions de pilotage. La profondeur s'applique au tableau de tendance, aux KPIs et aux signaux.</li>
+    <li><b>Campagnes</b> : choisissez la ou les campagnes à analyser (Tout / Aucun). Le filtre restreint <b>immédiatement</b> les KPIs, le comparatif cross-campagnes, la synthèse et la liste de la tendance — sans recharger. (Le compteur « Agents actifs » devient alors un cumul par campagne, signalé par <code>*</code>.)</li>
+    <li><b>Tranche horaire</b> : restreint tous les indicateurs à un créneau (ex. 08:00–20:00). Laissez 00:00–23:59 pour la journée complète.</li>
   </ul>
+  <div class="tip">💡 Plus la profondeur est grande, plus l'agrégation interroge INO (13 semaines = 13 requêtes) — comptez une à deux minutes pour 3 mois. Les semaines entièrement passées sont mises en cache et rechargées instantanément.</div>
+  <h3>Définitions des indicateurs ⓘ</h3>
+  <p>Un panneau « ⓘ Définitions &amp; mode de calcul » en bas de page détaille chaque indicateur : <b>Volume traité</b>, <b>QS</b>, <b>DMC</b>, <b>Agents actifs</b> et <b>Charge / agent</b> (= volume traité ÷ agents actifs, soit le nombre d'appels traités par agent actif), ainsi que la source des données et l'effet de la tranche horaire.</p>
+  <h3>Export PDF &amp; Excel ⬇</h3>
+  <p>Deux boutons <b>⬇ Excel</b> et <b>⬇ PDF</b> (à côté de « Charger l'analyse ») exportent <b>toute l'analyse</b> pour la partager : KPIs de la semaine de référence, tableau de tendance de la campagne affichée, comparatif cross-campagnes, comparateur jours × campagnes (s'il a été lancé) et synthèse. L'Excel est un classeur de tableaux exploitables ; le PDF est une mise en page imprimable (A4 paysage). Les exports reprennent le périmètre de campagnes et la tranche horaire en cours.</p>
+  <h3>Fiabilité de la DMC</h3>
+  <p>La <b>DMC</b> (Durée Moyenne de Communication) suit désormais <b>partout la même définition</b> que le tableau de bord temps réel : durée de communication des <b>appels entrants décrochés ÷ entrants décrochés</b>, pondérée par le volume. Le temps de communication sortant n'est plus mélangé au dénominateur entrant (correction d'une formule qui gonflait la DMC des campagnes faisant du sortant).</p>
+  <h3>Jours fériés 🏖</h3>
+  <p>Les jours fériés légaux français (11 fériés fixes + Pâques dynamique) sont signalés par le badge <b>🏖</b> sur les colonnes de la matrice comparateur et dans le détail des données. Les volumes faibles sur ces jours sont donc normaux et attendus.</p>
+  <h3>Comparateur jours & campagnes 🆚</h3>
+  <p>Le panneau « Comparateur » confronte un ou plusieurs jours sur une ou plusieurs campagnes. Cliquez sur « Comparer » :</p>
+  <ul>
+    <li>La <b>matrice</b> affiche volume traité, <b>volume reçu</b>, QS, DMC, agents actifs ou charge/agent par campagne × jour.</li>
+    <li>La meilleure valeur de chaque ligne est surlignée en vert, la moins bonne en rouge.</li>
+    <li>Les colonnes de jours fériés ont un fond jaune pâle et un badge 🏖.</li>
+  </ul>
+  <h3>Sélection rapide des jours</h3>
+  <p>Au-delà de l'ajout manuel jour par jour, trois raccourcis facilitent le choix :</p>
+  <ul>
+    <li><b>−7j (sem. préc.)</b> : ajoute automatiquement chaque jour déjà sélectionné <b>décalé d'une semaine</b> (comparer un jour à son équivalent la semaine d'avant).</li>
+    <li><b>4× même jour</b> : ajoute les <b>4 dernières occurrences</b> du même jour de semaine que la date saisie (ex. les 4 derniers lundis).</li>
+    <li><b>📆 Plage date à date</b> : ajoute en bloc tous les jours entre deux dates (ex. lundi → vendredi d'une semaine), pour une sélection libre par le manager.</li>
+  </ul>
+  <div class="tip">💡 <b>DMC = 00:00 / Agents actifs = 0 alors que le volume traité &gt; 0</b> : ce cas peut survenir les dimanches ou jours à faible activité — les appels sont tracés dans la file mais aucun agent n'est identifié individuellement par INO (routage externe ou flux hors périmètre agent). Une note le rappelle sous le bouton « Comparer ».</div>
+  <div class="tip">💡 Si un volume vous semble anormalement bas, vérifiez d'abord si le jour concerné est un jour férié — la mention 🏖 le confirme.</div>
+</section>
+
+<section id="pilotage">
+  <h2>5. Pilotage de la productivité 🎯</h2>
+  <p>Page dédiée au <b>suivi de la productivité des agents dans le temps</b> et à leur comparaison. La configuration se fait dans <b>trois cartes</b> (Période, Campagnes, Indicateurs KPI) avant de cliquer « Lancer l'analyse ».</p>
+  <h3>Période — deux modes</h3>
+  <ul>
+    <li><b>Semaines glissantes</b> : date de fin + profondeur (4 sem. / 2 mois / 3 mois) + tranche horaire.</li>
+    <li><b>Plage libre</b> : choisissez vous-même une <b>date de début</b> et une <b>date de fin</b> (découpées automatiquement en tranches de 7 jours). Pratique pour cadrer une période précise hors semaines standard.</li>
+  </ul>
+  <h3>Campagnes &amp; indicateurs</h3>
+  <ul>
+    <li><b>Campagnes</b> : sélectionnées sous forme de <b>pastilles</b> cliquables — elles définissent le <b>vivier d'agents</b>.</li>
+    <li><b>Indicateurs KPI</b> : cartes visuelles à cocher — appels traités, <b>appels reçus</b>, actes, sortants, DMT, DMC, ACW, <b>taux d'occupation</b>, taux de décroché, transformation.</li>
+    <li>Après chargement : cochez les <b>agents</b> à comparer (recherche par nom). Par défaut, les 10 agents les plus actifs du vivier sont présélectionnés.</li>
+  </ul>
+  <h3>⏳ Taux d'occupation</h3>
+  <p>Calculé avec la <b>même formule que le tour de contrôle</b> : (temps de communication [+ ACW si activé]) ÷ (présence × min productives/h). La présence est mesurée <b>jour par jour puis sommée</b> sur la période (jamais l'écart global début→fin de période). Le diviseur (min/h) et l'inclusion de l'ACW sont <b>paramétrables par campagne</b> dans le dashboard ⚙ Critères &amp; KPI. Affiché « n.d. » quand la présence n'est pas mesurable (mode honnête, aucune valeur inventée).</p>
+  <h3>📬 Backlog mails</h3>
+  <p>Un panneau restitue le <b>backlog mails saisi par les superviseurs</b> (instantané enregistré dans le tour de contrôle) pour les campagnes sélectionnées, avec le total. La saisie se fait depuis le dashboard ; le Pilotage l'affiche en lecture.</p>
+  <h3>📐 Moyennes équipe — benchmark</h3>
+  <p>En haut des résultats, le panneau <b>« Moyennes équipe »</b> affiche, pour chaque KPI sélectionné et sur la même période, la <b>moyenne de tout le vivier</b> (tous les agents des campagnes choisies, pas seulement ceux cochés). Un tableau détaillé compare chaque agent à cette référence, semaine par semaine, avec un repère <b>▲ / ▼</b>.</p>
+  <h3>📊 Tableau comparatif &amp; heatmap</h3>
+  <ul>
+    <li><b>Tableau comparatif agent × période</b> : valeur par semaine + <b>min / moyenne / max</b>, meilleure valeur en vert, moins bonne en rouge, sparkline de tendance, ligne moyenne équipe. <b>Exportable en CSV</b> via le bouton ⬇.</li>
+    <li><b>🔥 Heatmap</b> agent × période : intensité colorée selon la performance relative (vert = bon, rouge = faible), en tenant compte du sens de l'indicateur (DMC/DMT/ACW : plus court = mieux).</li>
+  </ul>
+  <h3>Modèles nommés 💾</h3>
+  <p>Enregistrez une sélection complète (agents, campagnes, indicateur, profondeur, tranche) sous un <b>nom</b> : le modèle est <b>partagé avec toute l'équipe</b> et réutilisable en un clic.</p>
+  <div class="tip">💡 Les durées (DMC, DMT, ACW), taux et occupation n'utilisent que les semaines où l'agent a réellement été actif — une semaine d'absence n'abaisse pas artificiellement la moyenne. Le détail des modes de calcul est masqué par défaut : cliquez « Afficher les modes de calcul » pour comprendre une colonne.</div>
 </section>
 
 <section id="couverture">
-  <h2>5. Radar de couverture 📡</h2>
-  <p>Anticipe les tensions de staffing par créneau horaire : pour chaque campagne, le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif planifié est inférieur au besoin estimé.</p>
+  <h2>6. Radar de couverture 📡</h2>
+  <p>Anticipe les tensions de staffing par créneau horaire : le radar confronte la <b>charge prévue</b> (tendance d'appels) à la <b>capacité réelle des agents observée sur la semaine de référence</b> (appels traités par agent et par heure constatés) pour estimer le besoin en agents. Un créneau passe en alerte quand l'effectif observé en référence est insuffisant pour absorber le volume attendu au rythme habituel.</p>
+  <h3>Une ou plusieurs campagnes</h3>
+  <p>Le sélecteur <b>Campagnes</b> permet de cocher <b>plusieurs campagnes</b> : le radar agrège alors volume et effectif sur l'ensemble du périmètre — idéal pour analyser un <b>pôle mutualisé</b>. Cochez une seule campagne pour une analyse ciblée.</p>
+  <h3>Plage horaire 🕐</h3>
+  <p>Le radar interroge désormais la <b>journée complète</b> et la <b>plage horaire</b> (champs « Plage horaire ») devient un simple filtre d'affichage : la modifier après génération <b>recalcule instantanément</b> le tableau, sans réinterroger INO. Vous pouvez ainsi élargir au-delà de 08–20 pour faire apparaître des flux matinaux ou tardifs (ex. flux du <b>dimanche</b> hors horaires standards), ou resserrer sur un créneau précis. La plage est enregistrée dans les modèles.</p>
+  <h3>Modèles nommés 💾</h3>
+  <p>Enregistrez un périmètre (campagnes + semaine de référence + plage horaire) sous un <b>nom</b> : le modèle est <b>partagé avec l'équipe</b> et réappliqué en un clic (« Appliquer »), puis « Générer le radar ».</p>
+  <h3>Export PDF &amp; Excel ⬇</h3>
+  <p>Les boutons <b>⬇ Excel</b> et <b>⬇ PDF</b> exportent le radar (heatmap + détail par jour et créneau + synthèse) pour le partager ou l'archiver.</p>
+  <div class="tip">💡 Si un jour de référence est indisponible côté INO, le radar le signale (« n.d. ») et retente automatiquement une fois — les autres jours restent exploitables.</div>
+  <h3>Définitions ⓘ</h3>
+  <p>Un panneau « ⓘ Définitions &amp; mode de calcul » détaille chaque indicateur : volume projeté, agents actifs de référence, <b>charge/agent</b>, charge habituelle (médiane), <b>staffing recommandé</b> (= volume ÷ charge habituelle, à ne pas confondre avec le volume d'appels) et les seuils de tension.</p>
 </section>
 
 <section id="astreinte">
-  <h2>6. Registre d'astreinte 🌙</h2>
-  <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte. La liste de choix propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui).</p>
+  <h2>7. Registre d'astreinte 🌙</h2>
+  <p>Registre partagé des astreintes : activez le suivi d'une campagne, puis affectez pour chaque jour de la semaine l'agent qui couvre l'astreinte.</p>
+
+  <h3>Saisie agent + horaires + GSM</h3>
+  <p>Pour chaque jour, saisissez :</p>
+  <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 10px;max-width:280px;">
+      <select style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:11px;width:100%;margin-bottom:6px;color:#444;"><option>Dupont Martin</option></select>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:10px;color:#999;">🕐</span>
+        <input type="time" value="20:00" style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 5px;font-size:10px;width:70px;color:#444;">
+        <span style="font-size:10px;color:#999;">→</span>
+        <input type="time" value="08:00" style="background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 5px;font-size:10px;width:70px;color:#444;">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:#555;cursor:pointer;">
+        <input type="checkbox" checked style="accent-color:#E8006E;"> 📱 Transfert GSM à activer
+      </label>
+    </div>
+  </div>
+  <ul>
+    <li><b>Horaires</b> : saisissez l'heure de début et de fin. Les astreintes qui dépassent minuit (ex. 20h→08h) sont automatiquement divisées sur deux colonnes jours dans le tableau de couverture.</li>
+    <li><b>📱 Transfert GSM</b> : cochez si le TC doit activer le renvoi GSM sur son téléphone. Cela déclenche une <b>alerte automatique 30 min avant</b> sur la page principale (bannière orange).</li>
+  </ul>
+
+  <h3>Tableau de couverture horaire</h3>
+  <p>Sous le registre, le tableau de couverture affiche les 12 créneaux de 2 heures × 7 jours, colorisé selon le nombre d'agents couverts. Les créneaux de nuit sont identifiés (fond sombre).</p>
+
+  <h3>Informations partagées</h3>
   <ul>
     <li>Le registre est <b>partagé entre superviseurs</b> et enregistré automatiquement.</li>
-    <li>Les affectations apparaissent en croisement sur le <a href="/planning">Planning</a> (tag 🌙 sur le jour concerné) et peuvent être affichées en badge dans le bandeau staffing de la Tour de contrôle (à activer dans Critères & KPI).</li>
+    <li>Les affectations apparaissent en badge dans le bandeau staffing de la Tour de contrôle (à activer dans Critères & KPI).</li>
+    <li>Un badge récapitulatif affiche : <code>X/7 jours couverts · 📱 N</code> (N = nombre de jours avec GSM requis).</li>
   </ul>
 </section>
 
 <section id="planning">
-  <h2>7. Planning de la semaine 🗓️</h2>
-  <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents (les suggestions proposent tous les agents qualifiés sur la compétence de la campagne), puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ». Le total hebdomadaire se calcule automatiquement et tout est enregistré et partagé en continu.</p>
+  <h2>8. Planning de la semaine 🗓️</h2>
+  <p>Construisez le planning hebdomadaire campagne par campagne : choisissez la campagne et la semaine (boutons ◀ ▶ pour naviguer), ajoutez les agents, puis saisissez début/fin de créneau pour chaque jour ou cochez « Repos ».</p>
+
+  <h3>Saisie de créneau avec pauses</h3>
+  <p>Pour chaque case agent × jour, vous pouvez renseigner :</p>
+  <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:10px 0;font-size:11px;">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 10px;max-width:320px;">
+      <div style="display:flex;gap:4px;align-items:center;margin-bottom:5px;">
+        <input type="time" value="08:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:60px;color:#444;">
+        <span style="color:#aaa;font-size:10px;">→</span>
+        <input type="time" value="20:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:60px;color:#444;">
+      </div>
+      <div style="background:#f0f8ff;border:1px solid #bdd;border-radius:4px;padding:5px 7px;margin-bottom:5px;font-size:10px;color:#336;">
+        🍽 Pause déjeuner :
+        <input type="time" value="12:00" style="font-size:10px;background:#fff;border:1px solid #bdd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+        →
+        <input type="time" value="13:00" style="font-size:10px;background:#fff;border:1px solid #bdd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+      </div>
+      <div style="font-size:10px;color:#555;">
+        ☕ Pause 15 min :
+        <input type="checkbox" style="accent-color:#E8006E;"> <input type="time" value="10:00" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+        <input type="checkbox" style="accent-color:#E8006E;"> <input type="time" value="15:30" style="font-size:10px;background:#fafafa;border:1px solid #ddd;border-radius:3px;padding:1px 4px;width:56px;color:#444;">
+      </div>
+    </div>
+  </div>
+  <ul>
+    <li><b>Pause déjeuner</b> : saisissez l'heure de début et de fin. Elle est <b>déduite du total hebdomadaire</b>.</li>
+    <li><b>Pauses 15 min</b> (jusqu'à 2 par jour) : cochez la case et indiquez l'heure. Elles restent comptées comme du temps de travail mais sont visibles dans le planning pour éviter les chevauchements.</li>
+  </ul>
+  <p>Le tableau de couverture (bas de page) affiche pour chaque <b>tranche de 1 heure</b> : le nombre d'agents effectivement présents (hors déjeuner), avec des badges <b>🍽−n</b> (agents en pause déjeuner) et <b>☕n</b> (agents en pause 15 min) pour identifier les tensions.</p>
+
+  <h3>Historique, duplication & tendances 🗂️</h3>
+  <p>Chaque semaine saisie est <b>conservée automatiquement</b>. Le panneau « 🗂️ Historique, duplication &amp; tendances » (sous le planning, en vue d'une seule campagne) permet de :</p>
+  <ul>
+    <li><b>Mémoire</b> : liste des semaines déjà planifiées pour la campagne (agents, heures planifiées) — bouton <b>Voir</b> pour y naviguer.</li>
+    <li><b>Dupliquer</b> : recopier le roster et tous les créneaux d'une semaine source dans la semaine affichée (<b>⧉ Dupliquer la semaine précédente</b>, ou choix d'une semaine via « Dupliquer depuis… », ou <b>⧉ Dupliquer ici</b> dans la liste). Les créneaux sont automatiquement <b>remappés sur le même jour de semaine</b>. Écrasement confirmé si la semaine cible contient déjà un planning.</li>
+    <li><b>Tendance des jours équivalents</b> : sur <b>1, 2 ou 3 mois</b>, le volume d'appels moyen de chaque jour de semaine (même jour), avec min–max — pour dimensionner le planning jour par jour. L'analyse interroge INO jour par jour (jours passés mis en cache).</li>
+  </ul>
+  <div class="tip">💡 Pour préparer une nouvelle semaine, dupliquez la précédente puis ajustez : bien plus rapide que tout ressaisir. La tendance 3 mois aide à repérer les jours structurellement chargés.</div>
+
   <h3>Vue globale « ALL »</h3>
-  <p>Dans le sélecteur de campagne, sous « Vues groupées », l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes actives pour la semaine choisie — une visibilité globale en lecture seule (l'édition se fait toujours campagne par campagne).</p>
+  <p>Dans le sélecteur de campagne, l'option <b>🌐 Toutes les campagnes</b> empile les plannings de toutes les campagnes — lecture seule.</p>
+
   <h3>Pôles (regroupements nommés)</h3>
-  <p>Le bouton <span class="kbd">🗂️ Pôles</span> ouvre le panneau de regroupement : donnez un nom (ex. « Pôle Multi »), cochez au moins 2 campagnes, puis « + Créer le pôle ». Le pôle apparaît dans le sélecteur sous « Vues groupées » : sélectionnez-le pour voir côte à côte les plannings de ses campagnes, et pour les exporter en un clic. Les pôles sont partagés entre superviseurs ; la suppression d'un pôle n'affecte pas les campagnes elles-mêmes.</p>
+  <p>Le bouton <span class="kbd">🗂️ Pôles</span> ouvre le panneau de regroupement : donnez un nom, cochez au moins 2 campagnes, puis « + Créer le pôle ». Les pôles sont partagés entre superviseurs.</p>
+
   <h3>Exports PDF & Excel</h3>
   <ul>
-    <li><span class="kbd">📄 Export PDF</span> : ouvre une version imprimable A4 paysage du planning affiché (une campagne, un pôle ou toutes les campagnes) — cliquez sur « Imprimer / Enregistrer en PDF ».</li>
-    <li><span class="kbd">📊 Export Excel</span> : télécharge un fichier .xls du même contenu, un tableau par campagne.</li>
+    <li><span class="kbd">📄 Export PDF</span> : version imprimable A4 paysage du planning affiché.</li>
+    <li><span class="kbd">📊 Export Excel</span> : télécharge un fichier .xls, un tableau par campagne.</li>
   </ul>
-  <div class="tip">💡 Sélectionnez d'abord ce que vous voulez exporter (une campagne, un pôle ou « Toutes les campagnes ») et la bonne semaine : l'export porte exactement sur la vue affichée.</div>
+  <div class="tip">💡 Le total hebdomadaire est calculé automatiquement et exclut les pauses déjeuner. Utilisez les pauses 15 min à des horaires décalés pour que tous les agents ne soient pas absents simultanément.</div>
 </section>
 
 <section id="admin">
-  <h2>8. Administration ⚙</h2>
+  <h2>9. Administration ⚙</h2>
   <p>Réservée aux administrateurs :</p>
   <ul>
     <li><b>Statistiques système</b> : sessions actives, clients temps réel, état de la connexion INO, volumes du jour.</li>
@@ -150,12 +457,19 @@ ul{margin:6px 0 10px 22px;}
 </section>
 
 <section id="legende">
-  <h2>9. Légende des icônes & badges</h2>
+  <h2>10. Légende des icônes & badges</h2>
   <div class="icon-legend">
     <b>🎓</b><span>Agent en formation cette semaine (cliquable dans le planning pour activer/désactiver).</span>
     <b>⇄</b><span>Agent mutualisé — qualifié sur plusieurs campagnes.</span>
     <b>🌙</b><span>Astreinte : jour couvert par l'agent au registre d'astreinte ; en badge campagne, couverture de la semaine (vert 7/7 · orange partielle · rouge 0/7).</span>
+    <b>📱</b><span>Transfert GSM requis — bannière orange 30 min avant, rouge pendant l'astreinte active.</span>
+    <b>⚠ ALERTE</b><span>Service ouvert sans agent actif ni mutualisé disponible — vérification staffing urgente.</span>
+    <b>↔ mut.</b><span>Couverture assurée par des agents mutualisés (compétences multi-campagnes) — pas d'alerte rouge.</span>
+    <b>🍽−n</b><span>n agents en pause déjeuner sur ce créneau (déduits de la couverture effective).</span>
+    <b>☕n</b><span>n agents en pause 15 min sur ce créneau.</span>
+    <b>🏖</b><span>Jour férié (tableaux exécutifs) — volumes naturellement plus faibles, non comparables.</span>
     <b>📊</b><span>Tableau de bord exécutif.</span>
+    <b>🎯</b><span>Pilotage de la productivité agent.</span>
     <b>📡</b><span>Radar de couverture.</span>
     <b>🗓️</b><span>Planning de la semaine.</span>
     <b>🗂️</b><span>Pôles — regroupements de campagnes nommés.</span>
@@ -164,8 +478,25 @@ ul{margin:6px 0 10px 22px;}
   </div>
 </section>
 
-<div class="foot">Wisecom · Control Room INO · Notice d'utilisation — document interne</div>
+<section id="navigation">
+  <h2>11. Navigation entre pages</h2>
+  <p>Chaque page du Control Room affiche, en haut à droite, une barre de navigation sous forme de <b>pills</b> (pastilles arrondies icon + label). La page courante est mise en évidence en rose.</p>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0;">
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🏠 Tour de contrôle</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #E8006E;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#E8006E;background:#fff0f6;">📊 Exécutif ← page active</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📡 Couverture</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🌙 Astreinte</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📋 Agents jour</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">🗓️ Planning</span>
+    <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:#555;background:#f5f5f5;">📖 Notice</span>
+  </div>
+  <p>Sur la page principale (Tour de contrôle, thème sombre), les pills s'adaptent au thème : fond sombre <b>encadré</b> (bordure et léger relief pour mieux les repérer), icône + label court. Au survol, le bouton passe en <b>rose Wisecom</b> pour confirmer qu'il est cliquable. Sur les pages secondaires (thème clair), les pills sont blanches avec bordure légère.</p>
+  <p>Le bouton <span class="kbd">⚡ Simuler</span> (fond doré) génère des données de démonstration — uniquement pour les tests, jamais sur une session connectée à INO en production.</p>
+</section>
+
+<div class="foot">Wisecom · Control Room INO · Notice d'utilisation · Mise à jour 13/06/2026 — document interne</div>
 
 </div>
+<script src="/theme.js" defer></script>
 </body>
 </html>

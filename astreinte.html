@@ -7,41 +7,101 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#f3f3f3;color:#161616;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;}
-.header{background:#fff;border-bottom:1px solid #dedede;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.title{font-weight:700;font-size:15px;letter-spacing:.05em;}
-.subtitle{font-size:11px;color:#999;margin-top:2px;}
-.dot{width:8px;height:8px;border-radius:50%;background:#E8006E;box-shadow:0 0 8px #E8006E;display:inline-block;margin-right:8px;}
-.controls{background:#fff;border-bottom:1px solid #dedede;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.controls label{font-size:11px;color:#777;}
-input[type=date]{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
-select{background:#fafafa;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 10px;font-size:12px;}
+:root{
+  --pink:#E8006E; --pink-dark:#c2005a;
+  --pink-soft:rgba(232,0,110,.14); --pink-dim:rgba(232,0,110,.5);
+  --green:#30d158; --green-soft:rgba(48,209,88,.15);
+  --amber:#ff9f0a; --amber-soft:rgba(255,159,10,.15);
+  --red:#ff3b30;   --red-soft:rgba(255,59,48,.15);
+  /* DARK (défaut) */
+  --bg:#0c0d10; --card:#141618; --card-2:#191b1f;
+  --border:rgba(255,255,255,.07); --border-2:rgba(255,255,255,.05);
+  --txt:#e8e9ec; --txt-2:#9a9da5; --txt-3:#6e7180;
+  --hover:rgba(255,255,255,.03);
+  --night:#b794f4;
+}
+/* LIGHT */
+body.light{
+  --bg:#f0f1f6; --card:#fff; --card-2:#f6f7fb;
+  --border:rgba(0,0,0,.07); --border-2:rgba(0,0,0,.05);
+  --txt:#111318; --txt-2:#5a5d6a; --txt-3:#9a9daa;
+  --hover:rgba(232,0,110,.03);
+  --night:#7c3aed;
+}
+
+body{background:var(--bg);color:var(--txt-2);font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s;padding-bottom:40px;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#2a2d33;border-radius:5px;}
+body.light ::-webkit-scrollbar-thumb{background:#c8cad4;}
+
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;transition:background .25s,border-color .25s;}
+.title{font-weight:700;font-size:15px;letter-spacing:.05em;color:var(--txt);}
+.subtitle{font-size:11px;color:var(--txt-3);margin-top:2px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);display:inline-block;margin-right:8px;}
+
+.controls{background:var(--card);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;transition:background .25s,border-color .25s;}
+.controls label{font-size:11px;color:var(--txt-3);}
+input[type=date]{background:var(--card-2);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;}
+select{background:var(--card-2);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;}
 select:disabled{opacity:.5;cursor:not-allowed;}
-.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;}
-.btn-pink{background:#E8006E;color:#fff;}
-.btn-pink:disabled{opacity:.5;cursor:not-allowed;}
-.btn-dark{background:#fafafa;color:#161616;border:1px solid #dedede;}
+.btn{border:none;border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;font-weight:600;font-family:inherit;transition:background .15s,border-color .15s,color .15s,opacity .15s;}
+.btn-pink{background:var(--pink);color:#fff;box-shadow:0 2px 10px rgba(232,0,110,.3);}
+.btn-pink:hover:not(:disabled){background:var(--pink-dark);}
+.btn-pink:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;}
+.btn-dark{background:var(--card-2);color:var(--txt);border:1px solid var(--border);}
+.btn-dark:hover{border-color:var(--pink);color:var(--pink);}
+
 .content{padding:16px 20px;}
-.panel{background:#fff;border:1px solid #dedede;border-radius:10px;padding:16px;margin-bottom:16px;}
-.panel-title{font-size:12px;color:#777;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.loading{text-align:center;padding:30px;color:#999;}
-.empty-hint{color:#777;font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
-.success-toast{position:fixed;bottom:20px;right:20px;background:#f0fff5;border:1px solid #1a8f44;color:#1a8f44;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
-.note{font-size:11px;color:#777;line-height:1.6;margin-top:4px;}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.5);transition:background .25s,border-color .25s,box-shadow .25s;}
+body.light .panel{box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.panel-title{font-size:13px;font-weight:700;color:var(--txt);margin:-2px -16px 14px;padding:0 16px 12px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.loading{text-align:center;padding:30px;color:var(--txt-3);}
+.empty-hint{color:var(--txt-2);font-size:12px;padding:24px 16px;text-align:center;line-height:1.6;}
+.success-toast{position:fixed;bottom:20px;right:20px;background:var(--green-soft);border:1px solid var(--green);color:var(--green);padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;display:none;z-index:999;max-width:380px;}
+.note{font-size:11px;color:var(--txt-3);line-height:1.6;margin-top:4px;}
+
+.nav-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:600;color:var(--txt-2);text-decoration:none;background:var(--card-2);transition:all .15s;white-space:nowrap;}
+.nav-pill:hover{border-color:var(--pink);color:#fff;background:var(--pink);}
+.nav-pill.active{border-color:var(--pink);color:var(--pink);background:var(--pink-soft);}
+.nav-pill .n-icon{font-size:11px;}
+
+/* ── CHIPS (statuts sémantiques) ── */
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;line-height:1.4;}
+.chip.ok,.chip.up{background:var(--green-soft);color:var(--green);}
+.chip.warn{background:var(--amber-soft);color:var(--amber);}
+.chip.err,.chip.down{background:var(--red-soft);color:var(--red);}
 
 .astreinte-row{display:flex;gap:8px;flex-wrap:wrap;}
-.astreinte-cell{flex:1 1 130px;min-width:130px;background:#fafafa;border:1px solid #dedede;border-radius:8px;padding:8px 10px;}
-.astreinte-day{font-size:11px;color:#777;margin-bottom:6px;text-transform:capitalize;white-space:nowrap;}
-.astreinte-input{width:100%;background:#fff;color:#161616;border:1px solid #dedede;border-radius:6px;padding:6px 8px;font-size:12px;}
-.astreinte-input.empty{border-color:#ffd0d0;background:#fff5f5;color:#dc2626;}
-.astreinte-input.empty::placeholder{color:#e57373;}
-.astreinte-tag{font-size:10px;color:#E8006E;margin-top:4px;min-height:13px;}
+.astreinte-cell{flex:1 1 150px;min-width:150px;background:var(--card-2);border:1px solid var(--border);border-radius:12px;padding:8px 10px;transition:background .25s,border-color .25s;}
+.astreinte-day{font-size:11px;color:var(--txt-3);margin-bottom:6px;text-transform:capitalize;white-space:nowrap;}
+.astreinte-input{width:100%;background:var(--card);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;}
+.astreinte-input.empty{border-color:var(--red);background:var(--red-soft);color:var(--red);}
+.astreinte-input.empty::placeholder{color:var(--red);opacity:.7;}
+.ast-times{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--txt-3);margin-top:5px;}
+.ast-times input[type=time]{width:72px;padding:3px 4px;font-size:10px;background:var(--card);color:var(--txt);border:1px solid var(--border);border-radius:6px;font-family:inherit;}
+.ast-times input[type=time]:disabled{opacity:.35;}
+.ast-gsm-wrap{display:flex;align-items:center;gap:4px;margin-top:4px;}
+.ast-gsm-label{font-size:10px;color:var(--txt-3);cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.ast-gsm-label input{accent-color:var(--amber);}
+.ast-gsm-label.gsm-on{color:var(--amber);font-weight:700;}
+.astreinte-tag{font-size:10px;color:var(--pink);margin-top:4px;min-height:13px;}
 .cov-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
 
+/* Tableau de couverture astreinte */
+.ast-cov-table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;}
+.ast-cov-table th{padding:7px 8px;color:var(--txt-3);font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--card-2);white-space:nowrap;}
+.ast-cov-table th:first-child{text-align:left;}
+.ast-cov-table td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--border-2);white-space:nowrap;color:var(--txt);}
+.ast-cov-table td:first-child{text-align:left;font-weight:600;color:var(--txt-2);font-size:10px;}
+.ast-cov-table tbody tr:hover td{background:var(--hover);}
+.ast-cov-table .wk{background:var(--card-2);}
+.ast-cov-table .night-row td:first-child{color:var(--night);}
+.ast-cov-zero{color:var(--red);font-weight:700;}
+
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000;}
-.modal-box{background:#fff;border:1px solid #dedede;border-radius:10px;padding:20px;max-width:420px;width:90%;}
-.modal-title{font-size:14px;font-weight:700;margin-bottom:8px;}
-.modal-msg{font-size:12px;color:#777;line-height:1.5;margin-bottom:16px;}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:420px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.5);}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--txt);}
+.modal-msg{font-size:12px;color:var(--txt-2);line-height:1.5;margin-bottom:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;}
 
 @media (max-width:600px){
@@ -61,7 +121,13 @@ select:disabled{opacity:.5;cursor:not-allowed;}
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span id="sse-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#3d2e1a;color:#ff9f0a;">◌ INO…</span>
-    <a href="/" class="btn btn-dark" style="text-decoration:none;">← Tour de contrôle</a>
+    <a href="/" class="nav-pill"><span class="n-icon">🏠</span> Tour de contrôle</a>
+    <a href="/executif" class="nav-pill"><span class="n-icon">📊</span> Exécutif</a>
+    <a href="/pilotage" class="nav-pill"><span class="n-icon">🎯</span> Pilotage</a>
+    <a href="/couverture" class="nav-pill"><span class="n-icon">📡</span> Couverture</a>
+    <a href="/astreinte" class="nav-pill active"><span class="n-icon">🌙</span> Astreinte</a>
+    <a href="/planning" class="nav-pill"><span class="n-icon">🗓️</span> Planning</a>
+    <a href="/notice" class="nav-pill"><span class="n-icon">📖</span> Notice</a>
   </div>
 </div>
 
@@ -83,11 +149,14 @@ select:disabled{opacity:.5;cursor:not-allowed;}
       <div class="loading">Chargement du registre…</div>
     </div>
     <div class="note">
-      Saisissez le nom de l'agent qui couvre l'astreinte pour chaque jour, pour chaque campagne suivie. Une cellule en rouge signale un jour <b>sans personne d'affecté</b>.
-      La saisie propose <b>tous les agents qualifiés sur la compétence de la campagne</b> (pas seulement ceux actifs aujourd'hui) — à défaut de compétences chargées, l'ensemble des agents connus est proposé.
-      Le badge <span style="color:#E8006E;">⇄ agent mutualisé</span> signale un agent également qualifié sur d'autres campagnes — utile pour repérer une éventuelle surcharge avant de confirmer l'affectation.
-      Le registre est partagé entre tous les superviseurs et enregistré automatiquement.
+      Saisissez le nom de l'agent, ses heures (début → fin) et cochez <b>📱 Transfert GSM</b> si l'activation du renvoi doit être rappelée. Une cellule rouge = jour sans agent. Le badge <span style="color:#E8006E;">⇄ agent mutualisé</span> signale un agent qualifié sur d'autres campagnes.
+      <br>Le registre est partagé entre tous les superviseurs et enregistré automatiquement.
     </div>
+  </div>
+
+  <div class="panel" id="ast-coverage-panel" style="display:none;">
+    <div class="panel-title"><span>📊 Couverture astreinte — TC présent par tranche horaire (créneaux 2h)</span></div>
+    <div id="ast-coverage-wrap"></div>
   </div>
 </div>
 
@@ -118,8 +187,11 @@ let pushTimer = null;
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 // Identifiant HTML stable pour le <datalist> de suggestions propre à une campagne
 function campSlug(camp){return "ag-sugg-"+String(camp).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-zA-Z0-9]+/g,"-").toLowerCase();}
+// Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
+// et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   return names[new Date(dateStr+"T00:00:00").getDay()];
@@ -129,20 +201,27 @@ function nextMonday(){
   const d=new Date();
   const diff=((8-d.getDay())%7)||7;
   d.setDate(d.getDate()+diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
 }
 // Ramène n'importe quelle date au lundi de sa semaine (le registre s'organise toujours semaine entière)
 function mondayOf(dateStr){
   const d=new Date((dateStr||nextMonday())+"T00:00:00");
   const diff=(d.getDay()+6)%7;
   d.setDate(d.getDate()-diff);
-  return d.toISOString().slice(0,10);
+  return isoLocal(d);
 }
 function weekDates(monday){
   const out=[];
   for(let i=0;i<7;i++)out.push(shiftDateStr(monday,i));
   return out;
 }
+
+function timeToMinutes(t){if(!t)return NaN;const p=String(t).split(":");return Number(p[0])*60+(Number(p[1])||0);}
+// Lecture rétrocompatible des entrées (ancien format string ou nouveau format objet)
+function entryName(v){return typeof v==="string"?v:(v&&v.name)||"";}
+function entryStart(v){return(typeof v==="object"&&v&&v.start)||"";}
+function entryEnd(v){return(typeof v==="object"&&v&&v.end)||"";}
+function entryGsm(v){return!!(typeof v==="object"&&v&&v.gsm);}
 
 function showToast(msg,color){
   const t=document.getElementById("toast");
@@ -258,7 +337,7 @@ async function loadAgentRoster(){
     agentRoster=built.names;agentCampMap=built.campMap;campAgentsMap=built.byCamp;
   }catch(e){
     try{
-      const today=new Date().toISOString().slice(0,10);
+      const today=isoLocal(new Date());
       const r=await fetch(`${INO_BASE}/agents-day?date=${today}&hDeb=08:00&hFin=20:00`);
       const d=await r.json();
       if(d.error)throw new Error(d.error);
@@ -289,13 +368,33 @@ async function loadStore(){
     showToast("⚠ Registre indisponible — vérifiez la connexion","#b45309");
   }
 }
+// Clés d'entrée modifiées localement (format "camp|YYYY-MM-DD")
+const _dirtyAst=new Set();
 function pushRegistry(){
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(()=>{
-    fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:registry})})
-      .then(r=>r.json()).then(d=>{
-        astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
-      }).catch(()=>astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626"));
+  const localSnap=JSON.parse(JSON.stringify(registry));
+  const dirtySnap=new Set(_dirtyAst);
+  pushTimer=setTimeout(async()=>{
+    try{
+      // Rebase : récupère l'état serveur, écrase seulement les clés dirty
+      const storeR=await fetch(`${INO_BASE}/api/store`);
+      const storeD=await storeR.json();
+      const srv=(storeD&&storeD.astreintes&&typeof storeD.astreintes==="object")?storeD.astreintes:{tracked:[],entries:{}};
+      const merged={
+        tracked:localSnap.tracked,
+        entries:{...srv.entries}
+      };
+      dirtySnap.forEach(k=>{
+        if(localSnap.entries[k]!=null)merged.entries[k]=localSnap.entries[k];
+        else delete merged.entries[k]; // entrée supprimée localement
+        _dirtyAst.delete(k);
+      });
+      const r=await fetch(`${INO_BASE}/api/store`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:"astreintes",value:merged})});
+      const d=await r.json();
+      astreinteStatus(d&&d.ok?"Registre enregistré ✓":"Échec de l'enregistrement","#"+(d&&d.ok?"30d158":"ff3b30"));
+    }catch(e){
+      astreinteStatus("Échec de l'enregistrement (réseau)","#dc2626");
+    }
   },600);
 }
 
@@ -310,27 +409,49 @@ function removeTracked(camp){
   pushRegistry();
   renderAll();
 }
-function commitEntry(inp){
-  const camp=inp.dataset.camp,date=inp.dataset.date;
-  const v=inp.value.trim();
+function commitEntry(cell){
+  const camp=cell.dataset.camp,date=cell.dataset.date;
+  const nameInp=cell.querySelector(".astreinte-input");
+  const startInp=cell.querySelector(".t-ast-start");
+  const endInp=cell.querySelector(".t-ast-end");
+  const gsmInp=cell.querySelector(".t-ast-gsm");
+  const gsmLbl=cell.querySelector(".ast-gsm-label");
   const key=camp+"|"+date;
-  if(v)registry.entries[key]=v;else delete registry.entries[key];
-  inp.value=v;
-  inp.classList.toggle("empty",!v);
-  const tag=inp.parentElement.querySelector(".astreinte-tag");
-  if(tag)tag.textContent=(v&&isMutualise(v))?"⇄ agent mutualisé":"";
-  const card=inp.closest(".astreinte-camp");
+  _dirtyAst.add(key);
+  const name=(nameInp.value||"").trim();
+  nameInp.value=name;
+  nameInp.classList.toggle("empty",!name);
+  const dis=!name;
+  [startInp,endInp,gsmInp].forEach(i=>{if(i)i.disabled=dis;});
+  if(!name){
+    delete registry.entries[key];
+  }else{
+    const entry={name};
+    if(startInp&&startInp.value)entry.start=startInp.value;
+    if(endInp&&endInp.value)entry.end=endInp.value;
+    if(gsmInp&&gsmInp.checked){
+      entry.gsm=true;
+      if(!entry.start)showToast("⚠ GSM coché sans heure de début — renseignez l'heure de prise d'astreinte pour déclencher l'alerte automatique","#b45309");
+    }
+    registry.entries[key]=entry;
+  }
+  const tag=cell.querySelector(".astreinte-tag");
+  if(tag)tag.textContent=(name&&isMutualise(name))?"⇄ agent mutualisé":"";
+  if(gsmLbl)gsmLbl.classList.toggle("gsm-on",!!(gsmInp&&gsmInp.checked&&name));
+  const card=cell.closest(".astreinte-camp");
   if(card)updateCoverageBadge(card,camp);
+  renderCoveragePanel();
   pushRegistry();
 }
 function updateCoverageBadge(card,camp){
   const monday=mondayOf(document.getElementById("a-week").value);
   const dates=weekDates(monday);
-  const covered=dates.filter(d=>registry.entries[camp+"|"+d]).length;
+  const covered=dates.filter(d=>!!entryName(registry.entries[camp+"|"+d])).length;
+  const gsmN=dates.filter(d=>entryGsm(registry.entries[camp+"|"+d])).length;
   const badge=card.querySelector(".cov-badge");
   if(!badge)return;
   const col=covered===7?"#1a8f44":(covered===0?"#dc2626":"#b45309");
-  badge.textContent=`${covered}/7 jours couverts`;
+  badge.textContent=`${covered}/7 jours couverts`+(gsmN?` · 📱 ${gsmN}`:``);
   badge.style.background=col+"22";badge.style.color=col;badge.style.borderColor=col;
 }
 
@@ -381,16 +502,33 @@ function renderGrid(){
       </div>
       <div class="astreinte-row">
         ${dates.map(d=>{
-          const name=registry.entries[camp+"|"+d]||"";
+          const v=registry.entries[camp+"|"+d]||"";
+          const name=entryName(v);
+          const start=entryStart(v);
+          const end=entryEnd(v);
+          const gsm=entryGsm(v);
           const mut=name&&isMutualise(name);
-          return `<div class="astreinte-cell">
+          const dis=!name;
+          return `<div class="astreinte-cell" data-camp="${esc(camp)}" data-date="${d}">
             <div class="astreinte-day">${esc(dayName(d))} ${esc(fmtDate(d))}</div>
-            <input type="text" list="${dlId}" class="astreinte-input${name?"":" empty"}" data-camp="${esc(camp)}" data-date="${d}" placeholder="Non assigné" value="${esc(name)}">
+            <input type="text" list="${dlId}" class="astreinte-input${name?"":" empty"}" placeholder="Non assigné" value="${esc(name)}">
+            <div class="ast-times" title="Horaire de début et fin de l'astreinte — nécessaire pour la couverture par tranche">
+              🕐 <input type="time" class="t-ast-start" value="${esc(start)}" ${dis?"disabled":""}>
+              <span>→</span>
+              <input type="time" class="t-ast-end" value="${esc(end)}" ${dis?"disabled":""}>
+            </div>
+            <div class="ast-gsm-wrap">
+              <label class="ast-gsm-label${gsm?" gsm-on":""}" title="Cocher si un transfert GSM doit être activé au début de cette période — une alerte apparaîtra 30 min avant dans le tour de contrôle">
+                <input type="checkbox" class="t-ast-gsm" ${gsm?"checked":""} ${dis?"disabled":""}> 📱 Transfert GSM
+              </label>
+            </div>
             <div class="astreinte-tag">${mut?"⇄ agent mutualisé":""}</div>
           </div>`;
         }).join("")}
       </div>`;
-    card.querySelectorAll(".astreinte-input").forEach(inp=>inp.addEventListener("change",()=>commitEntry(inp)));
+    card.querySelectorAll(".astreinte-cell").forEach(cell=>{
+      cell.querySelectorAll("input").forEach(i=>i.addEventListener("change",()=>commitEntry(cell)));
+    });
     card.querySelector("[data-untrack]").addEventListener("click",async()=>{
       const ok=await confirmModal("Retirer du registre",`Retirer « ${camp} » du registre d'astreinte ? Les affectations déjà saisies sont conservées et réapparaîtront si vous suivez de nouveau cette campagne.`,"Retirer");
       if(!ok)return;
@@ -401,9 +539,78 @@ function renderGrid(){
   });
 }
 
+// ── Couverture astreinte par tranche (12 créneaux de 2h sur 24h) ─────────────
+function slotLabel(i){const h=i*2;return`${String(h).padStart(2,"0")}h–${String(h+2).padStart(2,"0")}h`;}
+function isNightSlot(i){return i<=3||i>=9;} // 00h-08h et 18h-24h
+
+function computeAstreinteCoverage(monday,dates){
+  const perSlot=dates.map(()=>Array(12).fill(0));
+  const perNames=dates.map(()=>Array(12).fill(null).map(()=>[]));
+  let hasAny=false;
+  registry.tracked.forEach(camp=>{
+    dates.forEach((d,di)=>{
+      const v=registry.entries[camp+"|"+d];
+      const name=entryName(v);
+      if(!name)return;
+      const startStr=entryStart(v),endStr=entryEnd(v);
+      if(!startStr)return; // heures requises pour la couverture
+      const a=timeToMinutes(startStr);
+      if(isNaN(a))return;
+      // "00:00" comme heure de fin = fin de journée (1440 min), pas 0
+      const b=endStr==="00:00"?1440:(endStr?timeToMinutes(endStr):NaN);
+      const bValid=!isNaN(b)&&endStr;
+      const overnight=bValid&&b!==1440&&b<=a;
+      hasAny=true;
+      const endOnDay=overnight?24*60:(bValid?b:24*60);
+      for(let h=0;h<12;h++){
+        const s0=h*2*60,s1=s0+120;
+        if(a<s1&&endOnDay>s0){perSlot[di][h]++;perNames[di][h].push(camp+": "+name);}
+      }
+      if(overnight&&di+1<7){
+        for(let h=0;h<12;h++){
+          const s0=h*2*60,s1=s0+120;
+          if(b>s0){perSlot[di+1][h]++;perNames[di+1][h].push(camp+": "+name+" ↗");}
+        }
+      }
+    });
+  });
+  return{perSlot,perNames,hasAny};
+}
+
+function renderCoveragePanel(){
+  const panel=document.getElementById("ast-coverage-panel");
+  if(!panel)return;
+  if(!registry.tracked.length){panel.style.display="none";return;}
+  const monday=mondayOf(document.getElementById("a-week").value);
+  const dates=weekDates(monday);
+  const cov=computeAstreinteCoverage(monday,dates);
+  if(!cov.hasAny){
+    panel.style.display="none";
+    return;
+  }
+  panel.style.display="block";
+  const isWk=di=>di>=5;
+  const thead=`<tr><th>Tranche</th>${dates.map((d,di)=>`<th class="${isWk(di)?"wk":""}">${esc(dayName(d).slice(0,3))}<br><span style="font-weight:400;color:#999;font-size:10px;">${esc(fmtDate(d))}</span></th>`).join("")}</tr>`;
+  let tbody="";
+  for(let i=0;i<12;i++){
+    const night=isNightSlot(i);
+    tbody+=`<tr class="${night?"night-row":""}"><td>${slotLabel(i)}${night?" 🌙":""}</td>`;
+    dates.forEach((d,di)=>{
+      const n=cov.perSlot[di][i];
+      const names=cov.perNames[di][i];
+      const bg=n===0?"":(n>=3?"background:#1a8f4426;":(n>=1?"background:#1a8f4415;":""));
+      tbody+=`<td class="${isWk(di)?"wk":""}" style="${bg}" title="${esc(names.join("\n")||"Aucune couverture")}"><span${n===0&&night?' class="ast-cov-zero"':""}>${n||"–"}</span></td>`;
+    });
+    tbody+="</tr>";
+  }
+  document.getElementById("ast-coverage-wrap").innerHTML=`<table class="ast-cov-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <div style="margin-top:7px;font-size:10px;color:#888;">Chiffres = nombre de TC couvrant la tranche (heures de début/fin requises dans chaque cellule) · ↗ = report d'une astreinte de nuit commencée la veille · Survol d'une cellule = détail des agents</div>`;
+}
+
 function renderAll(){
   renderAddSelect();
   renderGrid();
+  renderCoveragePanel();
 }
 
 function setWeek(dateStr){
@@ -443,6 +650,16 @@ document.getElementById("btn-add-camp").addEventListener("click",()=>{
   renderAll();
 })();
 connectSSE();
+
+function _astFlushNow(){
+  if(pushTimer===null||!_dirtyAst.size)return;
+  clearTimeout(pushTimer);
+  pushTimer=null;
+  navigator.sendBeacon(`${INO_BASE}/api/store`,JSON.stringify({key:"astreintes",value:registry}));
+}
+window.addEventListener("beforeunload",_astFlushNow);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")_astFlushNow(); });
 </script>
+<script src="/theme.js" defer></script>
 </body>
 </html>

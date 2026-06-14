@@ -136,6 +136,7 @@ body.light .topbar{background:var(--c-white);}
    Tokens: --motion-fast, --motion-base, --motion-slow
    ─────────────────────────────────────────────────────── */
 @keyframes pulse{0%,100%{box-shadow:0 0 10px var(--c-pink);}50%{box-shadow:0 0 18px var(--c-pink),0 0 36px rgba(232,0,110,.4);}}
+@keyframes spin{to{transform:rotate(360deg);}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 .brand{font-weight:var(--fw-black);font-size:var(--fs-lg);letter-spacing:.08em;color:var(--c-white);}
 body.light .brand{color:var(--s-1);}
@@ -168,10 +169,10 @@ body.light .btn-sep{background:var(--s-light-border);}
 .btn:focus-visible,.ck-btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--c-pink);outline-offset:2px;}
 .btn-primary{background:linear-gradient(135deg,var(--c-pink),var(--c-pink-dark));color:var(--c-white);}
 .btn-primary:hover{box-shadow:0 4px 14px rgba(232,0,110,.4);}
-.btn-dark{background:var(--s-3);color:var(--t-secondary);border:1px solid var(--s-4);}
-body.light .btn-dark{background:var(--s-light-2);color:var(--s-4);border-color:var(--t-secondary);}
-.btn-dark:hover{border-color:var(--t-disabled);color:var(--c-white);}
-body.light .btn-dark:hover{border-color:var(--t-muted);color:var(--s-1);}
+.btn-dark{background:#202020;color:#a0a0a0;border:1px solid #2e2e2e;}
+.btn-dark:hover{background:#2a2a2a;border-color:#484848;color:#e0e0e0;}
+body.light .btn-dark{background:#f3f3f8;color:#444;border-color:#c8c8d4;}
+body.light .btn-dark:hover{background:#eaeaf2;border-color:#a8a8c0;color:#1a1a2e;}
 .btn-refresh{background:linear-gradient(135deg,var(--c-pink),var(--c-pink-dark));color:var(--c-white);font-weight:var(--fw-black);padding:8px 18px;font-size:var(--fs-md);letter-spacing:.02em;box-shadow:0 2px 12px rgba(232,0,110,.3);}
 .btn-refresh:hover{box-shadow:var(--shadow-pink);}
 .btn-filter{background:var(--s-3);color:var(--t-secondary);border:1px solid var(--s-4);}
@@ -180,12 +181,60 @@ body.light .btn-filter{background:var(--s-light-2);color:var(--s-4);border-color
 .btn-logout{background:transparent;color:#e84444;border:1px solid #3a1a1a;font-size:var(--fs-sm);padding:5px 9px;}
 .btn-logout:hover{background:#2a1010;border-color:#ff4444;}
 body.light .btn-logout{border-color:#ffcccc;color:#cc0000;}
-/* Boutons tertiaires (Admin, Simuler, Déco) */
+/* Boutons tertiaires (Admin, Déco) */
 .btn-ghost{background:transparent;color:var(--t-muted);border:1px solid transparent;font-size:var(--fs-sm);padding:5px 8px;}
 .btn-ghost:hover{background:var(--s-3);border-color:var(--s-4);color:var(--t-secondary);}
 body.light .btn-ghost{color:var(--t-muted);border-color:transparent;}
 body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);color:var(--t-disabled);}
-/* Boutons-icônes (raccourcis vers les autres pages) : agrandis + contrastés pour rester lisibles */
+/* ── NAV PILLS ──────────────────────────────────────────────────
+   Navigation inter-pages. Texte seul, sans emoji (rendu cross-
+   platform irrégulier). Discret au repos → accent rose au survol.
+   ─────────────────────────────────────────────────────────── */
+.btn-nav{
+  background:#1c1c1c;border:1px solid #343434;
+  border-radius:20px;padding:5px 13px;
+  color:#c2c2c2;font-size:11px;font-weight:600;
+  display:flex;align-items:center;
+  text-decoration:none;white-space:nowrap;min-height:30px;
+  transition:all var(--motion-fast);
+  letter-spacing:.02em;
+}
+.btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;box-shadow:0 3px 10px rgba(232,0,110,.3);}
+.btn-nav:focus-visible{outline:2px solid var(--c-pink);outline-offset:2px;}
+.btn-nav-logout{
+  border:1px solid #2e1c1c;background:transparent;color:#b84242;
+  border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;
+  display:flex;align-items:center;min-height:30px;
+  transition:all var(--motion-fast);text-decoration:none;white-space:nowrap;cursor:pointer;
+  letter-spacing:.02em;
+}
+.btn-nav-logout:hover{background:#160a0a;border-color:#b84242;color:#e05050;}
+body.light .btn-nav{background:#fff;border-color:#d4d4e0;color:#2c2c3c;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+body.light .btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;box-shadow:0 3px 10px rgba(232,0,110,.25);}
+body.light .btn-nav-logout{border-color:#f0c8c8;color:#c0392b;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+body.light .btn-nav-logout:hover{background:#fff4f4;border-color:#c0392b;}
+
+/* ── CLUSTER D'OUTILS (actions de la page : tableau, exports) ── */
+.tool-cluster{display:flex;align-items:center;gap:4px;background:#181818;border:1px solid #2c2c2c;border-radius:12px;padding:4px 6px;flex-shrink:0;}
+body.light .tool-cluster{background:#f0f0f6;border-color:#d8d8e4;}
+.tool-cluster .btn-sep{margin:0 4px;}
+
+/* ── BARRE DE NAVIGATION DÉDIÉE (2ᵉ rangée du header) ── */
+.navbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px 20px;border-top:1px solid #161616;flex-wrap:wrap;
+}
+body.light .navbar{border-top-color:#ececec;background:#f7f7f9;}
+.nav-cluster{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.nav-cluster-label{font-size:var(--fs-xs);font-weight:var(--fw-bold);color:var(--t-disabled);text-transform:uppercase;letter-spacing:.08em;margin-right:4px;flex-shrink:0;}
+body.light .nav-cluster-label{color:#9a9aa0;}
+
+/* ── CHAMPS DE CONTRÔLE (label au-dessus de l'input) ── */
+.field{display:flex;flex-direction:column;gap:3px;}
+.field-lbl{font-size:8px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding-left:2px;white-space:nowrap;}
+body.light .field-lbl{color:#888;}
+.field-inputs{display:flex;align-items:center;gap:5px;}
+/* garde la compatibilité ancien code qui utilise encore btn-icon-link */
 .btn-icon-link{font-size:18px;line-height:1;padding:7px 12px;background:var(--s-3);border:1px solid var(--s-4);color:var(--t-secondary);}
 .btn-icon-link:hover{background:var(--s-4);border-color:var(--t-disabled);color:var(--c-white);}
 body.light .btn-icon-link{background:var(--s-light-2);border-color:var(--s-light-border);color:var(--s-4);}
@@ -203,17 +252,17 @@ body.light .controls-bar{border-top-color:#e8e8e8;}
 
 /* Rangée A — Période + Vues */
 .ctrl-row-a{
-  display:flex;align-items:center;gap:6px;
-  padding:7px 20px;
+  display:flex;align-items:flex-end;gap:18px;
+  padding:10px 20px;
   border-bottom:1px solid #141414;
   flex-wrap:wrap;
 }
-body.light .ctrl-row-a{border-bottom-color:var(--t-primary);}
+body.light .ctrl-row-a{border-bottom-color:#ececec;}
 
 /* Rangée B — Filtres + Isoler */
 .ctrl-row-b{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 20px;
+  display:flex;align-items:flex-end;gap:18px;
+  padding:10px 20px;
   flex-wrap:wrap;
   min-height:42px;
 }
@@ -250,7 +299,6 @@ body.light input[type=date],body.light input[type=time],body.light select{
 }
 body.light .ck-btn{background:var(--s-light-2);border-color:#ccc;color:var(--s-4);}
 body.light .kpi-card{background:var(--c-white);border-color:var(--s-light-border);}
-body.light .btn-dark{background:var(--s-light-2);color:var(--s-4);border-color:#ccc;}
 body.light input[type=date]:focus,body.light input[type=time]:focus,body.light select:focus{
   border-color:var(--c-pink);background:var(--c-pink-subtle);
 }
@@ -310,9 +358,6 @@ body.light .preset-select{background:var(--s-light-2);border-color:var(--s-light
 .smart-alert.acknowledged{opacity:.55;border-color:#1f1f1f;}
 
 /* Switch */
-.sw-label{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:var(--fs-md2);user-select:none;padding:4px 0;}
-.sw-track{width:40px;height:21px;border-radius:11px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;}
-.sw-thumb{position:absolute;top:2px;width:17px;height:17px;border-radius:50%;background:var(--c-white);transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4);}
 
 /* Smart alerts */
 /* ── ALERTES & FEEDBACK ────────────────────────────────────
@@ -405,7 +450,7 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
    saturer — quelques indicateurs-clés à scanner avant les autres)
    ─────────────────────────────────────────────────────── */
 .kpi-grid{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:16px;}
-.kpi-card{background:#141414;border:1px solid var(--s-3);border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;}
+.kpi-card{background:linear-gradient(165deg,#1a1a1a,#131313);border:1px solid #2c2c2c;border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .kpi-card.hero{min-width:150px;border-color:rgba(232,0,110,.25);background:linear-gradient(135deg,#1a0810,#160610);padding:16px 20px;}
 .kpi-card.hero .kpi-value{font-size:var(--fs-kpi-hero)!important;}
 .kpi-card.hero .kpi-label{color:var(--c-pink);font-size:var(--fs-sm);}
@@ -413,7 +458,7 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
 .kpi-card.priority{border-left:3px solid var(--c-pink);}
 .kpi-card.priority .kpi-label{color:var(--c-pink-hi);}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
-body.light .kpi-card{background:var(--s-light-1);border-color:#e8e8e8;}
+body.light .kpi-card{background:#fff;border-color:#e4e4ec;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .kpi-card.alert{border-color:var(--c-pink);background:linear-gradient(135deg,#1a0810,#141414);}
 .kpi-card.good{border-color:var(--c-green);background:linear-gradient(135deg,#081a10,#141414);}
 .kpi-label{font-size:var(--fs-xs);color:var(--t-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:var(--fw-medium);}
@@ -448,11 +493,12 @@ body.light .tab.active{color:var(--c-pink);}
    .modal-overlay (z:999), .criteres-page (z:600 fullscreen)
    Tokens: --s-1, --shadow-md, --r-md, --motion-base
    ─────────────────────────────────────────────────────── */
-.panel{background:var(--s-1);border:1px solid var(--s-3);border-radius:11px;overflow:hidden;margin-bottom:14px;}
-body.light .panel{background:var(--c-white);border-color:var(--s-light-border);}
-.panel-header{padding:12px 16px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;}
-body.light .panel-header{border-bottom-color:var(--t-primary);}
-.panel-title{font-size:var(--fs-body);color:var(--t-muted);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.05em;}
+.panel{background:var(--s-1);border:1px solid #2c2c2c;border-radius:11px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+body.light .panel{background:var(--c-white);border-color:#e4e4ec;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.panel-header{padding:12px 16px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;background:#131313;}
+body.light .panel-header{border-bottom-color:#ececf2;background:#fafafc;}
+.panel-title{font-size:var(--fs-body);color:#b0b0b0;font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.05em;}
+body.light .panel-title{color:#555;}
 
 /* Table */
 .tbl-wrap{overflow-x:auto;}
@@ -464,11 +510,11 @@ body.light .panel-header{border-bottom-color:var(--t-primary);}
    Tokens: --s-1, --s-2, --s-4, --t-primary, --t-disabled
    ─────────────────────────────────────────────────────── */
 .tbl{width:100%;border-collapse:collapse;font-size:var(--fs-body);}
-.tbl th{padding:8px 10px;color:var(--t-disabled);font-weight:var(--fw-medium);text-align:left;border-bottom:1px solid #1a1a1a;background:var(--s-0);font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
+.tbl th{padding:8px 10px;color:#777;font-weight:var(--fw-medium);text-align:left;border-bottom:1px solid #2a2a2a;background:var(--s-0);font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
 body.light .tbl th{background:var(--s-light-2);border-bottom-color:var(--s-light-border);color:var(--t-muted);}
 .tbl th:hover,.tbl th.active{color:var(--c-pink);}
-.tbl td{padding:8px 10px;border-bottom:1px solid #141414;vertical-align:middle;transition:background .1s;}
-body.light .tbl td{border-bottom-color:var(--s-light-2);}
+.tbl td{padding:8px 10px;border-bottom:1px solid #1e1e1e;vertical-align:middle;transition:background .1s;color:#cccccc;}
+body.light .tbl td{border-bottom-color:var(--s-light-2);color:#222;}
 .tbl tr:hover td{background:var(--s-2);}
 body.light .tbl tr:hover td{background:#fff8fc;}
 .tbl .total-row td{background:#1a0a0f!important;border-top:2px solid var(--c-pink);font-weight:var(--fw-bold);}
@@ -580,6 +626,49 @@ body.light .backlog-card{background:var(--c-white);border-color:#e8e8e8;}
 .backlog-camp{font-size:var(--fs-body);color:var(--t-secondary);font-weight:var(--fw-medium);}
 body.light .backlog-camp{color:var(--s-4);}
 .backlog-input{width:60px;background:var(--s-0);border:1px solid var(--s-4);border-radius:var(--r-sm);padding:4px 6px;font-size:var(--fs-md);color:var(--c-pink);font-weight:var(--fw-bold);text-align:right;font-family:inherit;outline:none;}
+
+/* ── QUEUE STATUS — vue groupée par campagne ─────────────────────
+   Section par campagne : en-tête résumé + grille de cartes de files.
+   ─────────────────────────────────────────────────────────────── */
+.qs-camp-section{margin-bottom:18px;}
+.qs-camp-header{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;background:#111;
+  border-radius:7px 7px 0 0;border-bottom:2px solid var(--c-pink);
+}
+.qs-camp-name{font-size:11px;font-weight:800;color:#e2e2e2;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0;}
+.qs-camp-count{font-size:9px;font-weight:700;background:var(--c-pink);color:#fff;border-radius:10px;padding:2px 7px;flex-shrink:0;}
+.qs-camp-agg{margin-left:auto;display:flex;align-items:center;gap:18px;flex-shrink:0;}
+.qs-camp-agg-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.qs-camp-agg-val{font-size:14px;font-weight:800;line-height:1.1;}
+.qs-camp-agg-lbl{font-size:7px;color:#505050;text-transform:uppercase;letter-spacing:.07em;}
+.qs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;padding-top:7px;}
+.qs-card{
+  background:#161616;border:1px solid #222;border-left:3px solid #333;
+  border-radius:7px;padding:9px 11px;transition:border-color .12s;
+}
+.qs-card:hover{border-color:#383838;border-left-color:inherit;}
+.qs-card--ok  {border-left-color:#2aa24a;}
+.qs-card--warn{border-left-color:#c07800;}
+.qs-card--err {border-left-color:#c02828;}
+.qs-name{font-size:10px;font-weight:700;color:#c8c8c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.qs-obj{font-size:8px;font-weight:600;margin-bottom:8px;letter-spacing:.01em;}
+.qs-kpis{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:6px;}
+.qs-kpi-val{font-size:16px;font-weight:800;line-height:1.15;}
+.qs-kpi-lbl{font-size:7px;color:#484848;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+.qs-footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1px solid #1e1e1e;}
+.qs-foot-val{font-size:10px;font-weight:600;color:#606060;}
+.qs-foot-lbl{font-size:7px;color:#404040;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+body.light .qs-camp-header{background:#f3f3f8;border-bottom-color:var(--c-pink);}
+body.light .qs-camp-name{color:#1a1a2e;}
+body.light .qs-camp-agg-lbl{color:#9a9aaa;}
+body.light .qs-card{background:#fff;border-color:#e8e8f0;border-left-color:#c8c8d8;}
+body.light .qs-card:hover{border-color:#c4c4d4;}
+body.light .qs-name{color:#222;}
+body.light .qs-kpi-lbl{color:#aaa;}
+body.light .qs-foot-val{color:#555;}
+body.light .qs-foot-lbl{color:#bbb;}
+body.light .qs-footer{border-top-color:#f0f0f4;}
 .backlog-input:focus{border-color:var(--c-pink);background:#1a0a0f;}
 body.light .backlog-input{background:var(--s-light-accent);color:var(--c-pink-dark);border-color:var(--c-pink-subtle);}
 body.light .backlog-input:focus{background:var(--c-pink-subtle);border-color:var(--c-pink);}
@@ -664,8 +753,6 @@ body.light #wa-stat-popup{background:#fff;}
 .wa-cfg-tag button:hover{opacity:1;}
 .wa-cfg-sel{font-size:9.5px;padding:2px 6px;border:1.5px dashed #ccc;border-radius:10px;background:transparent;cursor:pointer;color:#888;max-width:160px;}
 .wa-cfg-sel:hover{border-color:#E8006E;color:#E8006E;}
-body.light .sw-track{background:var(--s-light-border)!important;}
-body.light .sw-track > .sw-thumb{background:var(--c-white);}
 body.light .total-row{background:#fff0f7;}
 body.light .agent-row td{color:var(--s-3);}
 body.light .agent-row td span,body.light .agent-row td b{color:inherit;}
@@ -720,6 +807,18 @@ body.light .agent-row .skills-cell{color:var(--c-pink-dark);}
 body.light .ino-coverage{background:var(--s-light-1);border-color:#e8e8e8;}
 body.light .ino-coverage-text{color:var(--t-disabled);}
 
+/* ── Bannière alerte transfert GSM ── */
+.gsm-alert-banner{padding:9px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:3px solid;position:sticky;top:0;z-index:200;}
+.gsm-alert-banner.gsm-warn{background:#3d2800;border-color:#ff9f0a;color:#ff9f0a;}
+.gsm-alert-banner.gsm-active{background:#3a0000;border-color:#E8006E;color:#ff4d80;}
+body.light .gsm-alert-banner.gsm-warn{background:#fff8e6;color:#b45309;border-color:#ff9f0a;}
+body.light .gsm-alert-banner.gsm-active{background:#fff0f5;color:#c0005a;border-color:#E8006E;}
+.gsm-icon{font-size:20px;flex-shrink:0;}
+@keyframes gsmPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.gsm-alert-banner.gsm-active .gsm-icon{animation:gsmPulse 1s infinite;}
+.gsm-alert-items{font-size:12px;flex:1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.gsm-alert-item{background:rgba(255,255,255,.08);border-radius:6px;padding:3px 8px;white-space:nowrap;}
+body.light .gsm-alert-item{background:rgba(0,0,0,.06);}
 
 /* ===== CORRECTIONS CONTRASTE / VISIBILITÉ (audit design) ===== */
 /* MODE CLAIR : fond global + topbar (étaient restés noirs) */
@@ -776,8 +875,10 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   .topbar{flex-wrap:wrap;height:auto;min-height:48px;padding:8px 14px;row-gap:6px;}
   .topbar-center{order:3;flex:0 1 100%;justify-content:flex-start;}
   .topbar-right{flex:0 1 100%;flex-wrap:wrap;flex-shrink:1;}
+  .tool-cluster{flex-wrap:wrap;}
+  .navbar{padding:8px 14px;}
 
-  .ctrl-row-a,.ctrl-row-b{padding:7px 14px;}
+  .ctrl-row-a,.ctrl-row-b{padding:9px 14px;gap:12px;}
   .ck-btn{min-width:90px;max-width:140px;}
   .preset-select{min-width:0;flex:1 1 150px;}
   select#f-pas{width:auto;}
@@ -919,24 +1020,31 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
     <div class="topbar-right">
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Actualiser les données depuis INO">↺ Actualiser</button>
-      <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
-      <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
-      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
-      <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊</button>
-      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄</button>
-      <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
-      <div class="btn-sep"></div>
-      <button class="btn btn-ghost btn-icon-link" onclick="simulate()" title="Générer des données de test" aria-label="Générer des données de test">⚡</button>
-      <a href="/executif" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Tableau de bord exécutif — tendances 4 semaines par campagne" aria-label="Tableau de bord exécutif">📊</a>
-      <a href="/couverture" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture">📡</a>
-      <a href="/astreinte" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Registre d'astreinte — qui couvre l'astreinte, sur quelle campagne, quel jour" aria-label="Registre d'astreinte">🌙</a>
-      <a href="/planning" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Planning de la semaine — construire et ajuster le planning, agent par agent" aria-label="Planning de la semaine">🗓️</a>
-      <a href="/admin" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Administration" aria-label="Administration">⚙</a>
-      <a href="/notice" target="_blank" class="btn btn-ghost btn-icon-link" style="text-decoration:none;" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation">📖</a>
-      <a href="#" class="btn btn-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻</a>
+      <div class="tool-cluster">
+        <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Gérer les colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
+        <button class="btn btn-dark" onclick="openCriteres()" title="Critères de performance et KPI" style="position:relative;z-index:300;">Critères</button>
+        <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences</button>
+        <div class="btn-sep"></div>
+        <button class="btn btn-dark" onclick="exportXlsx()" title="Exporter vers Excel" aria-label="Export Excel">↓ Excel</button>
+        <button class="btn btn-dark" onclick="exportPDF()" title="Exporter en PDF" aria-label="Export PDF">↓ PDF</button>
+        <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
+      </div>
     </div>
+  </div>
+
+  <!-- ── NAVBAR : navigation entre pages | utilitaires ── -->
+  <div class="navbar">
+    <nav class="nav-cluster" aria-label="Navigation principale">
+      <span class="nav-cluster-label">Navigation</span>
+      <a href="/executif" target="_blank" class="btn-nav" title="Tableau de bord exécutif — tendances par campagne" aria-label="Tableau de bord exécutif">Exécutif</a>
+      <a href="/pilotage" target="_blank" class="btn-nav" title="Pilotage de la productivité — évolution et comparaison des agents" aria-label="Pilotage de la productivité">Pilotage</a>
+      <a href="/couverture" target="_blank" class="btn-nav" title="Radar de couverture — tensions de staffing par créneau" aria-label="Radar de couverture">Couverture</a>
+      <a href="/astreinte" target="_blank" class="btn-nav" title="Registre d'astreinte — couverture par campagne et par jour" aria-label="Registre d'astreinte">Astreinte</a>
+      <a href="/planning" target="_blank" class="btn-nav" title="Planning de la semaine — construire et ajuster le planning" aria-label="Planning de la semaine">Planning</a>
+      <a href="/admin" target="_blank" class="btn-nav" title="Administration — paramètres et configuration" aria-label="Administration">Admin</a>
+      <a href="/notice" target="_blank" class="btn-nav" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation">Notice</a>
+    </nav>
+    <a href="#" class="btn-nav-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻ Déco</a>
   </div>
 
   <!-- ── CONTRÔLES : 2 rangées ── -->
@@ -945,70 +1053,65 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <!-- Rangée A : Période + Vues sauvegardées -->
     <div class="ctrl-row-a">
 
-      <!-- Période -->
-      <span class="ctrl-label">Période</span>
-      <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
-      <span class="ctrl-arrow">→</span>
-      <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
+      <div class="field">
+        <label class="field-lbl">Période</label>
+        <div class="field-inputs">
+          <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
+          <span class="ctrl-arrow">→</span>
+          <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
+        </div>
+      </div>
 
-      <div class="ctrl-vsep"></div>
+      <div class="field">
+        <label class="field-lbl">Horaire</label>
+        <div class="field-inputs">
+          <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début" style="width:86px;">
+          <span class="ctrl-arrow">→</span>
+          <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin" style="width:86px;">
+          <select id="f-pas" style="width:88px;" aria-label="Pas de temps">
+            <option>15 min</option><option selected>30 min</option>
+            <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
+          </select>
+        </div>
+      </div>
 
-      <!-- Heures -->
-      <span class="ctrl-label">Horaire</span>
-      <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début" style="width:86px;">
-      <span class="ctrl-arrow">→</span>
-      <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin" style="width:86px;">
-      <select id="f-pas" style="width:88px;" aria-label="Pas de temps">
-        <option>15 min</option><option selected>30 min</option>
-        <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
-      </select>
+      <div class="field">
+        <label class="field-lbl">Tendance</label>
+        <div class="field-inputs">
+          <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure, de S-1 à S-5" style="min-width:170px;">
+            <option value="0">📊 Comparer à…</option>
+            <option value="1">vs S-1 (semaine précéd.)</option>
+            <option value="2">vs S-2 (il y a 2 sem.)</option>
+            <option value="3">vs S-3 (il y a 3 sem.)</option>
+            <option value="4">vs S-4 (il y a 4 sem.)</option>
+            <option value="5">vs S-5 (il y a 5 sem.)</option>
+          </select>
+          <span id="cmp-status" aria-live="polite" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
+        </div>
+      </div>
 
-      <div class="ctrl-vsep"></div>
-
-      <!-- Tendance vs semaine(s) antérieure(s) -->
-      <span class="ctrl-label">Tendance</span>
-      <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure, de S-1 à S-5" style="min-width:170px;">
-        <option value="0">📊 Comparer à…</option>
-        <option value="1">vs S-1 (semaine précéd.)</option>
-        <option value="2">vs S-2 (il y a 2 sem.)</option>
-        <option value="3">vs S-3 (il y a 3 sem.)</option>
-        <option value="4">vs S-4 (il y a 4 sem.)</option>
-        <option value="5">vs S-5 (il y a 5 sem.)</option>
-      </select>
-      <span id="cmp-status" aria-live="polite" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
-
-      <div class="ctrl-vsep"></div>
-
-      <!-- Vues sauvegardées -->
-      <span class="ctrl-label">Vue</span>
-      <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
-        <option value="">— Sélectionner une vue —</option>
-      </select>
-      <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
-      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
-      <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
+      <div class="field">
+        <label class="field-lbl">Vue sauvegardée</label>
+        <div class="field-inputs">
+          <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
+            <option value="">— Sélectionner une vue —</option>
+          </select>
+          <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">Sauvegarder</button>
+          <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">✕</button>
+          <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
+        </div>
+      </div>
 
     </div>
 
-    <!-- Rangée B : Filtres dropdowns + Isoler -->
+    <!-- Rangée B : Filtres dropdowns -->
     <div class="ctrl-row-b">
 
-      <span class="ctrl-label">Filtres</span>
-      <div class="filter-group"><span class="filter-label">Campagnes</span><div class="ck-wrap" id="ck-camps"></div></div>
-      <div class="filter-group"><span class="filter-label">Files</span><div class="ck-wrap" id="ck-queues"></div></div>
-      <div class="filter-group"><span class="filter-label">Agents</span><div class="ck-wrap" id="ck-agents"></div></div>
-      <div class="filter-group"><span class="filter-label">Compétences</span><div class="ck-wrap" id="ck-skills"></div></div>
-      <div class="filter-group"><span class="filter-label">Statut</span><div class="ck-wrap" id="ck-status"></div></div>
-
-      <div class="ctrl-vsep"></div>
-
-      <span class="ctrl-label">Isoler</span>
-      <div id="sw-container" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;"></div>
-
-      <label style="display:flex;align-items:center;gap:5px;font-size:var(--fs-sm);color:var(--t-muted);cursor:pointer;white-space:nowrap;margin-left:6px;" title="Masquer les agents déconnectés">
-        <input type="checkbox" id="hide-deconnecte-ctrl" onchange="toggleHideDeconnecteCtrl()" style="accent-color:var(--c-pink);width:13px;height:13px;">
-        Masquer déconnectés
-      </label>
+      <div class="field"><label class="field-lbl">Campagnes</label><div class="ck-wrap" id="ck-camps"></div></div>
+      <div class="field"><label class="field-lbl">Files</label><div class="ck-wrap" id="ck-queues"></div></div>
+      <div class="field"><label class="field-lbl">Agents</label><div class="ck-wrap" id="ck-agents"></div></div>
+      <div class="field"><label class="field-lbl">Compétences</label><div class="ck-wrap" id="ck-skills"></div></div>
+      <div class="field"><label class="field-lbl">Statut</label><div class="ck-wrap" id="ck-status"></div></div>
 
     </div>
   </div>
@@ -1019,6 +1122,14 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 <main id="main-content">
 <!-- SMART ALERTS -->
 <div id="ino-coverage"></div>
+
+<!-- ALERTE GSM ASTREINTE -->
+<div class="gsm-alert-banner" id="gsm-alert-banner" role="alert" aria-live="polite">
+  <span class="gsm-icon" id="gsm-icon">📱</span>
+  <span id="gsm-alert-title" style="font-weight:700;font-size:13px;flex-shrink:0;"></span>
+  <div class="gsm-alert-items" id="gsm-alert-items"></div>
+  <button onclick="document.getElementById('gsm-alert-banner').style.display='none';" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:inherit;padding:0 6px;flex-shrink:0;" title="Masquer jusqu'à la prochaine vérification" aria-label="Fermer l'alerte GSM">×</button>
+</div>
 
 <div class="content">
   <!-- KPIs -->
@@ -1069,7 +1180,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         <span class="panel-title">Statut des Files d'attente <span id="queue-last-update" style="font-size:var(--fs-sm);color:var(--t-disabled);font-weight:var(--fw-regular);margin-left:8px"></span></span>
         <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Mis à jour à chaque <b style="color:var(--c-pink)">Rafraîchir</b></span>
       </div>
-      <div id="queue-status-grid" style="padding:10px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      <div id="queue-status-grid" style="padding:10px 14px;">
         <div style="color:var(--t-disabled);font-size:var(--fs-body);padding:8px">Données chargées au prochain rafraîchissement…</div>
       </div>
     </div>
@@ -1159,13 +1270,15 @@ const P="#E8006E";
   });
   _reset();
 })();
-const CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
-// Liste alignée sur queues_config.js (source unique de vérité, servie aussi via /api/config)
-const SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
+// CAMPS / QUEUES_MAP / SKILLS : valeurs de repli. La source unique de vérité est
+// queues_config.js côté serveur, chargée au démarrage via /api/config (voir boot()).
+// Déclarés en 'let' pour être écrasés par la config serveur à l'init.
+let CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
+let SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
 // CONTRATS supprimé — non disponible INO
-const STATUSES=["Actif","Traitement","Post-appel","Déconnecté"];
+const STATUSES=["Actif","Traitement","Post-appel","Déconnecté","Inconnu","En pause","Déjeuner","Formation","Réunion","Back-office","Absent","n.d."];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
-const QUEUES_MAP={
+let QUEUES_MAP={
   // Mapping exact basé sur les queues INO réelles (semaine 26-30/05/2026)
   Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],
   ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],
@@ -1244,9 +1357,8 @@ function ndStatus(s){return s?s:'<span style="color:#666;font-style:italic;font-
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
 let astreintesTracked=new Set(),astreintesEntries={};   // registre d'astreinte partagé (lecture seule ici) — pour le badge 🌙 KPI par campagne
 var statTCEdits={}, waActiveCalls=[], waActiveMails=[], waTimeEdits={}, waEmailEdits={};
-let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
+let selCamps=[...CAMPS],selQueues=[],selAgents=AGENTS_BASE.map(a=>a.nom),selSkills=[...SKILLS],selStatus=[...STATUSES];
 let skillSort={col:null,dir:"asc"};
-let sw={horsOuv:false,reit:false,refus:false,inactif:false};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
   {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
@@ -1267,8 +1379,18 @@ const COL_DEFS=[
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
 let slots=[],allQueues=[];
+let _skillsLoadedAt=null; // horodatage du dernier chargement réussi des compétences INO
 
 function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[]))];}
+// Sélection campagnes partielle ? Comparer à l'UNIVERS réel (CAMPS connus + camps déduits
+// des agents INO, qui peuvent être des noms de queues hors config). Comparer à CAMPS.length
+// seul est faux dès que selCamps contient des camps hors CAMPS (selCamps.length>CAMPS.length
+// rendait le filtre campagne inopérant jusqu'à la première interaction manuelle).
+function campSelPartial(){
+  const uni=new Set(CAMPS);
+  agents.forEach(a=>{if(a.camp&&a.camp!=='–')uni.add(a.camp);});
+  return selCamps.length<uni.size;
+}
 // Compétences réelles présentes chez les agents du périmètre campagne sélectionné.
 // Source : compétences INO réelles des agents (a.skills / a.allSkillsData), filtrées par campagne.
 // Compétences réellement portées par les agents du périmètre campagne.
@@ -1277,7 +1399,15 @@ function getAllQueues(){return[...new Set(selCamps.flatMap(c=>QUEUES_MAP[c]||[])
 // "Compétences non chargées" plutôt qu'une liste globale trompeuse non liée à la campagne.
 function getScopedSkills(){
   if(!agents.length)return [];
-  const inScope=selCamps.length<CAMPS.length?agents.filter(a=>selCamps.includes(a.camp)):agents;
+  let inScope;
+  if(campSelPartial()){
+    const primary=agents.filter(a=>selCamps.includes(a.camp));
+    // Campagne flux-only (pas d'agents primaires) : élargir au périmètre des agents couvrants
+    const _covScope=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c)));
+    inScope=primary.length>0?primary:(_covScope.length>0?_covScope:agents);
+  }else{
+    inScope=agents;
+  }
   const s=new Set();
   inScope.forEach(a=>{
     (a.skills||[]).forEach(k=>{if(k)s.add(k.name||k);});
@@ -1350,7 +1480,7 @@ function setBadge(state){
 }
 function stampUpdate(ok){
   const u=document.getElementById("last-update");if(!u)return;
-  const dDeb=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+  const dDeb=document.getElementById("f-date-deb").value||isoLocal(new Date());
   const dFin=document.getElementById("f-date-fin").value||dDeb;
   const fr=s=>s.split("-").reverse().join("/");
   const periode=(dDeb===dFin)?("du "+fr(dDeb)):("du "+fr(dDeb)+" au "+fr(dFin));
@@ -1358,11 +1488,23 @@ function stampUpdate(ok){
   u.textContent=ok?("Données INO "+periode+" · MAJ le "+now):("Échec MAJ · dernière tentative "+now);
   u.style.color=ok?"#30d158":"#ff6b6b";
 }
+// Campagne d'une file côté client — même cascade que detectCampaignSrv (exact → préfixe → inclusion)
+function campOfQueue(qn){
+  if(!qn)return null;
+  for(var i=0;i<CAMPS.length;i++){if((QUEUES_MAP[CAMPS[i]]||[]).includes(qn))return CAMPS[i];}
+  var norm=function(s){return s.toLowerCase().replace(/[éèê]/g,"e").replace(/[àâ]/g,"a").replace(/[&\s_-]/g,"");};
+  var q0=norm(qn.replace(/^sortant /i,""));
+  for(var j=0;j<CAMPS.length;j++){if(q0.indexOf(norm(CAMPS[j]))===0)return CAMPS[j];}
+  for(var k=0;k<CAMPS.length;k++){if(q0.indexOf(norm(CAMPS[k]))>=0)return CAMPS[k];}
+  return null;
+}
 // Rafraîchissement EXCLUSIVEMENT manuel (lecture seule INO). Aucun polling automatique.
+// Mode tour de contrôle : la grille suit la sélection campagnes des filtres, et chaque
+// carte confronte le réel à l'instant du rafraîchissement aux objectifs des critères
+// campagne (QS min) → écart affiché en points.
 async function loadQueueStatus(){
-  const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+  const d=document.getElementById("f-date-deb").value||isoLocal(new Date());
   const grid=document.getElementById("queue-status-grid");
-  const upd=document.getElementById("queue-last-update");
   if(!grid)return; // silencieux si le panel n'est pas visible
   try{
     const res=await fetch("/api/queues-status?date="+d);
@@ -1372,33 +1514,89 @@ async function loadQueueStatus(){
       if(grid)grid.innerHTML='<div style="color:#ff9f0a;font-size:11px;padding:8px">Files : '+( data.error||'indisponible')+'</div>';
       return;
     }
-    const queues=data.queues||[];
-    if(queues.length===0){
-      grid.innerHTML='<div style="color:#555;font-size:11px;padding:8px">Aucune file active pour cette date.</div>';
-      return;
-    }
-    const PK="#E8006E";
-    grid.innerHTML=queues.map(function(q){
-      const qs=q.qs||0;
-      const ta=q.tauxAbandon||0;
-      const qsColor=qs>=90?"#30d158":qs>=80?PK:"#ff3b30";
-      const taColor=ta<=5?"#30d158":ta<=15?PK:"#ff3b30";
-      return '<div style="background:#161616;border:1px solid #2a2a2a;border-radius:9px;padding:12px 14px">'
-        +'<div style="font-size:11px;font-weight:700;color:#ccc;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+(q.name||"")+'">'+( q.name||"–")+'</div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Reçus</div><div style="font-size:16px;font-weight:800;color:'+PK+'">'+q.recus+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Décrochés</div><div style="font-size:16px;font-weight:800;color:#30d158">'+q.decroches+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">QS%</div><div style="font-size:13px;font-weight:700;color:'+qsColor+'">'+qs+'%</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Abandon%</div><div style="font-size:13px;font-weight:700;color:'+taColor+'">'+ta+'%</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Sortants</div><div style="font-size:12px;font-weight:600;color:#888">'+(q.sortants||0)+'</div></div>'
-        +'<div><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">DMC</div><div style="font-size:12px;font-weight:600;color:#888">'+mmss(q.dmc||0)+'</div></div>'
-        +'</div></div>';
-    }).join("");
-    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR");
+    window._lastQueuesData=data.queues||[]; // cache pour re-rendu instantané au changement de filtre
+    renderQueueStatus();
   }catch(e){
     // Silencieux — ne pas bloquer le chargement des agents
     if(grid)grid.innerHTML='<div style="color:#555;font-size:10px;padding:8px">Files : '+e.message+'</div>';
   }
+}
+// Retire le préfixe campagne du nom de file pour un affichage plus court sous l'en-tête groupe.
+function shortQName(name,camp){
+  if(!name)return'–';
+  let s=name;
+  if(camp){
+    const lc=s.toLowerCase(),lp=camp.toLowerCase();
+    if(lc.startsWith(lp+'_'))s=s.slice(camp.length+1);
+    else if(lc.startsWith(lp+' '))s=s.slice(camp.length+1);
+  }
+  return s.replace(/_/g,' ').trim()||name;
+}
+// Rendu groupé par campagne — appelé au rafraîchissement ET à chaque changement de filtres.
+function renderQueueStatus(){
+  const grid=document.getElementById("queue-status-grid");
+  const upd=document.getElementById("queue-last-update");
+  if(!grid||!window._lastQueuesData)return;
+  let queues=window._lastQueuesData;
+  const _filtreActif=campSelPartial();
+  queues=queues.map(q=>Object.assign({},q,{camp:campOfQueue(q.name)}));
+  if(_filtreActif)queues=queues.filter(q=>q.camp&&selCamps.includes(q.camp));
+  if(queues.length===0){
+    grid.innerHTML=`<div style="color:#555;font-size:11px;padding:8px">${_filtreActif?'Aucune file active pour les campagnes sélectionnées à cette date.':'Aucune file active pour cette date.'}</div>`;
+    if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+(_filtreActif?" · filtre campagne actif":"");
+    return;
+  }
+  const crit=loadCriteres();
+  // Grouper par campagne dans l'ordre de CAMPS
+  const byCamp={},campOrder=[];
+  queues.forEach(q=>{const c=q.camp||'Autres';if(!byCamp[c]){byCamp[c]=[];campOrder.push(c);}byCamp[c].push(q);});
+  campOrder.sort((a,b)=>{const ia=CAMPS.indexOf(a),ib=CAMPS.indexOf(b);if(ia<0&&ib<0)return a.localeCompare(b,'fr');return ia<0?1:ib<0?-1:ia-ib;});
+  let html='';
+  campOrder.forEach(camp=>{
+    const ql=byCamp[camp];
+    const cc=(crit[camp])||{};
+    const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
+    const totR=ql.reduce((s,q)=>s+(q.recus||0),0);
+    const totD=ql.reduce((s,q)=>s+(q.decroches||0),0);
+    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
+    html+=`<div class="qs-camp-section">
+<div class="qs-camp-header">
+  <span class="qs-camp-name">${camp}</span>
+  <span class="qs-camp-count">${ql.length} file${ql.length>1?'s':''}</span>
+  <div class="qs-camp-agg">
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-lbl">Reçus</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-lbl">Décrochés</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
+  </div>
+</div><div class="qs-grid">`;
+    ql.forEach(q=>{
+      const qs=q.qs||0,ta=q.tauxAbandon||0;
+      const ecart=qs-objQS,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
+      const qsC=atteint?'#30d158':warn?'#ff9f0a':'#ff3b30';
+      const taC=ta<=5?'#30d158':ta<=15?'#E8006E':'#ff3b30';
+      const cls=atteint?'qs-card--ok':warn?'qs-card--warn':'qs-card--err';
+      const eT=(atteint?'+':'−')+Math.abs(ecart)+' pts';
+      const sn=shortQName(q.name,camp);
+      html+=`<div class="qs-card ${cls}">
+  <div class="qs-name" title="${(q.name||'').replace(/"/g,'&quot;')}">${sn}</div>
+  <div class="qs-obj" style="color:${qsC}">Obj ${objQS}% · <b>${eT}</b></div>
+  <div class="qs-kpis">
+    <div><div class="qs-kpi-val" style="color:#E8006E">${q.recus}</div><div class="qs-kpi-lbl">Reçus</div></div>
+    <div><div class="qs-kpi-val" style="color:#30d158">${q.decroches}</div><div class="qs-kpi-lbl">Décrochés</div></div>
+    <div><div class="qs-kpi-val" style="color:${qsC}">${qs}%</div><div class="qs-kpi-lbl">Qlt. service</div></div>
+    <div><div class="qs-kpi-val" style="color:${taC}">${ta}%</div><div class="qs-kpi-lbl">Abandons</div></div>
+  </div>
+  <div class="qs-footer">
+    <div><div class="qs-foot-val">${q.sortants||0}</div><div class="qs-foot-lbl">Sortants</div></div>
+    <div style="text-align:right"><div class="qs-foot-val">${mmss(q.dmc||0)}</div><div class="qs-foot-lbl">DMC</div></div>
+  </div>
+</div>`;
+    });
+    html+=`</div></div>`;
+  });
+  grid.innerHTML=html;
+  if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
 }
 
 async function refreshFromINO(){
@@ -1423,8 +1621,11 @@ async function refreshFromINO(){
     // Si la tendance vs S-1…S-5 est activée, rafraîchir la référence sur la nouvelle période
     // (fire-and-forget : ne doit jamais bloquer/faire échouer le chargement principal)
     if(cmpWeeksOffset>0)loadCmpRef();
-    // Note: /api/skills retourne count:0 (endpoint /agent/list absent de cette version INO)
-    // Les compétences sont déduites des queues actives directement dans loadAgentsFromAPI
+    // Auto-chargement des compétences INO en arrière-plan (delay 2s pour ne pas rivaliser avec render)
+    // Permet la détection des agents mutualisés sans cliquer manuellement "Compétences INO"
+    if(agents.length>0&&!skillsLoaded()){
+      setTimeout(function(){if(agents.length>0&&!skillsLoaded())refreshSkills();},2000);
+    }
   }catch(e){ok=false;console.error('[refreshFromINO]',e&&e.message||e);}
   finally{
     document.body.classList.remove("skeleton-on");
@@ -1436,7 +1637,7 @@ async function refreshFromINO(){
 }
 async function loadAgentsFromAPI(){
   try{
-    const d=document.getElementById("f-date-deb").value||new Date().toISOString().slice(0,10);
+    const d=document.getElementById("f-date-deb").value||isoLocal(new Date());
     const dFin=document.getElementById("f-date-fin")?.value||d;
     const hDeb=document.getElementById("f-h-deb")?.value||"08:00";
     const hFin=document.getElementById("f-h-fin")?.value||"20:00";
@@ -1477,9 +1678,10 @@ async function loadAgentsFromAPI(){
         let hprod=0;
         if(a.premiereAction&&a.derniereAction){
           const presH=(new Date(a.derniereAction)-new Date(a.premiereAction))/3600000;
-          hprod=presH>0?+presH.toFixed(2):0;
-        }else if(a.duree>0){
-          // Fallback : comm / 0.75 (agent occupe ~75% du temps en comm)
+          if(presH>0)hprod=+presH.toFixed(2);
+        }
+        // Fallback (agent mono-appel : premiere===derniere → presH=0) : comm / 0.75
+        if(hprod===0&&a.duree>0){
           hprod=+(a.duree/3600/0.75).toFixed(2);
         }
         // 1. Queues actives du jour
@@ -1518,24 +1720,38 @@ async function loadAgentsFromAPI(){
         // Dernière activité voix réelle = dernier appel connu d'INO (derniereAction). Pas de simulation :
         // si l'agent n'a aucun appel sur la période, pas de référence → pas d'alerte Red Flag possible.
         const lastVoix=a.derniereAction?new Date(a.derniereAction).getTime():null;
-        // Occupation = duree communication / (présence * 50min/h)
+        // Occupation = (temps comm [+ ACW si configuré]) / (présence × min productives/h).
+        // Le diviseur (min/h, défaut 50) ET l'inclusion de l'ACW sont paramétrables PAR CAMPAGNE
+        // (⚙ Critères & KPI) car la définition d'occupation varie selon le client.
         // présence estimée depuis premiereAction→derniereAction (ou fallback timestamps INO)
         let presenceSec=0;
         if(a.premiereAction&&a.derniereAction){
           try{presenceSec=Math.abs(new Date(a.derniereAction)-new Date(a.premiereAction))/1000;}catch(e){presenceSec=0;}
         }
-        // Fallback: si présence trop courte, utiliser duree*1.25 comme estimation
-        if(presenceSec<a.duree&&a.duree>0) presenceSec=a.duree*1.25;
-        const tempsDispo=presenceSec>0?(presenceSec*(50/60)):0;
-        const occupation=(tempsDispo>0&&a.duree>0)?Math.min(100,Math.round((a.duree/tempsDispo)*100)):null;
+        // Présence incohérente (durée comm > présence mesurée) → occupation non calculable.
+        // L'ancien fallback presenceSec=duree*1.25 fabriquait une occupation constante ~96 %
+        // présentée comme une mesure — mode honnête : n.d. plutôt qu'une valeur inventée.
+        if(presenceSec<a.duree)presenceSec=0;
+        // Inputs bruts conservés sur l'agent pour recalcul à la volée quand la config change
+        const _occComm=a.duree||0;
+        const _occAcw=(a.acwMoyen||0)*(a.appelsIn||0);
+        const occupation=computeOccupation(camp,_occComm,presenceSec,_occAcw);
         // Tout champ non fourni par INO histories = null (affiché "n.d." par le front)
         // Déduire les compétences depuis les queues actives (seule donnée disponible via INO histories)
         const rawQueues=(a.queues||"").split(", ").filter(Boolean);
         // Compétences: vides au chargement initial, remplies via bouton ↺ Compétences
         // (évite ~15s de délai au rafraîchir principal)
+        // Compétences : on privilégie un enrichissement /cc/* déjà chargé (_oldSk, état actif/inactif fin),
+        // sinon les compétences déclarées remontées par le payload (/agent/list). Le serveur envoie
+        // `skills` (noms) et `allSkills` (objets {name,active}). On accepte aussi les anciens noms
+        // `skillsData`/`allSkillsData` par sécurité.
+        const _pSkillNames=Array.isArray(a.skills)?a.skills.map(s=>s&&s.name||s).filter(Boolean)
+          :(Array.isArray(a.skillsData)?a.skillsData.map(s=>s&&s.name||s).filter(Boolean):[]);
+        const _pAllSkills=Array.isArray(a.allSkills)&&a.allSkills.length>0?a.allSkills
+          :(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0?a.allSkillsData:[]);
         return{id:a.id,nom:a.nom,login:a.username,camp,
-          skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:(Array.isArray(a.skillsData)&&a.skillsData.length>0?a.skillsData.map(s=>s.name||s):[]),
-          allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:(Array.isArray(a.allSkillsData)?a.allSkillsData:[]),
+          skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:_pSkillNames,
+          allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:_pAllSkills,
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
@@ -1549,7 +1765,7 @@ async function loadAgentsFromAPI(){
           refus:a.refus!=null?a.refus:null,
           reiterants:a.reiterants!=null?a.reiterants:null,
           realise,files_ok:true,
-          acw:a.acwMoyen||null,occupation,adherence:a.adherence!=null?a.adherence:null,
+          acw:a.acwMoyen||null,occupation,_occComm:_occComm,_occPres:presenceSec,_occAcw:_occAcw,adherence:a.adherence!=null?a.adherence:null,
           transfo:a.transfo!=null?a.transfo:null,
           spark:Array.isArray(a.spark)?a.spark:null,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
@@ -1564,7 +1780,10 @@ async function loadAgentsFromAPI(){
       const realCamps=[...new Set(agents.map(a=>a.camp).filter(x=>x&&x!=="–"))];
       // Garder tous les CAMPS connus + les camps réels non référencés
       selCamps=[...new Set([...CAMPS,...realCamps])];
-      selStatus=["Actif","Traitement","Post-appel","Déconnecté","n.d."];
+      selStatus=[...STATUSES];
+      // Compétences désormais livrées automatiquement avec le payload (/agent/list) : horodater
+      // le premier chargement réussi pour la pastille verte, sans écraser un chargement /cc/* manuel.
+      if(!_skillsLoadedAt&&skillsLoaded())_skillsLoadedAt=new Date();
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
       render();
@@ -1595,11 +1814,15 @@ let cmpWeeksOffset=0;       // 0 = désactivé, 1..5 = nombre de semaines en arr
 const cmpRefCache=new Map(); // clé "N|date|dateFin|hDeb|hFin" → résumé (jamais invalidé : passé immuable)
 let cmpRef=null;            // résumé de la période de référence courante, ou null
 
-function shiftDateStr(s,days){
-  const d=new Date(s+"T00:00:00");
-  d.setDate(d.getDate()+days);
-  return d.toISOString().slice(0,10);
-}
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+// Heure métier = Europe/Paris quel que soit le fuseau du navigateur (offsets FR en heures
+// pleines → minutes UTC valables telles quelles). Utilisé pour horaires d'ouverture et GSM.
+const _parisHourFmtTop=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",hour12:false});
+const _parisDayFmtTop=new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short"});
+function parisNowMin(){const d=new Date();return (parseInt(_parisHourFmtTop.format(d),10)%24)*60+d.getUTCMinutes();}
+function parisDayKey(d){return ({Sun:"dim",Mon:"lun",Tue:"mar",Wed:"mer",Thu:"jeu",Fri:"ven",Sat:"sam"})[_parisDayFmtTop.format(d||new Date())]||"lun";}
+function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
+function timeToMin(t){if(!t)return NaN;const p=String(t).split(":");return Number(p[0])*60+(Number(p[1])||0);}
 function fmtCmpLabel(rd,rdFin){
   const f=s=>new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});
   return rd===rdFin?f(rd):(f(rd)+" → "+f(rdFin));
@@ -1692,26 +1915,41 @@ function setCmpWeeks(val){
   else{cmpRef=null;if(stEl)stEl.textContent="";render();}
 }
 
-// État persistant des dropdowns (ouvert/fermé + query de recherche)
-// Indispensable pour que le menu reste ouvert quand l'utilisateur fait plusieurs sélections
-const ckState={};
-function ckGetOpen(cid){return !!ckState[cid+":open"];}
-function ckSetOpen(cid,v){ckState[cid+":open"]=!!v;}
-function ckGetQuery(cid){return ckState[cid+":query"]||"";}
-function ckSetQuery(cid,v){ckState[cid+":query"]=v||"";}
-function ckCloseAll(except){
-  Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).forEach(k=>{
-    const id=k.split(":")[0]; if(id!==except)ckState[k]=false;
-  });
+// État des dropdowns : UN SEUL menu ouvert à la fois, garanti structurellement.
+// Remplace le map ckState multi-clés qui pouvait accumuler plusieurs "open:true"
+// (chaque closure lisait ckGetOpen indépendamment → menus fantômes restant ouverts).
+let _ckOpenId=null;           // ID du wrapper actuellement ouvert, ou null
+const _ckQueryMap={};         // texte de recherche par ID (indépendant de l'état ouvert)
+function ckGetOpen(cid){return _ckOpenId===cid;}
+function ckSetOpen(cid,v){if(v){_ckOpenId=cid;}else if(_ckOpenId===cid){_ckOpenId=null;}}
+function ckGetQuery(cid){return _ckQueryMap[cid]||"";}
+function ckSetQuery(cid,v){_ckQueryMap[cid]=v||"";}
+function ckAnyOpen(){return _ckOpenId!==null;}
+function ckCloseAll(){_ckOpenId=null;}
+
+// render() différé : la case se met à jour instantanément, le recalcul lourd suit
+// ~150 ms après le DERNIER clic. Pas de rendu intermédiaire sur chaque tick.
+let _ckRenderTimer=null;
+function ckRenderDeferred(){
+  if(_ckRenderTimer)clearTimeout(_ckRenderTimer);
+  _ckRenderTimer=setTimeout(function(){_ckRenderTimer=null;render();},150);
+}
+function ckRenderFlush(){
+  if(_ckRenderTimer){clearTimeout(_ckRenderTimer);_ckRenderTimer=null;}
+  render();
 }
 
 // Dropdown checkbox avec recherche intégrée
 function buildCkDrop(cid,label,options,selected,onChangeFn){
   const wrap=document.getElementById(cid);
   if(!wrap)return;
-  // open et query persistés entre rebuilds (sinon le menu se ferme après chaque clic d'option)
-  let open=ckGetOpen(cid), query=ckGetQuery(cid);
+  // Lire l'état depuis la source de vérité unique (pas de closure stale)
   function rebuild(keepFocus){
+    const open=ckGetOpen(cid);
+    const query=ckGetQuery(cid);
+    // Mémoriser le défilement pour le restaurer (évite le retour en haut à chaque tick)
+    const _prevList=wrap.querySelector('.ck-list');
+    const _prevScroll=_prevList?_prevList.scrollTop:0;
     const all=selected.length===options.length&&options.length>0;
     const disp=all?"Tout ✓":selected.length===0?"Aucun":selected.length===1?selected[0]:`${selected.length}/${options.length}`;
     const filtered=options.filter(o=>o.toLowerCase().includes(query.toLowerCase()));
@@ -1724,19 +1962,20 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
       ${filtered.length?filtered.map(o=>{const chk=selected.includes(o);return`<div class="ck-item" data-val="${o.replace(/"/g,'&quot;')}"><span class="ck-box" style="border:2px solid ${chk?P:"#444"};background:${chk?P:"transparent"};border-radius:4px">${chk?"✓":""}</span>${o}</div>`;}).join(""):`<div style="padding:8px 12px;color:#555;font-size:11px">Aucun résultat</div>`}
       </div>
     </div>`:""}`;
+    if(open&&_prevScroll){const _nl=wrap.querySelector('.ck-list');if(_nl)_nl.scrollTop=_prevScroll;}
     document.getElementById(`${cid}-btn`).onclick=e=>{
       e.stopPropagation();
-      const wasOpen=open;
-      if(!wasOpen){ckCloseAll(cid);}   // ferme les autres d'abord
-      open=!wasOpen;query="";
-      ckSetOpen(cid,open);ckSetQuery(cid,query);
-      rebuild();  // rebuild uniquement CE dropdown — évite de détruire l'handler en recrééant tout
+      const wasOpen=ckGetOpen(cid);  // lire depuis la source de vérité, jamais une closure
+      ckCloseAll();                   // _ckOpenId=null — ferme tout
+      if(!wasOpen){ckSetOpen(cid,true);ckSetQuery(cid,"");}
+      buildAllDropdowns();
     };
     if(open){
       const si=document.getElementById(`${cid}-search`);
       if(si){
         si.onclick=e=>e.stopPropagation();
-        si.oninput=e=>{query=e.target.value;ckSetQuery(cid,query);rebuild(true);};
+        si.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();ckCloseAll();buildAllDropdowns();}};
+        si.oninput=e=>{ckSetQuery(cid,e.target.value);rebuild(true);};
         if(keepFocus){si.focus();si.setSelectionRange(si.value.length,si.value.length);}
       }
       document.getElementById(`${cid}-all`).onclick=e=>{e.stopPropagation();onChangeFn(all?[]:options.slice());};
@@ -1748,17 +1987,16 @@ function buildCkDrop(cid,label,options,selected,onChangeFn){
   rebuild();
 }
 
-// Fermeture globale : clic hors d'un dropdown ouvert
+// Fermeture globale : clic hors d'un dropdown ouvert, ou touche Échap.
 if(!window._ckGlobalClose){
   window._ckGlobalClose=true;
   document.addEventListener("click",e=>{
-    const openIds=Object.keys(ckState).filter(k=>k.endsWith(":open")&&ckState[k]).map(k=>k.split(":")[0]);
-    let changed=false;
-    openIds.forEach(id=>{
-      const w=document.getElementById(id);
-      if(w&&!w.contains(e.target)){ckSetOpen(id,false);changed=true;}
-    });
-    if(changed)buildAllDropdowns();
+    if(!ckAnyOpen())return;
+    const w=document.getElementById(_ckOpenId);
+    if(w&&!w.contains(e.target)){ckCloseAll();buildAllDropdowns();ckRenderFlush();}
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"&&ckAnyOpen()){ckCloseAll();buildAllDropdowns();ckRenderFlush();}
   });
 }
 
@@ -1768,35 +2006,54 @@ function buildAllDropdowns(){
     selCamps=v;
     allQueues=getAllQueues();selQueues=getAllQueues();
     // CASCADE : quand on change les camps → restreindre selAgents aux agents de ces camps
+    // Principe 1 agent = N compétences : si aucun agent primaire, inclure les agents couvrants.
     if(agents.length){
       const agOfCamps=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
-      selAgents=agOfCamps.length>0?agOfCamps:agents.map(a=>a.nom);
+      if(agOfCamps.length>0){
+        selAgents=agOfCamps;
+      }else{
+        // Queues + camp principal suffisent sans compétences chargées
+        const covering=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
+        selAgents=covering.length>0?covering:agents.map(a=>a.nom);
+      }
     }
     // CASCADE compétences : recalculer le périmètre et tout re-sélectionner
     selSkills=getScopedSkills();window._prevScopedSkills=selSkills;
-    buildAllDropdowns();render();
+    buildAllDropdowns();ckRenderDeferred();
   });
   // Files : seulement celles des camps sélectionnés
-  buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();render();});
-  // Agents : seulement ceux affectés aux camps sélectionnés (si filtre partiel)
+  buildCkDrop("ck-queues","Files d'attente",allQueues,selQueues,v=>{selQueues=v;buildAllDropdowns();ckRenderDeferred();});
+  // Agents : ceux du camp sélectionné + agents couvrant via compétences (si 0 primaires)
   const agList=agents.length
-    ?(selCamps.length<CAMPS.length
-        ?agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom)
+    ?(campSelPartial()
+        ?(()=>{
+            const primary=agents.filter(a=>selCamps.includes(a.camp)).map(a=>a.nom);
+            if(primary.length>0)return primary;
+            const cov=agents.filter(a=>selCamps.some(c=>waAgentCovers(a,c))).map(a=>a.nom);
+            return cov.length>0?cov:agents.map(a=>a.nom);
+          })()
         :agents.map(a=>a.nom))
     :AGENTS_BASE.map(a=>a.nom);
-  buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;render();});
+  buildCkDrop("ck-agents","Agents",agList,selAgents,v=>{selAgents=v;buildAllDropdowns();ckRenderDeferred();});
   // Compétences : UNIQUEMENT les compétences INO réelles des agents du périmètre campagne.
   const scopedSkills=getScopedSkills();
   const _loaded=skillsLoaded();
   if(!_loaded){
-    // Compétences INO pas encore chargées → état explicite, pas de liste globale trompeuse
+    // Compétences INO chargées AUTOMATIQUEMENT en arrière-plan (plus de bouton manuel
+    // dans les filtres). On affiche un statut discret ; clic = simple réessai si l'auto-
+    // chargement a échoué (réseau/droits INO).
     const wrap=document.getElementById("ck-skills");
     if(wrap){
-      wrap.innerHTML='<button type="button" onclick="refreshSkills&&refreshSkills()" '
-        +'style="width:100%;background:var(--s-2);border:1px dashed var(--s-4);border-radius:8px;'
-        +'padding:7px 10px;color:var(--t-disabled);font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
-        +'⚠ Compétences non chargées<br><span style="color:var(--c-pink);font-weight:600">Cliquer pour charger depuis INO</span></button>';
+      const _failed=window._skillsLoadFailed;
+      const _lbl=_failed
+        ?'<span style="color:var(--c-orange,#ff9f0a);">⚠ Compétences indisponibles</span> · <span style="color:var(--c-pink)">réessayer</span>'
+        :'<span style="color:var(--t-disabled)">⏳ Chargement automatique des compétences…</span>';
+      wrap.innerHTML='<span role="status" onclick="refreshSkills&&refreshSkills()" title="Les compétences se chargent automatiquement depuis INO" '
+        +'style="display:block;width:100%;padding:7px 10px;font-size:11px;cursor:pointer;text-align:left;line-height:1.3">'
+        +_lbl+'</span>';
     }
+    // Garantit un chargement même si le hook de refreshFromINO n'a pas pu se déclencher
+    if(agents.length>0&&!window._skillsAutoKicked){window._skillsAutoKicked=true;setTimeout(function(){if(!skillsLoaded())refreshSkills();},400);}
     selSkills=[]; window._prevScopedSkills=[];
   }else{
     // Synchroniser selSkills sur le périmètre réel
@@ -1808,21 +2065,11 @@ function buildAllDropdowns(){
       selSkills=selSkills.filter(s=>scopedSkills.includes(s));
       if(selSkills.length===0)selSkills=[...scopedSkills];
     }
-    buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;render();});
+    buildCkDrop("ck-skills","Compétences",scopedSkills,selSkills,v=>{selSkills=v;buildAllDropdowns();ckRenderDeferred();});
   }
-  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;render();});
+  buildCkDrop("ck-status","Statut",STATUSES,selStatus,v=>{selStatus=v;buildAllDropdowns();ckRenderDeferred();});
   renderSelectionSummary();
 }
-
-function buildSwitches(){
-  const cont=document.getElementById("sw-container");
-  const defs=[["reit","Réitérants"],["refus","Refus prise appel"],["inactif","Inactifs"]];
-  cont.innerHTML=defs.map(([k,l])=>`<label class="sw-label" onclick="toggleSw('${k}')" style="color:${sw[k]?P:"#666"}">
-    <div class="sw-track" style="background:${sw[k]?P:"#2a2a2a"}"><div class="sw-thumb" style="left:${sw[k]?21:2}px"></div></div>${l}
-  </label>`).join("");
-}
-
-function toggleSw(k){sw[k]=!sw[k];buildSwitches();render();}
 
 // === Persistance partagée serveur ===========================================
 // Les réglages superviseurs (seuils QS/backlog, ajustements manuels mails/heures,
@@ -1844,6 +2091,8 @@ async function pullStore(){
     const d=await r.json();
     if(d.criteres&&typeof d.criteres==='object'&&Object.keys(d.criteres).length){
       try{localStorage.setItem(CRITERES_KEY,JSON.stringify(d.criteres));}catch(e){}
+      // Recalcul occupation : la config (min/h, ACW) peut avoir changé sur un autre poste
+      recomputeOccupations();render();
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.backlog&&typeof d.backlog==='object'&&Object.keys(d.backlog).length){
@@ -1862,10 +2111,18 @@ async function pullStore(){
       astreintesTracked=new Set(Array.isArray(d.astreintes.tracked)?d.astreintes.tracked:[]);
       astreintesEntries=(d.astreintes.entries&&typeof d.astreintes.entries==='object')?d.astreintes.entries:{};
       renderStaffingBanner();
+      checkGsmAlerts();
       if(document.getElementById('criteres-page')&&document.getElementById('criteres-page').classList.contains('open'))renderCriteres();
     }
     if(d.waCols&&typeof d.waCols==='object'){
-      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length)waActiveCalls=d.waCols.calls;
+      if(Array.isArray(d.waCols.calls)&&d.waCols.calls.length){
+        waActiveCalls=d.waCols.calls.slice();
+        // Colonnes serveur antérieures à l'ajout de Monetize : l'injecter après MNZ
+        if(waActiveCalls.indexOf('Monetize')<0){
+          const _mz=waActiveCalls.indexOf('MNZ');
+          waActiveCalls.splice(_mz>=0?_mz+1:1,0,'Monetize');
+        }
+      }
       if(Array.isArray(d.waCols.mails)&&d.waCols.mails.length)waActiveMails=d.waCols.mails;
       if(d.waCols.time&&typeof d.waCols.time==='object')waTimeEdits=d.waCols.time;
       if(d.waCols.email&&typeof d.waCols.email==='object')waEmailEdits=d.waCols.email;
@@ -1928,7 +2185,7 @@ async function savePreset(){
   }
   p[name]={camps:[...selCamps],queues:[...selQueues],agents:[...selAgents],
     skills:[...selSkills],status:[...selStatus],
-    sw:{...sw},savedAt:new Date().toISOString()};
+    savedAt:new Date().toISOString()};
   const ok=savePresets(p);
   if(!ok){presetStatus("Impossible d'enregistrer (stockage indisponible)","#ff3b30");return;}
   refreshPresetSelect();
@@ -1942,9 +2199,8 @@ function applyPreset(name){
   selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
   selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
-  selStatus=Array.isArray(p.status)?p.status:["Actif","Traitement","Post-appel","Déconnecté","n.d."];
-  if(p.sw&&typeof p.sw==="object")sw={...sw,...p.sw};
-  buildAllDropdowns();buildSwitches();render();
+  selStatus=Array.isArray(p.status)?p.status:[...STATUSES];
+  buildAllDropdowns();render();
   presetStatus(`Vue « ${name} » appliquée`,"#30d158");
 }
 async function deletePreset(){
@@ -1964,10 +2220,30 @@ function getFiltered(){
   // Calculé UNE SEULE FOIS hors de la boucle (évite O(n²) qui figeait l'UI)
   const _scoped=getScopedSkills();
   const _skillFilterActive=skillsLoaded()&&selSkills.length>0&&selSkills.length<_scoped.length;
+  const _campPartial=campSelPartial();
+  // Principe "1 agent = N compétences" : si les compétences sont chargées et qu'un filtre
+  // campagne est actif, un agent dont le camp primaire n'est PAS dans la sélection peut
+  // néanmoins couvrir une campagne sélectionnée via ses compétences secondaires.
+  // C'est notamment le cas des campagnes "flux-only" (ex : M123) où tous les appels sont
+  // pris par des agents mutualisés rattachés à d'autres camps principaux.
+  // waAgentCovers est appelé sans pré-requis : étapes 1 (queues traitées) et 2 (camp principal)
+  // fonctionnent sans compétences chargées. Les étapes 3-4 (skills) s'ajoutent quand dispo.
+  const _covCheck=_campPartial;
+  // Filtre Files : actif seulement si sélection partielle. Un agent passe s'il a traité
+  // au moins une des files sélectionnées ; un agent sans file (aucun appel) n'est pas exclu.
+  const _queueFilterActive=selQueues.length>0&&allQueues.length>0&&selQueues.length<allQueues.length;
+  const _selQueuesSet=_queueFilterActive?new Set(selQueues):null;
   return agents.filter(a=>{
     if(hideDeconnecte&&(a.status==="Déconnecté"||(a.status===null&&(a.decroches||0)===0&&(a.sortants||0)===0)))return false;
-    if(selCamps.length<CAMPS.length&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp))return false;
+    if(_campPartial&&a.camp&&a.camp!=="–"&&!selCamps.includes(a.camp)){
+      // Camp primaire hors sélection : inclure si couverture compétence sur un camp sélectionné
+      if(!_covCheck||!selCamps.some(c=>waAgentCovers(a,c)))return false;
+    }
     if(!selAgents.includes(a.nom))return false;
+    if(_queueFilterActive){
+      const aq=(a.queues||"").split(", ").filter(Boolean);
+      if(aq.length>0&&!aq.some(q=>_selQueuesSet.has(q)))return false;
+    }
     if(a.status==null){if(!selStatus.includes("n.d."))return false;}
     else if(!selStatus.includes(a.status))return false;
     // Filtre compétences : seulement si les compétences INO sont chargées ET sélection partielle
@@ -1975,9 +2251,6 @@ function getFiltered(){
       const _agSkills=Array.isArray(a.skills)?a.skills.map(s=>s.name||s):[];
       if(_agSkills.length>0&&!_agSkills.some(s=>selSkills.includes(s)))return false;
     }
-    if(sw.refus&&(a.refus||0)===0)return false;
-    if(sw.reit&&(a.reiterants||0)===0)return false;
-    if(sw.inactif&&(a.inactifs||0)<3)return false;
     return true;
   });
 }
@@ -2025,6 +2298,7 @@ async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScor
     const r=await fetch('/api/skill-list/'+agentId);
     if(r.ok){
       const d=await r.json();
+      if(d.ok===false)throw new Error(d.error||'Token INO indisponible');
       const allSkills=[...(d.profileSkills||[]),(d.flowSkills||[])].flat();
       const match=allSkills.find(s=>s.name&&s.name.toLowerCase()===sk.toLowerCase());
       if(match){
@@ -2109,28 +2383,79 @@ async function refreshSkills(){
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     const data=await resp.json();
     if(!data.ok)throw new Error(data.error||'Erreur serveur. Réessayez dans quelques instants.');
-    // Mettre à jour les agents avec les compétences reçues
-    let updated=0;
+    // Mettre à jour les agents avec les compétences reçues (source détaillée /cc/*)
+    let updated=0,firstErr='';
     agents.forEach(a=>{
       const sk=data.results[a.id];
-      if(sk&&!sk.error){
+      if(sk&&!sk.error&&Array.isArray(sk.allSkills)&&sk.allSkills.length>0){
         a.skills=sk.skills.map(s=>s.name);
         a.allSkillsData=sk.allSkills;
         a.skillsData=sk.skills;
         updated++;
-      }
+      }else if(sk&&sk.error&&!firstErr){firstErr=String(sk.error);}
     });
+    // FALLBACK : si /cc/* n'a rien remonté (droits INO insuffisants sur le compte de service),
+    // on bascule sur les compétences déclarées dans /agent/list (endpoint /api/skills),
+    // qui ne nécessite pas les droits /cc/*. Source moins fine (pas d'état actif/inactif)
+    // mais suffisante pour la couverture par campagne (waAgentCovers travaille sur les noms).
+    let usedFallback=false;
+    if(updated===0){
+      if(_lbl)_lbl.textContent='Compétences détaillées indisponibles — repli sur /agent/list…';
+      try{
+        const fr=await fetch('/api/skills');
+        const fd=await fr.json();
+        if(fd&&fd.ok&&fd.agents){
+          // Indexer par id ET par nom normalisé (l'id INO peut différer entre endpoints)
+          const byId=fd.agents;
+          const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+          const byName={};Object.values(byId).forEach(v=>{if(v&&v.nom)byName[norm(v.nom)]=v;});
+          agents.forEach(a=>{
+            const rec=byId[a.id]||byName[norm(a.nom)];
+            const names=rec&&Array.isArray(rec.skills)?rec.skills.filter(Boolean):[];
+            if(names.length>0){
+              a.skills=names.slice();
+              a.allSkillsData=names.map(n=>({id:null,name:n,score:100,active:true}));
+              a.skillsData=a.allSkillsData.slice();
+              updated++;
+            }
+          });
+          if(updated>0)usedFallback=true;
+        }
+      }catch(_e){/* fallback best-effort */}
+    }
+    if(updated>0){_skillsLoadedAt=new Date();window._skillsLoadFailed=false;}
+    else{window._skillsLoadFailed=true;}
     render();
     if(document.getElementById('skills-table'))renderSkills();
-    clearInterval(_pt);if(_bar){_bar.style.width='100%';_bar.style.animation='none';}if(_lbl)_lbl.textContent='✓ '+updated+'/'+agentIds.length+' agents mis à jour';
-    setTimeout(()=>{if(_prog)_prog.style.display='none';},2500);
-    showToast('✓ Compétences mises à jour ('+updated+'/'+agentIds.length+' agents)','ok',5000);
+    clearInterval(_pt);if(_bar){_bar.style.width=updated>0?'100%':'0';_bar.style.animation='none';}
+    if(_lbl)_lbl.textContent=updated>0?('✓ '+updated+'/'+agentIds.length+' agents'+(usedFallback?' (source /agent/list)':'')):'Aucune compétence remontée par INO';
+    setTimeout(()=>{if(_prog)_prog.style.display='none';},updated>0?2500:4000);
+    if(updated>0){
+      showToast('✓ Compétences chargées ('+updated+'/'+agentIds.length+' agents)'+(usedFallback?' — via /agent/list':''),'ok',5000);
+    }else{
+      // Afficher un diagnostic interactif : permet d'inspecter la réponse brute INO pour un agent
+      const _diagId=agentIds[0]||'';
+      const _diagMsg='INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'.')+
+        (_diagId?' <a href="/api/skills-debug/'+_diagId+'" target="_blank" style="color:#ff9f0a;text-decoration:underline;">Inspecter la réponse INO ↗</a>':'');
+      showToast(_diagMsg,'error',12000);
+    }
   }catch(e){
+    window._skillsLoadFailed=true;
     clearInterval(_pt);if(_bar){_bar.style.width='0';_bar.style.animation='none';}if(_lbl)_lbl.textContent='Erreur — réessayez';
     setTimeout(()=>{if(_prog)_prog.style.display='none';},3000);
     showToast('Impossible de charger les compétences. Vérifiez les droits INO.','error');
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='↺ Compétences';}
+    if(btn){
+      btn.disabled=false;
+      if(_skillsLoadedAt&&skillsLoaded()){
+        const _t=_skillsLoadedAt;
+        const _hhmm=_t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const _ddmm=_t.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+        btn.innerHTML='↺ Compétences&nbsp;<span style="color:#30d158;font-weight:700;font-size:10px">✓ '+_ddmm+' '+_hhmm+'</span>';
+      }else{
+        btn.textContent='↺ Compétences';
+      }
+    }
   }
 }
 function getSorted(f){
@@ -2175,7 +2500,7 @@ function renderKPIs(f){
   // utiliser les flux de file des campagnes sélectionnées (abandons inclus + appels pris
   // par des agents mutualisés rattachés à une autre campagne). Le calcul agents
   // (décrochés/présentés) sous-estime les abandons et surestime la QS.
-  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&selCamps.length<CAMPS.length
+  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&campSelPartial()
     &&agents.filter(a=>selCamps.includes(a.camp)).every(a=>selAgents.includes(a.nom));
   // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
   // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
@@ -2221,7 +2546,7 @@ function renderKPIs(f){
     {l:"% Réalisé",v:pct+"%",sub:`${actesReal} / ${totObj} actes obj.`,alert:pct<60,good:pct>=80,gauge:pct,priority:true,
      def:"Avancement de la production du jour par rapport à l'objectif d'actes de l'équipe.\n\nFormule : (Σ Actes réalisés / Σ Objectifs des agents du périmètre) × 100.\n• Actes = appels traités + appels sortants + mails saisis. En périmètre complet ou filtre campagne seul, les appels viennent de la FILE INO (incluant ceux pris par des agents mutualisés) ; avec un filtre agent actif, ce sont les actes des agents sélectionnés.\n• Objectif d'un agent = « Objectif d'appels » de sa campagne, configurable dans ⚙ Critères & KPI (défaut : 50 actes/jour/agent).\n\nExemple : 6 agents × 50 actes d'objectif = 300 ; 313 appels traités file + sortants + mails → plafonné à 100 %.\n\nATTENTION : si l'objectif d'une campagne n'a pas été personnalisé, le défaut de 50 s'applique — réglez les objectifs réels par campagne pour fiabiliser ce KPI.\n\nLecture : ≥ 80 % bonne maîtrise · < 60 % attention."},
     {l:"Taux d'occupation global",v:(occGlobal||"–")+(occGlobal?"%":""),sub:"Comm. / présence",alert:occGlobal>0&&occGlobal<70,good:occGlobal>=85,gauge:occGlobal,
-     def:"Part du temps de présence passée en communication, en moyenne sur les agents du périmètre.\n\nFormule : moyenne des taux d'occupation individuels (seuls les agents avec occupation mesurable sont comptés).\nOccupation d'un agent = Temps de communication / (Présence estimée × 50 min/h) — la règle des 50 min/h tolère 10 min non communicantes par heure (pauses, wrap-up).\n\nLecture : ≥ 85 % bonne maîtrise · < 70 % attention."},
+     def:"Part du temps de présence passée en communication, en moyenne sur les agents du périmètre.\n\nFormule : moyenne des taux d'occupation individuels (seuls les agents avec occupation mesurable sont comptés).\nOccupation d'un agent = (Temps de communication [+ ACW si activé]) / (Présence estimée × min productives/h).\n\nParamétrable PAR CAMPAGNE dans ⚙ Critères & KPI (la définition varie selon le client) :\n• Min. productives/heure (défaut 50 → tolère 10 min/h de pause/wrap ; 60 = présence brute).\n• Inclusion du post-appel (ACW) dans le temps occupé.\n\nLecture : ≥ 85 % bonne maîtrise · < 70 % attention."},
     {l:"Flux reçus",v:totRecus.toLocaleString(),sub:_hasFlux?(_isFullScope?"File globale INO":"File INO · campagnes sélectionnées"):"Présentés agents filtrés",
      cmp:_cmp?cmpDelta(totRecus,_cmp.totRecus,null,fmtInt):"",
      def:"Volume d'appels entrants reçus sur la période.\n\nPérimètre complet ou filtre campagne seul : file INO = appels traités + abandonnés des campagnes du périmètre (appels hors horaires d'ouverture exclus).\nFiltre agent actif : somme des appels présentés aux agents sélectionnés.\n\nSource : API INO /call/in/histories."},
@@ -2263,12 +2588,6 @@ function renderKPIs(f){
 }
 
 // Smart routing + Red flags
-function toggleHideDeconnecteCtrl(){
-  hideDeconnecte=document.getElementById("hide-deconnecte-ctrl")?.checked||false;
-  const cb2=document.getElementById("hide-deconnecte");
-  if(cb2)cb2.checked=hideDeconnecte;
-  render();
-}
 function toggleHideDeconnecte(){
   hideDeconnecte=document.getElementById("hide-deconnecte")?.checked||false;
   render();
@@ -2280,7 +2599,7 @@ function updateAlertBadge(f){
   const badge=document.getElementById("alert-badge");
   const tabBtn=document.getElementById("tab-btn-alertes");
   if(!badge||!tabBtn)return;
-  const today=new Date().toISOString().slice(0,10);
+  const today=isoLocal(new Date());
   const selDate=(document.getElementById("f-date-deb")||{}).value||today;
   const isToday=selDate===today;
   const total=isToday?redFlags:0;
@@ -2296,8 +2615,8 @@ function renderAlerts(f){
   const zone=document.getElementById("alerts-zone");
   // Pilotage instantané : les conseils ne s'affichent QUE pour la journée en cours (live).
   // Sur une date antérieure (historique), aucun conseil — ce n'est pas du temps réel.
-  const selDate=(document.getElementById("f-date-deb")||{}).value||new Date().toISOString().slice(0,10);
-  const today=new Date().toISOString().slice(0,10);
+  const selDate=(document.getElementById("f-date-deb")||{}).value||isoLocal(new Date());
+  const today=isoLocal(new Date());
   if(selDate!==today){
     zone.innerHTML='<div style="padding:14px 18px;font-size:11px;color:#666;background:rgba(255,255,255,.02);border:1px solid #1a1a1a;border-radius:10px">📅 Consultation historique ('+selDate.split("-").reverse().join("/")+') — les conseils de pilotage ne s\'affichent que sur la journée en cours.</div>';
     return;
@@ -2352,10 +2671,9 @@ function renderAlerts(f){
       </div>`;
     }
     // Amplitude horaire d'ouverture du service (par campagne)
-    const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+    const curMin=parisNowMin();   // heure métier Paris, pas le fuseau du navigateur
     const toMin=t=>{const[h,m]=String(t).split(":").map(Number);return h*60+(m||0);};
-    const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
-    const jourAuj=_jrKeys[nowH.getDay()];
+    const jourAuj=parisDayKey();
     let serviceOuvert,hOuv="–",hFerm="–";
     if(cc.h24){serviceOuvert=true;hOuv="00:00";hFerm="24:00";}
     else if(cc.jours&&cc.jours[jourAuj]){
@@ -2428,10 +2746,10 @@ function renderTable(sorted){
     {k:"actes",l:"Actes total",title:"Décrochés + Sortants + Mails",def:"Total des actes de production = Appels décrochés + Appels sortants + Mails saisis. Formule : appelsIn + appelsOut + mails."},
     {k:"actesH",l:"Actes/h",title:"Actes total / H. Prod",def:"Productivité horaire globale. Formule : Actes total / H. Prod. Inclut entrants décrochés + sortants + mails."},
     {k:"appelsH",l:"App./h",title:"Sortants / H. prod",def:"Cadence d'appels sortants par heure de production.\nFormule : Appels sortants / H. Prod.\nCe KPI mesure la productivité sortante de l'agent : combien d'appels émis par heure travaillée.\nExemple : 15 appels sortants pour 3h de prod = 5 App./h."},
-    {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : Durée totale de communication / Nombre d'appels traités. Source : agentDuration cumulé / total appels. Affiché en MMmin SSsec."},
+    {k:"dmc",l:"DMC",def:"Durée Moyenne de Communication. Formule : durée de communication des appels ENTRANTS décrochés ÷ nombre d'entrants décrochés (agentDuration des entrants). Le temps de communication sortant n'est pas inclus (la productivité sortante est suivie par App./h). Au niveau campagne et total, la DMC est une moyenne pondérée par le nombre de décrochés de chaque agent. Affiché en MMmin SSsec."},
     {k:"dmt",l:"DMT",title:"Durée Moyenne de Traitement = DMC + ACW estimé",def:"Durée Moyenne de Traitement (DMT).\n\nDéfinition métier : temps total mobilisé par un appel, de la prise en charge jusqu'à la clôture du traitement post-appel.\n\nFormule : DMT = DMC + ACW\n• DMC (Durée Moyenne de Communication) : temps passé en ligne avec l'interlocuteur.\n• ACW (After Call Work) : temps de traitement post-appel (qualification, saisie, compte-rendu).\n\n⚠ L'ACW inclus dans ce calcul est une ESTIMATION indirecte (voir définition colonne Post-appel ACW). Le DMT est donc lui aussi indicatif, pas une mesure exacte.\n\nCas n.d. : si l'agent a moins de 2 appels dans la journée, aucun gap n'est mesurable — le DMT affiché est alors égal à la DMC.\n\nAffichage : en minutes et secondes.\n\nUsage opérationnel : l'écart (DMT − DMC) révèle le poids du wrap-up. Un DMT nettement supérieur à la DMC signale un post-appel long (procédure complexe, saisie lourde). Un DMT ≈ DMC indique un traitement quasi-instantané après raccrochage."},
     {k:"acw",l:"Post-appel (ACW)",title:"After Call Work — Temps de post-appel (estimation)",def:"After Call Work (ACW) — Temps de traitement post-appel.\n\nDéfinition métier : durée entre la fin d'un appel et le début de l'appel suivant. C'est le temps qu'un agent consacre à finaliser son traitement après avoir raccroché : saisie CRM, qualification, rédaction de compte-rendu, mise à jour de dossier.\n\n⚠ SOURCE — L'API INO ne fournit PAS l'ACW en donnée directe. Cette valeur est une ESTIMATION calculée par le serveur à partir des historiques d'appels.\n• Formule : gap entre (fin appel N) et (début appel N+1), moyenné sur la journée\n• Fin appel N = timestamp début + agentDuration (en secondes)\n• Les gaps > 1 heure sont exclus (pauses, absences)\n\n⚠ BIAIS IMPORTANT — Ce gap inclut aussi le temps d'attente sans appel (délai entre la fin du wrap-up réel et la distribution de l'appel suivant par l'ACD). Il est impossible de distinguer automatiquement la part de post-appel réel de la part d'attente passive entre deux appels distribués.\n\nComment fiabiliser la lecture :\n• Croiser avec le volume : un ACW calculé sur 30+ appels est fiable. Sur moins de 10 appels, l'attente inter-appels domine et la valeur est peu exploitable.\n• Comparer au groupe campagne : un agent avec un ACW > 20 % au-dessus de la moyenne de ses collègues sur la même file mérite une vérification, même si la valeur absolue reste indicative.\n• Ne pas isoler cet indicateur : le croiser avec le taux d'occupation et le volume d'appels pour valider une tendance avant toute conclusion.\n\nAffichage : en minutes et secondes (ex : 2min 15sec).\nSeuil d'alerte : dérive > 20 % au-dessus de la moyenne du groupe campagne."},
-    {k:"occupation",l:"Occupation",title:"Taux d'occupation = Temps comm / (Présence × 50/60)",def:"Taux d'occupation = Temps total de communication / (Présence estimée × 50 min/h). La règle des 50 min/h correspond à 10 min de temps non communicant par heure (pauses, wrap-up). Présence estimée = derniereAction - premiereAction."},
+    {k:"occupation",l:"Occupation",title:"Taux d'occupation = (Comm. [+ ACW]) / (Présence × min/h) — paramétrable par campagne",def:"Taux d'occupation = (Temps de communication [+ ACW si activé]) / (Présence estimée × min productives/h). Le diviseur (min/h, défaut 50) et l'inclusion de l'ACW sont paramétrables par campagne dans ⚙ Critères & KPI car la définition varie selon le client. Présence estimée = derniereAction - premiereAction."},
     {k:"transfo",l:"Transformation",title:"Taux de transformation (qualifications positives)",def:"Taux de transformation = qualifications positives (RDV, Intéressé) / total qualifications. Source : h.status analysé dans les histories INO."},
     {k:"adherence",l:"Adhérence",title:"Adhérence au planning",def:"Taux d'adhérence au planning prévu. ⚠ Non exposé par l'API INO histories."},
     {k:"ko",l:"100 % KO",title:"Appels présentés mais non décrochés par l'agent",def:"Appels entrants présentés à l'agent mais non décrochés (agentDuration=0 ou status=abandoned). ATTENTION : les abandons de file (appelant raccroche avant d'être distribué) ont agent=null et ne sont PAS inclus ici — ils apparaissent dans les KPI globaux de flux manqués."},
@@ -2631,6 +2949,17 @@ function toggleRow(id){
   if(caret)caret.textContent=open?"▸":"▾";
 }
 
+// Convertit un timestamp ISO en minutes depuis minuit (heure Paris)
+function _parisSlotMin(isoStr){
+  if(!isoStr)return -1;
+  try{
+    var d=new Date(isoStr);
+    var fr=d.toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+    var p=fr.replace('h',':').split(':');
+    return parseInt(p[0])*60+parseInt(p[1]);
+  }catch(e){return -1;}
+}
+
 // Graphiques
 function renderChart(){
   const host=document.getElementById("chart-host");if(!host)return;
@@ -2655,21 +2984,49 @@ function renderChart(){
     // Si aucun appel pour ce camp dans ce slot → garder le slot vide
     return {...sl,vol:filtVol,out:sl.out,aband:sl.aband};
   });
-  const displaySlots=filteredSlots;
+  // Supprimer les tranches vides en début/fin pour éviter une plage vide illisible.
+  // S'applique uniquement si des données existent (évite un graphe vide avec 2 slots fantômes).
+  let displaySlots=filteredSlots.slice();
+  const _totalSlotVol=displaySlots.reduce(function(s,x){return s+(x.vol||0)+(x.out||0);},0);
+  if(_totalSlotVol>0){
+    while(displaySlots.length>2){
+      const last=displaySlots[displaySlots.length-1];
+      if((last.vol||0)===0&&(last.out||0)===0&&(last.aband||0)===0)displaySlots.pop();
+      else break;
+    }
+    while(displaySlots.length>2){
+      const first=displaySlots[0];
+      if((first.vol||0)===0&&(first.out||0)===0&&(first.aband||0)===0)displaySlots.shift();
+      else break;
+    }
+  }
+  // Filtre campagne actif : au niveau demi-horaire, seuls les ENTRANTS sont ventilables
+  // par campagne (via les files). Sortants/abandons restent des totaux globaux non
+  // attribuables par campagne → on ne les affiche pas en vue filtrée pour ne pas induire
+  // en erreur (sinon « 443 sortants » = global, pas la campagne sélectionnée).
+  const _filtered=(typeof selCamps!=="undefined"&&typeof CAMPS!=="undefined"&&campSelPartial());
   // Période sélectionnée (date à date) + volume total affiché
   const _fr=s=>s?s.split("-").reverse().join("/"):"";
   const _dDeb=(document.getElementById("f-date-deb")||{}).value||"";
   const _dFin=(document.getElementById("f-date-fin")||{}).value||_dDeb;
   const _periodeLbl=(_dDeb===_dFin)?_fr(_dDeb):(_fr(_dDeb)+" → "+_fr(_dFin));
   const _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
-  const _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  let _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
+  // Heure de fin effective : si on visualise aujourd'hui en direct, on affiche
+  // l'heure courante plutôt que la borne théorique (ex. 14:06 et non 20:00).
+  {const _todayIso=isoLocal(new Date());
+   const _nowHHMM=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+   if(_dDeb===_dFin&&_dDeb===_todayIso&&_nowHHMM<_hFin)_hFin=_nowHHMM;}
   const _volIn=displaySlots.reduce((s,x)=>s+(x.vol||0),0);
   const _volOut=displaySlots.reduce((s,x)=>s+(x.out||0),0);
+  const _volAb=displaySlots.reduce((s,x)=>s+(x.aband||0),0);
   const _multi=(window._nbJours>1);
   const _spanP=document.getElementById("chart-period");
   if(_spanP){
     _spanP.textContent="· "+_periodeLbl+" · "+_hDeb+"–"+_hFin+" · "
-      +(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants"));
+      +(_filtered
+        ?(_volIn+" entrants traités (campagne filtrée)")
+        :(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants")));
   }
   if(!displaySlots.length){
     const msg=inoLive
@@ -2683,90 +3040,288 @@ function renderChart(){
     host.innerHTML=msg;
     return;
   }
-  // Dimensions agrandies + marges pour axes
-  const W=970,H=248,PAD={t:26,r:14,b:48,l:42};
+  // ── Rendu SVG : nouveau design ────────────────────────────────────────────
+  // Couleurs adaptées au mode clair/sombre
+  const _isLight=document.body.classList.contains('light');
+  const C_GRID =_isLight?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
+  const C_AXIS =_isLight?'#c8c8c8':'#2a2a2a';
+  const C_TK   =_isLight?'#888':'#666';
+  const C_TK2  =_isLight?'#bbb':'#444';
+  const C_IN   ='#E8006E';
+  const C_ABAND='rgba(232,0,110,0.28)';
+  const C_OUT  ='#4C9AFF';
+  const C_TC   ='#4C9AFF';
+
+  const W=970,H=300,PAD={t:16,r:20,b:62,l:44};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
-  const maxV=Math.max(...displaySlots.map(s=>s.vol+s.out),1);
-  // Échelle Y "ronde" : prochaine dizaine au-dessus
-  const yMax=Math.ceil(maxV/10)*10;
-  const bw=cw/slots.length;
-  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:280px;display:block">
-    <style>
-      .axis{stroke:var(--axis,#333);stroke-width:1}
-      .grid{stroke:var(--grid,#1e1e1e);stroke-width:1;stroke-dasharray:2 3}
-      .tick{font-size:10px;fill:var(--tick,#888);font-family:inherit}
-      .hlbl{font-size:10px;fill:var(--tick,#888);font-family:inherit}
-      .legend{font-size:11px;fill:var(--tick,#888);font-family:inherit}
-      .chart-period{font-size:11px;fill:var(--tick,#aaa);font-family:inherit;font-weight:700}
-    </style>`;
-  // Bandeau période + volume directement sur le graphique (visible en vue agrandie et à l'export)
-  svg+=`<text class="chart-period" x="${PAD.l}" y="11">${_periodeLbl} · ${_hDeb}–${_hFin}</text>`;
-  svg+=`<text class="chart-period" x="${W-PAD.r}" y="11" text-anchor="end" style="fill:#E8006E">${_multi?("\u2248 "+_volIn+" entr./j"):(_volIn+" entrants · "+_volOut+" sortants")}</text>`;
-  // Grille horizontale + labels Y (5 paliers)
-  for(let i=0;i<=5;i++){
-    const y=PAD.t+ch-(i/5)*ch;
-    const val=Math.round((i/5)*yMax);
-    svg+=`<line class="grid" x1="${PAD.l}" y1="${y}" x2="${W-PAD.r}" y2="${y}"/>`;
-    svg+=`<text class="tick" x="${PAD.l-6}" y="${y+3}" text-anchor="end">${val}</text>`;
+
+  // Échelle Y : pic = Présentés (Décrochés+Abandons) ou Sortants
+  const maxV=Math.max(
+    ...displaySlots.map(s=>_filtered?(s.vol||0):Math.max((s.vol||0)+(s.aband||0),(s.out||0))),1);
+  // Pas Y : trouver un pas "rond" qui donne 3–6 lignes de grille
+  const _steps=[1,2,5,10,25,50,100,200,500,1000];
+  const yStep=_steps.find(s=>Math.ceil(maxV/s)>=3&&Math.ceil(maxV/s)<=6)||_steps.find(s=>Math.ceil(maxV/s)<=6)||10;
+  const yMax=Math.ceil(maxV/yStep)*yStep;
+  const nY=yMax/yStep;
+  const bw=cw/displaySlots.length;
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-height:310px;display:block;overflow:visible">`;
+
+  // Grille horizontale
+  for(let gi=0;gi<=nY;gi++){
+    const yv=gi*yStep;
+    const gy=PAD.t+ch-(yv/yMax)*ch;
+    svg+=`<line x1="${PAD.l}" y1="${gy.toFixed(1)}" x2="${W-PAD.r}" y2="${gy.toFixed(1)}" stroke="${C_GRID}" stroke-width="1" stroke-dasharray="${gi===0?'0':'3 4'}"/>`;
+    svg+=`<text x="${(PAD.l-7).toFixed(1)}" y="${(gy+3.5).toFixed(1)}" text-anchor="end" fill="${C_TK}" font-size="9.5" font-family="inherit">${yv}</text>`;
   }
-  // Axes
-  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}"/>`;
-  svg+=`<line class="axis" x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+ch}"/>`;
-  // Barres : entrants traités (rose) + sortants (gris) côte à côte, abandons (rouge) en transparent par-dessus
-  // Couleurs distinctes par thème : entrants traités (rose Wisecom), sortants (bleu acier), abandons (orange-rouge)
-  const C_IN="#E8006E", C_OUT="#3b9eff", C_ABAND="#ff7a18";
-  slots.forEach((s,i)=>{
-    const x=PAD.l+i*bw;
-    const hv=(s.vol/yMax)*ch, ha=(s.aband/yMax)*ch, ho=(s.out/yMax)*ch;
-    // 3 barres fines côte à côte
-    const barW=bw*.26, gap=bw*.07, g2=barW+1;
-    const xIn=x+gap, xOut=x+gap+g2, xAb=x+gap+g2*2;
-    // Entrants traités (rose)
-    svg+=`<rect x="${xIn}" y="${PAD.t+ch-hv}" width="${barW}" height="${hv}" fill="${C_IN}" rx="2">
-      <title>${s.lbl} · ${s.vol} entrants traités</title></rect>`;
-    // Sortants (bleu acier)
-    svg+=`<rect x="${xOut}" y="${PAD.t+ch-ho}" width="${barW}" height="${ho}" fill="${C_OUT}" rx="2">
-      <title>${s.lbl} · ${s.out} sortants</title></rect>`;
-    // Abandons (orange-rouge) — barre dédiée, plus en overlay
-    if(s.aband>0)svg+=`<rect x="${xAb}" y="${PAD.t+ch-ha}" width="${barW}" height="${ha}" fill="${C_ABAND}" rx="2">
-      <title>${s.lbl} · ${s.aband} abandons</title></rect>`;
-    // Valeurs au-dessus de chaque barre (par type et par tranche)
-    if(s.vol>0)svg+=`<text x="${xIn+barW/2}" y="${PAD.t+ch-hv-3}" text-anchor="middle" style="font-size:8px;fill:${C_IN};font-weight:700;font-family:inherit">${s.vol}</text>`;
-    if(s.out>0)svg+=`<text x="${xOut+barW/2}" y="${PAD.t+ch-ho-3}" text-anchor="middle" style="font-size:8px;fill:${C_OUT};font-weight:700;font-family:inherit">${s.out}</text>`;
-    if(s.aband>0)svg+=`<text x="${xAb+barW/2}" y="${PAD.t+ch-ha-3}" text-anchor="middle" style="font-size:8px;fill:${C_ABAND};font-weight:700;font-family:inherit">${s.aband}</text>`;
-    // Labels heure : tous les 2 (toutes les heures, pas toutes les demi-heures)
-    if(i%2===0){
-      svg+=`<text class="hlbl" x="${x+bw/2}" y="${PAD.t+ch+15}" text-anchor="middle">${s.lbl}</text>`;
+  // Axe X
+  svg+=`<line x1="${PAD.l}" y1="${PAD.t+ch}" x2="${W-PAD.r}" y2="${PAD.t+ch}" stroke="${C_AXIS}" stroke-width="1"/>`;
+
+  // Agents actifs par tranche (présence = premiereAction→derniereAction)
+  const _scopedAgents=typeof getFiltered==='function'?getFiltered():[];
+  const _slotAgentCount=displaySlots.map(function(s){
+    var p=(s.lbl||"").split(':'),sm=parseInt(p[0])*60+parseInt(p[1]);
+    return _scopedAgents.filter(function(a){
+      if(!a.premiereAction)return false;
+      var st=_parisSlotMin(a.premiereAction),en=_parisSlotMin(a.derniereAction||a.premiereAction);
+      return st>=0&&en>=0&&st<=(sm+29)&&en>=sm;
+    }).length;
+  });
+
+  // Barres
+  displaySlots.forEach((s,i)=>{
+    const bx=PAD.l+i*bw;
+    const vIn=s.vol||0,vOut=s.out||0,vAb=s.aband||0;
+    const isHour=!(s.lbl||"").endsWith(":30");
+
+    // Séparateur d'heure discret au début de chaque heure (sauf le premier slot)
+    if(isHour&&i>0){
+      svg+=`<line x1="${bx.toFixed(1)}" y1="${PAD.t}" x2="${bx.toFixed(1)}" y2="${(PAD.t+ch).toFixed(1)}" stroke="${C_GRID}" stroke-width="1"/>`;
+    }
+
+    if(_filtered){
+      // Mode campagne filtrée : une barre large centrée (Décrochés uniquement)
+      const bW=bw*0.66,bX=bx+(bw-bW)/2;
+      if(vIn>0){
+        const hIn=(vIn/yMax)*ch;
+        svg+=`<rect x="${bX.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
+      }
+    } else {
+      // Mode global : stack gauche (Décrochés + Abandons empilés) + barre droite (Sortants)
+      const sW=bw*0.55,oW=bw*0.22,gap=bw*0.07;
+      const xS=bx+bw*0.09,xO=xS+sW+gap;
+      const hIn=(vIn/yMax)*ch,hAb=(vAb/yMax)*ch,hOut=(vOut/yMax)*ch;
+
+      // Abandons (partie haute du stack, transparente) empilés AU-DESSUS des décrochés
+      if(vAb>0){
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn-hAb).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hAb,1.5).toFixed(1)}" fill="${C_ABAND}" rx="3"><title>${s.lbl} · ${vAb} abandons (${vIn+vAb} présentés)</title></rect>`;
+      }
+      // Décrochés (partie basse du stack, couleur pleine)
+      if(vIn>0){
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
+      }
+      // Sortants
+      if(vOut>0){
+        svg+=`<rect x="${xO.toFixed(1)}" y="${(PAD.t+ch-hOut).toFixed(1)}" width="${oW.toFixed(1)}" height="${Math.max(hOut,1.5).toFixed(1)}" fill="${C_OUT}" rx="3"><title>${s.lbl} · ${vOut} sortants</title></rect>`;
+      }
+    }
+
+    // Étiquette axe X : label complet sur les ":00", petit tick sur les ":30"
+    if(isHour){
+      svg+=`<text x="${(bx+bw/2).toFixed(1)}" y="${(PAD.t+ch+14).toFixed(1)}" text-anchor="middle" fill="${C_TK}" font-size="10" font-family="inherit" font-weight="700">${s.lbl}</text>`;
+    } else {
+      svg+=`<line x1="${(bx+bw/2).toFixed(1)}" y1="${(PAD.t+ch).toFixed(1)}" x2="${(bx+bw/2).toFixed(1)}" y2="${(PAD.t+ch+4).toFixed(1)}" stroke="${C_TK2}" stroke-width="1"/>`;
+    }
+
+    // TC agents : badge numérique au-dessus de la barre la plus haute du slot
+    const _ac=_slotAgentCount[i];
+    if(_ac>0){
+      const vPres=vIn+(_filtered?0:vAb);
+      const hTall=Math.max((vPres/yMax)*ch,(vOut/yMax)*ch);
+      const yBadge=Math.max(PAD.t+ch-hTall-7,PAD.t+5);
+      svg+=`<text x="${(bx+bw/2).toFixed(1)}" y="${yBadge.toFixed(1)}" text-anchor="middle" fill="${C_TC}" font-size="8.5" font-family="inherit" font-weight="700" opacity=".85">${_ac}TC</text>`;
     }
   });
-  // Légende sous l'axe X
-  const ly=PAD.t+ch+34;
-  svg+=`<rect x="${PAD.l}" y="${ly-9}" width="11" height="11" fill="${C_IN}" rx="2"/>
-    <text class="legend" x="${PAD.l+16}" y="${ly}">Entrants traités</text>
-    <rect x="${PAD.l+140}" y="${ly-9}" width="11" height="11" fill="${C_OUT}" rx="2"/>
-    <text class="legend" x="${PAD.l+156}" y="${ly}">Sortants</text>
-    <rect x="${PAD.l+235}" y="${ly-9}" width="11" height="11" fill="${C_ABAND}" rx="2"/>
-    <text class="legend" x="${PAD.l+251}" y="${ly}">Abandons</text>
-    <text class="legend" x="${W-PAD.r}" y="${ly}" text-anchor="end">Échelle Y : ${(window._nbJours>1)?"moyenne/jour":"nb d\u0027appels"} · max ${yMax}</text>`;
+
+  // Légende
+  const ly=PAD.t+ch+38;
+  const _volPres=_volIn+(_filtered?0:_volAb);
+  const _leg=(lx,col,txt,isCircle=false)=>{
+    const dot=isCircle
+      ?`<circle cx="${(lx+5).toFixed(1)}" cy="${(ly-5).toFixed(1)}" r="5" fill="${col}"/>`
+      :`<rect x="${lx}" y="${ly-10}" width="12" height="12" fill="${col}" rx="3"/>`;
+    return dot+`<text x="${lx+(isCircle?15:18)}" y="${ly}" fill="${C_TK}" font-size="11" font-family="inherit">${txt}</text>`;
+  };
+  let lx=PAD.l;
+  if(!_filtered){
+    svg+=_leg(lx,C_ABAND,`Présentés · ${_volPres}`);  lx+=150;
+    svg+=_leg(lx,C_IN,   `Décrochés · ${_volIn}`);    lx+=140;
+    svg+=_leg(lx,C_OUT,  `Sortants · ${_volOut}`);     lx+=130;
+  } else {
+    svg+=_leg(lx,C_IN,`Décrochés · ${_volIn} (campagne filtrée)`); lx+=230;
+  }
+  svg+=_leg(lx,C_TC,`nTC = agents actifs/tranche`,true);
+  svg+=`<text x="${W-PAD.r}" y="${ly}" text-anchor="end" fill="${C_TK2}" font-size="10.5" font-family="inherit">max ${yMax}</text>`;
+
   svg+="</svg>";
   host.innerHTML=svg;
-  // Si la vue agrandie est ouverte, la rafraîchir aussi
+  // Vue agrandie : synchroniser
   const zo=document.getElementById("chart-zoom-content");
   if(zo&&document.getElementById("chart-overlay").style.display!=="none"){zo.innerHTML=svg;}
 
-  // Bloc Qualifications : la répartition fine par catégorie (KO / Hors SVI / Sans suite / Rappel /
-  // RDV pris / Intéressé...) n'est PAS distinguable de manière fiable au niveau agent depuis
-  // /call/in/histories (seuls quelques compteurs agrégés et partiels remontent — cf. tagQualif
-  // côté serveur). Mode honnête : "n.d." plutôt qu'une estimation/simulation trompeuse.
-  document.getElementById("qualif-chart").innerHTML=QUALIFS.map(q=>{
-    return`<div style="margin-bottom:11px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;align-items:baseline">
-        <span style="color:var(--qual-label,#ddd);font-weight:500">${q}</span>
-        <span style="font-size:11px">${nd(null)}</span>
+  // Qualifications : panel interactif avec recherche par campagne et plage de dates
+  initQualifPanel();
+  updateQualifFromAgents(getFiltered());
+}
+
+// ── Répartition qualifications ────────────────────────────────────────────
+// Initialise le HTML du panel une seule fois (préserve les recherches de l’utilisateur)
+function initQualifPanel(){
+  const host=document.getElementById("qualif-chart");
+  if(!host||host.dataset.qinit)return;
+  host.dataset.qinit="1";
+  const today=isoLocal(new Date());
+  host.innerHTML=`
+    <div style="padding:10px 12px 8px;border-bottom:1px solid var(--s-3);">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t-muted);margin-bottom:8px">🏷️ Répartition qualifications</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        <select id="qf-camp" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
+          <option value="">— Toutes campagnes —</option>
+          ${CAMPS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <input type="date" id="qf-d1" value="${today}" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
+        <span style="color:var(--t-disabled);font-size:10px;">→</span>
+        <input type="date" id="qf-d2" value="${today}" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
+        <button onclick="runQualifSearch()" style="background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;height:26px;">Rechercher</button>
+        <button onclick="exportQualifCsv()" id="qf-export" disabled style="background:var(--s-3);color:var(--t-disabled);border:1px solid var(--s-4);border-radius:6px;padding:4px 8px;font-size:10px;cursor:not-allowed;height:26px;">Export CSV</button>
       </div>
-      <div style="height:9px;background:var(--qual-bg,#1e1e1e);border-radius:5px;overflow:hidden"></div>
+    </div>
+    <div id="qf-results" style="padding:10px 12px;min-height:80px;"></div>`;
+}
+
+// Met à jour l’affichage à partir des agents DÉJÀ CHARGÉS (sans appel API)
+function updateQualifFromAgents(filtered){
+  const host=document.getElementById("qf-results");
+  if(!host)return;
+  const campSel=document.getElementById("qf-camp");
+  const campFilter=campSel?campSel.value:"";
+  const src=campFilter?filtered.filter(a=>a.camp===campFilter):filtered;
+  if(!src.length){
+    host.innerHTML='<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">Aucune donnée chargée — utilisez Rafraîchir puis Rechercher</div>';
+    return;
+  }
+  const totKo=src.reduce((s,a)=>s+(a.ko||0),0);
+  const totRefus=src.reduce((s,a)=>s+(a.refus||0),0);
+  const totReit=src.reduce((s,a)=>s+(a.reiterants||0),0);
+  const totTrans=src.reduce((s,a)=>s+(a.transferts||0),0);
+  const totAppels=src.reduce((s,a)=>s+(a.appels||0),0);
+  const totTransfo=src.reduce((s,a)=>s+(a.transfo!=null?Math.round(a.transfo/100*(a.appels||0)):0),0);
+  const totSansSuite=Math.max(0,totAppels-totKo-totRefus-totReit-totTrans-totTransfo);
+  _qualifData=[
+    {q:"100 % KO",n:totKo,src:"INO"},
+    {q:"Hors SVI",n:null,src:"n.d."},
+    {q:"Sans suite",n:totSansSuite,src:"estimé"},
+    {q:"Rappel",n:null,src:"n.d."},
+    {q:"RDV pris / Intéressé",n:totTransfo,src:"INO"},
+    {q:"Transfert",n:totTrans,src:"INO"},
+    {q:"Réitérant",n:totReit,src:"INO"},
+    {q:"Refus",n:totRefus,src:"INO"},
+  ];
+  _qualifMeta={camp:campFilter||"Toutes",d1:isoLocal(new Date()),d2:isoLocal(new Date()),agents:src.length,total:totAppels};
+  renderQualifBars(host,_qualifData,totAppels);
+  const exp=document.getElementById("qf-export");
+  if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
+}
+let _qualifData=[],_qualifMeta={};
+
+// Recherche par plage de dates (appel API /agents-day)
+async function runQualifSearch(){
+  const d1=document.getElementById("qf-d1")?.value;
+  const d2=document.getElementById("qf-d2")?.value;
+  const camp=document.getElementById("qf-camp")?.value||"";
+  const host=document.getElementById("qf-results");
+  if(!host||!d1||!d2)return;
+  host.innerHTML='<div style="padding:14px;color:var(--t-muted);font-size:11px;text-align:center;display:flex;align-items:center;gap:8px;justify-content:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--c-pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span>Chargement…</div>';
+  try{
+    const url=`/agents-day?date=${d1}&dateFin=${d2}&hDeb=0&hFin=24`;
+    const r=await fetch(url,{credentials:'same-origin'});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const json=await r.json();
+    const src=(json.agents||[]).filter(a=>{
+      if(!camp)return true;
+      const aq=String(a.queues||"");
+      const qlist=(QUEUES_MAP[camp]||[]).map(q=>q.toLowerCase());
+      return qlist.some(q=>aq.toLowerCase().includes(q))||detectCampaign(aq)===camp;
+    });
+    const totKo=src.reduce((s,a)=>s+(a.koQualif||a.ko||0),0);
+    const totRefus=src.reduce((s,a)=>s+(a.refus||0),0);
+    const totReit=src.reduce((s,a)=>s+(a.reiterants||0),0);
+    const totTrans=src.reduce((s,a)=>s+(a.transferts||0),0);
+    const totAppels=src.reduce((s,a)=>s+(a.total||a.appelsIn||0),0);
+    const totTransfo=src.reduce((s,a)=>s+(a.transfo!=null?Math.round(a.transfo/100*(a.total||a.appelsIn||0)):0),0);
+    const totSansSuite=Math.max(0,totAppels-totKo-totRefus-totReit-totTrans-totTransfo);
+    _qualifData=[
+      {q:"100 % KO",n:totKo,src:"INO"},
+      {q:"Hors SVI",n:null,src:"n.d."},
+      {q:"Sans suite",n:totSansSuite,src:"estimé"},
+      {q:"Rappel",n:null,src:"n.d."},
+      {q:"RDV pris / Intéressé",n:totTransfo,src:"INO"},
+      {q:"Transfert",n:totTrans,src:"INO"},
+      {q:"Réitérant",n:totReit,src:"INO"},
+      {q:"Refus",n:totRefus,src:"INO"},
+    ];
+    _qualifMeta={camp:camp||"Toutes",d1,d2,agents:src.length,total:totAppels};
+    renderQualifBars(host,_qualifData,totAppels);
+    const exp=document.getElementById("qf-export");
+    if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
+  }catch(e){
+    host.innerHTML=`<div style="padding:12px;color:#ff9f0a;font-size:11px">⚠ Erreur : ${e.message}</div>`;
+  }
+}
+
+function renderQualifBars(host,data,total){
+  if(!total){
+    host.innerHTML='<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">0 appel sur la période — aucune répartition disponible</div>';
+    return;
+  }
+  const maxN=Math.max(...data.filter(d=>d.n!=null).map(d=>d.n),1);
+  const COLORS={"100 % KO":"#ff3b30","Hors SVI":"#ff6b30","Sans suite":"#ff9f0a","Rappel":"#ffd000","RDV pris / Intéressé":"#30d158","Transfert":"#4C9AFF","Réitérant":"#bf5af2","Refus":"#e84444"};
+  let html='<div style="display:flex;flex-direction:column;gap:5px;">';
+  data.forEach(d=>{
+    const pct=d.n!=null&&total>0?Math.round(d.n/total*100):null;
+    const barW=d.n!=null?Math.round(d.n/maxN*100):0;
+    const col=COLORS[d.q]||"#888";
+    const nd=d.n==null;
+    html+=`<div style="display:grid;grid-template-columns:120px 1fr 38px 32px;align-items:center;gap:5px;">
+      <span style="font-size:10px;color:${nd?'var(--t-disabled)':'var(--t-secondary)'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.q}">${d.q}</span>
+      <div style="background:var(--s-2);border-radius:3px;height:8px;overflow:hidden;">
+        ${nd?'':`<div style="background:${col};width:${barW}%;height:100%;border-radius:3px;transition:width .3s;"></div>`}
+      </div>
+      <span style="font-size:10px;font-weight:700;color:${nd?'var(--t-disabled)':col};text-align:right;">${nd?'n.d.':(d.n)}</span>
+      <span style="font-size:9px;color:var(--t-disabled);text-align:right;">${pct!=null?pct+'%':''}</span>
     </div>`;
-  }).join("");
+  });
+  html+=`</div><div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--s-3);display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:9px;color:var(--t-disabled)">${_qualifMeta.camp} · ${_qualifMeta.d1}${_qualifMeta.d1!==_qualifMeta.d2?' → '+_qualifMeta.d2:''} · ${_qualifMeta.agents} agent(s)</span>
+    <span style="font-size:9px;color:var(--t-muted)">Total : <b>${total}</b> appels</span>
+  </div>`;
+  host.innerHTML=html;
+}
+
+function exportQualifCsv(){
+  if(!_qualifData.length)return;
+  const total=_qualifMeta.total||1;
+  let csv="Qualification,Nombre,Pourcentage,Source\n";
+  _qualifData.forEach(d=>{
+    const pct=d.n!=null?Math.round(d.n/total*100):'n.d.';
+    csv+=`"${d.q}",${d.n??'n.d.'},${pct}%,"${d.src}"\n`;
+  });
+  csv+=`\nTotal,${total},100%,INO\n`;
+  csv+=`Campagne,"${_qualifMeta.camp}"\nPériode,"${_qualifMeta.d1} → ${_qualifMeta.d2}"\n`;
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`qualifs_${_qualifMeta.camp.replace(/[^a-z0-9]/gi,'_')}_${_qualifMeta.d1}_${_qualifMeta.d2}.csv`;
+  a.click();URL.revokeObjectURL(a.href);
 }
 
 // Skills
@@ -2817,8 +3372,8 @@ function renderBacklog(){
 
 function renderSkills(){
   const host=document.getElementById("skills-table");if(!host)return;
-  // N'afficher que les agents réels (issus de l'API INO), pas les fictifs AGENTS_BASE
-  const realAgents=agents.filter(a=>a.id);
+  // Respecter les filtres actifs (campagnes, statut, agents) — mode tour de contrôle
+  const realAgents=getFiltered().filter(a=>a.id);
   // Cas 1 : aucun agent chargé (jour sans données INO, ou plage incluant un jour vide non encore alimenté)
   if(realAgents.length===0){
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
@@ -2833,9 +3388,13 @@ function renderSkills(){
 
   if(!hasInoSkills){
     // État vide explicite : inviter à charger les compétences
+    const _skDateBadge=_skillsLoadedAt
+      ?'<div style="margin-bottom:10px"><span style="display:inline-block;background:#0d2b1a;border:1px solid #30d158;border-radius:20px;padding:4px 14px;font-size:11px;color:#30d158;font-weight:700">✓ Dernière MAJ : '+_skillsLoadedAt.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})+' à '+_skillsLoadedAt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</span></div>'
+      :'';
     host.innerHTML='<tr><td style="padding:50px 30px;text-align:center;color:#666">'
       +'<div style="font-size:32px;margin-bottom:14px;opacity:.4">🧩</div>'
       +'<div style="font-size:14px;font-weight:600;color:#999;margin-bottom:8px">Compétences non chargées</div>'
+      +_skDateBadge
       +'<div style="font-size:12px;color:#666;max-width:420px;margin:0 auto 18px;line-height:1.6">Les compétences INO ne sont pas récupérées automatiquement (pour garder le rafraîchissement rapide). Cliquez sur le bouton ci-dessous pour charger les compétences réelles de chaque agent depuis INO.</div>'
       +'<button onclick="refreshSkills()" style="background:'+P+';color:#fff;border:none;border-radius:9px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer">Charger depuis INO</button>'
       +'</td></tr>';
@@ -2925,6 +3484,9 @@ function render(){
   updateAlertBadge(getFiltered());
   renderTable(s);
   renderChart();
+  renderQueueStatus(); // grille files : suit la sélection campagnes (cache, sans appel INO)
+  // Tableaux WhatsApp : re-générer si déjà affichés pour suivre les filtres (mode tour de contrôle)
+  if(document.getElementById('wa-table-affectation'))renderWA();
   renderSkills();
   renderBacklog();
   renderStaffingBanner();
@@ -3002,7 +3564,7 @@ function renderSelectionSummary(){
   el.innerHTML=`<span style="color:var(--t-disabled);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Sélection active →</span>`
     +tag('Période',periode)
     +tag('Horaire',hDeb+'–'+hFin)
-    +tag('Campagnes',campsDisp,selCamps.length<CAMPS.length)
+    +tag('Campagnes',campsDisp,campSelPartial())
     +tag('Files',queuesDisp)
     +tag('Agents',agentsDisp)
     +tag('Statut',statusDisp)
@@ -3011,14 +3573,109 @@ function renderSelectionSummary(){
       :'<span style="color:#ff9f0a;font-size:9px;margin-left:4px">◌ Simulation</span>');
 }
 
+// ── Alerte GSM astreinte — vérification toutes les 60 s ─────────────────────
+function checkGsmAlerts(){
+  const now=new Date();
+  const nowMin=parisNowMin();   // heure métier Paris
+  const nowDate=isoLocal(now);
+  const ystDate=shiftDateStr(nowDate,-1);
+  const alerts=[];
+
+  function processDate(date,isYesterday){
+    Object.entries(astreintesEntries).forEach(([key,v])=>{
+      if(!key.endsWith("|"+date))return;
+      const camp=key.slice(0,key.length-date.length-1);
+      if(!astreintesTracked.has(camp))return;
+      const name=typeof v==="string"?v:(v&&v.name)||"";
+      if(!name)return;
+      const gsm=typeof v==="object"&&v&&!!v.gsm;
+      if(!gsm)return;
+      const startStr=(typeof v==="object"&&v.start)||"";
+      const endStr=(typeof v==="object"&&v.end)||"";
+      if(!startStr)return;
+      const startMin=timeToMin(startStr);
+      // Fin "00:00" = minuit en fin de journée (1440), sinon une astreinte 20:00→00:00
+      // n'était jamais considérée active (endMin=0 → ni overnight ni nowMin<0)
+      let endMin=endStr?timeToMin(endStr):null;
+      if(endMin===0)endMin=1440;
+      const isOvernight=endMin!==null&&endMin<1440&&endMin<=startMin;
+      if(!isYesterday){
+        const warnMin=startMin-30;
+        const warning=nowMin>=warnMin&&nowMin<startMin;
+        const active=nowMin>=startMin&&(endMin===null||isOvernight||(endMin!==null&&nowMin<endMin));
+        if(warning||active)alerts.push({camp,name,start:startStr,end:endStr||"",state:active?"active":"warning"});
+      }else{
+        // Shift de nuit commencé hier, encore actif tôt le matin
+        if(isOvernight&&endMin!==null&&nowMin<endMin)
+          alerts.push({camp,name,start:startStr,end:endStr||"",state:"active",note:"↗ débuté hier"});
+      }
+    });
+  }
+
+  processDate(ystDate,true);
+  processDate(nowDate,false);
+  renderGsmAlertBanner(alerts);
+}
+
+function renderGsmAlertBanner(alerts){
+  const banner=document.getElementById("gsm-alert-banner");
+  if(!banner)return;
+  if(!alerts.length){banner.style.display="none";return;}
+  const hasActive=alerts.some(a=>a.state==="active");
+  banner.className="gsm-alert-banner "+(hasActive?"gsm-active":"gsm-warn");
+  banner.style.display="flex";
+  document.getElementById("gsm-icon").textContent=hasActive?"📱":"🔔";
+  document.getElementById("gsm-alert-title").textContent=hasActive
+    ?"Transfert GSM actif — vérifiez l'activation"
+    :"Transfert GSM — activation dans moins de 30 min";
+  document.getElementById("gsm-alert-items").innerHTML=alerts.map(a=>
+    `<span class="gsm-alert-item"><b>${esc(a.camp)}</b> — ${esc(a.name)} ${a.start?esc(a.start)+"":""}${a.end?"→"+esc(a.end):""}${a.note?` <span style="opacity:.7;">${esc(a.note)}</span>`:""}</span>`
+  ).join("");
+}
+
 // Astreinte suivie pour une campagne + jours couverts cette semaine (registre partagé, lecture seule)
 function astreinteStatus(camp){
   if(!astreintesTracked.has(camp))return{tracked:false,covered:0};
   const now=new Date();
-  const monday=shiftDateStr(now.toISOString().slice(0,10),-((now.getDay()+6)%7));
+  const monday=shiftDateStr(isoLocal(now),-((now.getDay()+6)%7));
   let covered=0;
-  for(let i=0;i<7;i++){if(astreintesEntries[camp+'|'+shiftDateStr(monday,i)])covered++;}
+  for(let i=0;i<7;i++){
+    const v=astreintesEntries[camp+'|'+shiftDateStr(monday,i)];
+    if(typeof v==="string"?v:(v&&v.name))covered++;
+  }
   return{tracked:true,covered};
+}
+
+// Retourne le statut GSM actif d'une campagne (si transfert GSM en cours maintenant)
+function gsmStatus(camp){
+  const now=new Date();
+  const nowMin=parisNowMin();   // heure métier Paris
+  const nowDate=isoLocal(now);
+  const ystDate=shiftDateStr(nowDate,-1);
+  function check(date,isYesterday){
+    const v=astreintesEntries[camp+'|'+date];
+    if(!v)return null;
+    const name=typeof v==="string"?v:(v&&v.name)||"";
+    if(!name)return null;
+    const gsm=typeof v==="object"&&v&&!!v.gsm;
+    if(!gsm)return null;
+    const startStr=(typeof v==="object"&&v.start)||"";
+    const endStr=(typeof v==="object"&&v.end)||"";
+    if(!startStr)return null;
+    const startMin=timeToMin(startStr);
+    let endMin=endStr?timeToMin(endStr):null;
+    if(endMin===0)endMin=1440;  // fin "00:00" = minuit fin de journée
+    const isOvernight=endMin!==null&&endMin<1440&&endMin<=startMin;
+    let active=false;
+    if(!isYesterday){
+      active=nowMin>=startMin&&(endMin===null||isOvernight||(endMin!==null&&nowMin<endMin));
+    }else{
+      active=isOvernight&&endMin!==null&&nowMin<endMin;
+    }
+    if(active)return{name,start:startStr,end:endStr};
+    return null;
+  }
+  return check(ystDate,true)||check(nowDate,false)||null;
 }
 
 // ── Bandeau staffing par campagne (sous tableau Agents) ──────────────────
@@ -3027,21 +3684,33 @@ function renderStaffingBanner(){
   if(!el)return;
   const f=getFiltered();
   if(!f.length){el.innerHTML='';return;}
-  // Construire staffing par camp : compter agents actifs et agents totaux
+  // STAFFING = COUVERTURE COMPÉTENCE (principe 1 agent = N compétences).
+  // On compte, pour CHAQUE campagne, tous les agents COMPÉTENTS (waAgentCovers —
+  // la même fonction que le tableau des compétences / Affectation WhatsApp), pas
+  // seulement ceux dont c'est le camp principal. Source : tout le plateau (agents[]),
+  // pour refléter les ressources réellement disponibles quel que soit le filtre.
+  const _allAg=(agents&&agents.length>0)?agents.filter(a=>a.id):f;
   const campMap={};
-  f.forEach(a=>{
-    const c=a.camp||'–';
-    if(!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false};
-    campMap[c].total++;
-    if(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel')campMap[c].actifs++;
-    if(Array.isArray(a.skills)&&a.skills.length>0)campMap[c].hasSkills=true;
+  // Init toutes les campagnes configurées + camps actifs issus du flux INO
+  CAMPS.forEach(c=>{if(c)campMap[c]={total:0,actifs:0,hasSkills:false};});
+  const _fxBan=window._fluxCamps||null;
+  if(_fxBan)Object.keys(_fxBan).forEach(c=>{if(c&&c!=='Autre'&&!campMap[c])campMap[c]={total:0,actifs:0,hasSkills:false};});
+  const _isActive=a=>a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel';
+  _allAg.forEach(a=>{
+    const act=_isActive(a);
+    const hasSk=(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0)||(Array.isArray(a.skills)&&a.skills.length>0);
+    Object.keys(campMap).forEach(camp=>{
+      if(!waAgentCovers(a,camp))return;
+      campMap[camp].total++;
+      if(act)campMap[camp].actifs++;
+      if(hasSk)campMap[camp].hasSkills=true;
+    });
   });
   // Horaires SVI depuis critères
   const crit=JSON.parse(localStorage.getItem('wisecom_criteres_v1')||'{}');
-  const nowH=new Date();const curMin=nowH.getHours()*60+nowH.getMinutes();
+  const curMin=parisNowMin();   // heure métier Paris, pas le fuseau du navigateur
   const toMin=t=>{const[h,m]=String(t).split(':').map(Number);return h*60+(m||0);};
-  const _jrKeys=['dim','lun','mar','mer','jeu','ven','sam'];
-  const jourAuj=_jrKeys[nowH.getDay()];
+  const jourAuj=parisDayKey();
   function isCampOpen(camp){
     const cc=crit[camp]||{};
     if(cc.h24)return true;
@@ -3054,39 +3723,55 @@ function renderStaffingBanner(){
     return curMin>=toMin(hOuv)&&curMin<toMin(hFerm);
   }
   const P='#E8006E';
-  const camps=Object.keys(campMap).filter(c=>c!=='–').sort();
+  const camps=Object.keys(campMap).filter(c=>c&&c!=='–').sort((a,b)=>{
+    // Campagnes avec agents d'abord, puis alphabétique
+    const da=campMap[a],db=campMap[b];
+    if(da.total!==db.total)return db.total-da.total;
+    return a.localeCompare(b,'fr');
+  });
   let html=`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;">
     <span style="font-size:10px;font-weight:700;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;margin-right:4px">Staffing par campagne</span>`;
   camps.forEach(camp=>{
     const d=campMap[camp];
     const open=isCampOpen(camp);
-    // Alerte rouge : service ouvert ET 0 agent actif
+    // Staffing = couverture compétence : d.actifs = agents COMPÉTENTS actuellement actifs,
+    // d.total = agents COMPÉTENTS sur la campagne (mutualisation incluse).
+    // Alerte rouge : service ouvert ET aucun agent compétent actif.
     const alertZero=open&&d.actifs===0;
-    // Alerte compétences : service ouvert ET aucune compétence connue pour cette campagne
-    const alertSkills=open&&!d.hasSkills&&inoLive;
+    // Alerte compétences : service ouvert, aucun agent compétent connu (pool de couverture vide)
+    const alertSkills=open&&d.total===0&&inoLive;
     const bg=alertZero?'rgba(255,59,48,.12)':(alertSkills?'rgba(255,159,10,.08)':'var(--s-2)');
     const border=alertZero?'1px solid rgba(255,59,48,.4)':(alertSkills?'1px solid rgba(255,159,10,.3)':'1px solid var(--s-4)');
     const countColor=alertZero?'#ff3b30':(d.actifs>0?'#30d158':'var(--t-secondary)');
-    const badge=alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent actif">⚠ ALERTE</span>':
-      (alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Compétences non chargées">ⓘ</span>':'');
+    const displayCount=d.actifs;
+    const badge=(alertZero?'<span style="color:#ff3b30;font-size:9px;margin-left:3px" title="Service ouvert — aucun agent compétent actif">⚠ ALERTE</span>':'')
+      +(alertSkills?'<span style="color:#ff9f0a;font-size:9px;margin-left:3px" title="Aucun agent compétent identifié — chargez les compétences INO">ⓘ</span>':'');
     // Badge 🌙 astreinte — affiché seulement si activé pour cette campagne dans Critères & KPI
     // ET que le registre d'astreinte la suit effectivement (donnée partagée, lecture seule)
     const ast=astreinteStatus(camp);
     const astBadge=(crit[camp]&&crit[camp].astreinte_display&&ast.tracked)
       ?`<span style="color:${ast.covered===7?'#30d158':(ast.covered===0?'#ff3b30':'#ff9f0a')};font-size:9px;margin-left:1px" title="Astreinte suivie pour ${camp} — ${ast.covered}/7 jours couverts cette semaine">🌙 ${ast.covered}/7</span>`
       :'';
+    // Badge 📱 GSM actif — transfert renvoi téléphonique en cours
+    const gsm=gsmStatus(camp);
+    const gsmBadge=gsm
+      ?`<span style="color:#30d158;font-size:9px;margin-left:1px;background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.3);border-radius:4px;padding:1px 4px;" title="Transfert GSM actif depuis ${gsm.start} — ${gsm.name}${gsm.end?' → '+gsm.end:''}">📱✓ ${gsm.start}</span>`
+      :'';
+    const titleGsm=gsm?` · 📱 GSM actif : ${gsm.name} depuis ${gsm.start}`:'';
     html+=`<div style="background:${bg};border:${border};border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default"
-      title="${camp} — ${d.actifs} actifs / ${d.total} agents${alertZero?' — ⚠ Service ouvert, 0 agent actif !':''}${alertSkills?' — Compétences INO non chargées':''}">
+      title="${camp} — ${d.actifs} agent(s) compétent(s) actif(s) / ${d.total} compétent(s) au total (mutualisation incluse)${titleGsm}${alertZero?' — ⚠ Service ouvert, 0 agent compétent actif !':''}${alertSkills?' — Aucun agent compétent identifié (compétences INO non chargées)':''}">
       <span style="font-size:10px;color:var(--t-secondary)">${camp}</span>
-      <span style="font-size:11px;font-weight:700;color:${countColor}">${d.actifs}</span>
+      <span style="font-size:11px;font-weight:700;color:${countColor}">${displayCount}</span>
       <span style="font-size:9px;color:var(--t-disabled)">/${d.total}</span>
-      ${badge}${astBadge}
+      ${badge}${astBadge}${gsmBadge}
     </div>`;
   });
-  // Total global
-  const totActifs=camps.reduce((s,c)=>s+(campMap[c]?.actifs||0),0);
-  const totAll=camps.reduce((s,c)=>s+(campMap[c]?.total||0),0);
-  html+=`<div style="background:var(--s-3);border:1px solid var(--s-4);border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:4px">
+  // Total global = effectif RÉEL du plateau (agents distincts), pas la somme des
+  // couvertures par campagne (un agent mutualisé compte dans plusieurs campagnes).
+  const totAll=_allAg.length;
+  const totActifs=_allAg.filter(_isActive).length;
+  html+=`<div style="background:var(--s-3);border:1px solid var(--s-4);border-radius:6px;padding:4px 9px;display:flex;align-items:center;gap:5px;white-space:nowrap;margin-left:4px"
+    title="Effectif réel du plateau (agents distincts). Les compteurs par campagne incluent la mutualisation : un agent compétent sur N campagnes y est compté N fois.">
     <span style="font-size:10px;color:var(--t-muted)">TOTAL</span>
     <span style="font-size:11px;font-weight:700;color:${P}">${totActifs}</span>
     <span style="font-size:9px;color:var(--t-disabled)">/${totAll} agents</span>
@@ -3128,7 +3813,7 @@ function simulate(){
   render();
 }
 
-function toggleTheme(){}
+function toggleTheme(){ if(window.wcrToggleTheme) window.wcrToggleTheme(); }
 
 function toggleFilters(){
   const b=document.getElementById("filter-btn");
@@ -3143,10 +3828,15 @@ function switchTab(id,btn){
   if(id==="alertes")renderAlerts(getFiltered());
 }
 
-function showToast(msg,color="#30d158"){
+function showToast(msg,color="#30d158",durationMs){
   const t=document.getElementById("toast");
-  t.textContent=msg;t.style.borderColor=color;t.style.color=color;
-  t.style.display="block";setTimeout(()=>t.style.display="none",3500);
+  // Accepte des noms sémantiques ('error'/'warn'/'ok') ou une couleur CSS directe.
+  // Sans ce mapping, style.borderColor="error" est invalide → ignoré → une erreur
+  // s'affichait avec la couleur du toast précédent (souvent le vert succès).
+  const SEM={error:"#ff3b30",err:"#ff3b30",warn:"#ff9f0a",warning:"#ff9f0a",ok:"#30d158",success:"#30d158",info:"#4C9AFF"};
+  const c=SEM[String(color).toLowerCase()]||color;
+  t.textContent=msg;t.style.borderColor=c;t.style.color=c;
+  t.style.display="block";setTimeout(()=>t.style.display="none",durationMs||3500);
 }
 
 // Export Excel amélioré
@@ -3385,19 +4075,32 @@ function exportPDF(){
   showToast("PDF ouvert. Lancez l'impression depuis la fenêtre.");
 }
 
-// Init
-const todayStr=new Date().toISOString().slice(0,10);
-document.getElementById("f-date-fin").value=todayStr;
-document.getElementById("f-date-deb").value=todayStr;
-agents=genAgents();
-slots=genSlots();
-selQueues=getAllQueues();
-buildAllDropdowns();
-buildSwitches();
-render();
-setBadge("ready");
-connectSSE();
-refreshPresetSelect();
+// Init — charge d'abord la config serveur (queues_config.js via /api/config) pour que
+// le dashboard utilise EXACTEMENT le même mapping campagnes/files que les rapports serveur
+// (fluxCampagnes, exécutif, planning). Évite la désync historique entre les deux configs.
+(async function boot(){
+  try{
+    const cfg=await fetch('/api/config').then(r=>r.ok?r.json():null);
+    if(cfg&&Array.isArray(cfg.CAMPS)&&cfg.CAMPS.length){
+      CAMPS=cfg.CAMPS;
+      if(cfg.QUEUES_MAP&&typeof cfg.QUEUES_MAP==='object'){QUEUES_MAP=cfg.QUEUES_MAP;window._waCampQ=null;}
+      if(Array.isArray(cfg.SKILLS)&&cfg.SKILLS.length)SKILLS=cfg.SKILLS;
+      // Re-dérive les sélections par défaut sur la config fraîche
+      selCamps=[...CAMPS];selSkills=[...SKILLS];
+    }
+  }catch(e){/* repli silencieux sur la config inline si /api/config indisponible */}
+  const todayStr=isoLocal(new Date());
+  document.getElementById("f-date-fin").value=todayStr;
+  document.getElementById("f-date-deb").value=todayStr;
+  agents=genAgents();
+  slots=genSlots();
+  selQueues=getAllQueues();
+  buildAllDropdowns();
+  render();
+  setBadge("ready");
+  connectSSE();
+  refreshPresetSelect();
+})();
 // Bornage calendrier sur l'historique réellement disponible dans INO
 
 
@@ -3435,6 +4138,41 @@ const CRITERES_KEY='wisecom_criteres_v1';
 function loadCriteres(){
   try{return JSON.parse(localStorage.getItem(CRITERES_KEY))||{};}catch{return{};}
 }
+// ── Paramètres de calcul du taux d'occupation, par campagne ──
+// minH  = minutes "productives" par heure de présence (défaut 50 → tolère 10 min/h de pause/wrap).
+//         Mettre 60 pour une occupation sur présence brute (sans tolérance).
+// incAcw= inclure le temps de post-appel (ACW/wrap-up) dans le numérateur (certains clients le comptent).
+function occCampParams(camp){
+  var d={minH:50,incAcw:false};
+  try{
+    var crit=JSON.parse(localStorage.getItem(CRITERES_KEY)||'{}');
+    var c=crit&&crit[camp];
+    if(c){
+      if(c.occ_min_h!=null&&!isNaN(+c.occ_min_h)&&+c.occ_min_h>0)d.minH=Math.min(60,+c.occ_min_h);
+      if(c.occ_inc_acw!=null)d.incAcw=!!c.occ_inc_acw;
+    }
+  }catch(e){}
+  return d;
+}
+// Calcule l'occupation (%) d'un agent à partir des composants bruts et de la config de sa campagne.
+// Retourne null si la présence n'est pas mesurable (mode honnête : pas de valeur inventée).
+function computeOccupation(camp,commSec,presSec,acwSec){
+  if(!(presSec>0))return null;
+  var p=occCampParams(camp);
+  var num=(commSec||0)+(p.incAcw?(acwSec||0):0);
+  if(!(num>0))return null;
+  var basis=presSec*(p.minH/60);
+  if(!(basis>0))return null;
+  return Math.min(100,Math.round((num/basis)*100));
+}
+// Recalcule a.occupation pour tous les agents à partir des inputs bruts conservés (_occComm/_occPres/_occAcw).
+// Appelé après modification de la config d'occupation, sans rechargement INO.
+function recomputeOccupations(){
+  if(!Array.isArray(agents))return;
+  agents.forEach(function(a){
+    if(a&&typeof a._occPres!=='undefined')a.occupation=computeOccupation(a.camp,a._occComm,a._occPres,a._occAcw);
+  });
+}
 function toggleH24(c){
   const cb=document.getElementById('h24-'+c);
   const grid=document.getElementById('jours-'+c);
@@ -3461,6 +4199,8 @@ function saveCriteres(){
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
       astreinte_display:document.getElementById('astreinte-display-'+c)?.checked||false,
       obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
+      occ_min_h:Math.min(60,Math.max(1,parseInt(document.getElementById('occ-minh-'+c)?.value||50)||50)),
+      occ_inc_acw:document.getElementById('occ-incacw-'+c)?.checked||false,
       h24:document.getElementById('h24-'+c)?.checked||false,
       jours:(function(){var o={};['lun','mar','mer','jeu','ven','sam','dim'].forEach(function(j){
         var on=document.querySelector('.jour-on[data-c="'+c+'"][data-j="'+j+'"]');
@@ -3481,6 +4221,8 @@ function saveCriteres(){
       if(cc)a.obj=cc.obj_appels||a.obj;
       return a;
     });
+    // Recalcul du taux d'occupation avec les nouveaux paramètres par campagne (min/h, ACW)
+    recomputeOccupations();
     render();
   }catch(e){showToast('Sauvegarde échouée. Réessayez.','#E8006E');}
 }
@@ -3510,7 +4252,7 @@ function renderCriteres(){
     +'</div>';
   CAMPS.forEach(function(c){
     const _defJours={lun:{on:true,o:'09:00',f:'18:00'},mar:{on:true,o:'09:00',f:'18:00'},mer:{on:true,o:'09:00',f:'18:00'},jeu:{on:true,o:'09:00',f:'18:00'},ven:{on:true,o:'09:00',f:'18:00'},sam:{on:false,o:'09:00',f:'18:00'},dim:{on:false,o:'09:00',f:'18:00'}};
-    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,occ_min_h:50,occ_inc_acw:false,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
     if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
     // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
     Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
@@ -3560,6 +4302,13 @@ function renderCriteres(){
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
           +'<div class="param-row"><span class="param-label">Objectif appels/agent/jour</span><input class="param-input" id="obj-appels-'+c+'" type="number" aria-label="Objectif appels" min="1" value="'+s.obj_appels+'"><span class="param-unit">app.</span></div>'
+          +'<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--s-3)">'
+            +'<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:4px">⏱ Calcul du taux d\'occupation</div>'
+            +'<div class="param-row"><span class="param-label" title="Minutes réellement productives par heure de présence. 50 = tolère 10 min/h de pause/wrap. 60 = présence brute.">Min. productives / heure</span><input class="param-input" id="occ-minh-'+c+'" type="number" aria-label="Minutes productives par heure" min="1" max="60" value="'+s.occ_min_h+'"><span class="param-unit">min/h</span></div>'
+            +'<div class="alert-trigger" style="margin-top:6px"><input type="checkbox" aria-label="Inclure ACW dans l\'occupation" id="occ-incacw-'+c+'"'+(s.occ_inc_acw?' checked':'')+'>'
+            +'<label for="occ-incacw-'+c+'" style="font-size:11px;color:#ccc;cursor:pointer">Inclure le post-appel (ACW) dans le temps occupé</label></div>'
+            +'<div style="font-size:9px;color:#555;margin-top:4px">Occupation = (Comm.'+(s.occ_inc_acw?' + ACW':'')+') / (Présence × '+s.occ_min_h+'/60)</div>'
+          +'</div>'
           +'<div class="param-row" style="flex-direction:column;align-items:stretch;gap:8px">'
             +'<div style="display:flex;align-items:center;justify-content:space-between"><span class="param-label">⏰ Amplitude horaire d\'ouverture</span>'
               +'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:'+(s.h24?P:'#888')+';cursor:pointer"><input type="checkbox" id="h24-'+c+'" aria-label="Ouvert 24h/24 7j/7" '+(s.h24?'checked':'')+' onchange="toggleH24(\''+c+'\')"> 24h/24 · 7j/7</label>'
@@ -3627,6 +4376,7 @@ const _ccInit=document.getElementById('col-count');
 if(_ccInit)_ccInit.textContent=visibleCols.size;
 // Horloge (affichage local uniquement, aucun appel API)
 setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocaleString("fr-FR",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"});},1000);
+setInterval(checkGsmAlerts,60000);
 (function(){function _r(){if(typeof refreshFromINO==='function')refreshFromINO();}['f-date-deb','f-date-fin'].forEach(function(id){var el=document.getElementById(id);if(el&&!el._dateFixBound){el._dateFixBound=true;el.addEventListener('change',_r);}});})();
 
 // ══════════════════════════════════════════════════════════════════
@@ -3636,7 +4386,7 @@ setInterval(()=>{document.getElementById("clock").textContent=new Date().toLocal
 
 // ── Couleurs campagnes ──────────────────────────────────────────
 var WA_CAMP_COLORS={
-  "Filippi":"#FFD966","MNZ":"#F4B183","Eiffage":"#9DC3E6","CNPA":"#FF9999",
+  "Filippi":"#FFD966","MNZ":"#F4B183","Monetize":"#F4B183","Eiffage":"#9DC3E6","CNPA":"#FF9999",
   "HMF":"#C5E0B4","LMDW":"#B4C6E7","Equisign":"#FFE699","ND":"#D9D9D9",
   "Delsey":"#F8CBAD","M123":"#BDD7EE","LGR":"#E2EFDA","LMB":"#FCE4D6",
   "Apex":"#D6DCE4","Alcéane":"#FFF2CC","Vivest":"#A9D18E","LBE":"#C9C9FF",
@@ -3647,18 +4397,27 @@ var WA_CAMP_COLORS={
 var WA_GROUP_COLORS={
   "Filippi":"#FFD966","Vivest":"#A9D18E","Verspieren":"#9DC3E6","Evoriel":"#C5E0B4",
   "MG Motor":"#F4B183","Omoda":"#FFD966","OMODA":"#FFD966","Voltalis":"#70AD47",
-  "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Eiffage":"#9DC3E6",
+  "Alcéane":"#FFF2CC","Antargaz":"#FFE699","MNZ":"#F4B183","Monetize":"#F4B183","Eiffage":"#9DC3E6",
   "ELECTROSUR":"#BDD7EE","Afnor":"#E2EFDA","SOS":"#FCE4D6","LMB":"#FCE4D6",
   "Delsey":"#F8CBAD","LBE":"#C9C9FF","M123":"#BDD7EE","LGR":"#E2EFDA",
   "Equisign":"#FFE699","Apex":"#D6DCE4","Nature & Découvertes":"#C5E0B4",
 };
 
 // ── Colonnes compétences (fidèles à l'image de référence) ─────
-var WA_SKILLS_CALLS=["Filippi","MNZ","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+// MNZ et Monetize sont DEUX campagnes distinctes dans queues_config.js
+// (MNZ → queues "MNZ"/"MNZ_FR" ; Monetize → queue "Monetize FR") : deux colonnes.
+var WA_SKILLS_CALLS=["Filippi","MNZ","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
-var WA_SKILLS_COMP =["Filippi","MNZ","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_COMP =["Filippi","MNZ","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+// Alias WA colonne → clé CAMPS/QUEUES_MAP (pour les cas où le nom court diffère du nom de camp)
+var WA_CAMP_ALIAS={"ND":"Nature & Découvertes"};
 (function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
-waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls:WA_SKILLS_CALLS.slice();
+waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls.slice():WA_SKILLS_CALLS.slice();
+// Colonnes sauvegardées avant l'ajout de Monetize : l'injecter pour ne pas la perdre
+if(waActiveCalls.indexOf('Monetize')<0&&WA_SKILLS_CALLS.indexOf('Monetize')>=0){
+  var _mzPos=waActiveCalls.indexOf('MNZ');
+  waActiveCalls.splice(_mzPos>=0?_mzPos+1:1,0,'Monetize');
+}
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
 if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
 if(_s&&typeof _s.email==='object')waEmailEdits=_s.email||{};
@@ -3696,72 +4455,397 @@ function waHr(dt){
   }catch(e){return"";}
 }
 
-// Résoudre les compétences d'un agent depuis toutes les sources disponibles
+// Normalise un nom de compétence INO (long-form) vers la colonne WA courte.
+// Exemples : "LMDW_FR" → "LMDW", "Monetize FR" → "Monetize", "HMF Débordement" → "HMF",
+//            "LGR Boutique" → "LGR", "Nature & Découvertes" → "ND", "M123_Boutique" → "M123"
+function normalizeSkillToWaCol(inoName){
+  var n=String(inoName||'').trim();
+  if(!n)return null;
+  var allWa=[].concat(WA_SKILLS_CALLS,WA_SKILLS_COMP,WA_SKILLS_MAILS);
+  // Dédupliqué
+  var seen={};
+  allWa=allWa.filter(function(w){if(seen[w])return false;seen[w]=1;return true;});
+  var nl=n.toLowerCase();
+  // Normalise accentuation + séparateurs pour comparer
+  var norm=function(s){return s.toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[ùû]/g,'u').replace(/[ç]/g,'c').replace(/[œ]/g,'oe').replace(/[&]/g,'').replace(/\s+/g,' ').trim();};
+  var nn=norm(n);
+  // 1. Correspondance exacte (insensible à la casse)
+  var exact=allWa.find(function(w){return norm(w)===nn;});
+  if(exact)return exact;
+  // 2. Correspondance avec alias WA_CAMP_ALIAS inversé (camp long → WA court)
+  var aliasKeys=Object.keys(WA_CAMP_ALIAS||{});
+  for(var ai=0;ai<aliasKeys.length;ai++){
+    var wa=aliasKeys[ai], camp=WA_CAMP_ALIAS[wa];
+    if(norm(camp)===nn||nn.startsWith(norm(camp)))return wa;
+  }
+  // 3. Préfixe : la colonne WA est un préfixe du nom INO (LMDW_FR→LMDW, M123_Boutique→M123, HMF Débordement→HMF)
+  var prefix=allWa.find(function(w){
+    var nw=norm(w);
+    if(nw.length<2)return false;
+    return nn===nw||nn.startsWith(nw+'_')||nn.startsWith(nw+' ')||nn.startsWith(nw+'-');
+  });
+  if(prefix)return prefix;
+  // 4. Le nom INO contient le nom WA comme token (Sortant LMDW→LMDW, Sortant Maison 123→M123)
+  var token=allWa.find(function(w){
+    var nw=norm(w);
+    if(nw.length<3)return false;
+    return nn.includes(' '+nw)||nn.includes(nw+' ')||nn.includes('_'+nw);
+  });
+  if(token)return token;
+  return null;
+}
+
+// Résoudre les compétences d'un agent depuis toutes les sources disponibles.
+// Renvoie un Set de noms de COLONNES WA (pas de noms INO bruts).
 function waSkills(a){
-  // SOURCE 1 (fiable) : allSkillsData INO chargées via bouton Compétences → seule source vérité
+  var allWaCols=new Set([].concat(WA_SKILLS_CALLS,WA_SKILLS_COMP,WA_SKILLS_MAILS));
+  // SOURCE 1 (fiable) : allSkillsData INO chargées via ↺ Compétences → seule source de vérité
   if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
-    return new Set(a.allSkillsData.filter(function(s){return s.active;}).map(function(s){return s.name||s;}));
+    var mapped1=[];
+    a.allSkillsData.filter(function(s){return s.active!==false;}).forEach(function(s){
+      var col=normalizeSkillToWaCol(s.name||s);
+      if(col&&mapped1.indexOf(col)<0)mapped1.push(col);
+    });
+    if(mapped1.length>0)return new Set(mapped1);
   }
-  // SOURCE 2 (partiellement fiable) : skills[] issus du cache INO
-  // On ne retient QUE les compétences reconnues dans WA_SKILLS_CALLS/WA_SKILLS_COMP pour éviter faux-positifs
+  // SOURCE 2 : skills[] issus du cache INO — normaliser vers colonnes WA
   if(Array.isArray(a.skills)&&a.skills.length>0){
-    var allWa=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP,...WA_SKILLS_MAILS]);
-    var filtered=a.skills.map(function(s){return s.name||s;}).filter(function(n){return allWa.has(n);});
-    if(filtered.length>0)return new Set(filtered);
+    var mapped2=[];
+    a.skills.map(function(s){return s.name||s;}).forEach(function(n){
+      var col=normalizeSkillToWaCol(n);
+      if(!col&&allWaCols.has(n))col=n; // déjà une colonne WA courte
+      if(col&&mapped2.indexOf(col)<0)mapped2.push(col);
+    });
+    if(mapped2.length>0)return new Set(mapped2);
   }
-  // SOURCE 3 : déduction depuis la campagne principale uniquement (strict)
-  // Un agent Afnor n'a PAS ND, LMDW, Filippi etc. automatiquement
+  // SOURCE 3 : déduction depuis la campagne principale (strict, une seule compétence)
   if(a.camp&&a.camp!=='–'){
-    var campSkill=a.camp; // la campagne = la compétence éponyme s'il y en a une
-    var allWa2=new Set([...WA_SKILLS_CALLS,...WA_SKILLS_COMP]);
-    if(allWa2.has(campSkill))return new Set([campSkill]);
+    var col3=normalizeSkillToWaCol(a.camp);
+    if(!col3&&allWaCols.has(a.camp))col3=a.camp;
+    if(col3)return new Set([col3]);
   }
   return new Set();
 }
 function waHas(sk,name){
-  return sk.has(name)||[...sk].some(function(x){
-    return false;
-  });
+  return sk.has(name)||sk.has(name==='ND'?'Nature & Découvertes':(WA_CAMP_ALIAS&&WA_CAMP_ALIAS[name])||name);
+}
+
+// Cache camp → Set de queues (minuscules), incluant les alias WA_CAMP_ALIAS (ND → Nature & Découvertes).
+// Invalidé à chaque chargement de config (waBuildConfig remet _waCampQ à null).
+function waCampQueues(){
+  if(window._waCampQ)return window._waCampQ;
+  var cq={};
+  if(typeof QUEUES_MAP!=='undefined'&&QUEUES_MAP){
+    Object.keys(QUEUES_MAP).forEach(function(c){
+      cq[c]=new Set((QUEUES_MAP[c]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+    Object.keys(WA_CAMP_ALIAS||{}).forEach(function(wa){
+      var real=WA_CAMP_ALIAS[wa];
+      if(QUEUES_MAP[real]&&!cq[wa])cq[wa]=new Set((QUEUES_MAP[real]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+  }
+  window._waCampQ=cq;
+  return cq;
+}
+
+// Colonnes "Affectations appels" : quand un filtre campagnes est actif, les colonnes SUIVENT
+// la sélection (cohérence stricte campagnes choisies ↔ colonnes affichées). Sinon, la liste
+// manuelle waActiveCalls (personnalisable via ⚙ Personnaliser les colonnes).
+function waCallColumns(sorted){
+  var rev={};
+  Object.keys(WA_CAMP_ALIAS||{}).forEach(function(w){rev[WA_CAMP_ALIAS[w]]=w;});
+  // Filtre campagnes actif → colonnes = sélection (noms longs → courts via alias)
+  if(campSelPartial()){
+    var seen={},out=[];
+    selCamps.forEach(function(c){
+      var col=rev[c]||c;
+      if(!seen[col]){seen[col]=1;out.push(col);}
+    });
+    return out;
+  }
+  // Mode "Toutes campagnes" → liste manuelle waActiveCalls (définie par le superviseur via ⚙)
+  // + campagnes avec flux réel non encore listées (ex: MNZ ajouté par _fluxCamps mais absent de waActiveCalls)
+  var base=(waActiveCalls.length>0?waActiveCalls:WA_SKILLS_CALLS.slice()).slice();
+  var fx=window._fluxCamps;
+  if(fx){
+    var baseSet=new Set(base);
+    Object.keys(fx).forEach(function(c){
+      if(c==='Autre')return;
+      var col=rev[c]||c; // nom long → alias court (ex: Monetize → MNZ)
+      if(baseSet.has(col))return;
+      var f=fx[c]||{};
+      if((f.presentes||0)+(f.decroches||0)+(f.sortants||0)>0){base.push(col);baseSet.add(col);}
+    });
+  }
+  return base;
+}
+
+// Vrai si l'agent est affecté/compétent sur la campagne c (nom réel CAMPS ou colonne WA courte).
+// Même cascade que waCampSynthesis : queues traitées → camp principal → compétence==queue →
+// compétence normalisée vers colonne WA. Couvre les campagnes hors liste WA courte (Voltalis,
+// Antargaz…) via QUEUES_MAP, et les colonnes courtes (LGR, ND, HMF…) via normalizeSkillToWaCol.
+function waAgentCovers(a,c){
+  var campQ=waCampQueues();
+  var realCamp=(WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c])?WA_CAMP_ALIAS[c]:c;
+  var qset=campQ[c]||(realCamp!==c?campQ[realCamp]:null);
+  // 1. Queues traitées sur la période
+  var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+  if(qset&&qset.size>0&&agQ.length>0&&agQ.some(function(q){return qset.has(q);}))return true;
+  // 2. Campagne principale détectée
+  if(a.camp===c||a.camp===realCamp)return true;
+  // 3 & 4. Compétences INO (skills + allSkillsData actives)
+  var agSkills=[],agSkillsRaw=[];
+  if(Array.isArray(a.skills))a.skills.forEach(function(s){var n=String(s.name||s);agSkills.push(n.toLowerCase().trim());agSkillsRaw.push(n);});
+  if(Array.isArray(a.allSkillsData))a.allSkillsData.forEach(function(s){if(s.active!==false&&s.name){agSkills.push(String(s.name).toLowerCase().trim());agSkillsRaw.push(String(s.name));}});
+  // 3. Compétence == nom de queue de la campagne
+  if(qset&&qset.size>0&&agSkills.some(function(sk){return qset.has(sk);}))return true;
+  // 4. Compétence normalisée → colonne WA == c (ou alias croisé)
+  for(var i=0;i<agSkillsRaw.length;i++){
+    var col=normalizeSkillToWaCol(agSkillsRaw[i]);
+    if(!col)continue;
+    if(col===c||col===realCamp)return true;
+    if(WA_CAMP_ALIAS&&(WA_CAMP_ALIAS[col]===c||WA_CAMP_ALIAS[c]===col))return true;
+  }
+  return false;
 }
 
 // ══════════════════════════════════════════════════════════════════
 //  TABLEAU 1 — AFFECTATION
 // ══════════════════════════════════════════════════════════════════
-function waCampSynthesis(sorted){
-  var camps=waActiveCalls.slice();
-  var byCamp={}; camps.forEach(function(c){byCamp[c]={agents:[],count:0};});
-  sorted.forEach(function(a){
-    var sk=waSkills(a);
-    camps.forEach(function(c){ if(sk.has(c)){ byCamp[c].agents.push(a.nom.split(' ').pop()); byCamp[c].count++; } });
-  });
-  // Proxy "production attendue" : flux d'appels presentes par campagne principale
-  var fluxByCamp={};
-  sorted.forEach(function(a){ var c=a.camp||'-'; fluxByCamp[c]=(fluxByCamp[c]||0)+(a.presentes||a.decroches||0); });
-  var skillsLoaded=sorted.some(function(a){return Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;});
-  var totalActif=camps.reduce(function(t,c){return t+byCamp[c].count;},0);
+// ══════════════════════════════════════════════════════════════════
+//  TABLEAU 3 — ALERTES STAFFING & FLUX
+//  Source de vérité : flux serveur calibré (window._fluxCamps) — appels INO
+//  réels par campagne, horaires d'ouverture appliqués.
+//  allAgents = liste COMPLÈTE des agents (pas filtrée WA) pour comptage TC réel.
+// ══════════════════════════════════════════════════════════════════
+function waCampSynthesis(allAgents){
+  var fx=window._fluxCamps||null;
   var CS='border:1px solid #999;padding:5px 8px;';
-  var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
-  h+='<tr><td colspan="3" style="background:#fff;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Synthèse staffing par campagne</td></tr>';
-  if(!skillsLoaded){
-    h+='<tr><td colspan="3" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Compétences INO non chargées — cliquez sur « Compétences INO » pour fiabiliser le staffing.</td></tr>';
+  // Liste campagnes = union flux serveur + campagnes des TC + colonnes suivies
+  // Filtrée par selCamps si une sélection est active (mode tour de contrôle)
+  var campSet={};
+  if(fx)Object.keys(fx).forEach(function(c){if(c!=="Autre")campSet[c]=1;});
+  allAgents.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')campSet[a.camp]=1;});
+  var camps=Object.keys(campSet);
+  // Filtrer selon selCamps si une sélection active (<35 campagnes)
+  if(typeof selCamps!=='undefined'&&Array.isArray(selCamps)&&campSelPartial()){
+    camps=camps.filter(function(c){return selCamps.includes(c);});
   }
-  h+='<tr><th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th><th style="background:#2F3640;color:#fff;'+CS+'">Staffing actif</th><th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Agents actifs</th></tr>';
-  camps.forEach(function(c){
-    var d=byCamp[c]; var flux=fluxByCamp[c]||0;
-    var alerte=d.count===0; var critique=d.count===0&&flux>0;
-    var rowBg=critique?'#F8C9C9':(alerte?'#FCE4E4':'#fff');
-    var col=d.count===0?'#CC0000':'#1a6b1a';
-    var badge=critique?' ⚠ FLUX SANS STAFFING':(alerte?' ⚠ 0 actif':'');
-    h+='<tr style="background:'+rowBg+';"><td style="'+CS+'font-weight:600;">'+c+'</td>'+
-       '<td style="'+CS+'text-align:center;font-weight:700;color:'+col+';">'+d.count+'<span style="font-weight:400;font-size:9px;">'+badge+'</span></td>'+
-       '<td style="'+CS+'color:#333;max-width:520px;">'+(d.agents.join(', ')||'—')+'</td></tr>';
+
+  // Build lookup: campaign → Set of lowercase queue names (from QUEUES_MAP)
+  // Inclut les alias WA_CAMP_ALIAS (ex: "ND" → queues de "Nature & Découvertes")
+  var campQueues={};
+  if(typeof QUEUES_MAP!=='undefined'&&QUEUES_MAP){
+    Object.keys(QUEUES_MAP).forEach(function(c){
+      campQueues[c]=new Set((QUEUES_MAP[c]||[]).map(function(q){return q.toLowerCase().trim();}));
+    });
+    // Alias : colonne WA courte → camp long (ex: ND → Nature & Découvertes)
+    Object.keys(WA_CAMP_ALIAS||{}).forEach(function(wa){
+      var real=WA_CAMP_ALIAS[wa];
+      if(QUEUES_MAP[real]&&!campQueues[wa]){
+        campQueues[wa]=new Set((QUEUES_MAP[real]||[]).map(function(q){return q.toLowerCase().trim();}));
+      }
+    });
+  }
+
+  // TC par campagne : agents ayant traité au moins une queue de la campagne sur la période,
+  // OU ayant une compétence active couvrant une queue de la campagne (agents mutualisés)
+  var staff={};
+  camps.forEach(function(c){staff[c]={count:0,agents:[]};});
+  allAgents.forEach(function(a){
+    var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+    // Compétences INO actives de l'agent (skills chargés via ↺ Compétences)
+    var agSkills=[];     // lowercase, pour égalité stricte avec noms de queues
+    var agSkillsRaw=[];  // brutes, pour normalisation vers colonnes WA
+    if(Array.isArray(a.skills)&&a.skills.length>0){
+      a.skills.forEach(function(s){var n=String(s.name||s);agSkills.push(n.toLowerCase().trim());agSkillsRaw.push(n);});
+    }
+    if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
+      a.allSkillsData.forEach(function(s){
+        if(s.active!==false&&s.name){agSkills.push(String(s.name).toLowerCase().trim());agSkillsRaw.push(String(s.name));}
+      });
+    }
+    // Colonnes WA couvertes par les compétences (gère "LGR" vs queues "LGR-SC",
+    // "Vivest interne" vs "Vivest_Client", "LMDW_FR" vs LMDW, accents…)
+    var agWaCols=new Set();
+    agSkillsRaw.forEach(function(skRaw){var col=normalizeSkillToWaCol(skRaw);if(col)agWaCols.add(col);});
+    camps.forEach(function(c){
+      if(staff[c].agents.indexOf(a.nom)>=0)return; // déjà compté
+      var matched=false;
+      // 1. Queues traitées aujourd'hui → campagne
+      if(campQueues[c]&&campQueues[c].size>0&&agQ.length>0){
+        matched=agQ.some(function(q){return campQueues[c].has(q);});
+      }
+      // 2. Camp principal (direct ou via alias WA_CAMP_ALIAS)
+      if(!matched){
+        var realCamp=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:c;
+        matched=(a.camp===c)||(a.camp===realCamp);
+      }
+      // 3. Compétences INO actives → queue de la campagne (agents mutualisés pas encore sonnés)
+      // Utilise aussi les queues du camp réel (via alias) pour les colonnes courtes (ND, etc.)
+      if(!matched&&agSkills.length>0){
+        var qset=campQueues[c];
+        if(!qset||qset.size===0){
+          var rc=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:null;
+          if(rc)qset=campQueues[rc];
+        }
+        if(qset&&qset.size>0){
+          matched=agSkills.some(function(sk){return qset.has(sk);});
+        }
+      }
+      // 4. Compétence normalisée → colonne WA → campagne. Couvre les compétences courtes
+      // qui n'égalent aucun nom de queue : "LGR" (queues LGR-SC…), "Vivest" (Vivest_Client…),
+      // "LMDW_FR"→LMDW, "Alcéane astreinte" (accents), HMF/CNPA…
+      if(!matched&&agWaCols.size>0){
+        var realC=WA_CAMP_ALIAS&&WA_CAMP_ALIAS[c]?WA_CAMP_ALIAS[c]:c;
+        if(agWaCols.has(c)||agWaCols.has(realC))matched=true;
+        if(!matched&&WA_CAMP_ALIAS){
+          var _ak=Object.keys(WA_CAMP_ALIAS);
+          for(var _ai=0;_ai<_ak.length;_ai++){
+            if(WA_CAMP_ALIAS[_ak[_ai]]===c&&agWaCols.has(_ak[_ai])){matched=true;break;}
+          }
+        }
+      }
+      if(matched){
+        staff[c].count++;
+        staff[c].agents.push(a.nom);
+      }
+    });
   });
-  h+='<tr style="background:#FFE8F5;"><td style="'+CS+'font-weight:700;color:#E8006E;">TOTAL staffing actif</td><td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+totalActif+'</td><td style="'+CS+'color:#888;">'+camps.length+' campagnes suivies</td></tr>';
+
+  // Ne garder que les campagnes avec flux réel OU des TC
+  camps=camps.filter(function(c){
+    var f=fx&&fx[c];
+    var hasFlux=f&&((f.presentes||0)>0||(f.sortants||0)>0);
+    return hasFlux||staff[c].count>0;
+  });
+  camps.sort(function(a,b){
+    var fa=(fx&&fx[a]&&fx[a].presentes)||0, fb=(fx&&fx[b]&&fx[b].presentes)||0;
+    return fb-fa || (staff[b].count-staff[a].count) || a.localeCompare(b);
+  });
+
+  // ── Analyse couverture par tranche horaire ──
+  // Pour chaque campagne : trouver les tranches avec appels SANS TC actif
+  function _slotMinParis(isoStr){
+    if(!isoStr)return -1;
+    try{
+      var d=new Date(isoStr);
+      var fr=d.toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+      var p=fr.replace('h',':').split(':');
+      return parseInt(p[0])*60+parseInt(p[1]);
+    }catch(e){return -1;}
+  }
+  function _lbl2min(lbl){if(!lbl)return -1;var p=lbl.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
+  var globalSlots=typeof slots!=='undefined'?slots:(window.slots||[]);
+  var campSlotAlerts={};
+  if(globalSlots.length>0){
+    camps.forEach(function(c){
+      var cqs=campQueues[c]||new Set();
+      // Tranches avec appels pour cette campagne
+      var callSlots=[];
+      globalSlots.forEach(function(sl){
+        var cnt=0;
+        if(sl.queues&&cqs.size>0){
+          Object.keys(sl.queues).forEach(function(qn){
+            if(cqs.has(qn.toLowerCase().trim()))cnt+=sl.queues[qn];
+          });
+        }
+        if(cnt>0)callSlots.push({lbl:sl.lbl,cnt:cnt});
+      });
+      if(callSlots.length===0){campSlotAlerts[c]=null;return;}
+      // Fenêtre de présence TC pour cette campagne
+      var tcMinStarts=[],tcMinEnds=[];
+      allAgents.forEach(function(a){
+        var agQ=(a.queues||"").split(", ").filter(Boolean).map(function(q){return q.toLowerCase().trim();});
+        var isOnCamp=(cqs.size>0&&agQ.length>0)
+          ?agQ.some(function(q){return cqs.has(q);})
+          :(a.camp===c);
+        if(!isOnCamp||!a.premiereAction)return;
+        var s=_slotMinParis(a.premiereAction);
+        var e=_slotMinParis(a.derniereAction||a.premiereAction);
+        if(s>=0)tcMinStarts.push(s);
+        if(e>=0)tcMinEnds.push(e);
+      });
+      if(tcMinStarts.length===0){
+        campSlotAlerts[c]={noTc:true,callSlots:callSlots};
+        return;
+      }
+      var firstTc=Math.min.apply(null,tcMinStarts);
+      var lastTc=Math.max.apply(null,tcMinEnds);
+      var uncovBefore=callSlots.filter(function(s){return _lbl2min(s.lbl)+30<=firstTc;}).map(function(s){return s.lbl;});
+      var uncovAfter=callSlots.filter(function(s){return _lbl2min(s.lbl)>=lastTc+30;}).map(function(s){return s.lbl;});
+      campSlotAlerts[c]=(uncovBefore.length||uncovAfter.length)?{uncovBefore:uncovBefore,uncovAfter:uncovAfter,firstTc:firstTc,lastTc:lastTc}:null;
+    });
+  }
+
+  var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
+  h+='<tr><td colspan="7" style="background:#fff;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">⚠ Alertes staffing &amp; flux par campagne'+(fx?' · flux INO réel (horaires d\'ouverture appliqués)':'')+'</td></tr>';
+  if(!fx){
+    h+='<tr><td colspan="7" style="background:#FFF3CD;color:#8a6d00;'+CS+'font-weight:600;">Flux serveur non chargé — lancez un rafraîchissement pour calculer les alertes sur les appels réels.</td></tr>';
+  }
+  h+='<tr>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Présentés</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Décrochés</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">Abandons</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">QS</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'">TC</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;min-width:280px;">État · Couverture</th></tr>';
+  var tPres=0,tDec=0,tAb=0,tStaff=0;
+  camps.forEach(function(c){
+    var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0};
+    var pres=f.presentes||0, dec=f.decroches||0, ab=f.abandons||0, st=staff[c].count;
+    tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;
+    var qs=pres>0?Math.round(dec/pres*100):null;
+    var nonCouvert=pres>0&&st===0;
+    var qsBas=pres>=10&&qs!==null&&qs<80;
+    var sa=campSlotAlerts[c];
+    var hasSlotGap=sa&&(sa.noTc||(sa.uncovBefore&&sa.uncovBefore.length)||(sa.uncovAfter&&sa.uncovAfter.length));
+    var rowBg=nonCouvert?'#F8C9C9':(qsBas||hasSlotGap?'#FFF0CC':'#fff');
+    var etat=nonCouvert?'🔴 FLUX NON COUVERT (aucun TC)':(qsBas?'🟠 QS dégradé':'🟢 OK');
+    var qsCol=qs===null?'#999':(qs<80?'#CC0000':(qs<90?'#B07800':'#1a6b1a'));
+    // Slot coverage details
+    var slotHtml='';
+    if(sa){
+      if(sa.noTc){
+        slotHtml='<br><span style="color:#CC0000;font-size:9px;">⏰ Toutes tranches sans TC : '+sa.callSlots.map(function(s){return s.lbl;}).join(' ')+'</span>';
+      }else{
+        if(sa.uncovBefore&&sa.uncovBefore.length){
+          slotHtml+='<br><span style="color:#CC0000;font-size:9px;">⏰ Avant arrivée TC : '+sa.uncovBefore.join(' ')+'</span>';
+        }
+        if(sa.uncovAfter&&sa.uncovAfter.length){
+          slotHtml+='<br><span style="color:#CC6600;font-size:9px;">⏰ Après départ TC : '+sa.uncovAfter.join(' ')+'</span>';
+        }
+      }
+    }
+    // Agents list (last-name only, max 6)
+    var agList=staff[c].agents.map(function(n){return n.split(' ').pop();}).slice(0,6).join(', ')+(staff[c].agents.length>6?' +'+( staff[c].agents.length-6):'');
+    h+='<tr style="background:'+rowBg+';">'+
+       '<td style="'+CS+'font-weight:600;">'+c+'</td>'+
+       '<td style="'+CS+'text-align:center;">'+(pres||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;">'+(dec||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;color:'+(ab>0?'#CC0000':'#333')+';">'+(ab||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;font-weight:700;color:'+qsCol+';">'+(qs!==null?qs+'%':'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;font-weight:700;color:'+(st===0&&pres>0?'#CC0000':'#1a6b1a')+';">'+st+'</td>'+
+       '<td style="'+CS+'color:#333;max-width:520px;"><b style="font-size:10px">'+etat+'</b>'+(agList?' · <span style="font-size:9px;color:#555;">'+agList+'</span>':'')+slotHtml+'</td></tr>';
+  });
+  var qsG=tPres>0?Math.round(tDec/tPres*100):null;
+  h+='<tr style="background:#FFE8F5;">'+
+     '<td style="'+CS+'font-weight:700;color:#E8006E;">TOTAL</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;">'+tPres+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;">'+tDec+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#CC0000;">'+tAb+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+(qsG!==null?qsG+'%':'–')+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+tStaff+'</td>'+
+     '<td style="'+CS+'color:#888;">'+camps.length+' campagnes · '+allAgents.length+' TC au total</td></tr>';
   h+='</table>';
   return h;
 }
 function buildAffectationTable(sorted,dateStr,timeStr){
-  var COLS=7+waActiveCalls.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
+  // Colonnes "Affectations appels" = campagnes sélectionnées si filtre actif, sinon liste WhatsApp par défaut.
+  // Garantit la cohérence stricte : campagnes choisies en haut ↔ colonnes affichées ici.
+  var callCols=waCallColumns(sorted);
+  var COLS=7+callCols.length+waActiveMails.length+1+WA_SKILLS_COMP.length+1;
   var h='<table style="border-collapse:collapse;font-family:Arial,sans-serif;width:max-content;">';
 
   // ── Titre ──
@@ -3776,7 +4860,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+=waTh("H<br>retour","#2F3640","#fff",1,2);
   h+=waTh("H<br>fin","#2F3640","#fff",1,2);
   h+=waTh("Cumul","#2F3640","#fff",1,2);
-  h+=waTh("Affectations appels","#1F4E79","#fff",waActiveCalls.length);
+  h+=waTh("Affectations appels"+(campSelPartial()?" · filtrées":""),"#1F4E79","#fff",callCols.length);
   h+=waTh("Emails","#4472C4","#fff",waActiveMails.length);
   h+=waTh(new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}),"#E8006E","#fff");
   h+=waTh("Liste des compétences","#375623","#fff",WA_SKILLS_COMP.length);
@@ -3785,7 +4869,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 
   // ── Header ligne 2 — colonnes compétences ──
   h+='<tr>';
-  waActiveCalls.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
+  callCols.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||WA_GROUP_COLORS[s]||"#E0E0E0","#333");});
   waActiveMails.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#BDD7EE","#333");});
   h+=waTh("","#E8006E","#fff");
   WA_SKILLS_COMP.forEach(function(s){h+=waTh(s,WA_CAMP_COLORS[s]||"#E0E0E0","#333");});
@@ -3836,10 +4920,11 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     // Cumul = H prod
     h+=waTd(hpNum?hpNum+"h":"–",rowBg,true,hpNum!=="–"&&parseFloat(hpNum)>=7?"#000":"#C00");
 
-    // Affectations appels — colorié si compétence active
-    waActiveCalls.forEach(function(s){
-      var has=waHas(sk,s);
-      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
+    // Affectations appels — colorié si l'agent couvre la campagne (matching robuste,
+    // identique aux alertes staffing : queues + camp + compétences + colonne WA normalisée)
+    callCols.forEach(function(s){
+      var has=waAgentCovers(a,s);
+      h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||WA_GROUP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
     // Affectations emails (INO + override manager)
     waActiveMails.forEach(function(s){
@@ -3860,13 +4945,21 @@ function buildAffectationTable(sorted,dateStr,timeStr){
       "min-width:115px;line-height:1.3;"
     );
 
-    // Liste compétences — UNIQUEMENT depuis allSkillsData (données INO exactes)
+    // Liste compétences — UNIQUEMENT depuis allSkillsData (données INO exactes),
+    // normalisées vers les colonnes WA (sinon "LMDW_FR" n'apparaissait pas sous LMDW
+    // alors que "Affectations appels" la coloriait — deux sections contradictoires)
     var _hasInoSk=Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0;
     var _nbActif=_hasInoSk?a.allSkillsData.filter(function(x){return x.active;}).length:null;
+    var _inoCols=new Set();
+    if(_hasInoSk){
+      a.allSkillsData.forEach(function(x){
+        if(!x.active)return;
+        var col=normalizeSkillToWaCol(x.name||x);
+        if(col)_inoCols.add(col);
+      });
+    }
     WA_SKILLS_COMP.forEach(function(s){
-      var has=_hasInoSk
-        ?a.allSkillsData.some(function(x){return x.active&&(x.name||x)===s;})
-        :false;
+      var has=_inoCols.has(s);
       h+=waTd(has?s:"",has?(WA_CAMP_COLORS[s]||"#E0E0E0"):rowBg,has,"#222");
     });
 
@@ -3880,9 +4973,9 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   // ── Ligne totaux ──
   h+='<tr style="background:#1F4E79;">';
   h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:9px;padding:2px 6px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
-  // Compter par skill
-  waActiveCalls.forEach(function(s){
-    var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
+  // Compter par campagne colonne (même matching robuste que les cellules)
+  callCols.forEach(function(s){
+    var n=sorted.filter(function(a){return waAgentCovers(a,s);}).length;
     h+=waTd(n>0?n:"","#BDD7EE",true,n>0?"#1F4E79":"#1F4E79");
   });
   waActiveMails.forEach(function(s){
@@ -3894,11 +4987,13 @@ function buildAffectationTable(sorted,dateStr,timeStr){
   h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
   h+='</tr>';
 
-  // ── Bloc récap campagnes ──
-  var campRecap=[
-    {n:"Vivest",c:"#A9D18E"},{n:"Voltalis",c:"#70AD47"},{n:"Alcéane",c:"#FFF2CC"},
-    {n:"GLOBAL",c:"#BDD7EE"}
-  ];
+  // ── Bloc récap campagnes — dynamique selon le périmètre filtré ──
+  var _campCount={};
+  sorted.forEach(function(a){if(a.camp&&a.camp!=='-'&&a.camp!=='–')_campCount[a.camp]=(_campCount[a.camp]||0)+1;});
+  var campRecap=Object.keys(_campCount).sort(function(a,b){return _campCount[b]-_campCount[a];}).slice(0,8).map(function(c){
+    return {n:c,c:WA_GROUP_COLORS[c]||"#E0E0E0"};
+  });
+  campRecap.push({n:"GLOBAL",c:"#BDD7EE"});
   h+='<tr><td colspan="'+COLS+'" style="height:5px;border:none;background:#fff;"></td></tr><tr>';
   h+='<td colspan="3" style="border:none;background:#fff;"></td>';
   campRecap.forEach(function(x){
@@ -3906,9 +5001,10 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     h+='<td style="background:'+x.c+';color:#222;font-weight:700;font-size:9px;padding:2px 7px;border:1px solid #ccc;">'+x.n+'</td>';
     h+=waTd(n,x.c,true,"#111");
   });
-  h+='<td colspan="'+(COLS-11)+'" style="border:none;background:#fff;"></td></tr>';
+  var _recapSpan=COLS-3-(campRecap.length*2);
+  h+='<td colspan="'+Math.max(1,_recapSpan)+'" style="border:none;background:#fff;"></td></tr>';
   h+='</table>';
-  return h+waCampSynthesis(sorted);
+  return h+waCampSynthesis(agents.filter(function(a){return a.id;})||window._lastAllAgents||sorted);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3916,7 +5012,7 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 //  Format fidèle image : date | CumulMulti/Vivest/Filippi | campagnes
 // ══════════════════════════════════════════════════════════════════
 function buildStatTCTable(sorted,dateStr,timeStr){
-  // Grouper par campagne
+  // Grouper par campagne (camp principal de l'agent)
   var campData={};
   sorted.forEach(function(a){
     var camp=a.camp||"–";
@@ -3931,9 +5027,42 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     var _mk=a.login||a.id;campData[camp].mails +=((statTCEdits[_mk]&&statTCEdits[_mk].mails!=null)?statTCEdits[_mk].mails:(mailsEdit[a.id]||a.mails_auto||0));
   });
 
-  // Campagnes triées par nb agents desc
+  // DMC représentative d'une campagne = moyenne pondérée du temps de communication
+  // des agents COMPÉTENTS (waAgentCovers) ayant réellement décroché — y compris les
+  // agents mutualisés dont le camp principal est ailleurs. Évite un DMC vide alors
+  // qu'il y a eu de la production sur la file.
+  function _covDmc(camp){
+    var dw=0,di=0;
+    sorted.forEach(function(a){
+      if((a.decroches||0)>0&&waAgentCovers(a,camp)){dw+=(a.dmc||0)*(a.decroches||0);di+=(a.decroches||0);}
+    });
+    return di>0?Math.round(dw/di):0;
+  }
+
+  // ── Ajouter les campagnes ACTIVES absentes du tableau ──
+  // Une campagne peut avoir du flux réel (présentés/décrochés/sortants) sans qu'aucun
+  // agent ne l'ait en camp principal (appels pris par des agents mutualisés rattachés
+  // à une autre campagne). Sans cet ajout, ces campagnes actives disparaissaient.
+  var _fxStc=window._fluxCamps||null;
+  if(_fxStc){
+    Object.keys(_fxStc).forEach(function(c){
+      if(c==='Autre'||campData[c])return;
+      if(campSelPartial()&&Array.isArray(selCamps)&&!selCamps.includes(c))return;
+      var f=_fxStc[c]||{};
+      var vol=(f.presentes||0)+(f.decroches||0)+(f.sortants||0);
+      if(vol<=0)return; // seulement les campagnes réellement actives
+      campData[c]={agents:[],appIn:(f.decroches||0),appOut:(f.sortants||0),durW:0,hp:0,mails:0,fluxOnly:true,presentes:(f.presentes||0)};
+    });
+  }
+  // Mémoriser le nom de campagne sur chaque groupe (utilisé par le calcul DMC)
+  Object.keys(campData).forEach(function(c){campData[c].name=c;});
+
+  // Campagnes triées : staffées (avec agents) d'abord par nb agents desc, puis
+  // les campagnes flux-only (mutualisées) par volume de décrochés desc.
   var camps=Object.keys(campData).sort(function(a,b){
-    return campData[b].agents.length-campData[a].agents.length;
+    var na=campData[a].agents.length, nb=campData[b].agents.length;
+    if(na!==nb)return nb-na;
+    return (campData[b].appIn||0)-(campData[a].appIn||0);
   });
 
   var T=sorted;
@@ -3943,41 +5072,31 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   var tHp    =T.reduce(function(s,a){return s+(a.hprod||0);},0);
   var tMails =T.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
 
-  var viv=T.filter(function(a){return a.camp==="Vivest";});
-  var vAppIn=viv.reduce(function(s,a){return s+(a.decroches||0);},0);
-  var vDurW =viv.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
-  var vHp   =viv.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var vMails=viv.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
-  var vAppOut=viv.reduce(function(s,a){return s+(a.sortants||0);},0);
-
-  var fil=T.filter(function(a){return a.camp==="Filippi";});
-  var fAppIn=fil.reduce(function(s,a){return s+(a.decroches||0);},0);
-  var fDurW =fil.reduce(function(s,a){return s+(a.dmc||0)*(a.decroches||0);},0);
-  var fHp   =fil.reduce(function(s,a){return s+(a.hprod||0);},0);
-  var fMails=fil.reduce(function(s,a){var _k=a.login||a.id;return s+((statTCEdits[_k]&&statTCEdits[_k].mails!=null)?statTCEdits[_k].mails:(mailsEdit[a.id]||a.mails_auto||0));},0);
-  var fAppOut=fil.reduce(function(s,a){return s+(a.sortants||0);},0);
+  // Cumuls Vivest/Filippi supprimés (colonnes hardcodées retirées — périmètre dynamique)
+  var viv=[],fil=[];
+  var vAppIn=0,vDurW=0,vHp=0,vMails=0,vAppOut=0;
+  var fAppIn=0,fDurW=0,fHp=0,fMails=0,fAppOut=0;
 
   // Nombre de colonnes total
   var nCampCols=camps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
-  var COLS=4+nCampCols; // KPI label + cumul Multi + cumul Vivest + cumul Filippi + campagnes
+  var COLS=2+nCampCols; // KPI label + Cumul Multi (total) + campagnes sélectionnées (agents + cumul)
 
   var h='<div style="margin-top:16px;">';
   h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;">';
 
   // ── Titre ──
-  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+'</td></tr>';
+  var _nbFluxOnly=camps.filter(function(c){return campData[c].fluxOnly;}).length;
+  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+(_nbFluxOnly>0?' <span style="font-weight:400;color:#888;font-size:10px;">· '+_nbFluxOnly+' campagne(s) ◆ couverte(s) en mutualisation (flux réel, agents rattachés ailleurs)</span>':'')+'</td></tr>';
 
   // ── Header ligne 1 : KPI col + cumulatifs + groupes campagne ──
   h+='<tr>';
   h+=waTh("",                   "#fff","#fff",   1,2);
-  h+=waTh("Cumul<br>Multi",     "#FF7C80","#fff", 1,2);
-  h+=waTh("Cumul<br>Vivest",    "#A9D18E","#222", 1,2);
-  h+=waTh("Cumul<br>Filippi",   "#FFD966","#222", 1,2);
+  h+=waTh("Cumul<br>total",     "#FF7C80","#fff", 1,2);
   camps.forEach(function(camp){
     var n=campData[camp].agents.length;
     var bg=WA_GROUP_COLORS[camp]||"#E0E0E0";
-    // Titre groupe = camp (+ 1 col cumul)
-    h+=waTh(camp,bg,"#222",n+1);
+    // Titre groupe = camp (+ 1 col cumul). ◆ = campagne flux-only (mutualisée, sans TC en camp principal)
+    h+=waTh(camp+(campData[camp].fluxOnly?' <span title="Flux réel couvert par des agents mutualisés (camp principal ailleurs)" style="color:#B07800;">◆</span>':''),bg,"#222",n+1);
   });
   h+='</tr>';
 
@@ -4006,18 +5125,33 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   var KPIS=[
     {
       lbl:"Appels Traités",bg:"#FFF2CC",col:"#000",
-      tot:function(){return tAppIn;},
+      tot:function(){
+        var fx=window._fluxCamps;
+        if(fx){var t=0;camps.forEach(function(c){t+=fx[c]?(fx[c].decroches||0):(campData[c].appIn||0);});return t;}
+        return tAppIn;
+      },
       vFn:function(){return vAppIn;},
       fFn:function(){return fAppIn;},
       aFn:function(a){return a.decroches||0;},
-      cFn:function(cd){return cd.appIn;}
+      cFn:function(cd){
+        var fx=window._fluxCamps;
+        if(fx&&fx[cd.name]&&(fx[cd.name].decroches||0)>0)return fx[cd.name].decroches;
+        return cd.appIn;
+      }
     },{
       lbl:"DMC",bg:"#FFE0E0",col:"#CC0000",
       tot:function(){return tAppIn>0?mmss2(Math.round(tDurW/tAppIn)):"–";},
       vFn:function(){return vAppIn>0?mmss2(Math.round(vDurW/vAppIn)):"–";},
       fFn:function(){return fAppIn>0?mmss2(Math.round(fDurW/fAppIn)):"–";},
       aFn:function(a){return a.dmc?mmss2(a.dmc):"–";},
-      cFn:function(cd){return cd.appIn>0?mmss2(Math.round(cd.durW/cd.appIn)):"–";}
+      cFn:function(cd){
+        // Camps staffés : DMC pondérée des agents en camp principal ayant décroché.
+        if(!cd.fluxOnly&&cd.appIn>0&&cd.durW>0)return mmss2(Math.round(cd.durW/cd.appIn));
+        // Camp flux-only OU agents principaux sans entrant : DMC des agents COMPÉTENTS
+        // (mutualisés inclus) qui ont décroché sur la file → cohérent avec la production.
+        var d=_covDmc(cd.name);
+        return d>0?mmss2(d):"–";
+      }
     },{
       lbl:"Appels Sortants",bg:"#EBF3FF",col:"#1F4E79",
       tot:function(){return tAppOut;},
@@ -4074,10 +5208,8 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     h+='<tr>';
     h+='<td style="background:'+kpi.bg+';font-weight:'+(kpi.bold?'700':'600')+';color:'+kpi.col+
        ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+(kpi.editable?'<span style="opacity:.5;margin-right:3px;font-size:7px">✎</span>':'')+kpi.lbl+'</td>';
-    // Cumulatifs
+    // Cumul total (toutes campagnes sélectionnées)
     h+=waTd(kpi.tot(),kpi.bg+"88",kpi.bold,kpi.col);
-    h+=waTd(kpi.vFn(),"#A9D18E44",kpi.bold,kpi.col);
-    h+=waTd(kpi.fFn(),"#FFD96644",kpi.bold,kpi.col);
     // Par campagne
     camps.forEach(function(camp){
       var cd=campData[camp];
@@ -4123,8 +5255,14 @@ function waBuildConfig(){
   var avM=all.filter(function(c){return!waActiveMails.includes(c);});
   function tags(arr,t){return arr.map(function(c){var bg=WA_CAMP_COLORS[c]||'#E0E0E0';return'<span class="wa-cfg-tag" style="background:'+bg+';color:#333">'+c+'<button onclick="waRemoveCamp(\''+c.replace(/'/g,"\\'")+'\',\''+t+'\')">×</button></span>';}).join('');}
   function sel(av,t){if(!av.length)return'';return'<select class="wa-cfg-sel" onchange="if(this.value){waAddCamp(this.value,\''+t+'\');this.value=\'\';}">'+'<option value="">+ Ajouter…</option>'+av.map(function(c){return'<option value="'+c+'">'+c+'</option>';}).join('')+'</select>';}
+  // Note : quand un filtre campagnes est actif, les colonnes appels suivent automatiquement
+  // la sélection — la personnalisation manuelle s'applique en mode "Toutes campagnes".
+  var _filterActive=typeof campSelPartial==='function'&&campSelPartial();
   panel.innerHTML='<div class="wa-cfg-hdr">⚙ Personnaliser les colonnes<button onclick="waResetCols()">↺ Réinitialiser</button></div>'+
-    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels ('+waActiveCalls.length+')</div><div class="wa-cfg-tags">'+tags(waActiveCalls,'calls')+sel(avC,'calls')+'</div></div>'+
+    '<div class="wa-cfg-row"><div class="wa-cfg-lbl">📞 Affectations appels</div><div class="wa-cfg-tags">'+
+      (_filterActive
+        ?'<span style="font-size:9px;color:#888;padding:3px 6px;display:inline-block;">Colonnes auto : filtre campagnes actif ('+selCamps.length+' camp.). Retirez le filtre pour personnaliser.</span>'
+        :tags(waActiveCalls,'calls')+sel(avC,'calls'))+'</div></div>'+
     '<div class="wa-cfg-row"><div class="wa-cfg-lbl">✉ Emails ('+waActiveMails.length+')</div><div class="wa-cfg-tags">'+tags(waActiveMails,'mails')+sel(avM,'mails')+'</div></div>';
 }
 var _waEditAgent=null;
@@ -4314,32 +5452,106 @@ function renderWA(){
   var _hDeb=(document.getElementById("f-h-deb")||{}).value||"08:00";
   var _hFin=(document.getElementById("f-h-fin")||{}).value||"20:00";
   var _fmtFr=function(iso){if(!iso)return "";var p=iso.split("-");return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):iso;};
-  var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
-  var timeStr=_hDeb+"–"+_hFin;
-  // Indicateur si on consulte une date passée ou un créneau hors horaires courants
-  var _todayIso=new Date().toISOString().slice(0,10);
+  var _todayIso=isoLocal(new Date());
+  var _nowHHMM=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var _isPast=_dFin&&_dFin<_todayIso;
+  var _isToday=(_dFin||_dDeb)===_todayIso;
+  // Heure de fin EFFECTIVE des données affichées : en direct sur le jour courant, les données
+  // s'arrêtent à l'instant présent — pas à la borne théorique _hFin du créneau. Permet de
+  // contrôler que "08:00–20:00" affiché à 11:18 correspond en réalité à 08:00–11:18.
+  var _hFinEff=(_isToday&&_nowHHMM<_hFin)?_nowHHMM:_hFin;
+  var dateStr=_dDeb===_dFin?_fmtFr(_dDeb):(_fmtFr(_dDeb)+" → "+_fmtFr(_dFin));
+  // timeStr = fenêtre réelle des données + horodatage de génération (contrôle de fraîcheur)
+  var timeStr=_hDeb+"–"+_hFinEff+" · ⏱ généré à "+_nowHHMM;
   var _periodLabel=_isPast?"Historique":"Période";
-  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+(_isPast?" (comparaison date antérieure)":"");
   if(agents.length===0){
+    if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr;
     z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucune donnée chargée.<br><br>Lancez un rafraîchissement pour afficher le tableau.</div>';
     return;
   }
-  var sorted=[...agents].sort(function(a,b){
+  // ── PÉRIMÈTRE = filtres globaux (campagnes / agents / statut / compétences) ──
+  // Mode tour de contrôle : les critères sélectionnés en haut déterminent TOUTES
+  // les données affichées, y compris les tableaux WhatsApp. Même filtre que le
+  // tableau principal (getFiltered).
+  var scope=getFiltered();
+  // Filtre FILES si sélection partielle : agent retenu s'il a traité au moins une file sélectionnée
+  if(Array.isArray(selQueues)&&Array.isArray(allQueues)&&allQueues.length>0&&selQueues.length>0&&selQueues.length<allQueues.length){
+    scope=scope.filter(function(a){
+      var agQ=(a.queues||"").split(", ").filter(Boolean);
+      return agQ.length===0||agQ.some(function(q){return selQueues.includes(q);});
+    });
+  }
+  // Principe 1 agent = plusieurs compétences : inclure les agents d'autres campagnes
+  // qui couvrent une des campagnes sélectionnées via leurs compétences secondaires.
+  // Cela permet au superviseur de voir en un coup d'œil les ressources réellement disponibles.
+  var _campScopeActive=campSelPartial();
+  if(_campScopeActive&&skillsLoaded()){
+    var _scopeIds=new Set(scope.map(function(a){return a.id;}));
+    var _secondary=agents.filter(function(a){
+      if(_scopeIds.has(a.id))return false; // déjà présent
+      return selCamps.some(function(c){return waAgentCovers(a,c);});
+    });
+    if(_secondary.length>0)scope=scope.concat(_secondary);
+  }
+  var _scopeLabel=_campScopeActive?(selCamps.length<=3?selCamps.join(', '):selCamps.length+' campagnes'):'Toutes campagnes';
+  if(ts)ts.textContent=_periodLabel+" · "+dateStr+" · "+timeStr+" · Périmètre : "+_scopeLabel+" · "+scope.length+"/"+agents.length+" TC"+(_isPast?" (comparaison date antérieure)":"");
+  if(scope.length===0){
+    z.innerHTML='<div style="padding:40px;text-align:center;color:var(--t-disabled);font-size:var(--fs-md);">Aucun agent dans le périmètre sélectionné ('+_scopeLabel+').<br><br>Élargissez les filtres Campagnes / Agents / Statut pour afficher les tableaux.</div>';
+    return;
+  }
+  var sorted=[...scope].sort(function(a,b){
     return (b.decroches+b.sortants)-(a.decroches+a.sortants);
   });
-  // Exclure les agents sans compétence sur les campagnes WA
-  var allWaCamps=waActiveCalls.concat(waActiveMails);
-  sorted=sorted.filter(function(a){
-    var sk=waSkills(a);
-    if(sk.size===0) return false; // aucune compétence connue → exclure
-    return allWaCamps.some(function(s){return waHas(sk,s);});
-  });
+  // Liste complète du périmètre AVANT filtrage compétences WA → alertes staffing (tableau 3)
+  window._lastAllAgents=sorted;
+  // Exclure les agents sans compétence sur les campagnes WA — UNIQUEMENT en vue
+  // globale. Si l'utilisateur a restreint les campagnes, sa sélection EST le
+  // critère : on affiche tous les agents du périmètre.
+  if(!_campScopeActive){
+    // Inclure les agents avec un camp connu ou des compétences WA détectées
+    // (colonnes dérivées dynamiquement — plus de liste statique waActiveCalls)
+    sorted=sorted.filter(function(a){
+      if(a.camp&&a.camp!=='-'&&a.camp!=='–')return true;
+      var sk=waSkills(a);
+      if(sk.size>0)return true;
+      // Inclure aussi si des queues INO ont pu être captées (agents actifs en cours)
+      return !!(a.queues&&a.queues.length>0);
+    });
+  }
   window._lastWaSorted=sorted;
   z.innerHTML=
     '<div id="wa-table-affectation">'+buildAffectationTable(sorted,dateStr,timeStr)+'</div>'+
     '<div style="height:16px;"></div>'+
-    '<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>';
+    '<div id="wa-table-stat">'+buildStatTCTable(sorted,dateStr,timeStr)+'</div>'+
+    waDefinitionsLegend();
+}
+// Légende : définitions et mode de calcul de chaque indicateur des tableaux WhatsApp.
+// Affichée sous les tableaux pour permettre le contrôle et l'interprétation par le manager.
+function waDefinitionsLegend(){
+  var defs=[
+    ['Nbr opé','Actes totaux de l\'agent sur la période','décrochés + appels sortants + mails'],
+    ['Co. INO','Statut de connexion INO au moment de la génération du tableau','état temps réel (OK / Déconnecté / absent)'],
+    ['Cumul (h)','Heures de production de l\'agent','temps connecté en statut productif'],
+    ['Affectations appels','Campagnes que l\'agent peut traiter','file réellement traitée OU campagne principale OU compétence INO active couvrant la file'],
+    ['Appels Traités','Appels décrochés en file sur la campagne','source file INO (mêmes chiffres que « Décrochés » du tableau Alertes)'],
+    ['DMC','Durée Moyenne de Communication','temps total de communication ÷ appels traités'],
+    ['DMT','Durée Moyenne de Traitement','DMC + temps de post-appel (ACW)'],
+    ['Appels Sortants','Appels émis par l\'agent / la campagne','compteur INO des appels sortants'],
+    ['Mails traités','Volume d\'e-mails traités','auto (INO) ou saisi manuellement via ✎'],
+    ['Occupation','Part du temps de présence réellement productive','(communication [+ ACW si activé]) ÷ (présence × min. productives-heure ÷ 60) — paramétrable par campagne dans ⚙ KPI'],
+    ['QS','Qualité de Service','appels traités ÷ appels présentés en file (abandons inclus)'],
+    ['◆','Campagne « flux-only »','flux réel couvert par des agents mutualisés rattachés à une autre campagne principale']
+  ];
+  var rows=defs.map(function(d){
+    return '<tr><td style="padding:4px 10px;font-weight:700;color:#E8006E;white-space:nowrap;vertical-align:top;">'+d[0]+'</td>'+
+      '<td style="padding:4px 10px;color:#333;vertical-align:top;">'+d[1]+'</td>'+
+      '<td style="padding:4px 10px;color:#666;font-style:italic;vertical-align:top;">'+d[2]+'</td></tr>';
+  }).join('');
+  return '<details style="margin-top:18px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:6px 10px;font-family:Arial,sans-serif;">'+
+    '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:#555;">ⓘ Définitions &amp; mode de calcul des indicateurs</summary>'+
+    '<table style="border-collapse:collapse;font-size:11px;margin-top:8px;width:100%;">'+
+    '<tr style="border-bottom:1px solid #eee;"><th style="text-align:left;padding:4px 10px;color:#999;">Indicateur</th><th style="text-align:left;padding:4px 10px;color:#999;">Définition</th><th style="text-align:left;padding:4px 10px;color:#999;">Calcul</th></tr>'+
+    rows+'</table></details>';
 }
 
 function exportWA_PDF(){
@@ -4414,6 +5626,7 @@ pullStore();
     <div class="col-def-close"><button onclick="document.getElementById('col-def-overlay').classList.remove('open')">Fermer ×</button></div>
   </div>
 </div>
+<script src="/theme.js" defer></script>
 </body>
 </html>
 
