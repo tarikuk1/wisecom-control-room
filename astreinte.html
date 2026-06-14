@@ -190,10 +190,12 @@ function campSlug(camp){return "ag-sugg-"+String(camp).normalize("NFD").replace(
 // Format YYYY-MM-DD en HEURE LOCALE — jamais toISOString() qui convertit en UTC
 // et fait glisser la date d'un jour (minuit Paris = 22h00 UTC la veille).
 function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
-function shiftDateStr(s,days){const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
+function _validIso(s){return typeof s==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
+function fmtDate(s){if(!_validIso(s))return "–";return new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});}
+function shiftDateStr(s,days){if(!_validIso(s))return s||"";const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+days);return isoLocal(d);}
 function dayName(dateStr){
   const names=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  if(!_validIso(dateStr))return "–";
   return names[new Date(dateStr+"T00:00:00").getDay()];
 }
 // Prochain lundi (les plannings sont préparés une semaine à l'avance)
@@ -205,7 +207,8 @@ function nextMonday(){
 }
 // Ramène n'importe quelle date au lundi de sa semaine (le registre s'organise toujours semaine entière)
 function mondayOf(dateStr){
-  const d=new Date((dateStr||nextMonday())+"T00:00:00");
+  const safe=_validIso(dateStr)?dateStr:nextMonday();
+  const d=new Date(safe+"T00:00:00");
   const diff=(d.getDay()+6)%7;
   d.setDate(d.getDate()-diff);
   return isoLocal(d);

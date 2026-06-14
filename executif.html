@@ -1017,7 +1017,7 @@ function renderCross(){
       <td>${qsBadge}</td>
       <td>${fmtMMSS(c.dmc)}</td>
       <td>${c.nbAgents}</td>
-      <td>${c.chargeParAgent.toFixed(1)}</td>
+      <td>${(c.chargeParAgent||0).toFixed(1)}</td>
     </tr>`;
   }).join("");
 }
