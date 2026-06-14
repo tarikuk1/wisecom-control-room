@@ -315,6 +315,17 @@ body{background:#f0f0f2;color:#161616;font-family:'Segoe UI',Arial,sans-serif;fo
     <div style="font-size:10px;color:#bbb;margin-top:10px;"><i>Moy. équipe</i> = vivier complet, pas uniquement les agents cochés. Référence de comparaison.</div>
   </div>
 
+  <!-- Backlog mails (restitution saisie superviseur) -->
+  <div class="panel" id="backlog-panel" style="display:none;">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">📬 Backlog mails — saisie superviseur</div>
+        <div class="panel-sub">Valeurs enregistrées dans le tour de contrôle pour les campagnes sélectionnées (instantané actuel, modifiable depuis le dashboard)</div>
+      </div>
+    </div>
+    <div class="bench-cards" id="backlog-cards"></div>
+  </div>
+
   <!-- Tableau comparatif principal -->
   <div class="panel" id="rank-panel" style="display:none;">
     <div class="panel-header">
@@ -371,6 +382,7 @@ let selCamps=new Set();
 let selKPIs=new Set();
 let selAgents=new Set();
 let tplStore={};
+let backlogStore={}; // {campagne: nb mails} — saisie superviseur restituée depuis /api/store
 
 const KPIS=[
   {key:"traites",  label:"Appels traités",  icon:"📞", fmt:v=>String(Math.round(v)),                        betterUp:true,  vol:true,  def:["Appels entrants décrochés par l'agent","Somme des appels décrochés sur la semaine"]},
@@ -380,9 +392,35 @@ const KPIS=[
   {key:"dmt",      label:"DMT",             icon:"⏱️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Traitement = communication + post-appel","DMC (comm. entrante) + ACW"]},
   {key:"dmc",      label:"DMC",             icon:"🗣️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Durée Moyenne de Communication (entrants)","Durée comm. entrants décrochés ÷ entrants décrochés"]},
   {key:"acw",      label:"ACW post-appel",  icon:"✍️", fmt:fmtMMSS,                                          betterUp:false, vol:false, def:["Temps de traitement après appel","Moyenne du temps de post-appel INO"]},
+  {key:"occupation",label:"Taux d'occupation",icon:"⏳", fmt:v=>v==null?"n.d.":Math.round(v)+"%",            betterUp:true,  vol:false, def:["Part du temps de présence passée en communication","(Comm. [+ ACW si activé]) ÷ (présence cumulée × min productives/h). Paramétrable par campagne dans le dashboard ⚙ Critères & KPI"]},
   {key:"decroche", label:"Taux décroché",   icon:"🎯", fmt:v=>v==null?"n.d.":Math.round(v)+"%",             betterUp:true,  vol:false, def:["Part des appels présentés que l'agent a décrochés","Appels traités ÷ appels présentés × 100"]},
   {key:"transfo",  label:"Transformation",  icon:"✅", fmt:v=>v==null?"n.d.":Math.round(v)+"%",             betterUp:true,  vol:false, def:["Taux de qualifications positives","Qualifs « oui » ÷ qualifs totales × 100"]}
 ];
+
+// ── Taux d'occupation : même formule + config par campagne que le dashboard ──
+// La config (min productives/h, inclusion ACW) est partagée via localStorage (même origine).
+const CRITERES_KEY="wisecom_criteres_v1";
+function occCampParams(camp){
+  var d={minH:50,incAcw:false};
+  try{
+    var crit=JSON.parse(localStorage.getItem(CRITERES_KEY)||"{}");
+    var c=crit&&crit[camp];
+    if(c){
+      if(c.occ_min_h!=null&&!isNaN(+c.occ_min_h)&&+c.occ_min_h>0)d.minH=Math.min(60,+c.occ_min_h);
+      if(c.occ_inc_acw!=null)d.incAcw=!!c.occ_inc_acw;
+    }
+  }catch(e){}
+  return d;
+}
+function computeOccupation(camp,commSec,presSec,acwSec){
+  if(!(presSec>0))return null;
+  var p=occCampParams(camp);
+  var num=(commSec||0)+(p.incAcw?(acwSec||0):0);
+  if(!(num>0))return null;
+  var basis=presSec*(p.minH/60);
+  if(!(basis>0))return null;
+  return Math.min(100,Math.round((num/basis)*100));
+}
 
 function fmtMMSS(s){const v=Math.round(s||0);const m=Math.floor(v/60);return String(m).padStart(2,"0")+":"+String(v%60).padStart(2,"0");}
 function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -399,14 +437,19 @@ function detectCampaign(queuesStr){
   return "Autre";
 }
 
-function agentWeekKPIs(a){
+function agentWeekKPIs(a,camp){
   const traites=a.appelsIn||0, sortants=a.appelsOut||0, pres=a.appelsPresentes||0;
   const total=traites+sortants;
+  // Occupation : présence cumulée jour par jour (presenceSec serveur), garde honnête si incohérent
+  let presSec=a.presenceSec||0;
+  if(presSec<(a.duree||0))presSec=0; // présence < comm → non mesurable (jamais inventée)
+  const occComm=a.duree||0, occAcw=(a.acwMoyen||0)*(a.appelsIn||0);
   return {
     traites, sortants, actes:total, recus:pres,
     dmt:(a.dmt||0)+(a.acwMoyen||0),
     dmc:a.dmt||0,
     acw:a.acwMoyen||0,
+    occupation:computeOccupation(camp,occComm,presSec,occAcw),
     decroche:pres>0?Math.round(traites/pres*100):null,
     transfo:(typeof a.transfo==="number")?a.transfo:null,
     active:total>0
@@ -424,8 +467,29 @@ async function loadConfig(){
   buildPreCamps();
 }
 async function loadTplStore(){
-  try{const r=await fetch(INO_BASE+"/api/store");const d=await r.json();tplStore=(d&&d.pilotageTpl&&typeof d.pilotageTpl==="object")?d.pilotageTpl:{};}catch(e){tplStore={};}
+  try{
+    const r=await fetch(INO_BASE+"/api/store");const d=await r.json();
+    tplStore=(d&&d.pilotageTpl&&typeof d.pilotageTpl==="object")?d.pilotageTpl:{};
+    backlogStore=(d&&d.backlog&&typeof d.backlog==="object")?d.backlog:{};
+  }catch(e){tplStore={};backlogStore={};}
   renderTplSelect();
+}
+
+function renderBacklog(){
+  const panel=document.getElementById("backlog-panel");
+  const cardsEl=document.getElementById("backlog-cards");
+  const camps=[...selCamps];
+  // N'afficher que si au moins une campagne sélectionnée a un backlog enregistré
+  const withVal=camps.filter(c=>(parseInt(backlogStore[c])||0)>0);
+  if(!withVal.length){panel.style.display="none";return;}
+  panel.style.display="";
+  const total=withVal.reduce((s,c)=>s+(parseInt(backlogStore[c])||0),0);
+  let html='<div class="bench-card" style="background:linear-gradient(135deg,#fff0f6,#fff);"><div class="bench-card-kpi">📬 Total backlog</div><div class="bench-card-val">'+total+'</div><div class="bench-card-sub">mails en attente · '+withVal.length+' campagne'+(withVal.length>1?"s":"")+'</div></div>';
+  html+=withVal.sort((a,b)=>(parseInt(backlogStore[b])||0)-(parseInt(backlogStore[a])||0)).map(c=>{
+    const v=parseInt(backlogStore[c])||0;
+    return '<div class="bench-card"><div class="bench-card-kpi">'+c+'</div><div class="bench-card-val">'+v+'</div><div class="bench-card-sub">mails à traiter</div></div>';
+  }).join("");
+  cardsEl.innerHTML=html;
 }
 
 // ─── Campaign pills ───
@@ -564,17 +628,17 @@ async function loadAnalysis(){
         if(!rec){rec={id:a.id,nom:a.nom||("#"+a.id),camp:detectCampaign(a.queues),skills:new Set(),series:new Array(N).fill(null)};agMap.set(a.id,rec);}
         (a.skills||[]).forEach(s=>{if(s)rec.skills.add(s.name||s);});
         const camp=detectCampaign(a.queues);if(camp&&camp!=="Autre")rec.camp=camp;
-        rec.series[i]=agentWeekKPIs(a);
+        rec.series[i]=agentWeekKPIs(a,rec.camp);
       });
     }
-    const nullEntry={traites:0,sortants:0,actes:0,recus:0,dmt:0,dmc:0,acw:0,decroche:null,transfo:null,active:false};
+    const nullEntry={traites:0,sortants:0,actes:0,recus:0,dmt:0,dmc:0,acw:0,occupation:null,decroche:null,transfo:null,active:false};
     agMap.forEach(rec=>{for(let i=0;i<N;i++){if(!rec.series[i])rec.series[i]={...nullEntry};}});
     pdata={weeks,agents:agMap};
     stEl.textContent="✓ "+agMap.size+" agents · "+N+" période"+(N>1?"s":"")+" ("+fmtDate(weeks[0].start)+" → "+fmtDate(weeks[N-1].end)+(trendHDeb!=="00:00"||trendHFin!=="23:59"?" · "+trendHDeb+"–"+trendHFin:"")+")";
     initSelections();
     document.getElementById("intro-panel").style.display="none";
     ["filters-panel","team-panel","rank-panel","heat-panel","defs-panel"].forEach(id=>document.getElementById(id).style.display="");
-    renderDefs();renderKpiTabs();renderAgentList();renderAll();
+    renderDefs();renderKpiTabs();renderAgentList();renderBacklog();renderAll();
     showToast("✓ Analyse chargée — "+agMap.size+" agents");
   }catch(e){
     const msg=(e&&e.message)||String(e);
