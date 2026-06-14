@@ -1589,7 +1589,7 @@ function renderQueueStatus(){
   </div>
   <div class="qs-footer">
     <div><div class="qs-foot-val">${q.sortants||0}</div><div class="qs-foot-lbl">Sortants</div></div>
-    <div style="text-align:right"><div class="qs-foot-val">${q.dmc>0?mmss(q.dmc):"–"}</div><div class="qs-foot-lbl">DMC</div></div>
+    <div style="text-align:right"><div class="qs-foot-val">${q.dmc>0?mmss(q.dmc):"\u2013"}</div><div class="qs-foot-lbl">DMC</div></div>
   </div>
 </div>`;
     });
@@ -2264,9 +2264,9 @@ async function askActivateSkill(agentId,agentNom,skillNom,knownSkillId,knownScor
   // Créer la modal de confirmation
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9100;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s';
-  const _isLt=document.body.classList.contains(‘light’);
-  const _mBg=_isLt?’#fff’:’#161616’,_mBdr=_isLt?’#dde’:’#2a2a2a’,_mTxt=_isLt?’#111’:’#fff’,_mSub=_isLt?’#555’:’#777’;
-  const _cbBg=_isLt?’#f0f0f8’:’#1e1e1e’,_cbCol=_isLt?’#555’:’#888’,_cbBdr=_isLt?’#ccc’:’#2a2a2a’;
+  const _isLt=document.body.classList.contains("light");
+  const _mBg=_isLt?"#fff":"#161616",_mBdr=_isLt?"#dde":"#2a2a2a",_mTxt=_isLt?"#111":"#fff",_mSub=_isLt?"#555":"#777";
+  const _cbBg=_isLt?"#f0f0f8":"#1e1e1e",_cbCol=_isLt?"#555":"#888",_cbBdr=_isLt?"#ccc":"#2a2a2a";
   overlay.innerHTML=`<div style="background:${_mBg};border:1px solid ${_mBdr};border-radius:14px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
     <div style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#E8006E;margin-bottom:10px">⚙ Activation de compétence</div>
     <div style="font-size:15px;font-weight:800;color:${_mTxt};margin-bottom:4px">${sk}</div>
