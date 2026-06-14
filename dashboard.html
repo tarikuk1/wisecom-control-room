@@ -4402,6 +4402,15 @@ var WA_GROUP_COLORS={
   "Delsey":"#F8CBAD","LBE":"#C9C9FF","M123":"#BDD7EE","LGR":"#E2EFDA",
   "Equisign":"#FFE699","Apex":"#D6DCE4","Nature & Découvertes":"#C5E0B4",
 };
+// Palette sombre des groupes campagne
+var WA_GROUP_COLORS_DARK={
+  "Filippi":"#4a3d00","Vivest":"#1a4010","Verspieren":"#0e2d4a","Evoriel":"#152e15",
+  "MG Motor":"#4a2008","Omoda":"#4a3d00","OMODA":"#4a3d00","Voltalis":"#143d05",
+  "Alcéane":"#3a3000","Antargaz":"#3a3000","MNZ":"#4a2008","Monetize":"#4a2008","Eiffage":"#0e2d4a",
+  "ELECTROSUR":"#0e1f4a","Afnor":"#1a3010","SOS":"#3a1508","LMB":"#3a1508",
+  "Delsey":"#3a1e0a","LBE":"#0e0e4a","M123":"#0e1f4a","LGR":"#1a3010",
+  "Equisign":"#3a3000","Apex":"#1e2030","Nature & Découvertes":"#152e15",
+};
 
 // ── Colonnes compétences (fidèles à l'image de référence) ─────
 // MNZ et Monetize sont DEUX campagnes distinctes dans queues_config.js
@@ -5080,30 +5089,52 @@ function buildStatTCTable(sorted,dateStr,timeStr){
   // Nombre de colonnes total
   var nCampCols=camps.reduce(function(s,k){return s+campData[k].agents.length+1;},0);
   var COLS=2+nCampCols; // KPI label + Cumul Multi (total) + campagnes sélectionnées (agents + cumul)
+  var _dark=!document.body.classList.contains('light');
+  var _savCS,_savHS;
+  if(_dark){_savCS=CS;_savHS=HS;CS="border:1px solid #3a3a3a;padding:2px 4px;font-size:8.5px;white-space:nowrap;";HS="border:1px solid #3a3a3a;padding:2px 4px;font-size:8.5px;white-space:nowrap;font-weight:700;text-align:center;";}
+  var _titleBg=_dark?'#141214':'#fff';
+  var _cumulHdrBg=_dark?'#6b1a22':'#FF7C80';
+  var _emptyHdrBg=_dark?'#141214':'#fff';
+  var _campCumulHdrBg=_dark?'#252525':'#D0D0D0';
+  var _campCumulHdrCol=_dark?'#ccc':'#333';
+  var _KD={
+    "Appels Traités":  {bg:"#252210",col:"#e8d05a"},
+    "DMC":             {bg:"#251010",col:"#ff7070"},
+    "Appels Sortants": {bg:"#101525",col:"#7ab3f5"},
+    "Mails traités":   {bg:"#0f1f0f",col:"#5ad07a"},
+    "Heures formation/débrief":{bg:"#1f0f1f",col:"#dd88dd"},
+    "Heures incident/bug":     {bg:"#1f1a0a",col:"#e8a862"},
+    "Heures de prod":  {bg:"#101828",col:"#7ab3f5"},
+    "Total Heures":    {bg:"#101828",col:"#7ab3f5"},
+    "Actes par heures":{bg:"#1f0f1a",col:"#ff5599"},
+  };
+  function _kBg(k){return _dark&&_KD[k.lbl]?_KD[k.lbl].bg:k.bg;}
+  function _kCol(k){return _dark&&_KD[k.lbl]?_KD[k.lbl].col:k.col;}
 
   var h='<div style="margin-top:16px;">';
   h+='<table style="border-collapse:collapse;font-family:Arial,sans-serif;">';
 
   // ── Titre ──
   var _nbFluxOnly=camps.filter(function(c){return campData[c].fluxOnly;}).length;
-  h+='<tr><td colspan="'+COLS+'" style="background:#fff;padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+(_nbFluxOnly>0?' <span style="font-weight:400;color:#888;font-size:10px;">· '+_nbFluxOnly+' campagne(s) ◆ couverte(s) en mutualisation (flux réel, agents rattachés ailleurs)</span>':'')+'</td></tr>';
+  h+='<tr><td colspan="'+COLS+'" style="background:'+_titleBg+';padding:4px 6px;font-size:12px;font-weight:700;color:#E8006E;border:none;">Stat TC · '+dateStr+' · '+timeStr+(_nbFluxOnly>0?' <span style="font-weight:400;color:#888;font-size:10px;">· '+_nbFluxOnly+' campagne(s) ◆ couverte(s) en mutualisation (flux réel, agents rattachés ailleurs)</span>':'')+'</td></tr>';
 
   // ── Header ligne 1 : KPI col + cumulatifs + groupes campagne ──
   h+='<tr>';
-  h+=waTh("",                   "#fff","#fff",   1,2);
-  h+=waTh("Cumul<br>total",     "#FF7C80","#fff", 1,2);
+  h+=waTh("",_emptyHdrBg,_dark?"#141214":"#fff",1,2);
+  h+=waTh("Cumul<br>total",_cumulHdrBg,"#fff",1,2);
   camps.forEach(function(camp){
     var n=campData[camp].agents.length;
-    var bg=WA_GROUP_COLORS[camp]||"#E0E0E0";
+    var bg=_dark?(WA_GROUP_COLORS_DARK[camp]||"#2a2a2a"):(WA_GROUP_COLORS[camp]||"#E0E0E0");
+    var _grpTxt=_dark?"#ddd":"#222";
     // Titre groupe = camp (+ 1 col cumul). ◆ = campagne flux-only (mutualisée, sans TC en camp principal)
-    h+=waTh(camp+(campData[camp].fluxOnly?' <span title="Flux réel couvert par des agents mutualisés (camp principal ailleurs)" style="color:#B07800;">◆</span>':''),bg,"#222",n+1);
+    h+=waTh(camp+(campData[camp].fluxOnly?' <span title="Flux réel couvert par des agents mutualisés (camp principal ailleurs)" style="color:'+(_dark?"#e8b800":"#B07800")+'">◆</span>':''),bg,_grpTxt,n+1);
   });
   h+='</tr>';
 
   // ── Header ligne 2 : prénoms agents + bouton ✎ Modifier ──
   h+='<tr>';
   camps.forEach(function(camp){
-    var bg=(WA_GROUP_COLORS[camp]||"#E0E0E0")+"CC";
+    var bg=_dark?(WA_GROUP_COLORS_DARK[camp]||"#2a2a2a"):(WA_GROUP_COLORS[camp]||"#E0E0E0")+"CC";
     campData[camp].agents.forEach(function(a){
       var prenom=a.nom.split(" ").pop().substring(0,9);
       var lgn=(a.login||a.username||"").substring(0,10);
@@ -5111,13 +5142,13 @@ function buildStatTCTable(sorted,dateStr,timeStr){
       var hasEdit=statTCEdits[ak]&&Object.keys(statTCEdits[ak]).length>0;
       h+=waTh(
         '<span style="font-size:8px;display:block;line-height:1.3">'+prenom+'</span>'+
-        (lgn?'<span style="font-size:7px;font-weight:400;color:#555;display:block;">'+lgn+'</span>':'')+
+        (lgn?'<span style="font-size:7px;font-weight:400;color:'+(_dark?'#aaa':'#555')+';display:block;">'+lgn+'</span>':'')+
         '<button class="wa-edit-btn" onclick="event.stopPropagation();waEditOpen('+a.id+',\''+ak+'\')" title="Modifier les données de '+a.nom+'" style="margin-top:4px;font-size:10px;padding:3px 7px;">'+
         (hasEdit?'✎ Modifié':'✎')+'</button>',
-        bg,"#222"
+        bg,_dark?"#ddd":"#222"
       );
     });
-    h+=waTh("Cumul","#D0D0D0","#333");
+    h+=waTh("Cumul",_campCumulHdrBg,_campCumulHdrCol);
   });
   h+='</tr>';
 
@@ -5206,32 +5237,33 @@ function buildStatTCTable(sorted,dateStr,timeStr){
 
   KPIS.forEach(function(kpi){
     h+='<tr>';
-    h+='<td style="background:'+kpi.bg+';font-weight:'+(kpi.bold?'700':'600')+';color:'+kpi.col+
+    h+='<td style="background:'+_kBg(kpi)+';font-weight:'+(kpi.bold?'700':'600')+';color:'+_kCol(kpi)+
        ';font-size:9px;padding:2px 8px;border:1px solid #ccc;white-space:nowrap;text-align:left;">'+(kpi.editable?'<span style="opacity:.5;margin-right:3px;font-size:7px">✎</span>':'')+kpi.lbl+'</td>';
     // Cumul total (toutes campagnes sélectionnées)
-    h+=waTd(kpi.tot(),kpi.bg+"88",kpi.bold,kpi.col);
+    h+=waTd(kpi.tot(),_kBg(kpi)+(_dark?"cc":"88"),kpi.bold,_kCol(kpi));
     // Par campagne
     camps.forEach(function(camp){
       var cd=campData[camp];
-      var campBg=(WA_GROUP_COLORS[camp]||"#E0E0E0")+"22";
+      var campBg=_dark?((WA_GROUP_COLORS_DARK[camp]||"#2a2a2a")+"bb"):(WA_GROUP_COLORS[camp]||"#E0E0E0")+"22";
       cd.agents.forEach(function(a){
         var ak=a.login||a.id;
         if(kpi.editable){
           var _edited=(statTCEdits[ak]&&statTCEdits[ak][kpi.editRow]!=null);
           var _val=kpi.aFn(a);
-          var _bg=_edited?(kpi.bg+'99'):campBg;
+          var _bg=_edited?(_kBg(kpi)+(_dark?'cc':'99')):campBg;
           var _fw=_edited?'700':'400';
-          var _border=_edited?';border-left:3px solid '+kpi.col:'';
-          h+='<td style="background:'+_bg+';color:'+kpi.col+';font-weight:'+_fw+';text-align:center;'+CS+'min-width:32px'+_border+'" title="'+(_edited?'Valeur modifiée — cliquer ✎ ci-dessus pour modifier':'Donnée INO — cliquer ✎ ci-dessus pour corriger')+'">'+_val+'</td>';
+          var _border=_edited?';border-left:3px solid '+_kCol(kpi):'';
+          h+='<td style="background:'+_bg+';color:'+_kCol(kpi)+';font-weight:'+_fw+';text-align:center;'+CS+'min-width:32px'+_border+'" title="'+(_edited?'Valeur modifiée — cliquer ✎ ci-dessus pour modifier':'Donnée INO — cliquer ✎ ci-dessus pour corriger')+'">'+_val+'</td>';
         } else {
-          h+=waTd(kpi.aFn(a),campBg,kpi.bold,kpi.col);
+          h+=waTd(kpi.aFn(a),campBg,kpi.bold,_kCol(kpi));
         }
       });
-      h+=waTd(kpi.cFn(cd),(WA_GROUP_COLORS[camp]||"#D0D0D0")+"55",true,kpi.col);
+      h+=waTd(kpi.cFn(cd),_dark?((WA_GROUP_COLORS_DARK[camp]||"#252525")+"dd"):(WA_GROUP_COLORS[camp]||"#D0D0D0")+"55",true,_kCol(kpi));
     });
     h+='</tr>';
   });
 
+  if(_dark){CS=_savCS;HS=_savHS;}
   h+='</table></div>';
   return h;
 }
