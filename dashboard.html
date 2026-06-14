@@ -169,10 +169,10 @@ body.light .btn-sep{background:var(--s-light-border);}
 .btn:focus-visible,.ck-btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--c-pink);outline-offset:2px;}
 .btn-primary{background:linear-gradient(135deg,var(--c-pink),var(--c-pink-dark));color:var(--c-white);}
 .btn-primary:hover{box-shadow:0 4px 14px rgba(232,0,110,.4);}
-.btn-dark{background:var(--s-3);color:var(--t-secondary);border:1px solid var(--s-4);}
-body.light .btn-dark{background:var(--s-light-2);color:var(--s-4);border-color:var(--t-secondary);}
-.btn-dark:hover{border-color:var(--t-disabled);color:var(--c-white);}
-body.light .btn-dark:hover{border-color:var(--t-muted);color:var(--s-1);}
+.btn-dark{background:#202020;color:#a0a0a0;border:1px solid #2e2e2e;}
+.btn-dark:hover{background:#2a2a2a;border-color:#484848;color:#e0e0e0;}
+body.light .btn-dark{background:#f3f3f8;color:#444;border-color:#c8c8d4;}
+body.light .btn-dark:hover{background:#eaeaf2;border-color:#a8a8c0;color:#1a1a2e;}
 .btn-refresh{background:linear-gradient(135deg,var(--c-pink),var(--c-pink-dark));color:var(--c-white);font-weight:var(--fw-black);padding:8px 18px;font-size:var(--fs-md);letter-spacing:.02em;box-shadow:0 2px 12px rgba(232,0,110,.3);}
 .btn-refresh:hover{box-shadow:var(--shadow-pink);}
 .btn-filter{background:var(--s-3);color:var(--t-secondary);border:1px solid var(--s-4);}
@@ -181,38 +181,43 @@ body.light .btn-filter{background:var(--s-light-2);color:var(--s-4);border-color
 .btn-logout{background:transparent;color:#e84444;border:1px solid #3a1a1a;font-size:var(--fs-sm);padding:5px 9px;}
 .btn-logout:hover{background:#2a1010;border-color:#ff4444;}
 body.light .btn-logout{border-color:#ffcccc;color:#cc0000;}
-/* Boutons tertiaires (Admin, Simuler, Déco) */
+/* Boutons tertiaires (Admin, Déco) */
 .btn-ghost{background:transparent;color:var(--t-muted);border:1px solid transparent;font-size:var(--fs-sm);padding:5px 8px;}
 .btn-ghost:hover{background:var(--s-3);border-color:var(--s-4);color:var(--t-secondary);}
 body.light .btn-ghost{color:var(--t-muted);border-color:transparent;}
 body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);color:var(--t-disabled);}
-/* ── NAV PILLS — boutons de navigation topbar avec icône + label ── */
+/* ── NAV PILLS ──────────────────────────────────────────────────
+   Navigation inter-pages. Texte seul, sans emoji (rendu cross-
+   platform irrégulier). Discret au repos → accent rose au survol.
+   ─────────────────────────────────────────────────────────── */
 .btn-nav{
-  background:var(--s-3);border:1.5px solid #3d3d3d;
-  border-radius:22px;padding:6px 14px;
-  color:#cfcfcf;font-size:var(--fs-body);font-weight:600;
-  display:flex;align-items:center;gap:6px;
-  text-decoration:none;white-space:nowrap;min-height:34px;
+  background:#1c1c1c;border:1px solid #343434;
+  border-radius:20px;padding:5px 13px;
+  color:#c2c2c2;font-size:11px;font-weight:600;
+  display:flex;align-items:center;
+  text-decoration:none;white-space:nowrap;min-height:30px;
   transition:all var(--motion-fast);
-  box-shadow:0 1px 2px rgba(0,0,0,.35);
+  letter-spacing:.02em;
 }
-.btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(232,0,110,.35);}
+.btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;box-shadow:0 3px 10px rgba(232,0,110,.3);}
 .btn-nav:focus-visible{outline:2px solid var(--c-pink);outline-offset:2px;}
-.btn-nav .n-icon{font-size:15px;line-height:1;flex-shrink:0;}
-.btn-nav .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
-.btn-nav-sim{border-color:#2a2a00;color:#cca000;background:#1a1500;}
-.btn-nav-sim:hover{background:#2a2200;border-color:#cca000;color:#ffd000;}
-.btn-nav-logout{border:1px solid #3a1a1a;background:transparent;color:#e84444;border-radius:22px;padding:6px 14px;font-size:var(--fs-body);display:flex;align-items:center;gap:6px;min-height:34px;transition:all var(--motion-fast);text-decoration:none;white-space:nowrap;cursor:pointer;}
-.btn-nav-logout:hover{background:#2a1010;border-color:#ff4444;transform:translateY(-1px);}
-.btn-nav-logout .n-icon{font-size:15px;line-height:1;}
-.btn-nav-logout .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
-body.light .btn-nav{background:#fff;border-color:#e2e2e6;color:#444;box-shadow:0 1px 2px rgba(0,0,0,.04);}
-body.light .btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;}
+.btn-nav-logout{
+  border:1px solid #2e1c1c;background:transparent;color:#b84242;
+  border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;
+  display:flex;align-items:center;min-height:30px;
+  transition:all var(--motion-fast);text-decoration:none;white-space:nowrap;cursor:pointer;
+  letter-spacing:.02em;
+}
+.btn-nav-logout:hover{background:#160a0a;border-color:#b84242;color:#e05050;}
+body.light .btn-nav{background:#fff;border-color:#d4d4e0;color:#2c2c3c;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+body.light .btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;box-shadow:0 3px 10px rgba(232,0,110,.25);}
+body.light .btn-nav-logout{border-color:#f0c8c8;color:#c0392b;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+body.light .btn-nav-logout:hover{background:#fff4f4;border-color:#c0392b;}
 
 /* ── CLUSTER D'OUTILS (actions de la page : tableau, exports) ── */
-.tool-cluster{display:flex;align-items:center;gap:5px;background:var(--s-2);border:1px solid var(--s-3);border-radius:14px;padding:4px 8px;flex-shrink:0;}
-body.light .tool-cluster{background:#f4f4f7;border-color:#e6e6ea;}
-.tool-cluster .btn-sep{margin:0 3px;}
+.tool-cluster{display:flex;align-items:center;gap:4px;background:#181818;border:1px solid #2c2c2c;border-radius:12px;padding:4px 6px;flex-shrink:0;}
+body.light .tool-cluster{background:#f0f0f6;border-color:#d8d8e4;}
+.tool-cluster .btn-sep{margin:0 4px;}
 
 /* ── BARRE DE NAVIGATION DÉDIÉE (2ᵉ rangée du header) ── */
 .navbar{
@@ -294,7 +299,6 @@ body.light input[type=date],body.light input[type=time],body.light select{
 }
 body.light .ck-btn{background:var(--s-light-2);border-color:#ccc;color:var(--s-4);}
 body.light .kpi-card{background:var(--c-white);border-color:var(--s-light-border);}
-body.light .btn-dark{background:var(--s-light-2);color:var(--s-4);border-color:#ccc;}
 body.light input[type=date]:focus,body.light input[type=time]:focus,body.light select:focus{
   border-color:var(--c-pink);background:var(--c-pink-subtle);
 }
@@ -973,12 +977,12 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="topbar-right">
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Actualiser les données depuis INO">↺ Actualiser</button>
       <div class="tool-cluster">
-        <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
-        <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
-        <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
+        <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Gérer les colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
+        <button class="btn btn-dark" onclick="openCriteres()" title="Critères de performance et KPI" style="position:relative;z-index:300;">Critères</button>
+        <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences</button>
         <div class="btn-sep"></div>
-        <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊 Excel</button>
-        <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄 PDF</button>
+        <button class="btn btn-dark" onclick="exportXlsx()" title="Exporter vers Excel" aria-label="Export Excel">↓ Excel</button>
+        <button class="btn btn-dark" onclick="exportPDF()" title="Exporter en PDF" aria-label="Export PDF">↓ PDF</button>
         <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
       </div>
     </div>
@@ -987,19 +991,16 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   <!-- ── NAVBAR : navigation entre pages | utilitaires ── -->
   <div class="navbar">
     <nav class="nav-cluster" aria-label="Navigation principale">
-      <span class="nav-cluster-label">Naviguer</span>
-      <a href="/executif" target="_blank" class="btn-nav" title="Tableau de bord exécutif — tendances 4 semaines, 2 ou 3 mois par campagne" aria-label="Tableau de bord exécutif"><span class="n-icon">📊</span><span class="n-lbl">Exécutif</span></a>
-      <a href="/pilotage" target="_blank" class="btn-nav" title="Pilotage de la productivité — évolution et comparaison des agents dans le temps" aria-label="Pilotage de la productivité"><span class="n-icon">🎯</span><span class="n-lbl">Pilotage</span></a>
-      <a href="/couverture" target="_blank" class="btn-nav" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture"><span class="n-icon">📡</span><span class="n-lbl">Couverture</span></a>
-      <a href="/astreinte" target="_blank" class="btn-nav" title="Registre d'astreinte — qui couvre, sur quelle campagne, quel jour" aria-label="Registre d'astreinte"><span class="n-icon">🌙</span><span class="n-lbl">Astreinte</span></a>
-      <a href="/planning" target="_blank" class="btn-nav" title="Planning de la semaine — construire et ajuster le planning agent par agent" aria-label="Planning de la semaine"><span class="n-icon">🗓️</span><span class="n-lbl">Planning</span></a>
-      <a href="/admin" target="_blank" class="btn-nav" title="Administration — paramètres et configuration" aria-label="Administration"><span class="n-icon">⚙</span><span class="n-lbl">Admin</span></a>
-      <a href="/notice" target="_blank" class="btn-nav" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation"><span class="n-icon">📖</span><span class="n-lbl">Notice</span></a>
+      <span class="nav-cluster-label">Navigation</span>
+      <a href="/executif" target="_blank" class="btn-nav" title="Tableau de bord exécutif — tendances par campagne" aria-label="Tableau de bord exécutif">Exécutif</a>
+      <a href="/pilotage" target="_blank" class="btn-nav" title="Pilotage de la productivité — évolution et comparaison des agents" aria-label="Pilotage de la productivité">Pilotage</a>
+      <a href="/couverture" target="_blank" class="btn-nav" title="Radar de couverture — tensions de staffing par créneau" aria-label="Radar de couverture">Couverture</a>
+      <a href="/astreinte" target="_blank" class="btn-nav" title="Registre d'astreinte — couverture par campagne et par jour" aria-label="Registre d'astreinte">Astreinte</a>
+      <a href="/planning" target="_blank" class="btn-nav" title="Planning de la semaine — construire et ajuster le planning" aria-label="Planning de la semaine">Planning</a>
+      <a href="/admin" target="_blank" class="btn-nav" title="Administration — paramètres et configuration" aria-label="Administration">Admin</a>
+      <a href="/notice" target="_blank" class="btn-nav" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation">Notice</a>
     </nav>
-    <div class="nav-cluster">
-      <button class="btn-nav btn-nav-sim" onclick="simulate()" title="Générer des données de démonstration" aria-label="Simuler des données de test"><span class="n-icon">⚡</span><span class="n-lbl">Simuler</span></button>
-      <a href="#" class="btn-nav-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;"><span class="n-icon">⏻</span><span class="n-lbl">Déco</span></a>
-    </div>
+    <a href="#" class="btn-nav-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;">⏻ Déco</a>
   </div>
 
   <!-- ── CONTRÔLES : 2 rangées ── -->
@@ -1051,8 +1052,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
           <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
             <option value="">— Sélectionner une vue —</option>
           </select>
-          <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
-          <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
+          <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">Sauvegarder</button>
+          <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">✕</button>
           <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
         </div>
       </div>
