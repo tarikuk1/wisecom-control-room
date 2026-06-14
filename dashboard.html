@@ -206,8 +206,29 @@ body.light .btn-ghost:hover{background:#ebebeb;border-color:var(--t-secondary);c
 .btn-nav-logout:hover{background:#2a1010;border-color:#ff4444;transform:translateY(-1px);}
 .btn-nav-logout .n-icon{font-size:15px;line-height:1;}
 .btn-nav-logout .n-lbl{font-size:12px;letter-spacing:.02em;font-weight:600;}
-body.light .btn-nav{background:#f0f0f0;border-color:#d0d0d0;color:#333;}
-body.light .btn-nav:hover{background:#e4e4e4;border-color:#aaa;color:var(--s-1);}
+body.light .btn-nav{background:#fff;border-color:#e2e2e6;color:#444;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+body.light .btn-nav:hover{background:var(--c-pink);border-color:var(--c-pink);color:#fff;}
+
+/* ── CLUSTER D'OUTILS (actions de la page : tableau, exports) ── */
+.tool-cluster{display:flex;align-items:center;gap:5px;background:var(--s-2);border:1px solid var(--s-3);border-radius:14px;padding:4px 8px;flex-shrink:0;}
+body.light .tool-cluster{background:#f4f4f7;border-color:#e6e6ea;}
+.tool-cluster .btn-sep{margin:0 3px;}
+
+/* ── BARRE DE NAVIGATION DÉDIÉE (2ᵉ rangée du header) ── */
+.navbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px 20px;border-top:1px solid #161616;flex-wrap:wrap;
+}
+body.light .navbar{border-top-color:#ececec;background:#f7f7f9;}
+.nav-cluster{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.nav-cluster-label{font-size:var(--fs-xs);font-weight:var(--fw-bold);color:var(--t-disabled);text-transform:uppercase;letter-spacing:.08em;margin-right:4px;flex-shrink:0;}
+body.light .nav-cluster-label{color:#9a9aa0;}
+
+/* ── CHAMPS DE CONTRÔLE (label au-dessus de l'input) ── */
+.field{display:flex;flex-direction:column;gap:3px;}
+.field-lbl{font-size:8px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding-left:2px;white-space:nowrap;}
+body.light .field-lbl{color:#888;}
+.field-inputs{display:flex;align-items:center;gap:5px;}
 /* garde la compatibilité ancien code qui utilise encore btn-icon-link */
 .btn-icon-link{font-size:18px;line-height:1;padding:7px 12px;background:var(--s-3);border:1px solid var(--s-4);color:var(--t-secondary);}
 .btn-icon-link:hover{background:var(--s-4);border-color:var(--t-disabled);color:var(--c-white);}
@@ -226,17 +247,17 @@ body.light .controls-bar{border-top-color:#e8e8e8;}
 
 /* Rangée A — Période + Vues */
 .ctrl-row-a{
-  display:flex;align-items:center;gap:6px;
-  padding:7px 20px;
+  display:flex;align-items:flex-end;gap:18px;
+  padding:10px 20px;
   border-bottom:1px solid #141414;
   flex-wrap:wrap;
 }
-body.light .ctrl-row-a{border-bottom-color:var(--t-primary);}
+body.light .ctrl-row-a{border-bottom-color:#ececec;}
 
 /* Rangée B — Filtres + Isoler */
 .ctrl-row-b{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 20px;
+  display:flex;align-items:flex-end;gap:18px;
+  padding:10px 20px;
   flex-wrap:wrap;
   min-height:42px;
 }
@@ -806,8 +827,10 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   .topbar{flex-wrap:wrap;height:auto;min-height:48px;padding:8px 14px;row-gap:6px;}
   .topbar-center{order:3;flex:0 1 100%;justify-content:flex-start;}
   .topbar-right{flex:0 1 100%;flex-wrap:wrap;flex-shrink:1;}
+  .tool-cluster{flex-wrap:wrap;}
+  .navbar{padding:8px 14px;}
 
-  .ctrl-row-a,.ctrl-row-b{padding:7px 14px;}
+  .ctrl-row-a,.ctrl-row-b{padding:9px 14px;gap:12px;}
   .ck-btn{min-width:90px;max-width:140px;}
   .preset-select{min-width:0;flex:1 1 150px;}
   select#f-pas{width:auto;}
@@ -949,16 +972,22 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
 
     <div class="topbar-right">
       <button class="btn btn-refresh" onclick="refreshFromINO()" id="btn-refresh" title="Actualiser les données depuis INO">↺ Actualiser</button>
-      <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
-      <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
-      <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
-      <div class="btn-sep"></div>
-      <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊 Excel</button>
-      <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄 PDF</button>
-      <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
-      <div class="btn-sep"></div>
-      <button class="btn-nav btn-nav-sim" onclick="simulate()" title="Générer des données de démonstration" aria-label="Simuler des données de test"><span class="n-icon">⚡</span><span class="n-lbl">Simuler</span></button>
+      <div class="tool-cluster">
+        <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
+        <button class="btn btn-dark" onclick="openCriteres()" title="Critères & KPI" style="position:relative;z-index:300;">KPI</button>
+        <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences INO</button>
+        <div class="btn-sep"></div>
+        <button class="btn btn-dark" onclick="exportXlsx()" title="Export Excel" aria-label="Export Excel">📊 Excel</button>
+        <button class="btn btn-dark" onclick="exportPDF()" title="Export PDF" aria-label="Export PDF">📄 PDF</button>
+        <span id="export-msg" style="font-size:var(--fs-sm);color:var(--c-green);font-weight:var(--fw-bold);display:none;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NAVBAR : navigation entre pages | utilitaires ── -->
+  <div class="navbar">
+    <nav class="nav-cluster" aria-label="Navigation principale">
+      <span class="nav-cluster-label">Naviguer</span>
       <a href="/executif" target="_blank" class="btn-nav" title="Tableau de bord exécutif — tendances 4 semaines, 2 ou 3 mois par campagne" aria-label="Tableau de bord exécutif"><span class="n-icon">📊</span><span class="n-lbl">Exécutif</span></a>
       <a href="/pilotage" target="_blank" class="btn-nav" title="Pilotage de la productivité — évolution et comparaison des agents dans le temps" aria-label="Pilotage de la productivité"><span class="n-icon">🎯</span><span class="n-lbl">Pilotage</span></a>
       <a href="/couverture" target="_blank" class="btn-nav" title="Radar de couverture — anticiper les tensions de staffing par créneau" aria-label="Radar de couverture"><span class="n-icon">📡</span><span class="n-lbl">Couverture</span></a>
@@ -966,6 +995,9 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <a href="/planning" target="_blank" class="btn-nav" title="Planning de la semaine — construire et ajuster le planning agent par agent" aria-label="Planning de la semaine"><span class="n-icon">🗓️</span><span class="n-lbl">Planning</span></a>
       <a href="/admin" target="_blank" class="btn-nav" title="Administration — paramètres et configuration" aria-label="Administration"><span class="n-icon">⚙</span><span class="n-lbl">Admin</span></a>
       <a href="/notice" target="_blank" class="btn-nav" title="Notice d'utilisation — guide des pages et fonctionnalités" aria-label="Notice d'utilisation"><span class="n-icon">📖</span><span class="n-lbl">Notice</span></a>
+    </nav>
+    <div class="nav-cluster">
+      <button class="btn-nav btn-nav-sim" onclick="simulate()" title="Générer des données de démonstration" aria-label="Simuler des données de test"><span class="n-icon">⚡</span><span class="n-lbl">Simuler</span></button>
       <a href="#" class="btn-nav-logout" title="Se déconnecter" aria-label="Se déconnecter" onclick="confirmLogout();return false;"><span class="n-icon">⏻</span><span class="n-lbl">Déco</span></a>
     </div>
   </div>
@@ -976,60 +1008,65 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <!-- Rangée A : Période + Vues sauvegardées -->
     <div class="ctrl-row-a">
 
-      <!-- Période -->
-      <span class="ctrl-label">Période</span>
-      <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
-      <span class="ctrl-arrow">→</span>
-      <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
+      <div class="field">
+        <label class="field-lbl">Période</label>
+        <div class="field-inputs">
+          <input type="date" id="f-date-deb" min="2022-01-01" aria-label="Date de début">
+          <span class="ctrl-arrow">→</span>
+          <input type="date" id="f-date-fin" min="2022-01-01" aria-label="Date de fin">
+        </div>
+      </div>
 
-      <div class="ctrl-vsep"></div>
+      <div class="field">
+        <label class="field-lbl">Horaire</label>
+        <div class="field-inputs">
+          <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début" style="width:86px;">
+          <span class="ctrl-arrow">→</span>
+          <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin" style="width:86px;">
+          <select id="f-pas" style="width:88px;" aria-label="Pas de temps">
+            <option>15 min</option><option selected>30 min</option>
+            <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
+          </select>
+        </div>
+      </div>
 
-      <!-- Heures -->
-      <span class="ctrl-label">Horaire</span>
-      <input type="time" id="f-h-deb" value="08:00" aria-label="Heure de début" style="width:86px;">
-      <span class="ctrl-arrow">→</span>
-      <input type="time" id="f-h-fin" value="20:00" aria-label="Heure de fin" style="width:86px;">
-      <select id="f-pas" style="width:88px;" aria-label="Pas de temps">
-        <option>15 min</option><option selected>30 min</option>
-        <option>1 heure</option><option>Journée</option><option>Semaine</option><option>Mois</option>
-      </select>
+      <div class="field">
+        <label class="field-lbl">Tendance</label>
+        <div class="field-inputs">
+          <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure, de S-1 à S-5" style="min-width:170px;">
+            <option value="0">📊 Comparer à…</option>
+            <option value="1">vs S-1 (semaine précéd.)</option>
+            <option value="2">vs S-2 (il y a 2 sem.)</option>
+            <option value="3">vs S-3 (il y a 3 sem.)</option>
+            <option value="4">vs S-4 (il y a 4 sem.)</option>
+            <option value="5">vs S-5 (il y a 5 sem.)</option>
+          </select>
+          <span id="cmp-status" aria-live="polite" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
+        </div>
+      </div>
 
-      <div class="ctrl-vsep"></div>
-
-      <!-- Tendance vs semaine(s) antérieure(s) -->
-      <span class="ctrl-label">Tendance</span>
-      <select id="cmp-weeks-sel" class="preset-select" onchange="setCmpWeeks(this.value)" title="Comparer aux mêmes jours, 1 à 5 semaines plus tôt (données INO réelles)" aria-label="Comparer à une semaine antérieure, de S-1 à S-5" style="min-width:170px;">
-        <option value="0">📊 Comparer à…</option>
-        <option value="1">vs S-1 (semaine précéd.)</option>
-        <option value="2">vs S-2 (il y a 2 sem.)</option>
-        <option value="3">vs S-3 (il y a 3 sem.)</option>
-        <option value="4">vs S-4 (il y a 4 sem.)</option>
-        <option value="5">vs S-5 (il y a 5 sem.)</option>
-      </select>
-      <span id="cmp-status" aria-live="polite" style="font-size:var(--fs-sm);color:var(--t-muted);white-space:nowrap;"></span>
-
-      <div class="ctrl-vsep"></div>
-
-      <!-- Vues sauvegardées -->
-      <span class="ctrl-label">Vue</span>
-      <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
-        <option value="">— Sélectionner une vue —</option>
-      </select>
-      <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
-      <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
-      <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
+      <div class="field">
+        <label class="field-lbl">Vue sauvegardée</label>
+        <div class="field-inputs">
+          <select id="preset-select" class="preset-select" onchange="applyPreset(this.value)" aria-label="Vue sauvegardée" style="min-width:150px;">
+            <option value="">— Sélectionner une vue —</option>
+          </select>
+          <button class="btn btn-dark" onclick="savePreset()" title="Sauvegarder la vue actuelle" style="padding:5px 10px;font-size:var(--fs-sm);">💾 Sauvegarder</button>
+          <button class="btn btn-dark" onclick="deletePreset()" title="Supprimer la vue sélectionnée" aria-label="Supprimer la vue sélectionnée" style="padding:5px 10px;font-size:var(--fs-sm);">🗑</button>
+          <span id="preset-status" style="font-size:var(--fs-sm);color:var(--t-disabled);"></span>
+        </div>
+      </div>
 
     </div>
 
-    <!-- Rangée B : Filtres dropdowns + Isoler -->
+    <!-- Rangée B : Filtres dropdowns -->
     <div class="ctrl-row-b">
 
-      <span class="ctrl-label">Filtres</span>
-      <div class="filter-group"><span class="filter-label">Campagnes</span><div class="ck-wrap" id="ck-camps"></div></div>
-      <div class="filter-group"><span class="filter-label">Files</span><div class="ck-wrap" id="ck-queues"></div></div>
-      <div class="filter-group"><span class="filter-label">Agents</span><div class="ck-wrap" id="ck-agents"></div></div>
-      <div class="filter-group"><span class="filter-label">Compétences</span><div class="ck-wrap" id="ck-skills"></div></div>
-      <div class="filter-group"><span class="filter-label">Statut</span><div class="ck-wrap" id="ck-status"></div></div>
+      <div class="field"><label class="field-lbl">Campagnes</label><div class="ck-wrap" id="ck-camps"></div></div>
+      <div class="field"><label class="field-lbl">Files</label><div class="ck-wrap" id="ck-queues"></div></div>
+      <div class="field"><label class="field-lbl">Agents</label><div class="ck-wrap" id="ck-agents"></div></div>
+      <div class="field"><label class="field-lbl">Compétences</label><div class="ck-wrap" id="ck-skills"></div></div>
+      <div class="field"><label class="field-lbl">Statut</label><div class="ck-wrap" id="ck-status"></div></div>
 
     </div>
   </div>
