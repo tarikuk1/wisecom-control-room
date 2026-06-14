@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test design — Control Room</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#080808;color:#888;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;padding:0 0 80px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+
+/* ── En-tête de la page de test ── */
+.test-head{position:sticky;top:0;z-index:10;background:#0c0c0c;border-bottom:1px solid #222;padding:14px 26px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.test-head h1{font-size:15px;color:#fff;font-weight:800;letter-spacing:.04em;}
+.test-head .mark{width:24px;height:24px;border-radius:7px;background:#E8006E;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;box-shadow:0 0 10px rgba(232,0,110,.4);}
+.test-head .hint{font-size:11px;color:#666;margin-left:auto;}
+
+/* ── Conteneur de variante ── */
+.variant{max-width:1180px;margin:30px auto 0;padding:0 26px;}
+.variant-label{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px dashed #2a2a2a;}
+.variant-num{width:30px;height:30px;border-radius:8px;background:#E8006E;color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.variant-name{font-size:16px;font-weight:800;color:#eee;letter-spacing:.02em;}
+.variant-desc{font-size:11.5px;color:#777;margin-top:2px;line-height:1.4;}
+
+/* Grille des composants dans chaque variante */
+.demo-kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.demo-two{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
+@media(max-width:840px){.demo-two{grid-template-columns:1fr;}}
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANTE 1 — « STRATIFIÉ »  (surfaces nettes, élévation calme)
+   ════════════════════════════════════════════════════════════════ */
+.v1{--bg:#0a0a0a;--surf:#1b1b1b;--surf2:#202020;--bord:#333;--num:#fff;--lbl:#8a8a8a;--data:#dcdcdc;--pink:#E8006E;}
+.v1 .demo-card{background:var(--surf);border:1px solid var(--bord);border-radius:12px;padding:14px 16px;flex:1;min-width:120px;}
+.v1 .demo-card.hero{border-top:2px solid var(--pink);}
+.v1 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:7px;}
+.v1 .k-val{font-size:26px;font-weight:800;color:var(--num);line-height:1;font-variant-numeric:tabular-nums;}
+.v1 .k-sub{font-size:10px;color:#666;margin-top:6px;}
+.v1 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:12px;overflow:hidden;}
+.v1 .panel-h{padding:12px 16px;border-bottom:1px solid var(--bord);font-size:11px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.05em;}
+.v1 table{width:100%;border-collapse:collapse;font-size:12px;}
+.v1 th{text-align:left;padding:9px 14px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;font-weight:700;background:#151515;}
+.v1 td{padding:9px 14px;color:var(--data);border-top:1px solid #232323;}
+.v1 tbody tr:nth-child(even) td{background:#1e1e1e;}
+.v1 .nm{color:#fff;font-weight:600;}
+.v1 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:10px;padding:11px 13px;margin-bottom:9px;}
+.v1 .qcard.ok{border-left:3px solid #2ecc71;}
+.v1 .qcard.warn{border-left:3px solid #f39c12;}
+.v1 .qcard.err{border-left:3px solid #e74c3c;}
+.v1 .q-nm{font-size:11px;font-weight:700;color:#ddd;margin-bottom:6px;}
+.v1 .q-row{display:flex;gap:18px;}
+.v1 .q-row b{font-size:15px;font-weight:800;}
+.v1 .q-row span{font-size:8px;color:#666;text-transform:uppercase;display:block;letter-spacing:.04em;}
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANTE 2 — « NÉON CONSOLE »  (accents rose lumineux, fond profond)
+   ════════════════════════════════════════════════════════════════ */
+.v2{--bg:#0b0b0b;--surf:#141414;--bord:#262626;--num:#fff;--lbl:#7d7d7d;--data:#cfcfcf;--pink:#E8006E;}
+.v2 .demo-card{background:var(--surf);border:1px solid var(--bord);border-radius:10px;padding:14px 16px;flex:1;min-width:120px;position:relative;overflow:hidden;}
+.v2 .demo-card.hero{border-color:rgba(232,0,110,.4);background:linear-gradient(135deg,#1c0a12,#141414);box-shadow:inset 0 0 24px rgba(232,0,110,.08);}
+.v2 .demo-card.hero::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--pink),transparent);}
+.v2 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:7px;}
+.v2 .demo-card.hero .k-lbl{color:var(--pink);}
+.v2 .k-val{font-size:26px;font-weight:800;color:var(--num);line-height:1;font-variant-numeric:tabular-nums;}
+.v2 .demo-card.hero .k-val{color:var(--pink);text-shadow:0 0 18px rgba(232,0,110,.35);}
+.v2 .k-sub{font-size:10px;color:#666;margin-top:6px;}
+.v2 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:10px;overflow:hidden;}
+.v2 .panel-h{padding:12px 16px;font-size:11px;font-weight:800;color:#ccc;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--bord);position:relative;}
+.v2 .panel-h::after{content:"";position:absolute;bottom:-1px;left:0;width:120px;height:2px;background:linear-gradient(90deg,var(--pink),transparent);}
+.v2 table{width:100%;border-collapse:collapse;font-size:12px;}
+.v2 th{text-align:left;padding:9px 14px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.05em;font-weight:700;background:#1a0a10;border-bottom:1px solid #2a1019;}
+.v2 td{padding:9px 14px;color:var(--data);border-bottom:1px solid #1c1c1c;}
+.v2 tbody tr:hover td{background:rgba(232,0,110,.06);}
+.v2 .nm{color:#fff;font-weight:600;}
+.v2 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:9px;padding:11px 13px;margin-bottom:9px;}
+.v2 .qcard.ok{box-shadow:inset 3px 0 0 #2ecc71;}
+.v2 .qcard.warn{box-shadow:inset 3px 0 0 #f39c12;}
+.v2 .qcard.err{box-shadow:inset 3px 0 0 #e74c3c,inset 0 0 22px rgba(231,76,60,.07);border-color:rgba(231,76,60,.25);}
+.v2 .q-nm{font-size:11px;font-weight:700;color:#ddd;margin-bottom:6px;}
+.v2 .q-row{display:flex;gap:18px;}
+.v2 .q-row b{font-size:15px;font-weight:800;}
+.v2 .q-row span{font-size:8px;color:#666;text-transform:uppercase;display:block;letter-spacing:.04em;}
+
+/* ════════════════════════════════════════════════════════════════
+   VARIANTE 3 — « ÉDITORIAL »  (typo forte, bordures fines, beaucoup d'air)
+   ════════════════════════════════════════════════════════════════ */
+.v3{--bg:#0f0f0f;--surf:#131313;--bord:#242424;--num:#fff;--lbl:#6e6e6e;--data:#d6d6d6;--pink:#E8006E;}
+.v3 .demo-card{background:transparent;border:none;border-left:1px solid var(--bord);padding:6px 22px;flex:1;min-width:130px;}
+.v3 .demo-card:first-child{border-left:none;padding-left:6px;}
+.v3 .k-lbl{font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.14em;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.v3 .demo-card.hero .k-lbl::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);}
+.v3 .k-val{font-size:34px;font-weight:800;color:var(--num);line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.v3 .demo-card.hero .k-val{color:var(--pink);}
+.v3 .k-sub{font-size:10px;color:#5a5a5a;margin-top:9px;}
+.v3 .panel{background:var(--surf);border:1px solid var(--bord);border-radius:6px;overflow:hidden;}
+.v3 .panel-h{padding:16px 20px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.12em;}
+.v3 table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.v3 th{text-align:left;padding:6px 20px 12px;font-size:9px;color:var(--lbl);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.v3 td{padding:13px 20px;color:var(--data);border-top:1px solid #1c1c1c;}
+.v3 .nm{color:#fff;font-weight:600;}
+.v3 .qcard{background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:15px 17px;margin-bottom:10px;position:relative;}
+.v3 .q-dot{position:absolute;top:17px;right:15px;width:7px;height:7px;border-radius:50%;}
+.v3 .qcard.ok .q-dot{background:#2ecc71;}
+.v3 .qcard.warn .q-dot{background:#f39c12;}
+.v3 .qcard.err .q-dot{background:#e74c3c;box-shadow:0 0 8px rgba(231,76,60,.6);}
+.v3 .q-nm{font-size:12px;font-weight:700;color:#e0e0e0;margin-bottom:11px;}
+.v3 .q-row{display:flex;gap:26px;}
+.v3 .q-row b{font-size:19px;font-weight:800;}
+.v3 .q-row span{font-size:8px;color:#5a5a5a;text-transform:uppercase;display:block;letter-spacing:.06em;margin-top:2px;}
+
+/* fonds de page par variante (appliqué au bloc) */
+.variant.v1,.variant.v2,.variant.v3{padding-top:22px;padding-bottom:26px;border-radius:14px;margin-top:30px;}
+.variant.v1{background:#0a0a0a;}
+.variant.v2{background:#0b0b0b;}
+.variant.v3{background:#0f0f0f;}
+</style>
+</head>
+<body>
+
+<div class="test-head">
+  <div class="mark">W</div>
+  <h1>TEST DESIGN — 3 directions (rose / gris / noir)</h1>
+  <span class="hint">Comparez les mêmes composants rendus en 3 ambiances · dites-moi le n° qui vous parle</span>
+</div>
+
+<!-- ══ VARIANTE 1 ══ -->
+<div class="variant v1">
+  <div class="variant-label">
+    <div class="variant-num">1</div>
+    <div>
+      <div class="variant-name">Stratifié — surfaces nettes & élévation calme</div>
+      <div class="variant-desc">Cartes sur fond clairement surélevé (#1b1b1b), bordures franches, zébrures de tableau. Le rose n'apparaît qu'en filet sur la carte prioritaire. Ambiance SaaS sobre et reposante.</div>
+    </div>
+  </div>
+  <div class="demo-kpis">
+    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
+    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+  </div>
+  <div class="demo-two">
+    <div class="panel">
+      <div class="panel-h">Agents — top production</div>
+      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
+        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
+        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
+        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="qcard ok"><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b style="color:#2ecc71">41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
+      <div class="qcard warn"><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b style="color:#2ecc71">16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
+      <div class="qcard err"><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b style="color:#2ecc71">20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VARIANTE 2 ══ -->
+<div class="variant v2">
+  <div class="variant-label">
+    <div class="variant-num">2</div>
+    <div>
+      <div class="variant-name">Néon console — accents rose lumineux sur fond profond</div>
+      <div class="variant-desc">Fond très sombre, la donnée-phare brille en rose (halo), liseré rose dégradé sous les titres, survol de ligne teinté. Ambiance « tour de contrôle live », énergique et orientée pilotage.</div>
+    </div>
+  </div>
+  <div class="demo-kpis">
+    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
+    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+  </div>
+  <div class="demo-two">
+    <div class="panel">
+      <div class="panel-h">Agents — top production</div>
+      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
+        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
+        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
+        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="qcard ok"><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b style="color:#2ecc71">41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
+      <div class="qcard warn"><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b style="color:#2ecc71">16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
+      <div class="qcard err"><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b style="color:#2ecc71">20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VARIANTE 3 ══ -->
+<div class="variant v3">
+  <div class="variant-label">
+    <div class="variant-num">3</div>
+    <div>
+      <div class="variant-name">Éditorial — typographie forte, bordures fines, beaucoup d'air</div>
+      <div class="variant-desc">Très grands chiffres, KPI séparés par de fins traits verticaux, lignes de tableau aérées. Le rose se réduit à une pastille de statut et au chiffre-phare. Ambiance premium, épurée, moins « chargée ».</div>
+    </div>
+  </div>
+  <div class="demo-kpis">
+    <div class="demo-card hero"><div class="k-lbl">Appels traités</div><div class="k-val">1 284</div><div class="k-sub">+8% vs S-1</div></div>
+    <div class="demo-card"><div class="k-lbl">Qualité service</div><div class="k-val">87%</div><div class="k-sub">objectif 80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Taux occupation</div><div class="k-val">73%</div><div class="k-sub">cible 70–80%</div></div>
+    <div class="demo-card"><div class="k-lbl">Backlog mails</div><div class="k-val">42</div><div class="k-sub">3 campagnes</div></div>
+  </div>
+  <div class="demo-two">
+    <div class="panel">
+      <div class="panel-h">Agents — top production</div>
+      <table><thead><tr><th>Agent</th><th>Traités</th><th>QS</th><th>DMT</th><th>Occ.</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">M. Dupont</td><td>148</td><td>91%</td><td>03:12</td><td>78%</td></tr>
+        <tr><td class="nm">S. Lambert</td><td>132</td><td>88%</td><td>03:45</td><td>74%</td></tr>
+        <tr><td class="nm">A. Bernard</td><td>119</td><td>84%</td><td>04:02</td><td>71%</td></tr>
+        <tr><td class="nm">L. Petit</td><td>97</td><td>79%</td><td>04:30</td><td>66%</td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="qcard ok"><div class="q-dot"></div><div class="q-nm">Voltalis · Assistance</div><div class="q-row"><div><b style="color:#E8006E">45</b><span>Reçus</span></div><div><b>41</b><span>Décr.</span></div><div><b style="color:#2ecc71">91%</b><span>QS</span></div></div></div>
+      <div class="qcard warn"><div class="q-dot"></div><div class="q-nm">LBE · Facture</div><div class="q-row"><div><b style="color:#E8006E">22</b><span>Reçus</span></div><div><b>16</b><span>Décr.</span></div><div><b style="color:#f39c12">73%</b><span>QS</span></div></div></div>
+      <div class="qcard err"><div class="q-dot"></div><div class="q-nm">SOS · MA</div><div class="q-row"><div><b style="color:#E8006E">38</b><span>Reçus</span></div><div><b>20</b><span>Décr.</span></div><div><b style="color:#e74c3c">53%</b><span>QS</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
