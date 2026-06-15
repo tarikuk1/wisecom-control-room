@@ -5196,10 +5196,16 @@ function buildAffectationTable(sorted,dateStr,timeStr){
 //  Format fidèle image : date | CumulMulti/Vivest/Filippi | campagnes
 // ══════════════════════════════════════════════════════════════════
 function buildStatTCTable(sorted,dateStr,timeStr){
+  // Quand un filtre campagne est actif, les agents secondaires (camp hors sélection)
+  // sont regroupés sous "Mutualisé" pour ne pas polluer la liste avec des campagnes
+  // non sélectionnées.
+  var _campFilter=typeof campSelPartial==="function"&&campSelPartial()&&Array.isArray(selCamps);
   // Grouper par campagne (camp principal de l'agent)
   var campData={};
   sorted.forEach(function(a){
     var camp=a.camp||"–";
+    // Si filtre actif et que ce camp n'est pas dans la sélection → colonne "Mutualisé"
+    if(_campFilter&&camp!=="–"&&!selCamps.includes(camp))camp="Mutualisé";
     if(!campData[camp])campData[camp]={
       agents:[],appIn:0,appOut:0,durW:0,hp:0,mails:0
     };
@@ -5210,6 +5216,8 @@ function buildStatTCTable(sorted,dateStr,timeStr){
     campData[camp].hp    +=(a.hprod||0);
     var _mk=a.login||a.id;campData[camp].mails +=((statTCEdits[_mk]&&statTCEdits[_mk].mails!=null)?statTCEdits[_mk].mails:(mailsEdit[a.id]||a.mails_auto||0));
   });
+  // Supprimer la colonne "Mutualisé" si elle est vide (pas d'agents hors-scope)
+  if(campData["Mutualisé"]&&campData["Mutualisé"].agents.length===0)delete campData["Mutualisé"];
 
   // DMC représentative d'une campagne = moyenne pondérée du temps de communication
   // des agents COMPÉTENTS (waAgentCovers) ayant réellement décroché — y compris les
