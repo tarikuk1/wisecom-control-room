@@ -4688,6 +4688,20 @@ function toggleJour(c,j){
   });
   const lbl=cb.closest('label');if(lbl)lbl.style.color=on?'#ccc':'#555';
 }
+function toggleAvecMails(c){
+  const cb=document.getElementById('avec-mails-'+c);
+  const fields=document.getElementById('backlog-fields-'+c);
+  const lbl=cb&&cb.nextElementSibling;
+  const hint=fields&&fields.previousElementSibling;
+  const on=cb&&cb.checked;
+  if(fields)fields.style.display=on?'block':'none';
+  if(lbl)lbl.style.color=on?'#ccc':'#888';
+  if(hint){hint.textContent=on
+    ?'Activé — la colonne mails est comptabilisée dans les actes et les analyses.'
+    :'Désactivé — la colonne mails sera masquée dans les analyses et les exports de cette campagne.';
+    hint.style.color=on?'#888':'#555';
+  }
+}
 function saveCriteres(){
   const data={};
   CAMPS.forEach(c=>{
@@ -4699,6 +4713,7 @@ function saveCriteres(){
       backlog_max:parseInt(document.getElementById('backlog-max-'+c)?.value||90),
       alert_no_agent:document.getElementById('alert-no-agent-'+c)?.checked||false,
       astreinte_display:document.getElementById('astreinte-display-'+c)?.checked||false,
+      avec_mails:document.getElementById('avec-mails-'+c)?.checked||false,
       obj_appels:parseInt(document.getElementById('obj-appels-'+c)?.value||50),
       occ_min_h:Math.min(60,Math.max(1,parseInt(document.getElementById('occ-minh-'+c)?.value||50)||50)),
       occ_inc_acw:document.getElementById('occ-incacw-'+c)?.checked||false,
@@ -4753,7 +4768,7 @@ function renderCriteres(){
     +'</div>';
   CAMPS.forEach(function(c){
     const _defJours={lun:{on:true,o:'09:00',f:'18:00'},mar:{on:true,o:'09:00',f:'18:00'},mer:{on:true,o:'09:00',f:'18:00'},jeu:{on:true,o:'09:00',f:'18:00'},ven:{on:true,o:'09:00',f:'18:00'},sam:{on:false,o:'09:00',f:'18:00'},dim:{on:false,o:'09:00',f:'18:00'}};
-    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,occ_min_h:50,occ_inc_acw:false,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false},saved[c]||{});
+    const s=Object.assign({qs_min:80,qs_max:95,backlog_val:0,backlog_min:10,backlog_max:90,alert_no_agent:true,obj_appels:50,occ_min_h:50,occ_inc_acw:false,h_ouv:'09:00',h_ferm:'18:00',h24:false,jours:JSON.parse(JSON.stringify(_defJours)),astreinte_display:false,avec_mails:false},saved[c]||{});
     if(!s.jours)s.jours=JSON.parse(JSON.stringify(_defJours));
     // migration ancien format: si h_ouv/h_ferm existaient, appliquer à tous les jours ON
     Object.keys(s.jours).forEach(function(j){if(!s.jours[j].o)s.jours[j].o=s.h_ouv;if(!s.jours[j].f)s.jours[j].f=s.h_ferm;});
@@ -4782,6 +4797,7 @@ function renderCriteres(){
         +'<div style="display:flex;align-items:center;gap:12px">'
           +'<span class="camp-badge">'+c+'</span>'
           +'<span style="font-size:11px;color:#aaa">'+cs.agents+' agent(s) · '+cs.connectes+' connecté(s) · '+cs.app+' appels</span>'
+          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;border:1px solid '+(s.avec_mails?'#2a4a2a':'#2a2a3a')+';color:'+(s.avec_mails?'#30d158':'#555')+';background:'+(s.avec_mails?'#0a1a0a':'#12121e')+'" title="'+(s.avec_mails?'Campagne avec traitement e-mails (colonne mails comptabilisée dans les actes)':'Campagne sans traitement e-mails (colonne mails non applicable)')+'">'+(s.avec_mails?'📧 Mails':'📧 Sans mails')+'</span>'
           +(qs_alert?'<span style="font-size:10px;font-weight:700;color:#E8006E;background:#1a0810;border:1px solid #E8006E44;border-radius:5px;padding:2px 8px">⚠ attention · QS '+qs+'%</span>':'')
           +(no_agent_alert?'<span style="font-size:10px;font-weight:700;color:#ff3b30;background:#200808;border:1px solid #5a1010;border-radius:5px;padding:2px 8px">Aucun agent connecté en ce moment.</span>':'')
         +'</div>'
@@ -4795,10 +4811,21 @@ function renderCriteres(){
           +'<div style="font-size:9px;color:#888;margin-top:4px">Alerte si QS &lt; min ou &gt; max</div>'
         +'</div>'
         +'<div class="param-group">'
-          +'<div class="param-title">📧 Backlog Mails</div>'
-          +'<div class="param-row"><span class="param-label">Backlog actuel (saisie)</span><input class="param-input" id="backlog-val-'+c+'" type="number" aria-label="Backlog valeur" min="0" value="'+s.backlog_val+'"><span class="param-unit">mails</span></div>'
-          +'<div class="param-row"><span class="param-label">Seuil minimum</span><input class="param-input" id="backlog-min-'+c+'" type="number" aria-label="Backlog minimum" min="0" value="'+s.backlog_min+'"><span class="param-unit">mails</span></div>'
-          +'<div class="param-row"><span class="param-label">Seuil maximum</span><input class="param-input" id="backlog-max-'+c+'" type="number" aria-label="Backlog maximum" min="0" value="'+s.backlog_max+'"><span class="param-unit">mails</span></div>'
+          +'<div class="param-title">📧 Traitement e-mails</div>'
+          +'<div class="alert-trigger" style="margin-bottom:10px">'
+            +'<input type="checkbox" id="avec-mails-'+c+'" aria-label="Campagne avec traitement mails"'+(s.avec_mails?' checked':'')+' onchange="toggleAvecMails(\''+c+'\')">'
+            +'<label for="avec-mails-'+c+'" style="font-size:11px;color:'+(s.avec_mails?'#ccc':'#888')+';cursor:pointer;font-weight:600">Cette campagne traite des e-mails</label>'
+          +'</div>'
+          +(s.avec_mails
+            ?'<div style="font-size:9px;color:#888;margin-bottom:6px">Activé — la colonne mails est comptabilisée dans les actes et les analyses.</div>'
+            :'<div style="font-size:9px;color:#555;margin-bottom:6px">Désactivé — la colonne mails sera masquée dans les analyses et les exports de cette campagne.</div>'
+          )
+          +'<div id="backlog-fields-'+c+'" style="display:'+(s.avec_mails?'block':'none')+'">'
+            +'<div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Backlog mails · seuils d\'alerte</div>'
+            +'<div class="param-row"><span class="param-label">Backlog actuel (saisie)</span><input class="param-input" id="backlog-val-'+c+'" type="number" aria-label="Backlog valeur" min="0" value="'+s.backlog_val+'"><span class="param-unit">mails</span></div>'
+            +'<div class="param-row"><span class="param-label">Seuil minimum</span><input class="param-input" id="backlog-min-'+c+'" type="number" aria-label="Backlog minimum" min="0" value="'+s.backlog_min+'"><span class="param-unit">mails</span></div>'
+            +'<div class="param-row"><span class="param-label">Seuil maximum</span><input class="param-input" id="backlog-max-'+c+'" type="number" aria-label="Backlog maximum" min="0" value="'+s.backlog_max+'"><span class="param-unit">mails</span></div>'
+          +'</div>'
         +'</div>'
         +'<div class="param-group">'
           +'<div class="param-title">🎯 Objectifs &amp; Alertes</div>'
