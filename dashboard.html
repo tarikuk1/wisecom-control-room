@@ -635,7 +635,11 @@ body.light .backlog-camp{color:var(--s-4);}
   display:flex;flex-direction:column;gap:5px;
   padding:10px 14px;background:#0d0d17;
   border-radius:8px 8px 0 0;border-bottom:2px solid var(--c-pink);
+  cursor:pointer;transition:background .15s;position:relative;
 }
+.qs-camp-header:hover{background:#131326;}
+.qs-camp-header-hint{font-size:8px;color:transparent;position:absolute;top:10px;right:12px;transition:color .15s;letter-spacing:.04em;pointer-events:none;}
+.qs-camp-header:hover .qs-camp-header-hint{color:#8888bb;}
 .qs-camp-header-row1{display:flex;align-items:center;gap:8px;}
 .qs-camp-name{font-size:11px;font-weight:800;color:#e8e8f4;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0;}
 .qs-camp-count{font-size:9px;font-weight:700;background:var(--c-pink);color:#fff;border-radius:10px;padding:2px 7px;flex-shrink:0;}
@@ -662,6 +666,8 @@ body.light .backlog-camp{color:var(--s-4);}
 .qs-foot-val{font-size:11px;font-weight:700;color:#c0c0e0;}
 .qs-foot-lbl{font-size:7px;color:#77779a;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
 body.light .qs-camp-header{background:#f0f0fa;border-bottom-color:var(--c-pink);}
+body.light .qs-camp-header:hover{background:#e8e8f8;}
+body.light .qs-camp-header:hover .qs-camp-header-hint{color:#9090bb;}
 body.light .qs-camp-name{color:#1a1a2e;}
 body.light .qs-camp-agg-item{background:#f8f8ff;border-color:#e0e0f0;}
 body.light .qs-camp-agg-sep{color:#aaa;}
@@ -1641,7 +1647,8 @@ function renderQueueStatus(){
     const avgQS=totR>0?Math.round(totD/totR*100):0;
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
     html+=`<div class="qs-camp-section">
-<div class="qs-camp-header">
+<div class="qs-camp-header" data-camp="${camp.replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité de tous les agents de la campagne">
+  <span class="qs-camp-header-hint">↗ productivité agents</span>
   <div class="qs-camp-header-row1">
     <span class="qs-camp-name">${camp}</span>
     <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
@@ -1660,7 +1667,7 @@ function renderQueueStatus(){
       const cls=atteint?'qs-card--ok':warn?'qs-card--warn':'qs-card--err';
       const eT=(atteint?'+':'−')+Math.abs(ecart)+' pts';
       const sn=shortQName(q.name,camp);
-      html+=`<div class="qs-card ${cls}" data-qname="${(q.name||'').replace(/"/g,'&quot;')}">
+      html+=`<div class="qs-card ${cls}" data-qname="${(q.name||'').replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité des agents sur cette file">
   <div class="qs-name" title="${(q.name||'').replace(/"/g,'&quot;')}">${sn}</div>
   <div class="qs-obj" style="color:${qsC}">Obj ${objQS}% · <b>${eT}</b></div>
   <div class="qs-kpis">
@@ -1679,32 +1686,56 @@ function renderQueueStatus(){
   });
   grid.innerHTML=html;
   grid.querySelectorAll('.qs-card[data-qname]').forEach(card=>{
-    card.addEventListener('click',()=>showQueueAgents(card.dataset.qname));
+    card.addEventListener('click',()=>showQueueAgents([card.dataset.qname],null));
+  });
+  grid.querySelectorAll('.qs-camp-header[data-camp]').forEach(hdr=>{
+    hdr.addEventListener('click',e=>{
+      // Ne pas déclencher si le clic vient d'un élément enfant interactif
+      if(e.target.closest('button,a,input'))return;
+      const camp=hdr.dataset.camp;
+      const campQueues=(window._lastQueuesData||[]).filter(q=>campOfQueue(q.name)===camp).map(q=>q.name);
+      showQueueAgents(campQueues,camp+' — toutes files');
+    });
   });
   if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
 }
 
-function showQueueAgents(queueName){
+function showQueueAgents(queueNames,displayTitle){
+  // queueNames : tableau de noms de files (une ou plusieurs)
+  const names=Array.isArray(queueNames)?queueNames:[queueNames];
+  const isCamp=names.length>1;
   const ov=document.getElementById('queue-agents-overlay');
-  const qData=(window._lastQueuesData||[]).find(q=>q.name===queueName);
-  const sn=shortQName(queueName,campOfQueue(queueName))||queueName;
 
-  document.getElementById('qa-title-name').textContent=sn;
+  // Titre du panel
+  const titleEl=document.getElementById('qa-title-name');
+  if(displayTitle){titleEl.textContent=displayTitle;}
+  else{const n=names[0];titleEl.textContent=shortQName(n,campOfQueue(n))||n;}
 
+  // Barre KPIs : agrégat sur toutes les files concernées
+  const allQ=(window._lastQueuesData||[]).filter(q=>names.includes(q.name));
   const kEl=document.getElementById('qa-kpis-bar');
-  if(qData){
-    const objQS=80,qs=qData.qs||0,ta=qData.tauxAbandon||0;
-    const qsC=qs>=objQS?'#30d158':qs>=objQS-10?'#ff9f0a':'#ff3b30';
-    const taC=ta<=5?'#30d158':ta<=15?'#ff9f0a':'#ff3b30';
-    kEl.innerHTML=`<span style="color:#E8006E"><b>${qData.recus}</b> reçus</span>`+
-      `<span style="color:#30d158"><b>${qData.decroches}</b> décrochés</span>`+
-      `<span style="color:${qsC}"><b>${qs}%</b> QS</span>`+
-      `<span style="color:${taC}"><b>${ta}%</b> abandons</span>`+
-      (qData.dmc>0?`<span><b>${mmss(qData.dmc)}</b> DMC</span>`:'');
+  if(allQ.length>0){
+    const totR=allQ.reduce((s,q)=>s+(q.recus||0),0);
+    const totD=allQ.reduce((s,q)=>s+(q.decroches||0),0);
+    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const totA=allQ.reduce((s,q)=>s+(q.tauxAbandon||0),0);
+    const avgA=allQ.length>0?Math.round(totA/allQ.length):0;
+    const objQS=80;
+    const qsC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
+    const taC=avgA<=5?'#30d158':avgA<=15?'#ff9f0a':'#ff3b30';
+    const dmcFiles=allQ.filter(q=>q.dmc>0);
+    const avgDMC=dmcFiles.length>0?Math.round(dmcFiles.reduce((s,q)=>s+q.dmc,0)/dmcFiles.length):0;
+    kEl.innerHTML=`<span style="color:#E8006E"><b>${totR}</b> reçus</span>`+
+      `<span style="color:#30d158"><b>${totD}</b> décrochés</span>`+
+      `<span style="color:${qsC}"><b>${avgQS}%</b> QS</span>`+
+      `<span style="color:${taC}"><b>${avgA}%</b> abandons</span>`+
+      (avgDMC>0?`<span><b>${mmss(avgDMC)}</b> DMC moy.</span>`:'')+
+      (isCamp?`<span style="color:#7777aa">${allQ.length} files</span>`:'');
   }else{kEl.innerHTML='';}
 
-  // Agents ayant cette file dans leur périmètre
-  const agOnQ=agents.filter(a=>(a.queues||'').split(', ').filter(Boolean).includes(queueName));
+  // Agents ayant au moins une des files dans leur périmètre
+  const namesSet=new Set(names);
+  const agOnQ=agents.filter(a=>(a.queues||'').split(', ').filter(Boolean).some(q=>namesSet.has(q)));
 
   const tbody=document.getElementById('qa-tbody');
   const tfoot=document.getElementById('qa-tfoot');
