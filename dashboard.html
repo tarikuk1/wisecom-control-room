@@ -3842,7 +3842,7 @@ function showToast(msg,color="#30d158",durationMs){
   // s'affichait avec la couleur du toast précédent (souvent le vert succès).
   const SEM={error:"#ff3b30",err:"#ff3b30",warn:"#ff9f0a",warning:"#ff9f0a",ok:"#30d158",success:"#30d158",info:"#4C9AFF"};
   const c=SEM[String(color).toLowerCase()]||color;
-  t.textContent=msg;t.style.borderColor=c;t.style.color=c;
+  t.innerHTML=msg;t.style.borderColor=c;t.style.color=c;
   t.style.display="block";setTimeout(()=>t.style.display="none",durationMs||3500);
 }
 
