@@ -3473,7 +3473,7 @@ function exportQueuePDF(){
     });
     bodyHtml+='</tbody></table></div>';
   });
-  const html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Files d'attente — '+dateStr+'</title>'
+  const html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Files d\'attente — '+dateStr+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#222;background:#fff;padding:20px;font-size:11px}'
     +'.hdr{display:flex;justify-content:space-between;border-bottom:3px solid #E8006E;padding-bottom:10px;margin-bottom:18px;align-items:baseline}'
     +'h1{font-size:17px;color:#E8006E;font-weight:800}.camp-bloc{margin-bottom:18px;page-break-inside:avoid}'
@@ -3488,7 +3488,7 @@ function exportQueuePDF(){
     +'@page{size:A4 portrait;margin:12mm}'
     +'</style></head><body>'
     +'<button class="print-btn" onclick="window.print()">Imprimer / PDF</button>'
-    +'<div class="hdr"><div><h1>Statut des Files d'attente</h1><div style="font-size:10px;color:#888;margin-top:3px">Wisecom Control Room &nbsp;&middot;&nbsp; '+queues.length+' file(s)</div></div>'
+    +'<div class="hdr"><div><h1>Statut des Files d\'attente</h1><div style="font-size:10px;color:#888;margin-top:3px">Wisecom Control Room &nbsp;&middot;&nbsp; '+queues.length+' file(s)</div></div>'
     +'<div style="font-size:10px;color:#888">'+dateStr+' à '+timeStr+'</div></div>'
     +bodyHtml
     +'<div class="footer"><span>Wisecom Control Room — usage interne</span><span>'+queues.length+' files &middot; '+campOrder.length+' campagne(s)</span></div>'
