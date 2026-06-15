@@ -1448,9 +1448,11 @@ function genAgents(){
     const app=st==="Déconnecté"?0:rnd(12,60);
     const hp=st==="Déconnecté"?0:+(2.5+Math.random()*5).toFixed(2);
     const occ=st==="Déconnecté"?0:rnd(55,95);
-    return{...a,status:st,appels:app,appelsIn:Math.floor(app*.7),appelsOut:Math.ceil(app*.3),
+    const _decr=Math.floor(app*.7);
+    return{...a,status:st,appels:app,appelsIn:_decr,appelsDecrIn:_decr,appelsOut:Math.ceil(app*.3),
+      presentes:_decr,decroches:_decr,refuses:0,sortants:Math.ceil(app*.3),
       mails_auto:rnd(1,12),hprod:hp,presence:+(hp*1.15).toFixed(2),dmc:rnd(80,270),
-      transferts:rnd(0,5),inactifs:rnd(0,9),ko:rnd(0,15),refus:rnd(0,8),
+      reiterants:rnd(0,3),transferts:rnd(0,5),inactifs:rnd(0,9),ko:rnd(0,15),refus:rnd(0,8),
       realise:Math.min(100,rnd(35,105)),files_ok:Math.random()>0.2,
       acw:st==="Déconnecté"?0:rnd(15,75),occupation:occ,
       adherence:st==="Déconnecté"?0:rnd(72,99),transfo:rnd(8,45),
