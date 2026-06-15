@@ -2478,9 +2478,14 @@ async function refreshSkills(){
     }else{
       // Afficher un diagnostic interactif : permet d'inspecter la réponse brute INO pour un agent
       const _diagId=agentIds[0]||'';
-      const _diagMsg='INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'.')+
+      const _is401=firstErr&&firstErr.includes('401');
+      const _hint=_is401
+        ? 'Le compte INO ne dispose pas des droits /cc/* — demandez à votre administrateur INO d\'activer les permissions "Call Center" sur le compte de service.'
+        : '';
+      const _diagMsg='INO n\'a remonté aucune compétence'+(firstErr?' — '+firstErr:'')+
+        (_hint?'<br><span style="font-size:10px;color:#aaa">'+_hint+'</span>':'')+
         (_diagId?' <a href="/api/skills-debug/'+_diagId+'" target="_blank" style="color:#ff9f0a;text-decoration:underline;">Inspecter la réponse INO ↗</a>':'');
-      showToast(_diagMsg,'error',12000);
+      showToast(_diagMsg,'error',15000);
     }
   }catch(e){
     window._skillsLoadFailed=true;
