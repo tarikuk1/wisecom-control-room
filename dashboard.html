@@ -28,9 +28,9 @@
   --c-pink-hi:    #f5479e;
 
   /* Surfaces (élévation croissante) */
-  --s-base:       #121212;
-  --s-1:          #1c1c1c;
-  --s-2:          #242424;
+  --s-base:       #0c0c0c;
+  --s-1:          #161616;
+  --s-2:          #1f1f1f;
   --s-3:          #272727;
   --s-4:          #303030;
 
@@ -449,15 +449,14 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
    l'exception qui capte l'œil ; .priority hiérarchise sans
    saturer — quelques indicateurs-clés à scanner avant les autres)
    ─────────────────────────────────────────────────────── */
-.kpi-grid{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:20px;}
-.kpi-card{background:linear-gradient(165deg,#1a1a1a,#131313);border:1px solid #2c2c2c;border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;box-shadow:0 2px 16px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.3);}
+.kpi-grid{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:16px;}
+.kpi-card{background:linear-gradient(165deg,#1a1a1a,#131313);border:1px solid #2c2c2c;border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .kpi-card.hero{min-width:150px;border-color:rgba(232,0,110,.25);background:linear-gradient(135deg,#1a0810,#160610);padding:16px 20px;}
 .kpi-card.hero .kpi-value{font-size:var(--fs-kpi-hero)!important;}
 .kpi-card.hero .kpi-label{color:var(--c-pink);font-size:var(--fs-sm);}
 .kpi-card.hero:hover{border-color:rgba(232,0,110,.45);box-shadow:var(--shadow-pink);transform:translateY(-1px);}
-.kpi-card.priority{border-left:3px solid var(--c-pink);min-width:130px;padding:14px 16px;}
+.kpi-card.priority{border-left:3px solid var(--c-pink);}
 .kpi-card.priority .kpi-label{color:var(--c-pink-hi);}
-.kpi-card.priority .kpi-value{font-size:26px;}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
 body.light .kpi-card{background:#fff;border-color:#e4e4ec;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .kpi-card.alert{border-color:var(--c-pink);background:linear-gradient(135deg,#1a0810,#141414);}
@@ -502,17 +501,7 @@ body.light .panel-header{border-bottom-color:#ececf2;background:#fafafc;}
 body.light .panel-title{color:#555;}
 
 /* Table */
-.tbl-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.35);}
-/* Colonnes figées — Agent + Statut restent visibles lors du défilement horizontal */
-.tbl th:nth-child(1),.tbl td:nth-child(1){position:sticky;left:0;z-index:4;background:var(--s-0);}
-.tbl th:nth-child(2),.tbl td:nth-child(2){position:sticky;left:22px;z-index:4;background:var(--s-0);min-width:160px;}
-.tbl th:nth-child(3),.tbl td:nth-child(3){position:sticky;left:182px;z-index:4;background:var(--s-0);min-width:96px;box-shadow:3px 0 8px rgba(0,0,0,.3);}
-.tbl tr:hover td:nth-child(1),.tbl tr:hover td:nth-child(2),.tbl tr:hover td:nth-child(3){background:var(--s-2)!important;}
-body.light .tbl th:nth-child(1),body.light .tbl td:nth-child(1),body.light .tbl th:nth-child(2),body.light .tbl td:nth-child(2),body.light .tbl th:nth-child(3),body.light .tbl td:nth-child(3){background:var(--s-light-2);}
-body.light .tbl tr:hover td:nth-child(1),body.light .tbl tr:hover td:nth-child(2),body.light .tbl tr:hover td:nth-child(3){background:#fff8fc!important;}
-.tbl .total-row td:nth-child(1),.tbl .total-row td:nth-child(2),.tbl .total-row td:nth-child(3){background:#1a0a0f!important;}
-body.light .tbl .total-row td:nth-child(1),body.light .tbl .total-row td:nth-child(2),body.light .tbl .total-row td:nth-child(3){background:#fff0f7!important;}
-.tbl .detail-row td{position:static!important;box-shadow:none!important;background:var(--s-2)!important;}
+.tbl-wrap{overflow-x:auto;}
 .agent-row td{padding:5px 8px!important;vertical-align:middle!important;white-space:nowrap;overflow:hidden;max-width:200px;box-sizing:border-box;}
 /* ── TABLEAU AGENTS ───────────────────────────────────────
    Composants: .tbl, .agent-row, .total-row, .tbl-wrap
@@ -524,15 +513,12 @@ body.light .tbl .total-row td:nth-child(1),body.light .tbl .total-row td:nth-chi
 .tbl th{padding:8px 10px;color:#d0d0d0;font-weight:var(--fw-bold);text-align:left;border-bottom:1px solid #2a2a2a;background:#111;font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;letter-spacing:.03em;}
 body.light .tbl th{background:var(--s-light-2);border-bottom-color:var(--s-light-border);color:var(--t-muted);}
 .tbl th:hover,.tbl th.active{color:var(--c-pink);}
-.tbl td{padding:8px 10px;border-bottom:1px solid #1e1e1e;vertical-align:middle;transition:background .1s;color:#e0e0e0;font-variant-numeric:tabular-nums;}
+.tbl td{padding:8px 10px;border-bottom:1px solid #1e1e1e;vertical-align:middle;transition:background .1s;color:#e0e0e0;}
 body.light .tbl td{border-bottom-color:var(--s-light-2);color:#222;}
 .tbl tr:hover td{background:var(--s-2);}
 body.light .tbl tr:hover td{background:#fff8fc;}
 .tbl .total-row td{background:#1a0a0f!important;border-top:2px solid var(--c-pink);font-weight:var(--fw-bold);}
 body.light .tbl .total-row td{background:#fff0f7!important;}
-/* Alertes chirurgicales — bordure gauche uniquement, sans fond de ligne */
-.agent-row.row-alert td:nth-child(1){box-shadow:inset 3px 0 0 var(--c-pink)!important;}
-body.light .agent-row.row-alert td:nth-child(1){box-shadow:inset 3px 0 0 var(--c-pink)!important;}
 
 /* Badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);}
@@ -1398,19 +1384,19 @@ let skillSort={col:null,dir:"asc"};
 // Colonnes visibles dans le tableau individuel (personnalisation UI)
 const COL_DEFS=[
   {k:"status",l:"Statut",on:true},{k:"camp",l:"File/Campagne",on:true},
-  {k:"premiere",l:"1ère connexion",on:false},{k:"derniere",l:"Fin de session",on:false},
+  {k:"premiere",l:"1ère connexion",on:true},{k:"derniere",l:"Fin de session",on:true},
   {k:"hprod",l:"H. prod",on:true},{k:"presence",l:"Présence",on:false},
-  {k:"appelsIn",l:"Appels présentés",on:false},{k:"appels",l:"Décrochés",on:true},
-  {k:"refuses",l:"Appels refusés",on:false},
-  {k:"appelsOut",l:"Sortants",on:false},{k:"mails",l:"Mails saisis",on:false},
-  {k:"actes",l:"Actes total",on:false},{k:"actesH",l:"Actes/h",on:true},
-  {k:"appelsH",l:"App./h",on:false},{k:"dmc",l:"DMC",on:true},{k:"dmt",l:"DMT",on:false},
+  {k:"appelsIn",l:"Appels présentés",on:true},{k:"appels",l:"Décrochés",on:true},
+  {k:"refuses",l:"Appels refusés",on:true},
+  {k:"appelsOut",l:"Sortants",on:true},{k:"mails",l:"Mails saisis",on:true},
+  {k:"actes",l:"Actes total",on:true},{k:"actesH",l:"Actes/h",on:true},
+  {k:"appelsH",l:"App./h",on:true},{k:"dmc",l:"DMC",on:true},{k:"dmt",l:"DMT",on:true},
   {k:"acw",l:"Post-appel (ACW)",on:false},{k:"occupation",l:"Occupation",on:true},
   {k:"transfo",l:"Transformation",on:false},{k:"adherence",l:"Adhérence",on:false},
-  {k:"ko",l:"100 % KO",on:false},{k:"refus",l:"Refus qualification",on:false},
+  {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Refus qualification",on:true},
   {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% Réalisé",on:true},
-  {k:"spark",l:"Activité du jour",on:false},{k:"files",l:"Files",on:false},
-  {k:"skills",l:"Compétences",on:false}
+  {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
+  {k:"skills",l:"Compétences",on:true}
 ];
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
@@ -2852,7 +2838,7 @@ function renderTable(sorted){
     const transfoTxt=a.transfo!=null?a.transfo+"%":"n.d.";
     const adhTxt=a.adherence!=null?a.adherence+"%":"n.d.";
     const adhColor=a.adherence==null?"#555":a.adherence>=90?"#30d158":a.adherence<80?P:"#ccc";
-    return`<tr class="agent-row${a.status==='Déconnecté'?' is-disconnected':''}${isRedFlag?' row-alert':''}" data-aid="${a.id}">
+    return`<tr class="agent-row${a.status==='Déconnecté'?' is-disconnected':''}" data-aid="${a.id}" style="${isRedFlag?`background:rgba(255,59,48,.05)!important;`:""}">
       <td style="text-align:center;cursor:pointer;color:#aaa" onclick="toggleRow(${a.id})" title="Détail par tranche horaire"><span id="caret-${a.id}">▸</span></td>
       <td style="font-weight:700;white-space:nowrap">
         ${isRedFlag?`<span class="badge badge-redflag" style="margin-right:4px;font-size:9px">🚨${rfMins}m</span>`:""}
