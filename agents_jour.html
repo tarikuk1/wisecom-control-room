@@ -177,7 +177,7 @@ input[type=date]:focus,input[type=text]:focus,select:focus{outline:none;border-c
   <label style="font-size:11px;color:#555;">Recherche agent</label>
   <input type="text" id="search" placeholder="Nom, prénom…" oninput="filterTable()">
   <label style="font-size:11px;color:#555;">File</label>
-  <select id="f-queue" onchange="filterTable()" style="background:#1a1a1a;color:#ccc;border:1px solid #333;border-radius:6px;padding:6px 10px;font-size:12px;">
+  <select id="f-queue" onchange="filterTable()">
     <option value="">Toutes</option>
   </select>
   <button class="btn btn-dark" onclick="saveAllMails()">💾 Sauvegarder les mails</button>
@@ -311,18 +311,17 @@ function renderTable(){
       <td>${a.appelsOut}</td>
       <td><b>${a.total}</b></td>
       <td>${fmtMMSS(a.dmt)}</td>
-      <td style="background:#1a0a0f;">
+      <td class="col-edit">
         <input class="mail-input" type="number" min="0" max="999" value="${mails}"
           onchange="updateMails(${a.id}, this.value)"
           title="Saisir les mails traités hors INO">
       </td>
-      <td style="background:#1a0a0f;">
-        <input type="text" value="${note}" placeholder="note…"
-          style="background:#1a1a1a;color:#888;border:1px solid #222;border-radius:4px;padding:3px 6px;font-size:11px;width:110px;"
+      <td class="col-edit">
+        <input class="note-input" type="text" value="${note}" placeholder="note…"
           onchange="updateNote(${a.id}, this.value)">
       </td>
       <td class="actes-total">${actes}</td>
-      <td style="color:${actesH>=15?"#30d158":actesH<10?"#ff3b30":"#fff"};font-weight:600;">${actesH}</td>
+      <td style="color:${actesH>=15?"#30d158":actesH<10?"#ff3b30":"inherit"};font-weight:600;">${actesH}</td>
       <td>${tags}</td>
     </tr>`;
   }).join("");

@@ -309,7 +309,10 @@ function weekDates(monday){
 }
 function timeToMinutes(t){
   const m=/^(\d{1,2}):(\d{2})$/.exec(t||"");
-  return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):0;
+  if(!m)return 0;
+  const h=parseInt(m[1],10),mn=parseInt(m[2],10);
+  if(h>23||mn>59)return 0;
+  return h*60+mn;
 }
 function fmtHours(min){
   if(!min||min<=0)return "0h";

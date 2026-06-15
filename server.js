@@ -55,6 +55,68 @@ function parisDateStr(d){return _parisDateFmt.format(d||new Date());}
 
 // ── Configuration campagnes — source unique : queues_config.js ──────────
 const { CAMPS, QUEUES_MAP, SKILLS } = require("./queues_config.js");
+// Cache live enrichi depuis INO routing (enrichit QUEUES_MAP toutes les 30 min)
+let _liveQCache=null,_liveQAt=0;
+async function fetchLiveQueues(){
+  if(_liveQCache&&Date.now()-_liveQAt<1800000)return _liveQCache;
+  try{
+    const token=await getToken();if(!token)return null;
+    const _eps=[
+      ["GET","/flow/voice/routing?page=1&limit=500",null],
+      ["GET","/flow/voice/routing",null],
+      ["GET","/cc/flow/voice/routing?page=1&limit=500",null],
+      ["POST","/flow/voice/routing/list",{page:1,limit:500}],
+      ["GET","/queue/list",null],["GET","/cc/queue/list",null],
+    ];
+    const _arr=b=>{
+      if(Array.isArray(b))return b;
+      if(b&&typeof b==="object"){
+        for(const k of ["routings","routing","queues","items","results","data","list","rows","content"])if(Array.isArray(b[k]))return b[k];
+        for(const k of ["data","result","payload"])if(b[k]&&typeof b[k]==="object"){const inner=_arr(b[k]);if(inner.length)return inner;}
+      }
+      return[];
+    };
+    const _qn=d=>{
+      if(typeof d==="string")return d;
+      if(!d||typeof d!=="object")return null;
+      return d.queueName||d.name||d.label||d.title||d.displayName||
+             (d.queue&&(d.queue.queueName||d.queue.name))||
+             (d.target&&(d.target.queueName||d.target.name))||null;
+    };
+    let routings=[];
+    for(const[m,p,bd]of _eps){
+      try{
+        const r=await apiReqFull(m,p,bd,token);
+        if(r.status===200){const a=_arr(r.body);if(a.length){routings=a;break;}}
+      }catch(e){}
+    }
+    if(!routings.length)return null;
+    // Grouper les files par campagne
+    const liveMap={};
+    for(const r of routings){
+      const qn=_qn(r);if(!qn)continue;
+      const camp=detectCampaignSrv(qn);
+      if(camp){if(!liveMap[camp])liveMap[camp]=new Set();liveMap[camp].add(qn);}
+    }
+    // Fusionner avec la config statique
+    const mergedMap={};const mergedCamps=[...CAMPS];
+    for(const c of CAMPS){
+      const st=QUEUES_MAP[c]||[];
+      const lv=liveMap[c]?[...liveMap[c]]:[];
+      mergedMap[c]=[...new Set([...st,...lv])];
+    }
+    // Nouvelles campagnes découvertes dans INO mais absentes de queues_config
+    for(const[c,qs]of Object.entries(liveMap)){
+      if(!CAMPS.includes(c)){mergedCamps.push(c);mergedMap[c]=[...qs];}
+    }
+    _liveQCache={CAMPS:mergedCamps,QUEUES_MAP:mergedMap,SKILLS,_liveAt:new Date().toISOString(),_routingsCount:routings.length};
+    _liveQAt=Date.now();
+    console.log("[live-queues] "+routings.length+" routings INO → "+mergedCamps.length+" campagnes");
+    return _liveQCache;
+  }catch(e){console.error("fetchLiveQueues:",e.message);return null;}
+}
+// Préchauffer au démarrage (best-effort, non bloquant)
+setTimeout(()=>fetchLiveQueues().catch(()=>{}),8000);
 // ────────────────────────────────────────────────────────────────────────────
 
 // Horaires d'ouverture de référence par campagne — source : onglet Horaire du fichier
@@ -1033,11 +1095,14 @@ const server=http.createServer(async(req,res)=>{
     }
     return;
   }
-  // Config publique — expose CAMPS, QUEUES_MAP, SKILLS au dashboard (source unique : queues_config.js)
+  // Config publique — CAMPS/QUEUES_MAP enrichis en live depuis INO routing (cache 30 min)
   if(url==="/api/config"){
-    const cfg={CAMPS,QUEUES_MAP,SKILLS};
-    res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"public,max-age=300"});
-    return res.end(JSON.stringify(cfg));
+    fetchLiveQueues().catch(()=>null).then(live=>{
+      const cfg=live||{CAMPS,QUEUES_MAP,SKILLS};
+      res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"public,max-age=60"});
+      res.end(JSON.stringify(cfg));
+    });
+    return;
   }
   // Health public
   if(url==="/health"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({status:"ok",version:"2.1",sseClients:sseClients.length,inoConnected:!!bToken,lastEvent:lastPayload?lastPayload.horodatage:null,uptime:Math.round(process.uptime()),stats:statsCache}));}
@@ -1128,6 +1193,53 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
+  // Qualifications réelles par campagne — agrège h.status brut des historiques INO
+  if(url.startsWith("/api/qualif-list")){
+    (async()=>{
+      try{
+        const _qs=new URLSearchParams(url.split("?")[1]||"");
+        const camp=_qs.get("camp")||"";
+        const d1=_qs.get("date")||parisDateStr();
+        const d2=_qs.get("dateFin")||d1;
+        const token=await getToken();
+        if(!token)return res.writeHead(503).end(JSON.stringify({error:"Token INO indisponible"}));
+        // Construire la liste des jours
+        const _d0=new Date(d1+"T00:00:00"),_d1b=new Date(d2+"T00:00:00");
+        const jours=[];for(let d=new Date(_d0);d<=_d1b;d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10));if(jours.length>31)break;}
+        // Files de la campagne (pour filtrer les appels)
+        const campQueues=camp?(QUEUES_MAP[camp]||[]).map(q=>q.toLowerCase()):[];
+        const counts={};
+        let total=0;
+        for(const jr of jours){
+          let ri;
+          try{ri=await apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token);}catch(e){continue;}
+          const hist=(ri&&ri.histories)||[];
+          for(const h of hist){
+            if(!h.status)continue;
+            // Filtrer par campagne si spécifiée
+            if(camp){
+              const qn=String((h.queue&&h.queue.queueName)||"").toLowerCase();
+              const matched=campQueues.includes(qn)||detectCampaignSrv(qn)===camp;
+              if(!matched)continue;
+            }
+            const code=String(h.status).trim();
+            if(!code)continue;
+            counts[code]=(counts[code]||0)+1;
+            total++;
+          }
+        }
+        // Trier par volume décroissant
+        const qualifs=Object.entries(counts)
+          .sort((a,b)=>b[1]-a[1])
+          .map(([code,count])=>({code,count}));
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,camp:camp||"Toutes",d1,d2,total,qualifs}));
+      }catch(e){
+        res.writeHead(500,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({error:e.message}));
+      }
+    })();return;
+  }
   if(url==="/api/skills"){
     fetchAgentSkills().then(m=>{
       res.writeHead(200,{"Content-Type":"application/json"});

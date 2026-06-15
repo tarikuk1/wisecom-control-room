@@ -218,6 +218,8 @@ body.light .tpl-bar{background:#fdf2f8;border-color:#f5c6de;}
       <a href="/pilotage" class="nav-pill active">🎯 Pilotage</a>
       <a href="/couverture" class="nav-pill">📡 Couverture</a>
       <a href="/planning" class="nav-pill">🗓️ Planning</a>
+      <a href="/astreinte" class="nav-pill">🕐 Astreinte</a>
+      <a href="/agents-jour" class="nav-pill">👥 Agents/Jour</a>
       <a href="/notice" class="nav-pill">📖 Notice</a>
     </nav>
   </div>
@@ -850,7 +852,7 @@ function renderHeat(){
   let gmin=Infinity,gmax=-Infinity;
   recs.forEach(r=>seriesVals(r,curKPI).forEach((v,i)=>{if(v!=null&&(k.vol||r.series[i].active)){if(v<gmin)gmin=v;if(v>gmax)gmax=v;}}));
   if(!isFinite(gmin)){gmin=0;gmax=1;}if(gmax===gmin)gmax=gmin+1;
-  function lerp(a,b,t){return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)];}
+  function lerp(a,b,t){const cl=v=>Math.min(255,Math.max(0,Math.round(v)));return [cl(a[0]+(b[0]-a[0])*t),cl(a[1]+(b[1]-a[1])*t),cl(a[2]+(b[2]-a[2])*t)];}
   function cellColor(v,valid){
     if(!valid)return "background:#f7f7f7;color:#ddd;";
     let t=(v-gmin)/(gmax-gmin);if(!k.betterUp)t=1-t;
