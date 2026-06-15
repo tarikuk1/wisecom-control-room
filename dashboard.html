@@ -632,43 +632,47 @@ body.light .backlog-camp{color:var(--s-4);}
    ─────────────────────────────────────────────────────────────── */
 .qs-camp-section{margin-bottom:18px;}
 .qs-camp-header{
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  padding:7px 12px;background:#111;
-  border-radius:7px 7px 0 0;border-bottom:2px solid var(--c-pink);
+  display:flex;flex-direction:column;gap:5px;
+  padding:10px 14px;background:#0d0d17;
+  border-radius:8px 8px 0 0;border-bottom:2px solid var(--c-pink);
 }
-.qs-camp-name{font-size:11px;font-weight:800;color:#e2e2e2;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0;}
+.qs-camp-header-row1{display:flex;align-items:center;gap:8px;}
+.qs-camp-name{font-size:11px;font-weight:800;color:#e8e8f4;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0;}
 .qs-camp-count{font-size:9px;font-weight:700;background:var(--c-pink);color:#fff;border-radius:10px;padding:2px 7px;flex-shrink:0;}
-.qs-camp-agg{margin-left:auto;display:flex;align-items:center;gap:18px;flex-shrink:0;}
-.qs-camp-agg-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
-.qs-camp-agg-val{font-size:14px;font-weight:800;line-height:1.1;}
-.qs-camp-agg-lbl{font-size:7px;color:#505050;text-transform:uppercase;letter-spacing:.07em;}
-.qs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;padding-top:7px;}
+.qs-camp-agg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.qs-camp-agg-item{display:flex;align-items:center;gap:5px;background:#14142a;border:1px solid #25253a;border-radius:12px;padding:3px 10px;}
+.qs-camp-agg-val{font-size:13px;font-weight:800;line-height:1.1;}
+.qs-camp-agg-sep{font-size:9px;color:#555;}
+.qs-camp-agg-lbl{font-size:8px;color:#9a9ab8;text-transform:uppercase;letter-spacing:.07em;}
+.qs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;padding-top:8px;}
 .qs-card{
-  background:#161616;border:1px solid #222;border-left:3px solid #333;
-  border-radius:7px;padding:9px 11px;transition:border-color .12s;
+  background:#13131f;border:1px solid #22223a;border-left:3px solid #333;
+  border-radius:8px;padding:10px 12px;transition:border-color .15s,background .15s;
 }
-.qs-card:hover{border-color:#383838;border-left-color:inherit;}
+.qs-card:hover{background:#17172a;border-color:#363660;border-left-color:inherit;}
 .qs-card--ok  {border-left-color:#2aa24a;}
 .qs-card--warn{border-left-color:#c07800;}
 .qs-card--err {border-left-color:#c02828;}
-.qs-name{font-size:10px;font-weight:700;color:#c8c8c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.qs-name{font-size:10px;font-weight:700;color:#d4d4f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
 .qs-obj{font-size:8px;font-weight:600;margin-bottom:8px;letter-spacing:.01em;}
-.qs-kpis{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-bottom:6px;}
-.qs-kpi-val{font-size:16px;font-weight:800;line-height:1.15;}
-.qs-kpi-lbl{font-size:7px;color:#484848;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
-.qs-footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1px solid #1e1e1e;}
-.qs-foot-val{font-size:10px;font-weight:600;color:#606060;}
-.qs-foot-lbl{font-size:7px;color:#404040;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
-body.light .qs-camp-header{background:#f3f3f8;border-bottom-color:var(--c-pink);}
+.qs-kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:7px;}
+.qs-kpi-val{font-size:17px;font-weight:800;line-height:1.15;}
+.qs-kpi-lbl{font-size:7px;color:#8a8aaa;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+.qs-footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:7px;border-top:1px solid #22223a;}
+.qs-foot-val{font-size:11px;font-weight:700;color:#c0c0e0;}
+.qs-foot-lbl{font-size:7px;color:#77779a;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+body.light .qs-camp-header{background:#f0f0fa;border-bottom-color:var(--c-pink);}
 body.light .qs-camp-name{color:#1a1a2e;}
-body.light .qs-camp-agg-lbl{color:#9a9aaa;}
-body.light .qs-card{background:#fff;border-color:#e8e8f0;border-left-color:#c8c8d8;}
-body.light .qs-card:hover{border-color:#c4c4d4;}
+body.light .qs-camp-agg-item{background:#f8f8ff;border-color:#e0e0f0;}
+body.light .qs-camp-agg-sep{color:#aaa;}
+body.light .qs-camp-agg-lbl{color:#8888aa;}
+body.light .qs-card{background:#fff;border-color:#e4e4f0;border-left-color:#c0c0d8;}
+body.light .qs-card:hover{background:#fafafe;border-color:#c4c4d4;}
 body.light .qs-name{color:#222;}
-body.light .qs-kpi-lbl{color:#aaa;}
-body.light .qs-foot-val{color:#555;}
-body.light .qs-foot-lbl{color:#bbb;}
-body.light .qs-footer{border-top-color:#f0f0f4;}
+body.light .qs-kpi-lbl{color:#888;}
+body.light .qs-foot-val{color:#444;}
+body.light .qs-foot-lbl{color:#aaa;}
+body.light .qs-footer{border-top-color:#ebebf4;}
 .backlog-input:focus{border-color:var(--c-pink);background:#1a0a0f;}
 body.light .backlog-input{background:var(--s-light-accent);color:var(--c-pink-dark);border-color:var(--c-pink-subtle);}
 body.light .backlog-input:focus{background:var(--c-pink-subtle);border-color:var(--c-pink);}
@@ -1176,9 +1180,13 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       </div>
     </div>
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="panel-title">Statut des Files d'attente <span id="queue-last-update" style="font-size:var(--fs-sm);color:var(--t-disabled);font-weight:var(--fw-regular);margin-left:8px"></span></span>
-        <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Mis à jour à chaque <b style="color:var(--c-pink)">Rafraîchir</b></span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Mis à jour à chaque <b style="color:var(--c-pink)">Rafraîchir</b></span>
+          <button onclick="exportQueueExcel()" class="btn btn-dark" style="font-size:10px;padding:4px 10px;height:26px;" title="Exporter les files en CSV/Excel">&#8595; Excel</button>
+          <button onclick="exportQueuePDF()" class="btn btn-dark" style="font-size:10px;padding:4px 10px;height:26px;" title="Exporter les files en PDF">&#8595; PDF</button>
+        </div>
       </div>
       <div id="queue-status-grid" style="padding:10px 14px;">
         <div style="color:var(--t-disabled);font-size:var(--fs-body);padding:8px">Données chargées au prochain rafraîchissement…</div>
@@ -1562,12 +1570,14 @@ function renderQueueStatus(){
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
     html+=`<div class="qs-camp-section">
 <div class="qs-camp-header">
-  <span class="qs-camp-name">${camp}</span>
-  <span class="qs-camp-count">${ql.length} file${ql.length>1?'s':''}</span>
+  <div class="qs-camp-header-row1">
+    <span class="qs-camp-name">${camp}</span>
+    <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
+  </div>
   <div class="qs-camp-agg">
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-lbl">Reçus</span></div>
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-lbl">Décrochés</span></div>
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">Reçus</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">Décrochés</span></div>
+    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
   </div>
 </div><div class="qs-grid">`;
     ql.forEach(q=>{
@@ -3196,7 +3206,9 @@ function initQualifPanel(){
         <span style="color:var(--t-disabled);font-size:10px;">→</span>
         <input type="date" id="qf-d2" value="${today}" style="background:var(--s-2);color:var(--t-secondary);border:1px solid var(--s-4);border-radius:6px;padding:4px 7px;font-size:10px;height:26px;">
         <button onclick="runQualifSearch()" style="background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;height:26px;">Rechercher</button>
-        <button onclick="exportQualifCsv()" id="qf-export" disabled style="background:var(--s-3);color:var(--t-disabled);border:1px solid var(--s-4);border-radius:6px;padding:4px 8px;font-size:10px;cursor:not-allowed;height:26px;">Export CSV</button>
+        <button onclick="exportQualifCsv()" id="qf-export" disabled style="background:var(--s-3);color:var(--t-disabled);border:1px solid var(--s-4);border-radius:6px;padding:4px 8px;font-size:10px;cursor:not-allowed;height:26px;">CSV</button>
+        <button onclick="exportQualifExcel()" id="qf-export-xl" disabled style="background:var(--s-3);color:var(--t-disabled);border:1px solid var(--s-4);border-radius:6px;padding:4px 8px;font-size:10px;cursor:not-allowed;height:26px;">Excel</button>
+        <button onclick="exportQualifPDF()" id="qf-export-pdf" disabled style="background:var(--s-3);color:var(--t-disabled);border:1px solid var(--s-4);border-radius:6px;padding:4px 8px;font-size:10px;cursor:not-allowed;height:26px;">PDF</button>
       </div>
     </div>
     <div id="qf-results" style="padding:10px 12px;min-height:80px;"></div>`;
@@ -3232,8 +3244,10 @@ function updateQualifFromAgents(filtered){
   ];
   _qualifMeta={camp:campFilter||"Toutes",d1:isoLocal(new Date()),d2:isoLocal(new Date()),agents:src.length,total:totAppels};
   renderQualifBars(host,_qualifData,totAppels);
-  const exp=document.getElementById("qf-export");
-  if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
+  ["qf-export","qf-export-xl","qf-export-pdf"].forEach(function(id){
+    const btn=document.getElementById(id);
+    if(btn){btn.disabled=false;btn.style.cursor='pointer';btn.style.color='var(--t-secondary)';btn.style.background='var(--s-3)';}
+  });
 }
 let _qualifData=[],_qualifMeta={};
 
@@ -3275,8 +3289,10 @@ async function runQualifSearch(){
     ];
     _qualifMeta={camp:camp||"Toutes",d1,d2,agents:src.length,total:totAppels};
     renderQualifBars(host,_qualifData,totAppels);
-    const exp=document.getElementById("qf-export");
-    if(exp){exp.disabled=false;exp.style.cursor='pointer';exp.style.color='var(--t-secondary)';exp.style.background='var(--s-3)';}
+    ["qf-export","qf-export-xl","qf-export-pdf"].forEach(function(id){
+      const btn=document.getElementById(id);
+      if(btn){btn.disabled=false;btn.style.cursor='pointer';btn.style.color='var(--t-secondary)';btn.style.background='var(--s-3)';}
+    });
   }catch(e){
     host.innerHTML=`<div style="padding:12px;color:#ff9f0a;font-size:11px">⚠ Erreur : ${e.message}</div>`;
   }
@@ -3287,27 +3303,32 @@ function renderQualifBars(host,data,total){
     host.innerHTML='<div style="padding:12px;color:var(--t-disabled);font-size:11px;text-align:center">0 appel sur la période — aucune répartition disponible</div>';
     return;
   }
-  const maxN=Math.max(...data.filter(d=>d.n!=null).map(d=>d.n),1);
+  // Uniquement les qualifications actives (n > 0)
+  const activeData=data.filter(function(d){return d.n!=null&&d.n>0;});
+  if(activeData.length===0){
+    host.innerHTML='<div style="padding:20px 12px;color:var(--t-disabled);font-size:11px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><div style="font-size:28px;opacity:.35">🏷️</div><div style="font-weight:600;color:var(--t-muted)">Aucune qualification active</div><div style="font-size:10px;opacity:.7;max-width:280px;line-height:1.5">Aucune qualification INO configurée ou aucun appel qualifié sur la période sélectionnée pour cette campagne.</div></div>';
+    return;
+  }
+  const maxN=Math.max.apply(null,activeData.map(function(d){return d.n;}),1);
   const COLORS={"100 % KO":"#ff3b30","Hors SVI":"#ff6b30","Sans suite":"#ff9f0a","Rappel":"#ffd000","RDV pris / Intéressé":"#30d158","Transfert":"#4C9AFF","Réitérant":"#bf5af2","Refus":"#e84444"};
-  let html='<div style="display:flex;flex-direction:column;gap:5px;">';
-  data.forEach(d=>{
-    const pct=d.n!=null&&total>0?Math.round(d.n/total*100):null;
-    const barW=d.n!=null?Math.round(d.n/maxN*100):0;
+  let html='<div style="display:flex;flex-direction:column;gap:6px;padding:2px 0;">';
+  activeData.forEach(function(d){
+    const pct=total>0?Math.round(d.n/total*100):0;
+    const barW=Math.round(d.n/maxN*100);
     const col=COLORS[d.q]||"#888";
-    const nd=d.n==null;
-    html+=`<div style="display:grid;grid-template-columns:120px 1fr 38px 32px;align-items:center;gap:5px;">
-      <span style="font-size:10px;color:${nd?'var(--t-disabled)':'var(--t-secondary)'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.q}">${d.q}</span>
-      <div style="background:var(--s-2);border-radius:3px;height:8px;overflow:hidden;">
-        ${nd?'':`<div style="background:${col};width:${barW}%;height:100%;border-radius:3px;transition:width .3s;"></div>`}
-      </div>
-      <span style="font-size:10px;font-weight:700;color:${nd?'var(--t-disabled)':col};text-align:right;">${nd?'n.d.':(d.n)}</span>
-      <span style="font-size:9px;color:var(--t-disabled);text-align:right;">${pct!=null?pct+'%':''}</span>
-    </div>`;
+    html+='<div style="display:grid;grid-template-columns:130px 1fr 42px 34px;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--s-2);">'
+      +'<span style="font-size:10px;color:var(--t-secondary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+d.q+'">'+d.q+'</span>'
+      +'<div style="background:var(--s-2);border-radius:4px;height:9px;overflow:hidden;">'
+      +'<div style="background:'+col+';width:'+barW+'%;height:100%;border-radius:4px;transition:width .4s;"></div>'
+      +'</div>'
+      +'<span style="font-size:11px;font-weight:800;color:'+col+';text-align:right;">'+d.n+'</span>'
+      +'<span style="font-size:9px;color:var(--t-muted);text-align:right;font-weight:600;">'+pct+'%</span>'
+      +'</div>';
   });
-  html+=`</div><div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--s-3);display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-size:9px;color:var(--t-disabled)">${_qualifMeta.camp} · ${_qualifMeta.d1}${_qualifMeta.d1!==_qualifMeta.d2?' → '+_qualifMeta.d2:''} · ${_qualifMeta.agents} agent(s)</span>
-    <span style="font-size:9px;color:var(--t-muted)">Total : <b>${total}</b> appels</span>
-  </div>`;
+  html+='</div><div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--s-3);display:flex;justify-content:space-between;align-items:center;">'
+    +'<span style="font-size:9px;color:var(--t-disabled)">'+_qualifMeta.camp+' · '+_qualifMeta.d1+(_qualifMeta.d1!==_qualifMeta.d2?' → '+_qualifMeta.d2:'')+' · '+_qualifMeta.agents+' agent(s)</span>'
+    +'<span style="font-size:9px;color:var(--t-muted)">Total : <b>'+total+'</b> appels</span>'
+    +'</div>';
   host.innerHTML=html;
 }
 
@@ -3325,6 +3346,159 @@ function exportQualifCsv(){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=`qualifs_${_qualifMeta.camp.replace(/[^a-z0-9]/gi,'_')}_${_qualifMeta.d1}_${_qualifMeta.d2}.csv`;
   a.click();URL.revokeObjectURL(a.href);
+}
+
+function exportQualifExcel(){
+  if(!_qualifData.length)return;
+  const total=_qualifMeta.total||1;
+  const activeData=_qualifData.filter(function(d){return d.n!=null&&d.n>0;});
+  const rows=[["Qualification","Nombre","Pourcentage","Source"]];
+  activeData.forEach(function(d){
+    rows.push([d.q,d.n,Math.round(d.n/total*100)+"%",d.src]);
+  });
+  rows.push(["","","",""]);
+  rows.push(["Total appels",total,"100%","INO"]);
+  rows.push(["Campagne",_qualifMeta.camp,"",""]);
+  rows.push(["Période",_qualifMeta.d1+" → "+_qualifMeta.d2,"",""]);
+  rows.push(["Agents",_qualifMeta.agents,"",""]);
+  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("
+");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="qualifs_"+(_qualifMeta.camp||"toutes").replace(/[^a-z0-9]/gi,"_")+"_"+(_qualifMeta.d1||"")+"_"+(_qualifMeta.d2||"")+".csv";
+  a.click();URL.revokeObjectURL(a.href);
+  showToast("Export Excel téléchargé.");
+}
+
+function exportQualifPDF(){
+  if(!_qualifData.length)return;
+  const total=_qualifMeta.total||1;
+  const activeData=_qualifData.filter(function(d){return d.n!=null&&d.n>0;});
+  const dateStr=new Date().toLocaleDateString("fr-FR");
+  const COLORS={"100 % KO":"#ff3b30","Hors SVI":"#ff6b30","Sans suite":"#ff9f0a","Rappel":"#ffd000","RDV pris / Intéressé":"#30d158","Transfert":"#4C9AFF","Réitérant":"#bf5af2","Refus":"#e84444"};
+  const rows=activeData.map(function(d,i){
+    const pct=Math.round(d.n/total*100);
+    const col=COLORS[d.q]||"#888";
+    const bg=i%2===0?"#fafafe":"#fff";
+    return '<tr style="background:'+bg+'">'
+      +'<td style="padding:9px 12px;font-size:12px;font-weight:600;color:#222;border-bottom:1px solid #eee;">'+d.q+'</td>'
+      +'<td style="padding:9px 12px;text-align:center;">'
+        +'<div style="background:#eee;border-radius:4px;height:12px;overflow:hidden;min-width:80px;">'
+          +'<div style="background:'+col+';width:'+Math.round(d.n/Math.max.apply(null,activeData.map(function(x){return x.n;}))*100)+'%;height:100%;border-radius:4px;"></div>'
+        +'</div>'
+      +'</td>'
+      +'<td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:800;color:'+col+';">'+d.n+'</td>'
+      +'<td style="padding:9px 12px;text-align:right;font-size:11px;color:#666;font-weight:600;">'+pct+'%</td>'
+      +'<td style="padding:9px 12px;text-align:center;font-size:10px;color:#aaa;">'+d.src+'</td>'
+      +'</tr>';
+  }).join("");
+  const html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Qualifications — '+_qualifMeta.camp+' — '+dateStr+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#222;background:#fff;padding:24px;font-size:12px}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #E8006E;padding-bottom:10px;margin-bottom:18px}'
+    +'h1{font-size:18px;color:#E8006E;font-weight:800}table{width:100%;border-collapse:collapse;margin-top:14px}'
+    +'thead th{background:#fff0f6;color:#222;padding:10px 12px;font-size:11px;font-weight:700;border-bottom:2px solid #E8006E;text-align:left}'
+    +'thead th:not(:first-child){text-align:right}.footer{margin-top:16px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:8px;display:flex;justify-content:space-between}'
+    +'.print-btn{position:fixed;top:12px;right:12px;background:#E8006E;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer}'
+    +'@media print{.print-btn{display:none}body{padding:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+    +'@page{size:A4 portrait;margin:12mm}'
+    +'</style></head><body>'
+    +'<button class="print-btn" onclick="window.print()">Imprimer / PDF</button>'
+    +'<div class="hdr"><div><h1>Répartition Qualifications</h1><div style="font-size:11px;color:#666;margin-top:3px">'+_qualifMeta.camp+' &nbsp;&middot;&nbsp; '+_qualifMeta.d1+((_qualifMeta.d1!==_qualifMeta.d2)?' &rarr; '+_qualifMeta.d2:'')+' &nbsp;&middot;&nbsp; '+_qualifMeta.agents+' agent(s)</div></div>'
+    +'<div style="font-size:10px;color:#888">Édité le '+dateStr+'</div></div>'
+    +'<table><thead><tr><th>Qualification</th><th>Barre</th><th style="text-align:right;">Volume</th><th style="text-align:right;">%</th><th style="text-align:center;">Source</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +'<div class="footer"><span>Wisecom Control Room — usage interne</span><span>Total appels : <b>'+total+'</b></span></div>'
+    +'<script>setTimeout(function(){window.print();},350);<\/script>'
+    +'</body></html>';
+  const w=window.open("","_blank");
+  if(!w){alert("Pop-up bloqué. Autorisez les pop-ups pour ce site.");return;}
+  w.document.write(html);w.document.close();
+}
+
+function exportQueueExcel(){
+  if(!window._lastQueuesData||!window._lastQueuesData.length){showToast("Aucune donnée à exporter — lancez un rafraîchissement.");return;}
+  let queues=window._lastQueuesData.map(function(q){return Object.assign({},q,{camp:campOfQueue(q.name)});});
+  const rows=[["Campagne","File","Reçus","Décrochés","QS%","Abandons%","Sortants","DMC"]];
+  const byCamp={};
+  queues.forEach(function(q){const c=q.camp||"Autres";if(!byCamp[c])byCamp[c]=[];byCamp[c].push(q);});
+  Object.keys(byCamp).sort().forEach(function(camp){
+    const ql=byCamp[camp];
+    ql.forEach(function(q){
+      rows.push([camp,q.name||"",q.recus||0,q.decroches||0,(q.qs||0)+"%",(q.tauxAbandon||0)+"%",q.sortants||0,q.dmc>0?mmss(q.dmc):"–"]);
+    });
+    const totR=ql.reduce(function(s,q){return s+(q.recus||0);},0);
+    const totD=ql.reduce(function(s,q){return s+(q.decroches||0);},0);
+    rows.push(["TOTAL "+camp,"",totR,totD,totR>0?Math.round(totD/totR*100)+"%":"–","","",""]);
+    rows.push(["","","","","","","",""]);
+  });
+  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("
+");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="files_attente_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();URL.revokeObjectURL(a.href);
+  showToast("Export files d'attente téléchargé.");
+}
+
+function exportQueuePDF(){
+  if(!window._lastQueuesData||!window._lastQueuesData.length){showToast("Aucune donnée à exporter.");return;}
+  const dateStr=new Date().toLocaleDateString("fr-FR");
+  const timeStr=new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  let queues=window._lastQueuesData.map(function(q){return Object.assign({},q,{camp:campOfQueue(q.name)});});
+  const byCamp={},campOrder=[];
+  queues.forEach(function(q){const c=q.camp||"Autres";if(!byCamp[c]){byCamp[c]=[];campOrder.push(c);}byCamp[c].push(q);});
+  campOrder.sort(function(a,b){const ia=CAMPS.indexOf(a),ib=CAMPS.indexOf(b);if(ia<0&&ib<0)return a.localeCompare(b,"fr");return ia<0?1:ib<0?-1:ia-ib;});
+  let bodyHtml="";
+  campOrder.forEach(function(camp){
+    const ql=byCamp[camp];
+    const totR=ql.reduce(function(s,q){return s+(q.recus||0);},0);
+    const totD=ql.reduce(function(s,q){return s+(q.decroches||0);},0);
+    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const qsC=avgQS>=80?"#0a7a30":avgQS>=70?"#c07800":"#c02828";
+    bodyHtml+='<div class="camp-bloc"><div class="camp-hdr"><span class="camp-name">'+camp+'</span>'
+      +'<span class="camp-kpi" style="color:#E8006E">'+totR+' reçus</span>'
+      +'<span class="camp-kpi" style="color:#0a7a30">'+totD+' décrochés</span>'
+      +'<span class="camp-kpi" style="color:'+qsC+'">QS : '+avgQS+'%</span>'
+      +'</div>'
+      +'<table><thead><tr><th>File</th><th>Reçus</th><th>Décrochés</th><th>QS%</th><th>Abandons</th><th>Sortants</th><th>DMC</th></tr></thead><tbody>';
+    ql.forEach(function(q,i){
+      const qs=q.qs||0,qsC2=qs>=80?"#0a7a30":qs>=70?"#c07800":"#c02828";
+      bodyHtml+='<tr style="background:'+(i%2===0?"#fafafe":"#fff")+';">'
+        +'<td>'+shortQName(q.name,camp)+'</td>'
+        +'<td class="num">'+q.recus+'</td>'
+        +'<td class="num">'+q.decroches+'</td>'
+        +'<td class="num" style="color:'+qsC2+';font-weight:700;">'+qs+'%</td>'
+        +'<td class="num">'+(q.tauxAbandon||0)+'%</td>'
+        +'<td class="num">'+(q.sortants||0)+'</td>'
+        +'<td class="num">'+(q.dmc>0?mmss(q.dmc):"–")+'</td>'
+        +'</tr>';
+    });
+    bodyHtml+='</tbody></table></div>';
+  });
+  const html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Files d'attente — '+dateStr+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#222;background:#fff;padding:20px;font-size:11px}'
+    +'.hdr{display:flex;justify-content:space-between;border-bottom:3px solid #E8006E;padding-bottom:10px;margin-bottom:18px;align-items:baseline}'
+    +'h1{font-size:17px;color:#E8006E;font-weight:800}.camp-bloc{margin-bottom:18px;page-break-inside:avoid}'
+    +'.camp-hdr{background:#fff0f6;border-left:3px solid #E8006E;padding:7px 12px;display:flex;align-items:center;gap:16px;margin-bottom:4px;border-radius:4px 4px 0 0}'
+    +'.camp-name{font-size:12px;font-weight:800;color:#E8006E;text-transform:uppercase;letter-spacing:.05em;flex:1}'
+    +'.camp-kpi{font-size:11px;font-weight:700}'
+    +'table{width:100%;border-collapse:collapse;font-size:11px}thead th{background:#f5f5fa;padding:8px 10px;font-size:10px;font-weight:700;border-bottom:2px solid #ddd;text-align:left}'
+    +'td{padding:7px 10px;border-bottom:1px solid #eee}.num{text-align:right}'
+    +'.footer{margin-top:14px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:8px;display:flex;justify-content:space-between}'
+    +'.print-btn{position:fixed;top:12px;right:12px;background:#E8006E;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer}'
+    +'@media print{.print-btn{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+    +'@page{size:A4 portrait;margin:12mm}'
+    +'</style></head><body>'
+    +'<button class="print-btn" onclick="window.print()">Imprimer / PDF</button>'
+    +'<div class="hdr"><div><h1>Statut des Files d'attente</h1><div style="font-size:10px;color:#888;margin-top:3px">Wisecom Control Room &nbsp;&middot;&nbsp; '+queues.length+' file(s)</div></div>'
+    +'<div style="font-size:10px;color:#888">'+dateStr+' à '+timeStr+'</div></div>'
+    +bodyHtml
+    +'<div class="footer"><span>Wisecom Control Room — usage interne</span><span>'+queues.length+' files &middot; '+campOrder.length+' campagne(s)</span></div>'
+    +'<script>setTimeout(function(){window.print();},350);<\/script>'
+    +'</body></html>';
+  const w=window.open("","_blank");
+  if(!w){alert("Pop-up bloqué. Autorisez les pop-ups pour ce site.");return;}
+  w.document.write(html);w.document.close();
 }
 
 // Skills
@@ -3410,6 +3584,18 @@ function renderSkills(){
   let colSkills=[...seen.keys()].sort((a,b)=>a.localeCompare(b));
 
   // Tri des lignes (agents) selon skillSort
+  // --- Détection astreinte aujourd'hui (pour tri prioritaire) ---
+  const _skTodayStr=isoLocal(new Date());
+  const _skTodayAstr=new Set();
+  Object.entries(astreintesEntries).forEach(function(entry){
+    const k=entry[0],v=entry[1];
+    if(k.endsWith("|"+_skTodayStr)){
+      const nm=typeof v==="string"?v:(v&&v.name)||"";
+      if(nm)_skTodayAstr.add(nm.trim().toLowerCase());
+    }
+  });
+  const _hasMobile=function(a){return (a.allSkillsData||[]).some(function(s){return s.active&&/transfert.?mobile/i.test(s.name||"");});};
+  const _isOnAstr=function(a){return _skTodayAstr.has((a.nom||"").trim().toLowerCase());};
   let sorted=realAgents.slice();
   if(skillSort.col==='__agent'){
     sorted.sort((a,b)=>a.nom.localeCompare(b.nom));
@@ -3423,7 +3609,13 @@ function renderSkills(){
     const val=a=>{const e=(a.allSkillsData||[]).find(s=>s.name===skillSort.col);return e?(e.active?2:1):0;};
     sorted.sort((a,b)=>val(a)-val(b));
   }else{
-    sorted.sort((a,b)=>(a.camp||"").localeCompare(b.camp||"")||a.nom.localeCompare(b.nom));
+    // Transfert Mobile actif en premier, puis agents en astreinte, puis ordre camp+nom
+    sorted.sort(function(a,b){
+      const pa=_hasMobile(a)?0:_isOnAstr(a)?1:2;
+      const pb=_hasMobile(b)?0:_isOnAstr(b)?1:2;
+      if(pa!==pb)return pa-pb;
+      return (a.camp||"").localeCompare(b.camp||"")||a.nom.localeCompare(b.nom);
+    });
   }
   if(skillSort.dir==='desc')sorted.reverse();
 
@@ -3437,13 +3629,16 @@ function renderSkills(){
     +'</tr></thead>';
   const tbody='<tbody>'+sorted.map(a=>{
     const campColor=a.camp&&a.camp!=="–"?P:"#555";
-    // Coloration légère selon statut connecté/déconnecté
     const isCo=a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel";
-    const rowBg=isCo?"rgba(48,209,88,.05)":"rgba(120,120,120,.04)";
+    const _mob=_hasMobile(a),_astr=_isOnAstr(a);
+    // Priorité visuelle : mobile (bleu), astreinte (vert), normal
+    const rowBg=_mob?"rgba(74,195,255,.08)":_astr?"rgba(48,209,88,.08)":(isCo?"rgba(48,209,88,.04)":"rgba(120,120,120,.03)");
     const dot=isCo?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#30d158;margin-right:6px;vertical-align:middle" title="Connecté"></span>':'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle" title="Déconnecté"></span>';
+    const mobileBadge=_mob?'<span style="display:inline-block;background:#0a2a40;color:#4ac3ff;font-size:7px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:6px;letter-spacing:.04em;vertical-align:middle;border:1px solid #1a4a70">MOBILE</span>':'';
+    const astrBadge=_astr?'<span style="display:inline-block;background:#0d2a0d;color:#30d158;font-size:7px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:4px;letter-spacing:.04em;vertical-align:middle;border:1px solid #1a4a1a">ASTR.</span>':'';
     const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
     return '<tr style="background:'+rowBg+'">'
-      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(isCo?'#0d130d':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
+      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(_mob?'#080e16':_astr?'#080e08':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+mobileBadge+astrBadge+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
       +'<td style="text-align:center;padding:6px 12px;font-weight:700;color:'+P+'">'+nbActives+'<span class="sk-ratio">'+(a.allSkillsData||[]).length+' config.</span></td>'
       +colSkills.map(sk=>{
         const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
