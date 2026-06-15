@@ -3268,7 +3268,7 @@ async function runQualifSearch(){
       if(!camp)return true;
       const aq=String(a.queues||"");
       const qlist=(QUEUES_MAP[camp]||[]).map(q=>q.toLowerCase());
-      return qlist.some(q=>aq.toLowerCase().includes(q))||detectCampaign(aq)===camp;
+      return qlist.some(q=>aq.toLowerCase().includes(q))||campOfQueue(aq)===camp;
     });
     const totKo=src.reduce((s,a)=>s+(a.koQualif||a.ko||0),0);
     const totRefus=src.reduce((s,a)=>s+(a.refus||0),0);
