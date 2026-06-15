@@ -1124,6 +1124,53 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url==="/api/admin/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({sessions:Object.keys(sessions).length,sseClients:sseClients.length,usersCount:Object.keys(USERS).length,lastEvent:lastPayload?lastPayload.horodatage:null,inoOk:!!bToken&&Date.now()<bExp,stats:statsCache,uptime:process.uptime(),user:session.login}));}
   if(url==="/api/stats"){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify(Object.assign({},statsCache,{sseClients:sseClients.length})));}
+  // Qualifications réelles par campagne — agrège h.status brut des historiques INO
+  if(url.startsWith("/api/qualif-list")){
+    (async()=>{
+      try{
+        const _qs=new URLSearchParams(url.split("?")[1]||"");
+        const camp=_qs.get("camp")||"";
+        const d1=_qs.get("date")||parisDateStr();
+        const d2=_qs.get("dateFin")||d1;
+        const token=await getToken();
+        if(!token)return res.writeHead(503).end(JSON.stringify({error:"Token INO indisponible"}));
+        // Construire la liste des jours
+        const _d0=new Date(d1+"T00:00:00"),_d1b=new Date(d2+"T00:00:00");
+        const jours=[];for(let d=new Date(_d0);d<=_d1b;d.setDate(d.getDate()+1)){jours.push(d.toISOString().slice(0,10));if(jours.length>31)break;}
+        // Files de la campagne (pour filtrer les appels)
+        const campQueues=camp?(QUEUES_MAP[camp]||[]).map(q=>q.toLowerCase()):[];
+        const counts={};
+        let total=0;
+        for(const jr of jours){
+          let ri;
+          try{ri=await apiReq("POST","/call/in/histories",{startDate:jr+" 00:00:00",endDate:jr+" 23:59:59",limit:2000},token);}catch(e){continue;}
+          const hist=(ri&&ri.histories)||[];
+          for(const h of hist){
+            if(!h.status)continue;
+            // Filtrer par campagne si spécifiée
+            if(camp){
+              const qn=String((h.queue&&h.queue.queueName)||"").toLowerCase();
+              const matched=campQueues.includes(qn)||detectCampaignSrv(qn)===camp;
+              if(!matched)continue;
+            }
+            const code=String(h.status).trim();
+            if(!code)continue;
+            counts[code]=(counts[code]||0)+1;
+            total++;
+          }
+        }
+        // Trier par volume décroissant
+        const qualifs=Object.entries(counts)
+          .sort((a,b)=>b[1]-a[1])
+          .map(([code,count])=>({code,count}));
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,camp:camp||"Toutes",d1,d2,total,qualifs}));
+      }catch(e){
+        res.writeHead(500,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({error:e.message}));
+      }
+    })();return;
+  }
   if(url==="/api/skills"){
     fetchAgentSkills().then(m=>{
       res.writeHead(200,{"Content-Type":"application/json"});

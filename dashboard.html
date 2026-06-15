@@ -3253,48 +3253,27 @@ let _qualifData=[],_qualifMeta={};
 
 // Recherche par plage de dates (appel API /agents-day)
 async function runQualifSearch(){
-  const d1=document.getElementById("qf-d1")?.value;
-  const d2=document.getElementById("qf-d2")?.value;
-  const camp=document.getElementById("qf-camp")?.value||"";
+  const d1=document.getElementById("qf-d1")?document.getElementById("qf-d1").value:"";
+  const d2=document.getElementById("qf-d2")?document.getElementById("qf-d2").value:"";
+  const camp=document.getElementById("qf-camp")?document.getElementById("qf-camp").value:"";
   const host=document.getElementById("qf-results");
   if(!host||!d1||!d2)return;
-  host.innerHTML='<div style="padding:14px;color:var(--t-muted);font-size:11px;text-align:center;display:flex;align-items:center;gap:8px;justify-content:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--c-pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span>Chargement…</div>';
+  host.innerHTML='<div style="padding:14px;color:var(--t-muted);font-size:11px;text-align:center;display:flex;align-items:center;gap:8px;justify-content:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--c-pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span>Chargement des qualifications INO…</div>';
   try{
-    const url=`/agents-day?date=${d1}&dateFin=${d2}&hDeb=0&hFin=24`;
-    const r=await fetch(url,{credentials:'same-origin'});
+    const pu="/api/qualif-list?date="+d1+"&dateFin="+d2+(camp?"&camp="+encodeURIComponent(camp):"");
+    const r=await fetch(pu,{credentials:"same-origin"});
     if(!r.ok)throw new Error("HTTP "+r.status);
     const json=await r.json();
-    const src=(json.agents||[]).filter(a=>{
-      if(!camp)return true;
-      const aq=String(a.queues||"");
-      const qlist=(QUEUES_MAP[camp]||[]).map(q=>q.toLowerCase());
-      return qlist.some(q=>aq.toLowerCase().includes(q))||campOfQueue(aq)===camp;
-    });
-    const totKo=src.reduce((s,a)=>s+(a.koQualif||a.ko||0),0);
-    const totRefus=src.reduce((s,a)=>s+(a.refus||0),0);
-    const totReit=src.reduce((s,a)=>s+(a.reiterants||0),0);
-    const totTrans=src.reduce((s,a)=>s+(a.transferts||0),0);
-    const totAppels=src.reduce((s,a)=>s+(a.total||a.appelsIn||0),0);
-    const totTransfo=src.reduce((s,a)=>s+(a.transfo!=null?Math.round(a.transfo/100*(a.total||a.appelsIn||0)):0),0);
-    const totSansSuite=Math.max(0,totAppels-totKo-totRefus-totReit-totTrans-totTransfo);
-    _qualifData=[
-      {q:"100 % KO",n:totKo,src:"INO"},
-      {q:"Hors SVI",n:null,src:"n.d."},
-      {q:"Sans suite",n:totSansSuite,src:"estimé"},
-      {q:"Rappel",n:null,src:"n.d."},
-      {q:"RDV pris / Intéressé",n:totTransfo,src:"INO"},
-      {q:"Transfert",n:totTrans,src:"INO"},
-      {q:"Réitérant",n:totReit,src:"INO"},
-      {q:"Refus",n:totRefus,src:"INO"},
-    ];
-    _qualifMeta={camp:camp||"Toutes",d1,d2,agents:src.length,total:totAppels};
-    renderQualifBars(host,_qualifData,totAppels);
+    if(json.error)throw new Error(json.error);
+    _qualifData=(json.qualifs||[]).map(function(q){return {q:q.code,n:q.count,src:"INO"};});
+    _qualifMeta={camp:camp||"Toutes",d1,d2,agents:"-",total:json.total||0};
+    renderQualifBars(host,_qualifData,json.total||0);
     ["qf-export","qf-export-xl","qf-export-pdf"].forEach(function(id){
       const btn=document.getElementById(id);
-      if(btn){btn.disabled=false;btn.style.cursor='pointer';btn.style.color='var(--t-secondary)';btn.style.background='var(--s-3)';}
+      if(btn){btn.disabled=false;btn.style.cursor="pointer";btn.style.color="var(--t-secondary)";btn.style.background="var(--s-3)";}
     });
   }catch(e){
-    host.innerHTML=`<div style="padding:12px;color:#ff9f0a;font-size:11px">⚠ Erreur : ${e.message}</div>`;
+    host.innerHTML="<div style=\"padding:12px;color:#ff9f0a;font-size:11px\">\u26a0 Erreur : "+e.message+"</div>";
   }
 }
 
