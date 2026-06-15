@@ -3361,8 +3361,7 @@ function exportQualifExcel(){
   rows.push(["Campagne",_qualifMeta.camp,"",""]);
   rows.push(["Période",_qualifMeta.d1+" → "+_qualifMeta.d2,"",""]);
   rows.push(["Agents",_qualifMeta.agents,"",""]);
-  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("
-");
+  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
   const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="qualifs_"+(_qualifMeta.camp||"toutes").replace(/[^a-z0-9]/gi,"_")+"_"+(_qualifMeta.d1||"")+"_"+(_qualifMeta.d2||"")+".csv";
@@ -3431,8 +3430,7 @@ function exportQueueExcel(){
     rows.push(["TOTAL "+camp,"",totR,totD,totR>0?Math.round(totD/totR*100)+"%":"–","","",""]);
     rows.push(["","","","","","","",""]);
   });
-  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("
-");
+  const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
   const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="files_attente_"+new Date().toISOString().slice(0,10)+".csv";
