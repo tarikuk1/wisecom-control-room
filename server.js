@@ -948,10 +948,14 @@ const server=http.createServer(async(req,res)=>{
               try{
                 const rf=await apiReqFull("POST","/cc/agent/"+agentId+"/flow/voice/skills/list",{},_tok);
                 if(rf.status===401){
-                  // Token expiré côté INO : forcer un renouvellement
-                  _tok=await getToken(true);
-                  if(attempt<2){await new Promise(r=>setTimeout(r,1000*(attempt+1)));continue;}
-                  results[agentId]={error:"HTTP 401 — Token invalide après renouvellement"};
+                  if(attempt===0){
+                    // Première tentative : renouveler le token au cas où il serait expiré
+                    _tok=await getToken(true);
+                    await new Promise(r=>setTimeout(r,500));
+                    continue;
+                  }
+                  // Toujours 401 après renouvellement → problème de droits, pas de token
+                  results[agentId]={error:"HTTP 401 — Droits insuffisants pour /cc/* sur ce compte INO"};
                   break;
                 }
                 const r=rf.body;
