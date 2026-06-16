@@ -1664,7 +1664,7 @@ function renderQueueStatus(){
     const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
     const totR=ql.reduce((s,q)=>s+(q.recus||0),0);
     const totD=ql.reduce((s,q)=>s+(q.decroches||0),0);
-    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const avgQS=totR>0?Math.round(totD/totR*10000)/100:0;
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
     html+=`<div class="qs-camp-section">
 <div class="qs-camp-header" data-camp="${camp.replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité de tous les agents de la campagne">
@@ -1681,7 +1681,7 @@ function renderQueueStatus(){
 </div><div class="qs-grid">`;
     ql.forEach(q=>{
       const qs=q.qs||0,ta=q.tauxAbandon||0;
-      const ecart=qs-objQS,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
+      const ecart=Math.round((qs-objQS)*10)/10,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
       const qsC=atteint?'#30d158':warn?'#ff9f0a':'#ff3b30';
       const taC=ta<=5?'#30d158':ta<=15?'#E8006E':'#ff3b30';
       const cls=atteint?'qs-card--ok':warn?'qs-card--warn':'qs-card--err';
@@ -1737,7 +1737,7 @@ function showQueueAgents(queueNames,displayTitle){
   if(allQ.length>0){
     const totR=allQ.reduce((s,q)=>s+(q.recus||0),0);
     const totD=allQ.reduce((s,q)=>s+(q.decroches||0),0);
-    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const avgQS=totR>0?Math.round(totD/totR*10000)/100:0;
     const totA=allQ.reduce((s,q)=>s+(q.tauxAbandon||0),0);
     const avgA=allQ.length>0?Math.round(totA/allQ.length):0;
     const objQS=80;
@@ -1862,7 +1862,7 @@ function exportQueueAgentsPDF(){
   if(d.queueData&&d.queueData.length>0){
     const totR=d.queueData.reduce((s,q)=>s+(q.recus||0),0);
     const totDq=d.queueData.reduce((s,q)=>s+(q.decroches||0),0);
-    const avgQS=totR>0?Math.round(totDq/totR*100):0;
+    const avgQS=totR>0?Math.round(totDq/totR*10000)/100:0;
     const avgA=d.queueData.length>0?Math.round(d.queueData.reduce((s,q)=>s+(q.tauxAbandon||0),0)/d.queueData.length):0;
     const dmcFiles=d.queueData.filter(q=>q.dmc>0);
     const avgDMC=dmcFiles.length>0?Math.round(dmcFiles.reduce((s,q)=>s+q.dmc,0)/dmcFiles.length):0;
@@ -3859,7 +3859,7 @@ function exportQueueExcel(){
     });
     const totR=ql.reduce(function(s,q){return s+(q.recus||0);},0);
     const totD=ql.reduce(function(s,q){return s+(q.decroches||0);},0);
-    rows.push(["TOTAL "+camp,"",totR,totD,totR>0?Math.round(totD/totR*100)+"%":"–","","",""]);
+    rows.push(["TOTAL "+camp,"",totR,totD,totR>0?(Math.round(totD/totR*10000)/100)+"%":"–","","",""]);
     rows.push(["","","","","","","",""]);
   });
   const csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
@@ -3883,7 +3883,7 @@ function exportQueuePDF(){
     const ql=byCamp[camp];
     const totR=ql.reduce(function(s,q){return s+(q.recus||0);},0);
     const totD=ql.reduce(function(s,q){return s+(q.decroches||0);},0);
-    const avgQS=totR>0?Math.round(totD/totR*100):0;
+    const avgQS=totR>0?Math.round(totD/totR*10000)/100:0;
     const qsC=avgQS>=80?"#0a7a30":avgQS>=70?"#c07800":"#c02828";
     bodyHtml+='<div class="camp-bloc"><div class="camp-hdr"><span class="camp-name">'+camp+'</span>'
       +'<span class="camp-kpi" style="color:#E8006E">'+totR+' reçus</span>'

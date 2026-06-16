@@ -1098,8 +1098,8 @@ const server=http.createServer(async(req,res)=>{
         decroches:q.decroches,
         abandons:q.abandons,
         sortants:q.sortants,
-        qs:q.recus>0?Math.round((q.decroches/q.recus)*100):0,
-        tauxAbandon:q.recus>0?Math.round((q.abandons/q.recus)*100):0,
+        qs:q.recus>0?Math.round(q.decroches/q.recus*10000)/100:0,
+        tauxAbandon:q.recus>0?Math.round(q.abandons/q.recus*10000)/100:0,
         dmc:q.calls>0?Math.round(q.dureeTotal/q.calls):0
       })).sort((a,b)=>b.recus-a.recus);
       res.writeHead(200,{"Content-Type":"application/json"});
