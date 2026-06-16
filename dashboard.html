@@ -2106,12 +2106,20 @@ async function loadAgentsFromAPI(){
           lastVoixActivity:lastVoix
         };
       });
-      selAgents=agents.map(a=>a.nom);
-      // Mettre à jour selCamps avec les camps réellement présents + tous les CAMPS connus
+      const _allNewAgentNames=agents.map(a=>a.nom);
       const realCamps=[...new Set(agents.map(a=>a.camp).filter(x=>x&&x!=="–"))];
-      // Garder tous les CAMPS connus + les camps réels non référencés
-      selCamps=[...new Set([...CAMPS,...realCamps])];
-      selStatus=[...STATUSES];
+      const _allNewCamps=[...new Set([...CAMPS,...realCamps])];
+      if(!window._selectionsInitialized){
+        // Premier chargement : initialiser toutes les sélections à "tout"
+        selAgents=_allNewAgentNames;
+        selCamps=_allNewCamps;
+        selStatus=[...STATUSES];
+        window._selectionsInitialized=true;
+      } else {
+        // Rafraîchissement : ajouter les nouveaux agents/camps découverts sans écraser les filtres actifs
+        _allNewAgentNames.forEach(n=>{if(!selAgents.includes(n))selAgents.push(n);});
+        _allNewCamps.forEach(c=>{if(!selCamps.includes(c))selCamps.push(c);});
+      }
       // Compétences désormais livrées automatiquement avec le payload (/agent/list) : horodater
       // le premier chargement réussi pour la pastille verte, sans écraser un chargement /cc/* manuel.
       if(!_skillsLoadedAt&&skillsLoaded())_skillsLoadedAt=new Date();
@@ -2839,8 +2847,9 @@ function renderKPIs(f){
   // utiliser les flux de file des campagnes sélectionnées (abandons inclus + appels pris
   // par des agents mutualisés rattachés à une autre campagne). Le calcul agents
   // (décrochés/présentés) sous-estime les abandons et surestime la QS.
-  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&campSelPartial()
-    &&agents.filter(a=>selCamps.includes(a.camp)).every(a=>selAgents.includes(a.nom));
+  // Périmètre campagne : dès que les camps sont filtrés, utiliser les flux file (abandons inclus)
+  // même si un sous-filtre agent est actif — la QS est un KPI file, pas un KPI agent.
+  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&campSelPartial();
   // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
   // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
   // moins le hors-plage). Repli sur le flux global brut si le serveur ne les fournit pas.
