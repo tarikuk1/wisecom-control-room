@@ -2119,11 +2119,17 @@ async function loadAgentsFromAPI(){
         window._knownCamps=new Set(_allNewCamps);
         window._selectionsInitialized=true;
       } else {
-        // Rafraîchissement : n'ajouter QUE les agents/camps genuinement nouveaux (jamais vus)
-        // Les camps/agents connus mais non sélectionnés (filtre actif) ne sont PAS rajoutés
+        // Rafraîchissement : nettoyer les noms disparus d'INO (agents déconnectés ou noms
+        // issus d'un ancien preset), puis ajouter les entrées genuinement nouvelles.
+        const _todayNamesSet=new Set(_allNewAgentNames);
+        // Supprimer de selAgents tout agent absent d'INO aujourd'hui
+        selAgents=selAgents.filter(n=>_todayNamesSet.has(n));
+        // Sécurité : si le filtre a tout vidé (preset totalement périmé), réinitialiser
+        if(selAgents.length===0)selAgents=[..._allNewAgentNames];
+        // Ajouter les agents jamais vus (nouvelles entrées INO)
         _allNewAgentNames.forEach(n=>{
           if(!(window._knownAgents||new Set()).has(n)){
-            selAgents.push(n);
+            if(!selAgents.includes(n))selAgents.push(n);
             (window._knownAgents=window._knownAgents||new Set()).add(n);
           }
         });
@@ -2550,7 +2556,11 @@ function applyPreset(name){
   const p=loadPresets()[name];if(!p){presetStatus("Vue introuvable","#ff3b30");return;}
   selCamps=Array.isArray(p.camps)?p.camps:[...CAMPS];
   selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
-  selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
+  // Filtrer les agents sauvegardés contre le roster INO du jour (évite le "31/12" stale)
+  const _todayAgents=new Set(agents.map(a=>a.nom));
+  const _savedAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
+  const _filtered=_savedAgents.filter(n=>_todayAgents.has(n));
+  selAgents=_filtered.length>0?_filtered:(agents.length?agents.map(a=>a.nom):_savedAgents);
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
   selStatus=Array.isArray(p.status)?p.status:[...STATUSES];
   buildAllDropdowns();render();
