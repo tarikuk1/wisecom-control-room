@@ -5606,21 +5606,54 @@ function buildAffectationTable(sorted,dateStr,timeStr){
     h+='</tr>';
   });
 
-  // ── Ligne totaux ──
-  h+='<tr style="background:#1F4E79;">';
-  h+='<td colspan="7" style="background:#1F4E79;color:#fff;font-weight:700;font-size:9px;padding:2px 6px;border:1px solid #aaa;">RA '+sorted.length+'</td>';
-  // Compter par campagne colonne (même matching robuste que les cellules)
+  // ── Ligne totaux couverture ──
+  // Pré-calcul des couverts par skill (même logique que les cellules agents)
+  var _skillCov={};
+  WA_SKILLS_COMP.forEach(function(s){
+    _skillCov[s]=sorted.filter(function(a){
+      var _ic=new Set();
+      if(Array.isArray(a.allSkillsData)&&a.allSkillsData.length>0){
+        a.allSkillsData.forEach(function(x){if(x.active!==false){var c=normalizeSkillToWaCol(x.name||x);if(c)_ic.add(c);}});
+      }
+      return _ic.has(s);
+    }).length;
+  });
+  var _mailCov={};
+  waActiveMails.forEach(function(s){_mailCov[s]=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;});
+
+  var _totBg='#0D2137';
+  h+='<tr style="background:'+_totBg+';border-top:2px solid #E8006E;">';
+  h+='<td colspan="7" style="background:'+_totBg+';color:#E8006E;font-weight:800;font-size:9px;padding:3px 6px;border:1px solid #344;letter-spacing:.04em;">▸ COUVERTURE — '+sorted.length+' RA</td>';
+
+  // Colonnes campagnes appels
   callCols.forEach(function(s){
     var n=sorted.filter(function(a){return waAgentCovers(a,s);}).length;
-    h+=waTd(n>0?n:"","#BDD7EE",true,n>0?"#1F4E79":"#1F4E79");
+    var noBg=n===0?'#CC0000':'#1A5276';
+    var noFg=n===0?'#fff':'#7EC8E3';
+    h+='<td style="background:'+noBg+';text-align:center;font-weight:800;font-size:10px;color:'+noFg+';border:1px solid #344;padding:3px 4px;">'+(n===0?'0 ⚠':n)+'</td>';
   });
+
+  // Colonnes emails
   waActiveMails.forEach(function(s){
-    var n=sorted.filter(function(a){return waHas(waSkills(a),s);}).length;
-    h+=waTd(n>0?n:"","#9DC3E6",true,"#1F4E79");
+    var n=_mailCov[s];
+    var noBg=n===0?'#CC0000':'#1A5276';
+    var noFg=n===0?'#fff':'#7EC8E3';
+    h+='<td style="background:'+noBg+';text-align:center;font-weight:800;font-size:10px;color:'+noFg+';border:1px solid #344;padding:3px 4px;">'+(n===0?'0 ⚠':n)+'</td>';
   });
-  h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
-  WA_SKILLS_COMP.forEach(function(){h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';});
-  h+='<td style="background:#1F4E79;border:1px solid #aaa;"></td>';
+
+  // Colonne nom agent (vide dans totaux)
+  h+='<td style="background:'+_totBg+';border:1px solid #344;"></td>';
+
+  // Colonnes compétences — comptes réels + red flag si 0
+  WA_SKILLS_COMP.forEach(function(s){
+    var n=_skillCov[s];
+    var noBg=n===0?'#CC0000':'#1E4D2B';
+    var noFg=n===0?'#fff':'#90EE90';
+    h+='<td style="background:'+noBg+';text-align:center;font-weight:800;font-size:10px;color:'+noFg+';border:1px solid #344;padding:3px 4px;">'+(n===0?'0 ⚠':n)+'</td>';
+  });
+
+  // Colonne files
+  h+='<td style="background:'+_totBg+';border:1px solid #344;"></td>';
   h+='</tr>';
 
   // ── Bloc récap campagnes — dynamique selon le périmètre filtré ──
