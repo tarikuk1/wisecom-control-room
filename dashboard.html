@@ -1953,9 +1953,9 @@ async function refreshFromINO(){
     // (fire-and-forget : ne doit jamais bloquer/faire échouer le chargement principal)
     if(cmpWeeksOffset>0)loadCmpRef();
     // Auto-chargement des compétences INO en arrière-plan (delay 2s pour ne pas rivaliser avec render)
-    // Permet la détection des agents mutualisés sans cliquer manuellement "Compétences INO"
-    if(agents.length>0&&!skillsLoaded()){
-      setTimeout(function(){if(agents.length>0&&!skillsLoaded())refreshSkills();},2000);
+    // Bloqué si une tentative précédente a retourné 401 (droits insuffisants) pour éviter le toast répétitif.
+    if(agents.length>0&&!skillsLoaded()&&!window._skills401Blocked){
+      setTimeout(function(){if(agents.length>0&&!skillsLoaded()&&!window._skills401Blocked)refreshSkills({auto:true});},2000);
     }
   }catch(e){ok=false;console.error('[refreshFromINO]',e&&e.message||e);}
   finally{
@@ -3254,74 +3254,68 @@ function sparkSVG(data){
   </svg>`;
 }
 
-// Détail par tranche horaire (ligne dépliable)
+// Sous-lignes par campagne (ligne dépliable) — même format que la ligne agent principale
 function detailRowHTML(a){
-  const spark=Array.isArray(a.spark)?a.spark:[];
-  const labels=Array.from({length:12},(_,i)=>`${String(8+i).padStart(2,"0")}h`);
-  const max=Math.max(...spark,1);
-  const bars=spark.map((v,i)=>`
-    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
-      <div style="font-size:9px;color:#ccc">${v}</div>
-      <div style="width:100%;max-width:26px;height:${Math.max(2,(v/max)*54)}px;background:linear-gradient(180deg,#FF005C,#c0005a);border-radius:2px 2px 0 0"></div>
-      <div style="font-size:8px;color:#888">${labels[i]||""}</div>
-    </div>`).join("");
-
-  // ── Section mutualisation : stats par file réellement travaillées ──
   const pq=a.perQueue||{};
   const activeQueues=Object.keys(pq).filter(qn=>(pq[qn].decroches||0)+(pq[qn].sortants||0)>0);
-  let mutuHtml='';
-  if(activeQueues.length>0){
-    // Grouper par campagne
-    const byCamp={};
-    activeQueues.forEach(qn=>{
-      const c=campOfQueue(qn)||'Autre';
-      if(!byCamp[c])byCamp[c]=[];
-      byCamp[c].push({name:qn,...pq[qn]});
-    });
-    const campNames=Object.keys(byCamp).sort((x,y)=>x===a.camp?-1:y===a.camp?1:x.localeCompare(y));
-    const isMutualise=campNames.length>1;
-    mutuHtml=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid #181828">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em">📊 Production par file</span>
-        ${isMutualise?`<span style="background:#1a0a1a;color:${P};border:1px solid ${P}44;border-radius:4px;padding:1px 7px;font-size:9px;font-weight:700">Mutualisé · ${campNames.length} campagnes</span>`:''}
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${campNames.map(camp=>{
-          const qs=byCamp[camp];
-          const totD=qs.reduce((s,q)=>s+(q.decroches||0),0);
-          const totS=qs.reduce((s,q)=>s+(q.sortants||0),0);
-          const totDur=qs.reduce((s,q)=>s+(q.dureeIn||0),0);
-          const avgDMC=totD>0?Math.round(totDur/totD):0;
-          const isPrimary=camp===a.camp;
-          return`<div style="background:${isPrimary?'#0e0e1e':'#090912'};border:1px solid ${isPrimary?'#25254a':'#14141e'};border-left:3px solid ${isPrimary?P:'#2a2a3a'};border-radius:6px;padding:9px 12px;min-width:170px">
-            <div style="font-size:10px;font-weight:700;color:${isPrimary?P:'#777'};margin-bottom:7px">${camp}${isPrimary?' <span style="font-size:8px;font-weight:400;color:#555">principale</span>':''}</div>
-            ${qs.map(q=>`<div style="margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #0e0e18">
-              <div style="font-size:8px;color:#555;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${shortQName(q.name,camp)||q.name}</div>
-              <div style="display:flex;gap:10px;font-size:10px;flex-wrap:wrap">
-                <span style="color:#30d158"><b>${q.decroches||0}</b> décrochés</span>
-                ${(q.sortants||0)>0?`<span><b>${q.sortants}</b> sortants</span>`:''}
-                ${(q.dureeIn||0)>0&&(q.decroches||0)>0?`<span style="color:#aaa">DMC ${mmss(Math.round(q.dureeIn/q.decroches))}</span>`:''}
-              </div>
-            </div>`).join('')}
-            ${qs.length>1?`<div style="font-size:9px;color:#555;padding-top:2px">Sous-total : <b style="color:#ccc">${totD}</b> décr.${totS>0?` · <b style="color:#ccc">${totS}</b> sort.`:''}${avgDMC>0?` · DMC ${mmss(avgDMC)}`:''}</div>`:''}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+  if(activeQueues.length===0){
+    return`<div style="padding:10px 18px;color:#555;font-size:11px;font-style:italic">Aucune production détaillée disponible.</div>`;
   }
 
-  return`<div style="padding:14px 18px">
-    <div style="font-size:11px;color:${P};font-weight:700;margin-bottom:10px">Détail par tranche horaire — ${a.nom} <span style="color:#aaa;font-weight:400">· File : ${a.camp} · Compétences : ${(a.skills||[]).join(", ")||"–"}</span></div>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:80px">${bars||'<span style="color:#888;font-size:11px">Aucune donnée horaire disponible</span>'}</div>
-    <div style="display:flex;gap:24px;margin-top:12px;font-size:10px;color:#888">
-      <span>Post-appel (ACW) : <b style="color:#ccc">${a.acw?mmss(a.acw):"–"}</b></span>
-      <span>Occupation : <b style="color:#ccc">${a.occupation?a.occupation+"%":"–"}</b></span>
-      <span>Adhérence : <b style="color:#ccc">${a.adherence!=null?a.adherence+"%":"n.d."}</b></span>
-      <span>Transformation : <b style="color:#ccc">${a.transfo!=null?a.transfo+"%":"n.d."}</b></span>
-      <span>DMC : <b style="color:#ccc">${mmss(a.dmc)}</b></span>
-    </div>
-    ${mutuHtml}
-  </div>`;
+  // Agréger par campagne
+  const byCamp={};
+  activeQueues.forEach(qn=>{
+    const c=campOfQueue(qn)||'Autre';
+    if(!byCamp[c])byCamp[c]={decroches:0,sortants:0,presentes:0,dureeIn:0};
+    byCamp[c].decroches+=(pq[qn].decroches||0);
+    byCamp[c].sortants+=(pq[qn].sortants||0);
+    byCamp[c].presentes+=(pq[qn].presentes||0);
+    byCamp[c].dureeIn+=(pq[qn].dureeIn||0);
+  });
+
+  const campNames=Object.keys(byCamp).sort((x,y)=>x===a.camp?-1:y===a.camp?1:x.localeCompare(y));
+
+  const subRows=campNames.map(camp=>{
+    const q=byCamp[camp];
+    const decr=q.decroches;
+    const sort=q.sortants;
+    const actes=decr+sort;
+    const dmc=decr>0?Math.round(q.dureeIn/decr):0;
+    const isPrimary=camp===a.camp;
+    return`<tr style="background:${isPrimary?'rgba(232,0,110,.05)':'rgba(255,255,255,.02)'};border-left:3px solid ${isPrimary?P:'#1e1e2e'};border-bottom:1px solid #111">
+      <td style="width:22px;text-align:center;color:#555;font-size:12px;padding:6px 4px">└</td>
+      <td style="font-size:11px;color:${isPrimary?'#ddd':'#999'};font-weight:${isPrimary?700:500};white-space:nowrap;padding:6px 8px">${camp}${isPrimary?` <span style="font-size:8px;color:#555;font-weight:400">(principale)</span>`:''}</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="padding:6px 8px"><span class="badge badge-camp" style="font-size:9px">${camp}</span></td>
+      <td style="color:#555;padding:6px 8px">–</td>
+      <td style="color:#555;padding:6px 8px">–</td>
+      <td style="color:#555;padding:6px 8px">–</td>
+      <td style="${visibleCols.has('presence')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="padding:6px 8px">${q.presentes}</td>
+      <td style="font-weight:700;padding:6px 8px">${decr}</td>
+      <td style="${visibleCols.has('refuses')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="padding:6px 8px">${sort}</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="color:${P};font-weight:800;font-size:13px;padding:6px 8px">${actes}</td>
+      <td style="color:#555;padding:6px 8px">–</td>
+      <td style="color:#555;padding:6px 8px">–</td>
+      <td style="padding:6px 8px">${dmc>0?mmss(dmc):'–'}</td>
+      <td style="${visibleCols.has('dmt')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="${visibleCols.has('acw')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="${visibleCols.has('transfo')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="${visibleCols.has('adherence')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="${visibleCols.has('inactifs')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="padding:6px 8px">–</td>
+      <td style="${visibleCols.has('files')?'':'display:none'};padding:6px 8px">–</td>
+      <td style="${visibleCols.has('skills')?'':'display:none'};padding:6px 8px">–</td>
+    </tr>`;
+  });
+
+  return`<table style="width:100%;border-collapse:collapse;font-size:12px">${subRows.join('')}</table>`;
 }
 
 // Déplie / replie la ligne de détail d'un agent
