@@ -560,8 +560,19 @@ body.light .toast{background:var(--c-white);box-shadow:0 4px 12px rgba(0,0,0,.15
    pas un sens arithmétique brut — la flèche ▲▼ à l'intérieur porte le sens réel du delta. */
 .trend-up{color:var(--c-green);}
 .trend-down{color:var(--c-pink);}
-.kpi-delta{display:inline-block;font-size:9px;font-weight:var(--fw-bold);letter-spacing:.02em;margin-top:3px;padding:1px 6px;border-radius:var(--r-sm);background:rgba(127,127,127,.12);white-space:nowrap;}
-.kpi-delta-neutral{color:var(--t-muted);}
+/* Bloc comparatif tendance dans les KPI cards */
+.kpi-delta{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:6px;white-space:nowrap;}
+.kpi-delta.trend-up{color:#30d158;background:rgba(48,209,88,.12);border:1px solid rgba(48,209,88,.22);}
+.kpi-delta.trend-down{color:#ff4d6d;background:rgba(232,0,110,.12);border:1px solid rgba(232,0,110,.22);}
+.kpi-delta.kpi-delta-neutral{color:#888;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.15);}
+.kpi-cmp-block{margin-top:7px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05);}
+.kpi-cmp-header{font-size:8px;color:#555;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}
+.kpi-cmp-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.kpi-cmp-ref{font-size:9px;color:#555;font-style:italic;}
+body.light .kpi-cmp-header{color:#999;}
+body.light .kpi-cmp-ref{color:#aaa;}
+body.light .kpi-delta.trend-up{background:rgba(26,107,26,.1);border-color:rgba(26,107,26,.25);}
+body.light .kpi-delta.trend-down{background:rgba(232,0,110,.08);border-color:rgba(232,0,110,.2);}
 #cmp-weeks-sel.active{border-color:var(--c-pink);color:var(--c-pink);font-weight:var(--fw-bold);}
 
 /* Bouton RAFRAÎCHIR (Fetch API INO) */
@@ -2230,13 +2241,14 @@ function computeCmpSummary(rawAgents,flux,fluxCampagnes,selCampNames){
 function cmpDelta(cur,ref,betterWhenUp,fmt){
   if(ref==null||cur==null||isNaN(cur)||isNaN(ref))return"";
   const diff=cur-ref;
-  if(diff===0)return`<span class="kpi-delta kpi-delta-neutral" title="Stable vs S-${cmpWeeksOffset} · même périmètre campagnes">≈ stable</span>`;
+  const lbl=cmpRef&&cmpRef.label?`S-${cmpWeeksOffset} (${cmpRef.label})`:`S-${cmpWeeksOffset}`;
+  const tip=`vs ${lbl} · même périmètre campagnes · valeur de référence : ${fmt(ref)}`;
+  if(diff===0)return`<span class="kpi-delta kpi-delta-neutral" title="${tip}">≈ stable</span><span class="kpi-cmp-ref">était ${fmt(ref)}</span>`;
   const arrow=diff>0?"▲":"▼";
   let cls="kpi-delta-neutral";
   if(betterWhenUp!=null)cls=(betterWhenUp?diff>0:diff<0)?"trend-up":"trend-down";
-  const lbl=cmpRef&&cmpRef.label?`S-${cmpWeeksOffset} (${cmpRef.label})`:`S-${cmpWeeksOffset}`;
-  const tip=`vs ${lbl} · même périmètre campagnes · ref: ${fmt(ref)}`;
-  return`<span class="kpi-delta ${cls}" title="${tip}">${arrow} ${fmt(Math.abs(diff))}</span>`;
+  const sign=diff>0?"+":"";
+  return`<span class="kpi-delta ${cls}" title="${tip}">${arrow} ${sign}${fmt(Math.abs(diff))}</span><span class="kpi-cmp-ref">était ${fmt(ref)}</span>`;
 }
 async function loadCmpRef(){
   const n=cmpWeeksOffset;
@@ -2975,9 +2987,12 @@ function renderKPIs(f){
       <div class="kpi-label">${k.l}${k.def?`<span data-show-def="${k.l}" data-def-text="${k.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" style="margin-left:4px;font-size:10px;color:#aaa;cursor:pointer;font-weight:normal" title="Voir définition et formule">ⓘ</span>`:""}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
-      ${k.cmp?`<div style="margin-top:3px;display:flex;align-items:center;gap:5px">${k.cmp}<span style="font-size:8px;color:#444;letter-spacing:.02em">vs S-${cmpWeeksOffset}</span></div>`:""}
       ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
       <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
+      ${k.cmp?`<div class="kpi-cmp-block">
+        <div class="kpi-cmp-header">vs S-${cmpWeeksOffset}${cmpRef&&cmpRef.label?' · '+cmpRef.label:''} · même périmètre</div>
+        <div class="kpi-cmp-row">${k.cmp}</div>
+      </div>`:""}
     </div>`).join("");
 }
 
