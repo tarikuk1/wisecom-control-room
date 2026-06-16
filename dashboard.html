@@ -2106,12 +2106,40 @@ async function loadAgentsFromAPI(){
           lastVoixActivity:lastVoix
         };
       });
-      selAgents=agents.map(a=>a.nom);
-      // Mettre à jour selCamps avec les camps réellement présents + tous les CAMPS connus
+      const _allNewAgentNames=agents.map(a=>a.nom);
       const realCamps=[...new Set(agents.map(a=>a.camp).filter(x=>x&&x!=="–"))];
-      // Garder tous les CAMPS connus + les camps réels non référencés
-      selCamps=[...new Set([...CAMPS,...realCamps])];
-      selStatus=[...STATUSES];
+      const _allNewCamps=[...new Set([...CAMPS,...realCamps])];
+      if(!window._selectionsInitialized){
+        // Premier chargement : initialiser toutes les sélections à "tout"
+        selAgents=_allNewAgentNames;
+        selCamps=_allNewCamps;
+        selStatus=[...STATUSES];
+        // Mémoriser l'univers complet initial pour distinguer les vrais nouveaux arrivants
+        window._knownAgents=new Set(_allNewAgentNames);
+        window._knownCamps=new Set(_allNewCamps);
+        window._selectionsInitialized=true;
+      } else {
+        // Rafraîchissement : nettoyer les noms disparus d'INO (agents déconnectés ou noms
+        // issus d'un ancien preset), puis ajouter les entrées genuinement nouvelles.
+        const _todayNamesSet=new Set(_allNewAgentNames);
+        // Supprimer de selAgents tout agent absent d'INO aujourd'hui
+        selAgents=selAgents.filter(n=>_todayNamesSet.has(n));
+        // Sécurité : si le filtre a tout vidé (preset totalement périmé), réinitialiser
+        if(selAgents.length===0)selAgents=[..._allNewAgentNames];
+        // Ajouter les agents jamais vus (nouvelles entrées INO)
+        _allNewAgentNames.forEach(n=>{
+          if(!(window._knownAgents||new Set()).has(n)){
+            if(!selAgents.includes(n))selAgents.push(n);
+            (window._knownAgents=window._knownAgents||new Set()).add(n);
+          }
+        });
+        _allNewCamps.forEach(c=>{
+          if(!(window._knownCamps||new Set()).has(c)){
+            selCamps.push(c);
+            (window._knownCamps=window._knownCamps||new Set()).add(c);
+          }
+        });
+      }
       // Compétences désormais livrées automatiquement avec le payload (/agent/list) : horodater
       // le premier chargement réussi pour la pastille verte, sans écraser un chargement /cc/* manuel.
       if(!_skillsLoadedAt&&skillsLoaded())_skillsLoadedAt=new Date();
@@ -2528,7 +2556,11 @@ function applyPreset(name){
   const p=loadPresets()[name];if(!p){presetStatus("Vue introuvable","#ff3b30");return;}
   selCamps=Array.isArray(p.camps)?p.camps:[...CAMPS];
   selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
-  selAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
+  // Filtrer les agents sauvegardés contre le roster INO du jour (évite le "31/12" stale)
+  const _todayAgents=new Set(agents.map(a=>a.nom));
+  const _savedAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
+  const _filtered=_savedAgents.filter(n=>_todayAgents.has(n));
+  selAgents=_filtered.length>0?_filtered:(agents.length?agents.map(a=>a.nom):_savedAgents);
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
   selStatus=Array.isArray(p.status)?p.status:[...STATUSES];
   buildAllDropdowns();render();
@@ -2835,22 +2867,22 @@ function renderKPIs(f){
   // couvre tous les agents (aucun filtre campagne/agent actif). Sinon on recalcule sur le périmètre filtré.
   const _allAgents=agents.length||0;
   const _isFullScope=(f.length===_allAgents)&&(selCamps.length>=CAMPS.length);
-  // Périmètre "campagnes seules" : filtre campagne actif SANS sous-filtre agent → on peut
-  // utiliser les flux de file des campagnes sélectionnées (abandons inclus + appels pris
-  // par des agents mutualisés rattachés à une autre campagne). Le calcul agents
-  // (décrochés/présentés) sous-estime les abandons et surestime la QS.
-  const _isCampScope=!_isFullScope&&!!window._fluxCamps&&campSelPartial()
-    &&agents.filter(a=>selCamps.includes(a.camp)).every(a=>selAgents.includes(a.nom));
-  // Priorité aux flux par campagne (horaires d'ouverture appliqués) : les appels hors
-  // horaires sont exclus des compteurs, conformément à la lecture métier (raccord Écran RA
-  // moins le hors-plage). Repli sur le flux global brut si le serveur ne les fournit pas.
-  const _fxHours=((_isFullScope||_isCampScope)&&window._fluxCamps)?(()=>{
-    let dec=0,ab=0,hh=0,so=0;
+  // Priorité aux flux par campagne (horaires d'ouverture appliqués) — la QS est un KPI file,
+  // pas un KPI agent. Dès qu'un filtre campagne est actif, on filtre _fluxCamps sur les camps
+  // sélectionnés ; en périmètre complet on prend tout. Normalisation des noms de camps
+  // pour éviter les faux négatifs (accents, casse, caractères spéciaux).
+  const _normCamp=s=>(s||'').toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[&\s_\-]/g,'');
+  const _selCampsNorm=new Set(selCamps.map(_normCamp));
+  const _fxHours=window._fluxCamps?(()=>{
+    const _partial=campSelPartial();
+    let dec=0,ab=0,hh=0,so=0,matched=0;
     Object.entries(window._fluxCamps).forEach(([c,v])=>{
-      if(_isCampScope&&!selCamps.includes(c))return;
-      dec+=v.decroches||0;ab+=v.abandons||0;hh+=v.horsHoraires||0;so+=v.sortants||0;
+      if(_partial&&!selCamps.includes(c)&&!_selCampsNorm.has(_normCamp(c)))return;
+      dec+=v.decroches||0;ab+=v.abandons||0;hh+=v.horsHoraires||0;so+=v.sortants||0;matched++;
     });
-    return (dec+ab)>0?{recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh,sortants:so}:null;
+    // Retourner null seulement si AUCUN camp ne correspond (pas de données du tout)
+    if(matched===0)return null;
+    return {recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh,sortants:so};
   })():null;
   const _fx=_fxHours||(_isFullScope?window._flux:null);  // flux file : périmètre complet ou campagnes seules
   // Présentés filtrés = somme des présentés des agents du périmètre (entrants distribués)
@@ -2858,14 +2890,16 @@ function renderKPIs(f){
   // (pas de QS forcé, évite l'affichage trompeur "0/1").
   const _hasFlux=_fx&&_fx.recus;
   const totRecus=_hasFlux?_fx.recus:totPres;
-  const entrTraites=_fx?(_fx.decroches||0):totDecr;   // décrochés du périmètre
-  const totManques=_fx?(_fx.abandons||0):Math.max(0,totPres-totDecr); // présentés non décrochés
-  const qs=totRecus>0?Math.min(100,Math.round(((_fx?entrTraites:totDecr)/totRecus)*100)):0;
+  // Utiliser _hasFlux (pas _fx) pour entrTraites/totManques : garantit la cohérence quand
+  // _fx existe mais recus=0 (campagnes sortantes uniquement — fallback sur données agents)
+  const entrTraites=_hasFlux?(_fx.decroches||0):totDecr;
+  const totManques=_hasFlux?(_fx.abandons||0):Math.max(0,totPres-totDecr);
+  const qs=totRecus>0?Math.min(100,Math.round((entrTraites/totRecus)*100)):0;
   // % Réalisé = Σ actes du périmètre / Σ objectifs des agents du périmètre (jamais un dénominateur fixe arbitraire)
   // En lecture file (périmètre complet ou campagnes seules), actes = traités file + sortants file + mails :
   // la production d'une campagne inclut les appels pris par des agents mutualisés d'autres campagnes.
   const totObj=f.reduce((s,a)=>s+(a.obj||50),0)||1;
-  const actesReal=_fx?((_fx.decroches||0)+(_fx.sortants||0)+totM):totActes;
+  const actesReal=_hasFlux?((_fx.decroches||0)+(_fx.sortants||0)+totM):totActes;
   const pct=Math.min(100,Math.round((actesReal/totObj)*100));
   // Taux d'occupation global (moyenne pondérée par heures de prod)
   const occVals=f.filter(a=>a.occupation>0);
