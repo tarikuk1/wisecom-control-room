@@ -3190,6 +3190,7 @@ function renderTable(sorted){
   Object.entries(acwByCamp).forEach(([c,arr])=>{acwAvgCamp[c]=arr.reduce((s,v)=>s+v,0)/arr.length;});
 
   let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0,tPres=0,tDecr=0,tHP=0,tDmcW=0,tRefuses=0,tAcwW=0;
+  let tInactifs=0,tOccupW=0,tOccupHP=0,tRealiseS=0,tRealiseN=0,tTransfoN=0,tTransfoD=0,tAdhW=0,tAdhN=0;
   const now=Date.now();
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
@@ -3205,6 +3206,11 @@ function renderTable(sorted){
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
     tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
     tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0); tRefuses+=(a.refuses||0); tAcwW+=(a.acw||0)*(a.decroches||0);
+    tInactifs+=(a.inactifs||0);
+    if(a.occupation!=null){tOccupW+=a.occupation*(a.hprod||1);tOccupHP+=(a.hprod||1);}
+    if(a.realise!=null){tRealiseS+=a.realise;tRealiseN++;}
+    if(a.transfo!=null){tTransfoN+=a.transfo*(a.appels||0)/100;tTransfoD+=(a.appels||0);}
+    if(a.adherence!=null){tAdhW+=a.adherence;tAdhN++;}
     // Dérive ACW : >20% au-dessus de la moyenne du groupe (campagne)
     const grpAcw=acwAvgCamp[a.camp];
     const acwDrift=a.acw&&grpAcw&&a.acw>grpAcw*1.2;
@@ -3290,14 +3296,16 @@ function renderTable(sorted){
     <td style="padding:9px 10px;color:${P};font-weight:700" title="App./h = Sortants / H.Prod total">${tHP>0?(+(tOut/tHP).toFixed(1)):0}</td>
     <td style="padding:9px 10px;color:${P}" title="DMC moyenne pondérée">${mmss(tDecr>0?Math.round(tDmcW/tDecr):0)}</td>
     <td style="${visibleCols.has('dmt')?'':'display:none'};padding:9px 10px;color:${P}" title="DMT = DMC + ACW moyen">${mmss(tDecr>0?Math.round((tDmcW+tAcwW)/tDecr):0)}</td>
-    <td style="${visibleCols.has('acw')?'':' display:none'}"></td>
-    <td style="${visibleCols.has('occupation')?'':' display:none'}"></td>
-    <td style="${visibleCols.has('transfo')?'':' display:none'}"></td>
-    <td style="${visibleCols.has('adherence')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('acw')?'':' display:none'};padding:9px 10px;color:${P}" title="ACW moyen pondéré">${tDecr>0?mmss(Math.round(tAcwW/tDecr)):'–'}</td>
+    <td style="${visibleCols.has('occupation')?'':' display:none'};padding:9px 10px;font-weight:700;color:${tOccupHP>0&&Math.round(tOccupW/tOccupHP)>=85?'#30d158':tOccupHP>0&&Math.round(tOccupW/tOccupHP)<70?P:'#ccc'}" title="Taux d'occupation moyen pondéré (par H.prod)">${tOccupHP>0?Math.round(tOccupW/tOccupHP)+'%':'–'}</td>
+    <td style="${visibleCols.has('transfo')?'':' display:none'};padding:9px 10px;color:#ccc" title="Taux de transfo moyen pondéré (par appels)">${tTransfoD>0?Math.round(tTransfoN/tTransfoD*100)+'%':'–'}</td>
+    <td style="${visibleCols.has('adherence')?'':' display:none'};padding:9px 10px;color:${tAdhN>0&&Math.round(tAdhW/tAdhN)>=90?'#30d158':tAdhN>0&&Math.round(tAdhW/tAdhN)<80?P:'#ccc'}" title="Adhérence moyenne">${tAdhN>0?Math.round(tAdhW/tAdhN)+'%':'–'}</td>
     <td style="padding:9px 10px;color:${P};${visibleCols.has('ko')?'':' display:none'}">${tKo}</td>
     <td style="padding:9px 10px;color:${P};${visibleCols.has('refus')?'':' display:none'}">${tRef}</td>
-    <td style="${visibleCols.has('inactifs')?'':' display:none'}"></td>
-    <td style="${visibleCols.has('realise')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('inactifs')?'':' display:none'};padding:9px 10px;color:${tInactifs>6?P:'inherit'};font-weight:${tInactifs>6?700:400}" title="Total pauses inactives">${tInactifs}</td>
+    <td style="${visibleCols.has('realise')?'':' display:none'};padding:9px 10px" title="% réalisé moyen">
+      ${tRealiseN>0?`<div style="display:flex;align-items:center;gap:5px;white-space:nowrap"><div style="width:50px;height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;flex-shrink:0"><div style="height:100%;width:${Math.min(Math.round(tRealiseS/tRealiseN),100)}%;background:${Math.round(tRealiseS/tRealiseN)>=80?'#30d158':Math.round(tRealiseS/tRealiseN)<50?'#ff3b30':P};border-radius:2px"></div></div><span style="font-size:11px;font-weight:700;color:${Math.round(tRealiseS/tRealiseN)>=80?'#30d158':Math.round(tRealiseS/tRealiseN)<50?'#ff3b30':P}">${Math.round(tRealiseS/tRealiseN)}%</span></div>`:'–'}
+    </td>
     <td style="${visibleCols.has('spark')?'':' display:none'}"></td>
     <td style="${visibleCols.has('files')?'':' display:none'}"></td>
     <td style="${visibleCols.has('skills')?'':' display:none'}"></td>
