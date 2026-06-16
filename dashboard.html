@@ -2186,10 +2186,16 @@ function fmtCmpLabel(rd,rdFin){
   const f=s=>new Date(s+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"});
   return rd===rdFin?f(rd):(f(rd)+" → "+f(rdFin));
 }
-// Résumé calculé directement depuis les agents BRUTS renvoyés par /agents-day (sans
-// enrichissement campagne/objectif côté client — non pertinent pour une référence passée).
-function computeCmpSummary(rawAgents,flux){
-  const arr=Array.isArray(rawAgents)?rawAgents:[];
+// Résumé calculé depuis les agents BRUTS renvoyés par /agents-day.
+// Filtre par selCampNames si sélection partielle, utilise fluxCampagnes pour la QS.
+function computeCmpSummary(rawAgents,flux,fluxCampagnes,selCampNames){
+  let arr=Array.isArray(rawAgents)?rawAgents:[];
+  // Filtrage par campagne : même périmètre que la vue actuelle
+  const _partial=Array.isArray(selCampNames)&&selCampNames.length>0&&selCampNames.length<CAMPS.length;
+  if(_partial){
+    const _selSet=new Set(selCampNames.map(s=>(s||'').toLowerCase().trim()));
+    arr=arr.filter(a=>_selSet.has((a.camp||'').toLowerCase().trim()));
+  }
   const totDecr=arr.reduce((s,a)=>s+(a.appelsIn||0),0);
   const totSort=arr.reduce((s,a)=>s+(a.appelsOut||0),0);
   const totDuree=arr.reduce((s,a)=>s+(a.duree||0),0);
@@ -2202,23 +2208,35 @@ function computeCmpSummary(rawAgents,flux){
     return s+(a.duree>0?a.duree/3600/0.75:0);
   },0)||1;
   const actesH=+((totDecr+totSort)/totHP).toFixed(1);
-  const fx=flux||{};
+  // QS : flux de file par campagne (fiable) ou repli sur global
+  let fx={};
+  if(fluxCampagnes&&typeof fluxCampagnes==='object'){
+    const _norm=s=>(s||'').toLowerCase().replace(/[éèê]/g,'e').replace(/[àâ]/g,'a').replace(/[&\s_\-]/g,'');
+    const _selNorm=_partial?new Set(selCampNames.map(_norm)):null;
+    let dec=0,ab=0,hh=0,so=0;
+    Object.entries(fluxCampagnes).forEach(([c,v])=>{
+      if(_partial&&!selCampNames.includes(c)&&!_selNorm.has(_norm(c)))return;
+      dec+=v.decroches||0;ab+=v.abandons||0;hh+=v.horsHoraires||0;so+=v.sortants||0;
+    });
+    fx={recus:dec+ab,decroches:dec,abandons:ab,horsHoraires:hh,sortants:so};
+  }else{fx=flux||{};}
   const totRecus=fx.recus||0;
   return{
     qs:totRecus>0?Math.min(100,Math.round(((fx.decroches||0)/totRecus)*100)):0,
     totRecus,totApp:totDecr,totManques:fx.abandons||0,avgDmc,actesH
   };
 }
-// betterWhenUp: true si une hausse est une bonne nouvelle, false si c'est une mauvaise nouvelle,
-// null si la métrique est purement informative (volume) — pas de jugement de valeur porté.
+// betterWhenUp: true si une hausse est favorable, false si défavorable, null si neutre (volume).
 function cmpDelta(cur,ref,betterWhenUp,fmt){
   if(ref==null||cur==null||isNaN(cur)||isNaN(ref))return"";
   const diff=cur-ref;
-  const arrow=diff>0?"▲":diff<0?"▼":"≈";
+  if(diff===0)return`<span class="kpi-delta kpi-delta-neutral" title="Stable vs S-${cmpWeeksOffset} · même périmètre campagnes">≈ stable</span>`;
+  const arrow=diff>0?"▲":"▼";
   let cls="kpi-delta-neutral";
-  if(diff!==0&&betterWhenUp!=null)cls=(betterWhenUp?diff>0:diff<0)?"trend-up":"trend-down";
-  const refLabel=cmpWeeksOffset>1?`il y a ${cmpWeeksOffset} semaines (S-${cmpWeeksOffset})`:"la semaine précédente (S-1)";
-  return`<span class="kpi-delta ${cls}" title="Référence : mêmes jours, ${refLabel}">${arrow} ${fmt(Math.abs(diff))}</span>`;
+  if(betterWhenUp!=null)cls=(betterWhenUp?diff>0:diff<0)?"trend-up":"trend-down";
+  const lbl=cmpRef&&cmpRef.label?`S-${cmpWeeksOffset} (${cmpRef.label})`:`S-${cmpWeeksOffset}`;
+  const tip=`vs ${lbl} · même périmètre campagnes · ref: ${fmt(ref)}`;
+  return`<span class="kpi-delta ${cls}" title="${tip}">${arrow} ${fmt(Math.abs(diff))}</span>`;
 }
 async function loadCmpRef(){
   const n=cmpWeeksOffset;
@@ -2237,10 +2255,10 @@ async function loadCmpRef(){
   // (le cache, lui, reste utile : une période passée ne change jamais).
   const stale=()=>cmpWeeksOffset!==n;
   if(cmpRefCache.has(key)){
-    const summary=cmpRefCache.get(key);
+    const raw=cmpRefCache.get(key);
     if(stale())return;
-    cmpRef=summary;
-    if(stEl)stEl.textContent="vs "+lbl+(summary.empty?` (aucune donnée ${tag})`:"");
+    cmpRef=raw;
+    if(stEl)stEl.textContent="vs "+lbl+(raw.empty?` (aucune donnée ${tag})`:` · ${campSelPartial()?"camps filtrés":"périmètre total"}`);
     render();
     return;
   }
@@ -2249,13 +2267,12 @@ async function loadCmpRef(){
     const res=await fetch(`/agents-day?date=${rd}&dateFin=${rdFin}&hDeb=${hDeb}&hFin=${hFin}`);
     const data=await res.json();
     const rawAgents=Array.isArray(data.agents)?data.agents:[];
-    const summary=computeCmpSummary(rawAgents,data.flux);
-    summary.empty=rawAgents.length===0;
-    summary.label=lbl;
-    cmpRefCache.set(key,summary);
+    // Stocker les données BRUTES (pas le résumé) : le filtrage par selCamps se fait au rendu
+    const raw={rawAgents,fluxCampagnes:data.fluxCampagnes||{},flux:data.flux||{},label:lbl,empty:rawAgents.length===0};
+    cmpRefCache.set(key,raw);
     if(stale())return;
-    cmpRef=summary;
-    if(stEl)stEl.textContent="vs "+lbl+(summary.empty?` (aucune donnée ${tag})`:"");
+    cmpRef=raw;
+    if(stEl)stEl.textContent="vs "+lbl+(raw.empty?` (aucune donnée ${tag})`:` · ${campSelPartial()?"camps filtrés":"périmètre total"}`);
   }catch(e){
     if(stale())return;
     cmpRef=null;
@@ -2906,9 +2923,13 @@ function renderKPIs(f){
   const occGlobal=occVals.length>0?Math.round(occVals.reduce((s,a)=>s+a.occupation,0)/occVals.length):0;
 
 
-  // Tendance vs S-1 : uniquement les métriques qui sont des faits historiques bruts
-  // (le "% Réalisé" dépend d'objectifs configurés AUJOURD'HUI → non comparable à S-1).
-  const _cmp=(cmpWeeksOffset>0&&cmpRef&&!cmpRef.empty)?cmpRef:null;
+  // Tendance vs S-1…S-5 : recalcul filtré au moment du rendu (même périmètre campagnes).
+  // Les données brutes S-N sont en cache ; computeCmpSummary filtre par selCamps ici.
+  let _cmp=null;
+  if(cmpWeeksOffset>0&&cmpRef&&!cmpRef.empty){
+    _cmp=computeCmpSummary(cmpRef.rawAgents,cmpRef.flux,cmpRef.fluxCampagnes,selCamps);
+    _cmp.label=cmpRef.label;
+  }
   const fmtSecDelta=s=>{const m=Math.floor(s/60),sc=Math.round(s%60);return m>0?(m+"min"+(sc?" "+sc+"s":"")):(sc+"s");};
   const fmtInt=d=>d.toLocaleString("fr-FR");
 
@@ -2954,7 +2975,7 @@ function renderKPIs(f){
       <div class="kpi-label">${k.l}${k.def?`<span data-show-def="${k.l}" data-def-text="${k.def.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" style="margin-left:4px;font-size:10px;color:#aaa;cursor:pointer;font-weight:normal" title="Voir définition et formule">ⓘ</span>`:""}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
-      ${k.cmp?`<div>${k.cmp}</div>`:""}
+      ${k.cmp?`<div style="margin-top:3px;display:flex;align-items:center;gap:5px">${k.cmp}<span style="font-size:8px;color:#444;letter-spacing:.02em">vs S-${cmpWeeksOffset}</span></div>`:""}
       ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge)}%;background:${k.alert?P:k.good?"#30d158":P}"></div></div>`:""}
       <div class="kpi-tag" style="color:${k.alert?P:"#30d158"}">${k.alert?"⚠ attention":k.good?"✓ bonne maitrise":""}</div>
     </div>`).join("");
