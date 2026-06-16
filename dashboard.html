@@ -2114,11 +2114,25 @@ async function loadAgentsFromAPI(){
         selAgents=_allNewAgentNames;
         selCamps=_allNewCamps;
         selStatus=[...STATUSES];
+        // Mémoriser l'univers complet initial pour distinguer les vrais nouveaux arrivants
+        window._knownAgents=new Set(_allNewAgentNames);
+        window._knownCamps=new Set(_allNewCamps);
         window._selectionsInitialized=true;
       } else {
-        // Rafraîchissement : ajouter les nouveaux agents/camps découverts sans écraser les filtres actifs
-        _allNewAgentNames.forEach(n=>{if(!selAgents.includes(n))selAgents.push(n);});
-        _allNewCamps.forEach(c=>{if(!selCamps.includes(c))selCamps.push(c);});
+        // Rafraîchissement : n'ajouter QUE les agents/camps genuinement nouveaux (jamais vus)
+        // Les camps/agents connus mais non sélectionnés (filtre actif) ne sont PAS rajoutés
+        _allNewAgentNames.forEach(n=>{
+          if(!(window._knownAgents||new Set()).has(n)){
+            selAgents.push(n);
+            (window._knownAgents=window._knownAgents||new Set()).add(n);
+          }
+        });
+        _allNewCamps.forEach(c=>{
+          if(!(window._knownCamps||new Set()).has(c)){
+            selCamps.push(c);
+            (window._knownCamps=window._knownCamps||new Set()).add(c);
+          }
+        });
       }
       // Compétences désormais livrées automatiquement avec le payload (/agent/list) : horodater
       // le premier chargement réussi pour la pastille verte, sans écraser un chargement /cc/* manuel.
