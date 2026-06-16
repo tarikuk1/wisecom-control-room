@@ -509,13 +509,13 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       agents[k].queues.add(_qn);
       // Stats par file pour affichage mutualisation côté dashboard
       if(!agents[k].perQueue)agents[k].perQueue={};
-      if(!agents[k].perQueue[_qn])agents[k].perQueue[_qn]={decroches:0,sortants:0,dureeIn:0,presentes:0};
+      if(!agents[k].perQueue[_qn])agents[k].perQueue[_qn]={decroches:0,sortants:0,dureeIn:0,dureeOut:0,presentes:0};
       if(type==="in"){
         agents[k].perQueue[_qn].presentes++;
         const _agD=(h.call&&h.call.agentDuration)||0;
         const _abQ=!!(h.status&&String(h.status).toLowerCase().includes('abandon'));
         if(_agD>0&&!_abQ){agents[k].perQueue[_qn].decroches++;agents[k].perQueue[_qn].dureeIn+=_agD;}
-      }else{agents[k].perQueue[_qn].sortants++;}
+      }else{agents[k].perQueue[_qn].sortants++;const _agDOut=(h.call&&h.call.agentDuration)||0;if(_agDOut>0)agents[k].perQueue[_qn].dureeOut+=_agDOut;}
     }
     tagQualif(agents[k],h.status);
     if(dt){const _d=new Date(dt);const _ph=parisHour(_d);const idx=_ph-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;if(_ph>=0&&_ph<24)agents[k].sparkH[_ph]++;}
