@@ -504,7 +504,19 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     // pour que le taux d'occupation reste correct sur une plage multi-jours (sinon la présence
     // = écart entre le 1er appel du lundi et le dernier du dimanche = ~7 jours, ce qui écrase tout).
     if(dt){const _dd=new Date(dt);const _dk=parisDateStr(_dd);const _ts=_dd.getTime();const _sp=agents[k].daySpan[_dk];if(!_sp)agents[k].daySpan[_dk]={min:_ts,max:_ts};else{if(_ts<_sp.min)_sp.min=_ts;if(_ts>_sp.max)_sp.max=_ts;}}
-    if(h.queue&&h.queue.queueName)agents[k].queues.add(h.queue.queueName);
+    if(h.queue&&h.queue.queueName){
+      const _qn=h.queue.queueName;
+      agents[k].queues.add(_qn);
+      // Stats par file pour affichage mutualisation côté dashboard
+      if(!agents[k].perQueue)agents[k].perQueue={};
+      if(!agents[k].perQueue[_qn])agents[k].perQueue[_qn]={decroches:0,sortants:0,dureeIn:0,presentes:0};
+      if(type==="in"){
+        agents[k].perQueue[_qn].presentes++;
+        const _agD=(h.call&&h.call.agentDuration)||0;
+        const _abQ=!!(h.status&&String(h.status).toLowerCase().includes('abandon'));
+        if(_agD>0&&!_abQ){agents[k].perQueue[_qn].decroches++;agents[k].perQueue[_qn].dureeIn+=_agD;}
+      }else{agents[k].perQueue[_qn].sortants++;}
+    }
     tagQualif(agents[k],h.status);
     if(dt){const _d=new Date(dt);const _ph=parisHour(_d);const idx=_ph-8;if(idx>=0&&idx<12)agents[k].spark[idx]++;if(_ph>=0&&_ph<24)agents[k].sparkH[_ph]++;}
     const sk=slotKey(dt);
@@ -576,7 +588,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       // appel ; sur N jours = somme jour par jour (jamais l'écart global lundi→dimanche).
       presenceSec:Math.round(Object.values(a.daySpan||{}).reduce((s,sp)=>s+(sp.max-sp.min)/1000,0)),
       premiereAction:a.premiereAction,derniereAction:a.derniereAction,
-      queues:Array.from(a.queues).join(", "),
+      queues:Array.from(a.queues).join(", "),perQueue:a.perQueue||{},
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
       spark:a.spark,sparkH:a.sparkH,

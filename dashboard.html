@@ -2100,7 +2100,7 @@ async function loadAgentsFromAPI(){
           transfo:a.transfo!=null?a.transfo:null,
           spark:Array.isArray(a.spark)?a.spark:null,
           premiereAction:a.premiereAction,derniereAction:a.derniereAction,
-          queues:a.queues||"",
+          queues:a.queues||"",perQueue:a.perQueue||{},
           actesH:hprod>0?+((total+m)/hprod).toFixed(1):0,
           appelsH:appelsDecH,
           lastVoixActivity:lastVoix
@@ -3265,6 +3265,51 @@ function detailRowHTML(a){
       <div style="width:100%;max-width:26px;height:${Math.max(2,(v/max)*54)}px;background:linear-gradient(180deg,#FF005C,#c0005a);border-radius:2px 2px 0 0"></div>
       <div style="font-size:8px;color:#888">${labels[i]||""}</div>
     </div>`).join("");
+
+  // ── Section mutualisation : stats par file réellement travaillées ──
+  const pq=a.perQueue||{};
+  const activeQueues=Object.keys(pq).filter(qn=>(pq[qn].decroches||0)+(pq[qn].sortants||0)>0);
+  let mutuHtml='';
+  if(activeQueues.length>0){
+    // Grouper par campagne
+    const byCamp={};
+    activeQueues.forEach(qn=>{
+      const c=campOfQueue(qn)||'Autre';
+      if(!byCamp[c])byCamp[c]=[];
+      byCamp[c].push({name:qn,...pq[qn]});
+    });
+    const campNames=Object.keys(byCamp).sort((x,y)=>x===a.camp?-1:y===a.camp?1:x.localeCompare(y));
+    const isMutualise=campNames.length>1;
+    mutuHtml=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid #181828">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em">📊 Production par file</span>
+        ${isMutualise?`<span style="background:#1a0a1a;color:${P};border:1px solid ${P}44;border-radius:4px;padding:1px 7px;font-size:9px;font-weight:700">Mutualisé · ${campNames.length} campagnes</span>`:''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${campNames.map(camp=>{
+          const qs=byCamp[camp];
+          const totD=qs.reduce((s,q)=>s+(q.decroches||0),0);
+          const totS=qs.reduce((s,q)=>s+(q.sortants||0),0);
+          const totDur=qs.reduce((s,q)=>s+(q.dureeIn||0),0);
+          const avgDMC=totD>0?Math.round(totDur/totD):0;
+          const isPrimary=camp===a.camp;
+          return`<div style="background:${isPrimary?'#0e0e1e':'#090912'};border:1px solid ${isPrimary?'#25254a':'#14141e'};border-left:3px solid ${isPrimary?P:'#2a2a3a'};border-radius:6px;padding:9px 12px;min-width:170px">
+            <div style="font-size:10px;font-weight:700;color:${isPrimary?P:'#777'};margin-bottom:7px">${camp}${isPrimary?' <span style="font-size:8px;font-weight:400;color:#555">principale</span>':''}</div>
+            ${qs.map(q=>`<div style="margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #0e0e18">
+              <div style="font-size:8px;color:#555;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${shortQName(q.name,camp)||q.name}</div>
+              <div style="display:flex;gap:10px;font-size:10px;flex-wrap:wrap">
+                <span style="color:#30d158"><b>${q.decroches||0}</b> décrochés</span>
+                ${(q.sortants||0)>0?`<span><b>${q.sortants}</b> sortants</span>`:''}
+                ${(q.dureeIn||0)>0&&(q.decroches||0)>0?`<span style="color:#aaa">DMC ${mmss(Math.round(q.dureeIn/q.decroches))}</span>`:''}
+              </div>
+            </div>`).join('')}
+            ${qs.length>1?`<div style="font-size:9px;color:#555;padding-top:2px">Sous-total : <b style="color:#ccc">${totD}</b> décr.${totS>0?` · <b style="color:#ccc">${totS}</b> sort.`:''}${avgDMC>0?` · DMC ${mmss(avgDMC)}`:''}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
   return`<div style="padding:14px 18px">
     <div style="font-size:11px;color:${P};font-weight:700;margin-bottom:10px">Détail par tranche horaire — ${a.nom} <span style="color:#aaa;font-weight:400">· File : ${a.camp} · Compétences : ${(a.skills||[]).join(", ")||"–"}</span></div>
     <div style="display:flex;align-items:flex-end;gap:4px;height:80px">${bars||'<span style="color:#888;font-size:11px">Aucune donnée horaire disponible</span>'}</div>
@@ -3275,6 +3320,7 @@ function detailRowHTML(a){
       <span>Transformation : <b style="color:#ccc">${a.transfo!=null?a.transfo+"%":"n.d."}</b></span>
       <span>DMC : <b style="color:#ccc">${mmss(a.dmc)}</b></span>
     </div>
+    ${mutuHtml}
   </div>`;
 }
 
