@@ -5454,9 +5454,9 @@ function waCampSynthesis(allAgents){
   var _txtSub =_isDk?'#aaa':'#555';
   var _colGreen=_isDk?'#30d158':'#1a6b1a';
   var h='<table style="border-collapse:collapse;margin-top:20px;font-size:11px;width:max-content;font-family:Inter,Arial,sans-serif;">';
-  h+='<tr><td colspan="7" style="background:transparent;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">⚠ Alertes staffing &amp; flux par campagne'+(fx?' · flux INO réel (horaires d\'ouverture appliqués)':'')+'</td></tr>';
+  h+='<tr><td colspan="9" style="background:transparent;padding:6px 4px;font-size:12px;font-weight:700;color:#E8006E;border:none;">⚠ Alertes staffing &amp; flux par campagne'+(fx?' · flux INO réel (horaires d\'ouverture appliqués)':'')+'</td></tr>';
   if(!fx){
-    h+='<tr><td colspan="7" style="background:'+_rowWarn+';color:'+(_isDk?'#ffcc44':'#8a6d00')+';'+CS+'font-weight:600;">Flux serveur non chargé — lancez un rafraîchissement pour calculer les alertes sur les appels réels.</td></tr>';
+    h+='<tr><td colspan="9" style="background:'+_rowWarn+';color:'+(_isDk?'#ffcc44':'#8a6d00')+';'+CS+'font-weight:600;">Flux serveur non chargé — lancez un rafraîchissement pour calculer les alertes sur les appels réels.</td></tr>';
   }
   h+='<tr>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;">Campagne</th>'+
@@ -5465,12 +5465,15 @@ function waCampSynthesis(allAgents){
      '<th style="background:#2F3640;color:#fff;'+CS+'">Abandons</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">QS</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'">TC</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'" title="Appels sortants réalisés sur cette campagne (proxy call back)">CB Réalisés</th>'+
+     '<th style="background:#2F3640;color:#fff;'+CS+'" title="Sortants avec durée > 0 (appelé a décroché)">CB Aboutis</th>'+
      '<th style="background:#2F3640;color:#fff;'+CS+'text-align:left;min-width:280px;">État · Couverture</th></tr>';
-  var tPres=0,tDec=0,tAb=0,tStaff=0;
+  var tPres=0,tDec=0,tAb=0,tStaff=0,tCbReal=0,tCbAbout=0;
   camps.forEach(function(c){
-    var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0};
+    var f=(fx&&fx[c])||{presentes:0,decroches:0,abandons:0,sortants:0,sortantsAboutis:0};
     var pres=f.presentes||0, dec=f.decroches||0, ab=f.abandons||0, st=staff[c].count;
-    tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;
+    var cbReal=f.sortants||0, cbAbout=f.sortantsAboutis||0;
+    tPres+=pres;tDec+=dec;tAb+=ab;tStaff+=st;tCbReal+=cbReal;tCbAbout+=cbAbout;
     var qs=pres>0?Math.round(dec/pres*100):null;
     var nonCouvert=pres>0&&st===0;
     var qsBas=pres>=10&&qs!==null&&qs<80;
@@ -5495,6 +5498,7 @@ function waCampSynthesis(allAgents){
     }
     // Agents list (last-name only, max 6)
     var agList=staff[c].agents.map(function(n){return n.split(' ').pop();}).slice(0,6).join(', ')+(staff[c].agents.length>6?' +'+( staff[c].agents.length-6):'');
+    var cbAboutPct=cbReal>0?Math.round(cbAbout/cbReal*100):null;
     h+='<tr style="background:'+rowBg+';">'+
        '<td style="'+CS+'font-weight:600;color:'+_txtNorm+'">'+c+'</td>'+
        '<td style="'+CS+'text-align:center;color:'+_txtNorm+'">'+(pres||'–')+'</td>'+
@@ -5502,9 +5506,12 @@ function waCampSynthesis(allAgents){
        '<td style="'+CS+'text-align:center;color:'+(ab>0?'#CC0000':_txtNorm)+';">'+(ab||'–')+'</td>'+
        '<td style="'+CS+'text-align:center;font-weight:700;color:'+qsCol+';">'+(qs!==null?qs+'%':'–')+'</td>'+
        '<td style="'+CS+'text-align:center;font-weight:700;color:'+(st===0&&pres>0?'#CC0000':_colGreen)+';">'+st+'</td>'+
+       '<td style="'+CS+'text-align:center;color:#4C9AFF;font-weight:600;">'+(cbReal||'–')+'</td>'+
+       '<td style="'+CS+'text-align:center;color:'+(cbAbout>0?'#30d158':'#666')+';font-weight:600;">'+(cbAbout||'–')+(cbAboutPct!==null&&cbReal>0?' <span style="font-size:9px;color:#888">('+cbAboutPct+'%)</span>':'')+'</td>'+
        '<td style="'+CS+'color:'+_txtNorm+';max-width:520px;"><b style="font-size:10px">'+etat+'</b>'+(agList?' · <span style="font-size:9px;color:'+_txtSub+';">'+agList+'</span>':'')+slotHtml+'</td></tr>';
   });
   var qsG=tPres>0?Math.round(tDec/tPres*100):null;
+  var tCbAboutPct=tCbReal>0?Math.round(tCbAbout/tCbReal*100):null;
   h+='<tr style="background:'+_rowTot+';">'+
      '<td style="'+CS+'font-weight:700;color:#E8006E;">TOTAL</td>'+
      '<td style="'+CS+'text-align:center;font-weight:700;">'+tPres+'</td>'+
@@ -5512,6 +5519,8 @@ function waCampSynthesis(allAgents){
      '<td style="'+CS+'text-align:center;font-weight:700;color:#CC0000;">'+tAb+'</td>'+
      '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+(qsG!==null?qsG+'%':'–')+'</td>'+
      '<td style="'+CS+'text-align:center;font-weight:700;color:#E8006E;">'+tStaff+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:#4C9AFF;">'+tCbReal+'</td>'+
+     '<td style="'+CS+'text-align:center;font-weight:700;color:'+(tCbAbout>0?'#30d158':'#666')+';">'+tCbAbout+(tCbAboutPct!==null?' <span style="font-size:9px;color:#888">('+tCbAboutPct+'%)</span>':'')+'</td>'+
      '<td style="'+CS+'color:#888;">'+camps.length+' campagnes · '+allAgents.length+' TC au total</td></tr>';
   h+='</table>';
   return h;

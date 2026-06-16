@@ -463,7 +463,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     {
       const _qn=(h.queue&&h.queue.queueName)||"";
       const _camp=detectCampaignSrv(_qn)||"Autre";
-      if(!fluxCamps[_camp])fluxCamps[_camp]={presentes:0,decroches:0,abandons:0,sortants:0,horsHoraires:0};
+      if(!fluxCamps[_camp])fluxCamps[_camp]={presentes:0,decroches:0,abandons:0,sortants:0,sortantsAboutis:0,horsHoraires:0};
       const _fc=fluxCamps[_camp];
       const _dObj=_dtP?new Date(_dtP):null;
       const _open=(_dObj&&!isNaN(_dObj))?isCampOpenAt(_camp,_dObj):true;
@@ -472,7 +472,10 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
         _fc.presentes++;
         if(_isAband)_fc.abandons++;
         else if(h.agent&&h.agent.id)_fc.decroches++;
-      }else{_fc.sortants++;}
+      }else{
+        _fc.sortants++;
+        if(((h.call&&h.call.agentDuration)||0)>0)_fc.sortantsAboutis++;
+      }
     }
     if(type==="in"){
       fluxRecusIn++;                         // tout appel entrant présenté
