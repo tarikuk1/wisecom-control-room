@@ -3495,7 +3495,7 @@ function renderChart(){
   if(_spanP){
     _spanP.textContent="· "+_periodeLbl+" · "+_hDeb+"–"+_hFin+" · "
       +(_filtered
-        ?(_volIn+" entrants traités (campagne filtrée)")
+        ?(_volIn+" décrochés (camp. filtrée) · "+_volOut+" sortants · "+(_volIn+_volAb)+" reçus (global)")
         :(_multi?("≈ "+_volIn+" entr. + "+_volOut+" sort. /jour"):(_volIn+" entrants · "+_volOut+" sortants")));
   }
   if(!displaySlots.length){
@@ -3525,9 +3525,9 @@ function renderChart(){
   const W=970,H=300,PAD={t:16,r:20,b:62,l:44};
   const cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
 
-  // Échelle Y : pic = Présentés (Décrochés+Abandons) ou Sortants
+  // Échelle Y : pic = Présentés (Décrochés+Abandons) ou Sortants — toujours les 3 séries
   const maxV=Math.max(
-    ...displaySlots.map(s=>_filtered?(s.vol||0):Math.max((s.vol||0)+(s.aband||0),(s.out||0))),1);
+    ...displaySlots.map(s=>Math.max((s.vol||0)+(s.aband||0),(s.out||0))),1);
   // Pas Y : trouver un pas "rond" qui donne 3–6 lignes de grille
   const _steps=[1,2,5,10,25,50,100,200,500,1000];
   const yStep=_steps.find(s=>Math.ceil(maxV/s)>=3&&Math.ceil(maxV/s)<=6)||_steps.find(s=>Math.ceil(maxV/s)<=6)||10;
@@ -3569,30 +3569,24 @@ function renderChart(){
       svg+=`<line x1="${bx.toFixed(1)}" y1="${PAD.t}" x2="${bx.toFixed(1)}" y2="${(PAD.t+ch).toFixed(1)}" stroke="${C_GRID}" stroke-width="1"/>`;
     }
 
-    if(_filtered){
-      // Mode campagne filtrée : une barre large centrée (Décrochés uniquement)
-      const bW=bw*0.66,bX=bx+(bw-bW)/2;
-      if(vIn>0){
-        const hIn=(vIn/yMax)*ch;
-        svg+=`<rect x="${bX.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
-      }
-    } else {
-      // Mode global : stack gauche (Décrochés + Abandons empilés) + barre droite (Sortants)
+    {
+      // Même layout dans les deux modes : stack gauche (Décrochés + Abandons) + barre droite (Sortants)
+      // En mode filtré : vol = décrochés campagne filtrée ; aband/out = totaux globaux
       const sW=bw*0.55,oW=bw*0.22,gap=bw*0.07;
       const xS=bx+bw*0.09,xO=xS+sW+gap;
       const hIn=(vIn/yMax)*ch,hAb=(vAb/yMax)*ch,hOut=(vOut/yMax)*ch;
 
       // Abandons (partie haute du stack, transparente) empilés AU-DESSUS des décrochés
       if(vAb>0){
-        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn-hAb).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hAb,1.5).toFixed(1)}" fill="${C_ABAND}" rx="3"><title>${s.lbl} · ${vAb} abandons (${vIn+vAb} présentés)</title></rect>`;
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn-hAb).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hAb,1.5).toFixed(1)}" fill="${C_ABAND}" rx="3"><title>${s.lbl} · ${vAb} abandons${_filtered?' (global)':''} (${vIn+vAb} présentés)</title></rect>`;
       }
       // Décrochés (partie basse du stack, couleur pleine)
       if(vIn>0){
-        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés</title></rect>`;
+        svg+=`<rect x="${xS.toFixed(1)}" y="${(PAD.t+ch-hIn).toFixed(1)}" width="${sW.toFixed(1)}" height="${Math.max(hIn,1.5).toFixed(1)}" fill="${C_IN}" rx="3"><title>${s.lbl} · ${vIn} décrochés${_filtered?' (campagne filtrée)':''}</title></rect>`;
       }
       // Sortants
       if(vOut>0){
-        svg+=`<rect x="${xO.toFixed(1)}" y="${(PAD.t+ch-hOut).toFixed(1)}" width="${oW.toFixed(1)}" height="${Math.max(hOut,1.5).toFixed(1)}" fill="${C_OUT}" rx="3"><title>${s.lbl} · ${vOut} sortants</title></rect>`;
+        svg+=`<rect x="${xO.toFixed(1)}" y="${(PAD.t+ch-hOut).toFixed(1)}" width="${oW.toFixed(1)}" height="${Math.max(hOut,1.5).toFixed(1)}" fill="${C_OUT}" rx="3"><title>${s.lbl} · ${vOut} sortants${_filtered?' (global)':''}</title></rect>`;
       }
     }
 
@@ -3623,12 +3617,14 @@ function renderChart(){
     return dot+`<text x="${lx+(isCircle?15:18)}" y="${ly}" fill="${C_TK}" font-size="11" font-family="inherit">${txt}</text>`;
   };
   let lx=PAD.l;
-  if(!_filtered){
+  if(_filtered){
+    svg+=_leg(lx,C_ABAND,`Reçus · ${_volPres} (global)`);          lx+=160;
+    svg+=_leg(lx,C_IN,   `Décrochés · ${_volIn} (camp. filtrée)`); lx+=210;
+    svg+=_leg(lx,C_OUT,  `Sortants · ${_volOut} (global)`);         lx+=155;
+  } else {
     svg+=_leg(lx,C_ABAND,`Présentés · ${_volPres}`);  lx+=150;
     svg+=_leg(lx,C_IN,   `Décrochés · ${_volIn}`);    lx+=140;
     svg+=_leg(lx,C_OUT,  `Sortants · ${_volOut}`);     lx+=130;
-  } else {
-    svg+=_leg(lx,C_IN,`Décrochés · ${_volIn} (campagne filtrée)`); lx+=230;
   }
   svg+=_leg(lx,C_TC,`nTC = agents actifs/tranche`,true);
   svg+=`<text x="${W-PAD.r}" y="${ly}" text-anchor="end" fill="${C_TK2}" font-size="10.5" font-family="inherit">max ${yMax}</text>`;
