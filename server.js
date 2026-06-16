@@ -1168,6 +1168,20 @@ const server=http.createServer(async(req,res)=>{
     });
     return;
   }
+  // Endpoint diagnostic : fluxCampagnes du dernier payload calculé
+  if(url==="/api/debug/flux-camps"){
+    // Recalcule sur la date du jour pour retourner les données fraîches
+    try{
+      const _d=_parisDateFmt.format(new Date());
+      const tk=await getToken();
+      const fresh=await fetchAgentsDay(_d,"08:00","20:00",_d);
+      const fc=fresh.fluxCampagnes||{};
+      const summary=Object.entries(fc).map(([c,v])=>({camp:c,decroches:v.decroches||0,abandons:v.abandons||0,sortants:v.sortants||0,presentes:v.presentes||0,horsHoraires:v.horsHoraires||0,qs:((v.decroches||0)+(v.abandons||0))>0?Math.round((v.decroches||0)/((v.decroches||0)+(v.abandons||0))*100):null})).sort((a,b)=>(b.decroches+b.abandons)-(a.decroches+a.abandons));
+      res.writeHead(200,{"Content-Type":"application/json"});
+      res.end(JSON.stringify({ok:true,date:_d,camps:summary,total:{decroches:fresh.flux.decroches,abandons:fresh.flux.abandons,sortants:fresh.flux.sortants}}));
+    }catch(e){res.writeHead(500,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
+    return;
+  }
   // Endpoint diagnostic : réponse INO brute pour un agent (accessible à toute session valide)
   if(url.startsWith("/api/skills-debug/")){
     const _agId=url.replace("/api/skills-debug/","").split("?")[0];
