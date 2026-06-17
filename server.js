@@ -260,13 +260,25 @@ function apiReq(method,p,body,token,timeoutMs){
   });
 }
 // Version exposant le status HTTP (utilisée pour les routes nécessitant gestion 401)
-function apiReqFull(method,p,body,token){
+// Timeout obligatoire (défaut INO_TIMEOUT_MS) : sans lui, une requête INO qui ne répond
+// jamais bloque indéfiniment l'appelant (ex: boucle séquentielle /api/refresh-skills,
+// qui attend chaque lot avant de passer au suivant — un seul appel bloqué = tout le
+// rafraîchissement des compétences gelé jusqu'au timeout de l'infrastructure en amont).
+function apiReqFull(method,p,body,token,timeoutMs){
   return new Promise((resolve,reject)=>{
     const auth=token?("Bearer "+token):"Basic "+Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const data=body?JSON.stringify(body):null;
     const opts={hostname:"wisecom.unicity.io",path:"/api"+p,method,headers:{"Content-Type":"application/json","Authorization":auth,"X-EKO-Api-Key":INO_APIKEY,...(data?{"Content-Length":Buffer.byteLength(data)}:{})}};
-    const req=https.request(opts,r=>{let buf="";const status=r.statusCode;r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve({status,body:JSON.parse(buf)});}catch{resolve({status,body:buf});}});});
-    req.on("error",reject);if(data)req.write(data);req.end();
+    const ms=timeoutMs||INO_TIMEOUT_MS;
+    let settled=false;
+    const done=(fn,val)=>{if(!settled){settled=true;clearTimeout(timer);fn(val);}};
+    const timer=setTimeout(()=>{
+      console.warn("[INO TIMEOUT] "+method+" "+p+" > "+ms+"ms");
+      done(resolve,{status:0,body:{_timeout:true}});
+    },ms);
+    const req=https.request(opts,r=>{let buf="";const status=r.statusCode;r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,{status,body:JSON.parse(buf)});}catch{done(resolve,{status,body:buf});}});});
+    req.on("error",e=>{done(reject,e);});
+    if(data)req.write(data);req.end();
   });
 }
 
@@ -954,8 +966,16 @@ const server=http.createServer(async(req,res)=>{
         const token=await getToken();
         if(!token){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));return;}
         const results={};
+        // Budget global : au-delà, on arrête d'ouvrir de nouveaux lots et on renvoie ce qui
+        // a pu être collecté plutôt que de laisser la requête HTTP s'éterniser (un proxy/
+        // gateway en amont la tuerait de toute façon, sans réponse exploitable côté client).
+        const _t0=Date.now(),_budgetMs=50000;
         // Traiter par batch de 3 avec délai pour respecter le rate-limiting INO
         for(let i=0;i<agentIds.length;i+=3){
+          if(Date.now()-_t0>_budgetMs){
+            agentIds.slice(i).forEach(id=>{if(!results[id])results[id]={error:"Budget temps dépassé — relancez pour les agents restants"};});
+            break;
+          }
           const batch=agentIds.slice(i,i+3);
           await Promise.all(batch.map(async(agentId)=>{
             let _tok=token;
@@ -971,6 +991,14 @@ const server=http.createServer(async(req,res)=>{
                   }
                   // Toujours 401 après renouvellement → problème de droits, pas de token
                   results[agentId]={error:"HTTP 401 — Droits insuffisants pour /cc/* sur ce compte INO"};
+                  break;
+                }
+                // Timeout (status 0, voir apiReqFull) ou erreur serveur/rate-limit transitoire :
+                // retenter avec backoff plutôt que d'abandonner immédiatement — INO peut être
+                // momentanément surchargé sans que ce soit un problème de droits.
+                if(rf.status===0||rf.status===429||rf.status>=500){
+                  if(attempt<2){await new Promise(r=>setTimeout(r,1500*(attempt+1)));continue;}
+                  results[agentId]={error:(rf.status===0?"Timeout INO (>15s)":"HTTP "+rf.status+" — INO temporairement indisponible")};
                   break;
                 }
                 const r=rf.body;

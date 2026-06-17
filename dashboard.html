@@ -2585,15 +2585,27 @@ function applyPreset(name){
   const p=loadPresets()[name];if(!p){presetStatus("Vue introuvable","#ff3b30");return;}
   selCamps=Array.isArray(p.camps)?p.camps:[...CAMPS];
   selQueues=Array.isArray(p.queues)?p.queues:getAllQueues();
-  // Filtrer les agents sauvegardés contre le roster INO du jour (évite le "31/12" stale)
+  // Filtrer les agents sauvegardés contre le roster INO du jour (évite le "31/12" stale).
+  // `agents` ne contient que les agents ayant déjà pris au moins un appel dans la fenêtre
+  // (cf. fetchAgentsDay côté serveur) : tôt le matin, la plupart des agents d'une vue
+  // sauvegardée peuvent donc être absents du roster du jour sans être réellement hors équipe.
+  // Si le match ne couvre qu'une faible part de la vue sauvegardée, on bascule sur tout le
+  // roster du jour plutôt que d'afficher silencieusement une poignée d'agents (table vidée
+  // à tort alors que les KPI, eux, agrègent indépendamment tout le flux).
   const _todayAgents=new Set(agents.map(a=>a.nom));
   const _savedAgents=Array.isArray(p.agents)?p.agents:(agents.length?agents.map(a=>a.nom):AGENTS_BASE.map(a=>a.nom));
   const _filtered=_savedAgents.filter(n=>_todayAgents.has(n));
-  selAgents=_filtered.length>0?_filtered:(agents.length?agents.map(a=>a.nom):_savedAgents);
+  const _matchRatio=_savedAgents.length>0?_filtered.length/_savedAgents.length:1;
+  const _lowMatch=_filtered.length>0&&_matchRatio<0.5;
+  selAgents=(_filtered.length>0&&!_lowMatch)?_filtered:(agents.length?agents.map(a=>a.nom):_savedAgents);
   selSkills=Array.isArray(p.skills)?p.skills:[...SKILLS];
   selStatus=Array.isArray(p.status)?p.status:[...STATUSES];
   buildAllDropdowns();render();
-  presetStatus(`Vue « ${name} » appliquée`,"#30d158");
+  if(_lowMatch&&agents.length){
+    presetStatus(`Vue « ${name} » appliquée — roster du jour partiel (${_filtered.length}/${_savedAgents.length} agents reconnus), tous les agents du jour affichés`,"#ff9f0a");
+  }else{
+    presetStatus(`Vue « ${name} » appliquée`,"#30d158");
+  }
 }
 async function deletePreset(){
   const sel=document.getElementById("preset-select");
@@ -2768,20 +2780,48 @@ async function refreshSkills(){
   if(_prog){_prog.style.display='block';_bar.style.width='5%';_bar.style.animation='progShimmer 1.5s linear infinite';_lbl.textContent='Connexion à INO…';}
   let _pct=5;const _pt=setInterval(()=>{_pct=Math.min(_pct+1.5,88);if(_bar)_bar.style.width=_pct+'%';},500);
   try{
+    // Requête bornée dans le temps : le serveur a son propre budget (~50s) et répond
+    // toujours un JSON propre à l'intérieur de ce délai, mais un incident réseau côté
+    // client (connexion qui ne répond jamais) doit aussi être borné pour ne pas geler
+    // l'UI indéfiniment — d'où l'AbortController avec une marge au-dessus du budget serveur.
+    async function fetchSkillsBatch(ids){
+      const ctrl=new AbortController();
+      const to=setTimeout(()=>ctrl.abort(),70000);
+      try{
+        const resp=await fetch('/api/refresh-skills',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({agentIds:ids}),
+          signal:ctrl.signal
+        });
+        if(!resp.ok)throw new Error('HTTP '+resp.status);
+        const data=await resp.json();
+        if(!data.ok)throw new Error(data.error||'Erreur serveur. Réessayez dans quelques instants.');
+        return data.results||{};
+      }catch(e){
+        if(e.name==='AbortError')throw new Error('Timeout réseau (>70s) — INO ne répond pas');
+        throw e;
+      }finally{clearTimeout(to);}
+    }
     const agentIds=agents.map(a=>a.id);
     if(_lbl)_lbl.textContent='Récupération compétences — '+agentIds.length+' agents…';
-    const resp=await fetch('/api/refresh-skills',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({agentIds})
-    });
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    const data=await resp.json();
-    if(!data.ok)throw new Error(data.error||'Erreur serveur. Réessayez dans quelques instants.');
+    // Le budget temps côté serveur peut laisser des agents non traités sur un gros effectif
+    // (ex. >150 agents) : on relance automatiquement pour le reliquat plutôt que d'obliger
+    // le superviseur à cliquer plusieurs fois "réessayer" sans jamais dépasser les premiers.
+    let results={},pending=agentIds.slice();
+    for(let round=0;round<4&&pending.length>0;round++){
+      if(round>0&&_lbl)_lbl.textContent='Suite — '+pending.length+' agent(s) restant(s)…';
+      const batchResults=await fetchSkillsBatch(pending);
+      Object.assign(results,batchResults);
+      pending=pending.filter(id=>{
+        const r=results[id];
+        return r&&r.error&&String(r.error).startsWith('Budget temps dépassé');
+      });
+    }
     // Mettre à jour les agents avec les compétences reçues (source détaillée /cc/*)
     let updated=0,firstErr='';
     agents.forEach(a=>{
-      const sk=data.results[a.id];
+      const sk=results[a.id];
       if(sk&&!sk.error&&Array.isArray(sk.allSkills)&&sk.allSkills.length>0){
         a.skills=sk.skills.map(s=>s.name);
         a.allSkillsData=sk.allSkills;
