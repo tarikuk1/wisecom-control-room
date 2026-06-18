@@ -1,13 +1,26 @@
 # Guide développeur — Wisecom Control Room
 
-> **Document de passation clef en main.**
+> **Document de passation clef en main — support à remettre au développeur avant l'accès au dépôt GitHub.**
 > Objectif : permettre à un développeur de reprendre, maintenir et faire évoluer le dashboard
-> de supervision temps réel **sans connaissance préalable du projet**. Tout est décrit :
-> architecture, sources de données (API INO), méthode de calcul de chaque indicateur,
-> affichage, déploiement, et pièges connus.
+> de supervision temps réel **sans connaissance préalable du projet, et sans avoir besoin
+> de relire tout le code avant de pouvoir intervenir**. Pour CHAQUE module on répond à trois
+> questions : **à quoi sert-il (objectif métier)**, **comment est-il calculé (formule + source
+> de donnée)**, et **où est le code (avec un extrait prêt à copier)**.
 >
 > Version applicative : **v2.1** · Dernière calibration métier : **10/06/2026**
 > Pile : **Node.js ≥ 18 (zéro dépendance npm)** + **HTML/CSS/JS vanilla** servi en statique.
+
+### Comment utiliser ce document
+
+1. **Avant de toucher au code** : lire les sections 1 et 2 (vue d'ensemble + architecture) — 10 min suffisent
+   pour comprendre les deux pièges qui causent 90 % des « bugs » rapportés (agent absent du roster,
+   KPI déconnectés du tableau filtré).
+2. **Pour comprendre un calcul précis** (« pourquoi la QS affiche X% ? ») : aller directement en
+   section 9, qui liste chaque indicateur avec son **objectif métier**, sa **formule exacte** et le
+   **code source correspondant** (copiable tel quel pour le retrouver dans l'éditeur).
+3. **Pour appeler l'API directement** (tests, debug, script externe) : section 6.4 et Annexe A
+   contiennent des commandes `curl` prêtes à l'emploi pour chaque endpoint, INO et internes.
+4. **Avant un déploiement** : section 4 (Railway) + section 15 (recettes).
 
 ---
 
@@ -30,6 +43,7 @@
 15. [Recettes de maintenance courantes](#15-recettes-de-maintenance-courantes)
 16. [Dépannage / FAQ](#16-dépannage--faq)
 17. [Glossaire métier](#17-glossaire-métier)
+18. [Annexe A — Requêtes prêtes à copier (curl, routes internes)](#18-annexe-a--requêtes-prêtes-à-copier-curl-routes-internes)
 
 ---
 
@@ -287,7 +301,66 @@ Règles d'interprétation **critiques** (à connaître pour tout calcul) :
 > ⚠️ L'API INO **ne fournit pas** : le statut temps réel d'un agent (en pause/dispo…), le « Hors SVI »,
 > ni le détail post-appel (ACW). Tout cela est soit **estimé** (et signalé comme tel), soit `n.d.`.
 
-### 6.4 Pagination (garde-fou anti-troncature)
+### 6.4 Exemples complets prêts à copier (INO direct)
+
+**🎯 Objectif :** pouvoir tester/diagnostiquer l'API INO **indépendamment du dashboard**, en ligne de
+commande, pour isoler un problème (token, droits, format de réponse).
+
+**Obtenir un token :**
+```bash
+curl -s "https://wisecom.unicity.io/api/auth" \
+  -H "Authorization: Basic $(printf '%s' 'INO_LOGIN:INO_PWD' | base64)"
+# Réponse attendue :
+# { "access_token": "eyJhbGciOi...", "expires_in": 300, ... }
+```
+
+**Récupérer les appels entrants d'une journée :**
+```bash
+TOKEN="eyJhbGciOi..."   # access_token obtenu ci-dessus
+curl -s -X POST "https://wisecom.unicity.io/api/call/in/histories" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-EKO-Api-Key: dasboard_INO" \
+  -H "Content-Type: application/json" \
+  -d '{"startDate":"2026-06-17 00:00:00","endDate":"2026-06-17 23:59:59","limit":2000}'
+```
+
+**Exemple de réponse réelle (forme exploitée par le code) :**
+```jsonc
+{
+  "histories": [
+    {
+      "callDate": "2026-06-17T08:12:34.000Z",
+      "status": "RDV",
+      "call":  { "type": "INCALL", "agentDuration": 142 },
+      "agent": { "id": 4821, "firstname": "Céline", "lastname": "Debaisieux", "username": "cdeb" },
+      "queue": { "queueName": "Afnor_RQ_auditeur" }
+    },
+    {
+      "callDate": "2026-06-17T08:14:02.000Z",
+      "status": "Abandon",
+      "call":  { "type": "INCALL", "agentDuration": 0 },
+      "agent": null,
+      "queue": { "queueName": "Afnor_RQ_auditeur" }
+    }
+  ]
+}
+```
+La **première** ligne est un appel décroché (agent renseigné, `agentDuration>0`) ; la **seconde** est
+un abandon en file (pas d'agent du tout) — c'est exactement la distinction exploitée par `proc()`
+côté serveur (§9.2/9.3).
+
+**Compétences détaillées d'un agent (droits `/cc/*` requis) :**
+```bash
+curl -s -X POST "https://wisecom.unicity.io/api/cc/agent/4821/flow/voice/skills/list" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-EKO-Api-Key: dasboard_INO" \
+  -H "Content-Type: application/json" -d '{}'
+# Si le compte n'a pas les droits Centre de Contacts → HTTP 401.
+# Réponse OK (forme variable selon version INO, voir §12) :
+# { "flowSkills": [ { "id": 12, "name": "Afnor", "status": 1, "score": 100 }, ... ] }
+```
+
+### 6.5 Pagination (garde-fou anti-troncature)
 
 `limit:2000` par requête. Si une réponse atteint exactement 2000 lignes, les données sont
 probablement **tronquées** → le serveur **redécoupe la journée en 4 tranches de 6 h** et recompose
@@ -426,6 +499,9 @@ SERVEUR (server.js → fetchAgentsDay/proc)              CLIENT (dashboard.html)
 
 ### 9.2 Flux reçus / traités / manqués
 
+**🎯 Objectif métier :** mesurer le **volume d'appels** qui arrive sur le centre et combien sont
+effectivement pris en charge — c'est la base de tout pilotage (dimensionnement, alerte staffing).
+
 **Source :** `/call/in/histories`. **Calcul serveur** dans `proc(h,"in")` :
 
 | Indicateur | Définition | Code serveur |
@@ -448,6 +524,10 @@ const totManques  = _hasFlux ? _fx.abandons   : Math.max(0,totPres-totDecr);
 ```
 
 ### 9.3 QS — Qualité de Service ⭐
+
+**🎯 Objectif métier :** mesurer si le centre **répond assez vite et assez bien** pour ne pas perdre
+l'appelant en file d'attente. C'est **le KPI contractuel n°1** vis-à-vis des clients (engagement de
+service), affiché en premier sur le dashboard et utilisé pour déclencher les alertes staffing.
 
 **La définition métier la plus importante.** C'est un **KPI de file, pas d'agent.**
 
@@ -477,6 +557,10 @@ tauxAbandon: q.recus>0 ? Math.round(q.abandons/q.recus*10000)/100 : 0,
 
 ### 9.4 DMC & DMT
 
+**🎯 Objectif métier :** détecter si les appels **traînent en longueur** (problème de script, de
+formation, de complexité client) ou si au contraire ils sont **trop courts** (bâclage). C'est le
+levier principal pour dimensionner le nombre d'agents nécessaires à un volume d'appels donné.
+
 | KPI | Définition | Source |
 |-----|------------|--------|
 | **DMC** (Durée Moyenne de Communication) | temps de comm moyen des appels **entrants décrochés** | `agentDuration` |
@@ -500,6 +584,10 @@ const avgAcw   = totDecr>0 ? Math.round(totAcwW/totDecr) : 0;
 
 ### 9.5 ACW (post-appel) — **estimation**
 
+**🎯 Objectif métier :** repérer les agents qui passent **trop de temps en post-appel** (saisie,
+qualification) entre deux appels, ce qui réduit leur disponibilité réelle sans que ça se voie dans le
+DMC. C'est un signal d'alerte pour la formation ou pour simplifier les outils de saisie.
+
 INO n'expose pas le wrap-up. On l'**estime** : pour chaque agent, on trie ses appels et on mesure le
 **trou entre la fin d'un appel et le début du suivant** (gaps > 1 h exclus comme « pauses »).
 
@@ -516,6 +604,10 @@ if(gaps.length>0) agents[k].acwMoyen = Math.round(gaps.reduce((s,v)=>s+v,0)/gaps
 > ⚠️ À présenter **toujours** comme indicatif. Le DMT qui en dérive l'est aussi.
 
 ### 9.6 Présence & Heures de production
+
+**🎯 Objectif métier :** savoir **combien de temps un agent a réellement été disponible** sur la
+journée — c'est le dénominateur de tous les ratios de productivité (occupation, actes/h) ; sans une
+présence fiable, tous les autres KPI de productivité sont faux.
 
 - **Présence** = amplitude entre la **1ʳᵉ et la dernière action** de l'agent, calculée **jour par jour**
   puis sommée (sur une plage multi-jours, sinon l'écart lundi→dimanche écraserait tout). Champ serveur :
@@ -534,6 +626,10 @@ if(hprod===0 && a.duree>0) hprod=+(a.duree/3600/0.75).toFixed(2);   // repli mon
 ```
 
 ### 9.7 Taux d'occupation (paramétrable par campagne)
+
+**🎯 Objectif métier :** mesurer la **part du temps de présence réellement consacrée au travail**
+(communication, et éventuellement post-appel). Un taux trop bas signale du temps mort/sous-activité ;
+un taux trop élevé (proche de 100 %) signale un risque de surcharge/burn-out des agents.
 
 > **Occupation = (Temps de comm [+ ACW si activé]) / (Présence × min_productives/h ÷ 60)**
 
@@ -560,6 +656,10 @@ function computeOccupation(camp, commSec, presSec, acwSec){
 
 ### 9.8 % Réalisé
 
+**🎯 Objectif métier :** comparer la **production réelle** des agents à un **objectif d'activité**
+fixé par campagne, pour évaluer l'atteinte des engagements de volume (indépendamment de la QS, qui
+mesure la qualité de file et pas l'activité individuelle).
+
 > **% Réalisé = Σ Actes réalisés / Σ Objectifs des agents du périmètre × 100** (plafonné à 100)
 
 - **Acte** = appel décroché + appel sortant + mail saisi.
@@ -577,6 +677,10 @@ const pct       = Math.min(100, Math.round((actesReal/totObj)*100));
 
 ### 9.9 Actes/h, App. sortants/h
 
+**🎯 Objectif métier :** ramener la production à une **cadence horaire comparable entre agents et
+entre journées** (un agent présent 8h et un agent présent 2h ne sont pas comparables en valeur
+absolue) — c'est le KPI utilisé pour le classement de productivité individuelle.
+
 ```js
 const totActes = totDecr + totSort + totM;          // décrochés + sortants + mails
 const totHP    = f.reduce((s,a)=> s+a.hprod, 0) || 1;
@@ -586,12 +690,20 @@ const appelsH  = +(totSort/totHP).toFixed(1);        // cadence sortants/h
 
 ### 9.10 Autres compteurs (qualifications réelles INO)
 
+**🎯 Objectif métier :** qualifier la **nature** des appels traités (réussite, refus, réitération,
+transfert) au-delà du simple comptage — utile pour le pilotage qualité et pour identifier les agents
+ou campagnes qui génèrent beaucoup de rappels (signe d'un problème non résolu au premier contact).
+
 `tagQualif(agent, status)` parcourt `h.status` brut et incrémente : `ko` (statut contient « ko »/« hors svi »),
 `refus`, `reiterants`, `transferts`, `transfo_yes` (rdv/intéressé). Le **« 100 % KO »** des KPI =
 présentés **non décrochés** (`nonDecroches`, `agentDuration=0`), à ne pas confondre avec les abandons
 de file (l'agent n'a jamais sonné). **Hors SVI** et **statut temps réel** = `n.d.` (non exposés par INO).
 
 ### 9.11 Tendance vs S-1…S-5
+
+**🎯 Objectif métier :** donner du **contexte** à un chiffre du jour — un QS à 78 % est-il anormal ou
+habituel un mardi pour cette campagne ? La comparaison sur 5 semaines glissantes permet de distinguer
+une **dérive réelle** d'une **variation normale** (saisonnalité hebdomadaire).
 
 `computeCmpSummary()` compare la période affichée aux **mêmes jours, 1 à 5 semaines plus tôt**
 (décalage de 7×N jours, mêmes données INO réelles, **filtrées sur le même périmètre campagnes**).
@@ -871,6 +983,66 @@ aussi que le token n'a pas expiré (renouvelé automatiquement avant chaque `/ag
 | **Mutualisé** | Agent traitant les appels de plusieurs campagnes (principe 1 agent = N compétences). |
 | **Mode honnête** | Règle projet : afficher `n.d.`/signaler un échec plutôt qu'inventer une valeur. |
 | **RA** | Réception d'Appels — l'écran INO de référence pour la QS. |
+
+---
+
+## 18. Annexe A — Requêtes prêtes à copier (curl, routes internes)
+
+**🎯 Objectif :** tester le **serveur du projet lui-même** (pas INO directement, voir §6.4), pour
+diagnostiquer un problème côté dashboard sans passer par le navigateur.
+
+> ⚠️ Toutes les routes sauf `/health`, `/api/status`, `/api/config` et `/login` exigent une
+> **session authentifiée** (cookie, pas de Bearer token côté client). Pour tester en `curl`, le plus
+> simple est de copier le cookie `session=...` depuis les DevTools du navigateur (onglet
+> Application/Storage → Cookies) après s'être connecté normalement, puis de le réutiliser ci-dessous.
+
+```bash
+# Cookie de session récupéré depuis le navigateur après connexion
+COOKIE="session=xxxxxxxxxxxxxxxxxxxx"
+BASE="https://votre-app.up.railway.app"     # ou http://localhost:3000 en local
+```
+
+**Santé / statut (publics, sans cookie) :**
+```bash
+curl -s "$BASE/health"
+curl -s "$BASE/api/status"
+curl -s "$BASE/api/config" | head -c 300     # CAMPS/QUEUES_MAP/SKILLS enrichis live
+```
+
+**§9 — La route principale, agrégation agents + flux d'une journée :**
+```bash
+curl -s -H "Cookie: $COOKIE" \
+  "$BASE/agents-day?date=2026-06-17&dateFin=2026-06-17&hDeb=08:00&hFin=20:00" | head -c 500
+# Multi-jours : dateFin > date. Réponse : { agents:[...], flux:{...}, fluxCamps:{...}, slots:[...] }
+```
+
+**§9.3 — Stats par file (QS/abandons 2 décimales, identique à l'écran RA INO) :**
+```bash
+curl -s -H "Cookie: $COOKIE" "$BASE/api/queues-status?date=2026-06-17"
+```
+
+**§11.3 — Lire / écrire les réglages partagés (critères, presets, backlog…) :**
+```bash
+curl -s -H "Cookie: $COOKIE" "$BASE/api/store"                       # lecture complète
+
+curl -s -H "Cookie: $COOKIE" -H "Content-Type: application/json" \
+  -X POST "$BASE/api/store" \
+  -d '{"key":"backlog","value":{"mails":12}}'                        # écriture (clé whitelistée STORE_KEYS)
+```
+
+**§12 — Rafraîchir les compétences détaillées par lots (`/cc/*`) :**
+```bash
+curl -s -H "Cookie: $COOKIE" -H "Content-Type: application/json" \
+  -X POST "$BASE/api/refresh-skills" \
+  -d '{"agentIds":[4821,4822,4823]}'           # lot de 3 max côté serveur, retry auto sur 429/5xx
+```
+
+**Diagnostic (§16) :**
+```bash
+curl -s -H "Cookie: $COOKIE" "$BASE/api/debug/flux-camps?date=2026-06-17"
+curl -s -H "Cookie: $COOKIE" "$BASE/api/skills-debug/4821"
+curl -s -H "Cookie: $COOKIE" "$BASE/debug/raw-call"     # forme brute d'une ligne INO (échantillon figé)
+```
 
 ---
 
