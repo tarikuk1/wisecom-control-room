@@ -39,19 +39,23 @@ function Write-Log($msg) {
     Write-Host $line
 }
 
+$pair = "$($EvoLogin):$($EvoPwd)"
+$basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
+$headers = @{ Authorization = "Basic $basicAuth"; Accept = "application/json" }
+
+$campaignsUrl = "https://$EvoHost/manager/api/v1/measurable/campaigns?format=json"
+$agentsUrl    = "https://$EvoHost/manager/api/v1/measurable/agents?format=json"
+
 try {
-    $pair = "$($EvoLogin):$($EvoPwd)"
-    $basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
-    $headers = @{ Authorization = "Basic $basicAuth"; Accept = "application/json" }
-
-    $campaignsUrl = "https://$EvoHost/manager/api/v1/measurable/campaigns?format=json"
-    $agentsUrl    = "https://$EvoHost/manager/api/v1/measurable/agents?format=json"
-
     $campaigns = Invoke-RestMethod -Uri $campaignsUrl -Headers $headers -Method Get -TimeoutSec 15
     $agents    = Invoke-RestMethod -Uri $agentsUrl    -Headers $headers -Method Get -TimeoutSec 15
+} catch {
+    Write-Log "ERREUR (côté Evolution, identifiants EvoLogin/EvoPwd ou réseau) : $($_.Exception.Message)"
+    exit 1
+}
 
+try {
     $body = @{ campaigns = $campaigns; agents = $agents } | ConvertTo-Json -Depth 10 -Compress
-
     $pushHeaders = @{ "X-Evo-Push-Secret" = $PushSecret; "Content-Type" = "application/json" }
     $resp = Invoke-RestMethod -Uri $DashboardUrl -Headers $pushHeaders -Method Post -Body $body -TimeoutSec 15
 
@@ -61,5 +65,5 @@ try {
         Write-Log "Envoi refusé par le tableau de bord : $($resp.error)"
     }
 } catch {
-    Write-Log "ERREUR : $($_.Exception.Message)"
+    Write-Log "ERREUR (côté tableau de bord, vérifier EVO_PUSH_SECRET sur Railway) : $($_.Exception.Message)"
 }
