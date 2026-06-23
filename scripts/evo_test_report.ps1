@@ -49,37 +49,12 @@ $thirtyDaysAgo = (Get-Date).AddDays(-30).ToString("yyyy-MM-dd")
 
 $tests = @()
 
-$tests += Invoke-EvoReport 100000035 @(
-    @{ Name = "fdesde"; Value = ($today + "T00:00:00") }
-    @{ Name = "fhasta"; Value = ($today + "T23:59:59") }
-) "Estado_listas_today_ISO"
-
-$tests += Invoke-EvoReport 100000035 @(
-    @{ Name = "fdesde"; Value = ($today_fr + " 00:00:00") }
-    @{ Name = "fhasta"; Value = ($today_fr + " 23:59:59") }
-) "Estado_listas_today_FR"
-
-$tests += Invoke-EvoReport 100000035 @(
-    @{ Name = "fdesde"; Value = ($sevenDaysAgo + "T00:00:00") }
-    @{ Name = "fhasta"; Value = ($today + "T23:59:59") }
-) "Estado_listas_7days"
-
-$tests += Invoke-EvoReport 100000035 @(
-    @{ Name = "fdesde"; Value = ($thirtyDaysAgo + "T00:00:00") }
-    @{ Name = "fhasta"; Value = ($today + "T23:59:59") }
-) "Estado_listas_30days"
-
+# Rapports SANS parametres (on a vu que Estado de listas marche comme ca)
 $tests += Invoke-EvoReport 100000035 @() "Estado_listas_noparams"
-
-$tests += Invoke-EvoReport 100000012 @(
-    @{ Name = "fdesde"; Value = ($today + "T00:00:00") }
-    @{ Name = "fhasta"; Value = ($today + "T23:59:59") }
-) "Num_trans_AgenCamp_today"
-
-$tests += Invoke-EvoReport 100000013 @(
-    @{ Name = "fdesde"; Value = ($today + "T00:00:00") }
-    @{ Name = "fhasta"; Value = ($today + "T23:59:59") }
-) "Num_trans_CampFin_today"
+$tests += Invoke-EvoReport 100000012 @() "Num_trans_AgenCamp_noparams"
+$tests += Invoke-EvoReport 100000013 @() "Num_trans_CampFin_noparams"
+$tests += Invoke-EvoReport 100000030 @() "TM_trans_AgenCamp_noparams"
+$tests += Invoke-EvoReport 100000055 @() "Participaciones_CampAgen_noparams"
 
 $tests | ConvertTo-Json -Depth 12 | Out-File -FilePath $OutputFile -Encoding UTF8
 Write-Host ""
