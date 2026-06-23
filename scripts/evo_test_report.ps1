@@ -1,5 +1,5 @@
-# evo_test_report.ps1 - Essaye plusieurs formats de parametres
-# pour trouver lequel renvoie des donnees pour le rapport 100000012.
+# evo_test_report.ps1 - Capture le corps de la reponse en cas d'erreur 500
+# pour comprendre ce qu'Evolution reproche aux valeurs des parametres.
 # Resultat enregistre dans evo_test_report_output.json (a envoyer pour analyse).
 
 $EvoHost   = "evo1.ekiom.net"
@@ -13,12 +13,26 @@ $pair = "$($EvoLogin):$($EvoPwd)"
 $basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
 $webHeaders = @{ Authorization = "Basic $basicAuth"; Accept = "application/json"; "Content-Type" = "application/json" }
 
-function Invoke-EvoReport($ReportId, $Params, $Label) {
-    $body = @{ Parameters = $Params } | ConvertTo-Json -Depth 5
+function Read-ErrorBody($Err) {
+    try {
+        $resp = $Err.Exception.Response
+        if ($resp -eq $null) { return $null }
+        $stream = $resp.GetResponseStream()
+        $reader = New-Object System.IO.StreamReader($stream)
+        $body = $reader.ReadToEnd()
+        $reader.Close()
+        return $body
+    } catch {
+        return ("Impossible de lire le corps : " + $_.Exception.Message)
+    }
+}
+
+function Invoke-EvoReport($ReportId, $Body, $Label) {
     Write-Host ("=== {0} (rapport {1}) ===" -f $Label, $ReportId)
+    Write-Host ("Body envoye : {0}" -f $Body)
     try {
         $url = "https://$EvoHost/manager/api/v1/admin/reports/$ReportId/invoke?format=json"
-        $resp = Invoke-WebRequest -Uri $url -Headers $webHeaders -Method Post -Body $body -TimeoutSec 60 -UseBasicParsing
+        $resp = Invoke-WebRequest -Uri $url -Headers $webHeaders -Method Post -Body $Body -TimeoutSec 60 -UseBasicParsing
         $json = $resp.Content | ConvertFrom-Json
         $rowsCount = 0
         if ($json.ReportData -and $json.ReportData.RowsCount) { $rowsCount = $json.ReportData.RowsCount }
@@ -26,144 +40,79 @@ function Invoke-EvoReport($ReportId, $Params, $Label) {
         return @{
             label = $Label
             reportId = $ReportId
-            params = $Params
+            bodySent = $Body
             ok = $true
             rowsCount = $rowsCount
             response = $json
         }
     } catch {
-        Write-Host ("ERREUR : {0}" -f $_.Exception.Message)
+        $errBody = Read-ErrorBody $_
+        Write-Host ("ERREUR HTTP : {0}" -f $_.Exception.Message)
+        Write-Host ("Corps de la reponse : {0}" -f $errBody)
         return @{
             label = $Label
             reportId = $ReportId
-            params = $Params
+            bodySent = $Body
             ok = $false
-            error = $_.Exception.Message
+            errorMessage = $_.Exception.Message
+            errorBody = $errBody
         }
     }
 }
 
 $today_iso = Get-Date -Format "yyyy-MM-dd"
-$today_fr  = Get-Date -Format "dd/MM/yyyy"
-$yesterday_iso = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
-$yesterday_fr  = (Get-Date).AddDays(-1).ToString("dd/MM/yyyy")
-$lastweek_iso  = (Get-Date).AddDays(-7).ToString("yyyy-MM-dd")
-$lastmonth_iso = (Get-Date).AddDays(-30).ToString("yyyy-MM-dd")
 
 $tests = @()
 
-# Test A : IDs = -1 (signifie "tous" dans beaucoup d'API Evolution)
-# Dates ISO aujourd'hui, heures 00:00:00 / 23:59:59
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$today_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="-1"}
-) "A_IDs_moins1_dates_ISO_today"
+# Controle : pas de parametres (on sait que ca renvoie 0 lignes sans erreur)
+$tests += Invoke-EvoReport 100000012 '{"Parameters":[]}' "Ctrl_vide"
 
-# Test B : IDs = 0
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="0"},
-    @{Name="idcampa";  Value="0"},
-    @{Name="idsegm";   Value="0"},
-    @{Name="idagent";  Value="0"},
-    @{Name="idfinal";  Value="0"},
-    @{Name="fdesde";   Value=$today_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="0"}
-) "B_IDs_zero_dates_ISO_today"
+# Test 1 : valeurs string -1
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+    '{"Name":"idsvc","Value":"-1"},' +
+    '{"Name":"idcampa","Value":"-1"},' +
+    '{"Name":"idsegm","Value":"-1"},' +
+    '{"Name":"idagent","Value":"-1"},' +
+    '{"Name":"idfinal","Value":"-1"},' +
+    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
+    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
+    '{"Name":"hdesde","Value":"00:00:00"},' +
+    '{"Name":"hhasta","Value":"23:59:59"},' +
+    '{"Name":"transorg","Value":"-1"}' +
+']}') "T1_string_moins1_ISO"
 
-# Test C : IDs = chaine vide
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value=""},
-    @{Name="idcampa";  Value=""},
-    @{Name="idsegm";   Value=""},
-    @{Name="idagent";  Value=""},
-    @{Name="idfinal";  Value=""},
-    @{Name="fdesde";   Value=$today_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value=""}
-) "C_IDs_vides_dates_ISO_today"
+# Test 2 : valeurs entieres -1 (pas de guillemets autour)
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+    '{"Name":"idsvc","Value":-1},' +
+    '{"Name":"idcampa","Value":-1},' +
+    '{"Name":"idsegm","Value":-1},' +
+    '{"Name":"idagent","Value":-1},' +
+    '{"Name":"idfinal","Value":-1},' +
+    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
+    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
+    '{"Name":"hdesde","Value":"00:00:00"},' +
+    '{"Name":"hhasta","Value":"23:59:59"},' +
+    '{"Name":"transorg","Value":-1}' +
+']}') "T2_int_moins1_ISO"
 
-# Test D : IDs = -1, dates au format francais
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$today_fr},
-    @{Name="fhasta";   Value=$today_fr},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="-1"}
-) "D_IDs_moins1_dates_FR_today"
+# Test 3 : seulement les dates (pas d'IDs)
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
+    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
+    '{"Name":"hdesde","Value":"00:00:00"},' +
+    '{"Name":"hhasta","Value":"23:59:59"}' +
+']}') "T3_dates_seules"
 
-# Test E : IDs = -1, periode = hier (au cas ou pas de donnees aujourd'hui)
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$yesterday_iso},
-    @{Name="fhasta";   Value=$yesterday_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="-1"}
-) "E_IDs_moins1_dates_ISO_yesterday"
+# Test 4 : un seul parametre (fdesde) pour voir si l'erreur est plus parlante
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+    '{"Name":"fdesde","Value":"' + $today_iso + '"}' +
+']}') "T4_fdesde_seul"
 
-# Test F : IDs = -1, periode = 7 derniers jours
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$lastweek_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="-1"}
-) "F_IDs_moins1_dates_ISO_lastweek"
-
-# Test G : IDs = -1, periode = 30 derniers jours
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$lastmonth_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00:00"},
-    @{Name="hhasta";   Value="23:59:59"},
-    @{Name="transorg"; Value="-1"}
-) "G_IDs_moins1_dates_ISO_lastmonth"
-
-# Test H : IDs = -1, heures format court HH:mm
-$tests += Invoke-EvoReport 100000012 @(
-    @{Name="idsvc";    Value="-1"},
-    @{Name="idcampa";  Value="-1"},
-    @{Name="idsegm";   Value="-1"},
-    @{Name="idagent";  Value="-1"},
-    @{Name="idfinal";  Value="-1"},
-    @{Name="fdesde";   Value=$today_iso},
-    @{Name="fhasta";   Value=$today_iso},
-    @{Name="hdesde";   Value="00:00"},
-    @{Name="hhasta";   Value="23:59"},
-    @{Name="transorg"; Value="-1"}
-) "H_IDs_moins1_hours_short"
+# Test 5 : nom de cle "value" en minuscules
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+    '{"name":"idsvc","value":"-1"},' +
+    '{"name":"fdesde","value":"' + $today_iso + '"}' +
+']}') "T5_keys_minuscules"
 
 $tests | ConvertTo-Json -Depth 12 | Out-File -FilePath $OutputFile -Encoding UTF8
 Write-Host ""
