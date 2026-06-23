@@ -17,6 +17,10 @@ const EVO_LOGIN=process.env.EVO_LOGIN||"NCADMIN";
 const EVO_PWD=process.env.EVO_PWD||"NCADMIN";
 // http ou https : les domaines publics répondent en https ; on tente https puis http en repli.
 const EVO_PROTO=(process.env.EVO_PROTO||"https").toLowerCase();
+// Secret partagé pour le script local qui POST les données Evolution vers /api/evo/ingest
+// (le serveur Evolution est sur le réseau interne, injoignable depuis Railway — voir §ingest
+// plus bas : on inverse le sens, c'est un poste du bureau qui pousse les données).
+const EVO_PUSH_SECRET=process.env.EVO_PUSH_SECRET||"CHANGE_ME_evo_push";
 
 // Favicon — petit phare stylisé (clin d'œil "tour de contrôle"), sert toutes les pages
 const FAVICON_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -247,6 +251,10 @@ let bToken=null,bExp=0,sseClients=[],lastPayload=null,statsCache={};
 // Cache de l'inventaire des files INO (/api/admin/queues) — l'analyse balaye 7 jours
 // d'historiques (14 appels INO), trop coûteuse pour être relancée à chaque clic.
 let _queuesCache=null,_queuesCacheAt=0;
+// Cache des données Evo sortant — alimenté par /api/evo/ingest (poussé depuis un poste
+// du réseau local, voir §evo plus bas), pas par un appel sortant du serveur Railway.
+let _evoCache=null,_evoCacheAt=0;
+const EVO_STALE_MS=10*60*1000; // au-delà de 10 min sans nouvel envoi, données considérées périmées
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
@@ -350,6 +358,52 @@ const _num=v=>{const n=Number(v);return isFinite(n)?n:0;};
 // Réception d'Appels » avec PS=1/PA=7). NCDia reste à 0 en réception pure.
 function evoIsOutbound(c){
   return _num(c.NCDia_Campanya)>0||_num(c.NP)>0||_num(c.Mr)>0;
+}
+// Transforme les deux payloads bruts Evolution (campagnes + agents mesurables) en
+// JSON propre {totaux, campagnes, agents}, filtré sur le périmètre sortant.
+function evoBuildPayload(rawCamp,rawAg){
+  const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>({
+    nom:c._name, id:c._id,
+    agents:_num(c.T),                 // agents connectés à la campagne
+    appels:_num(c.TrDia),             // transactions (appels) du jour
+    appelsHeure:_num(c.TrHora),       // appels de la dernière heure
+    positifs:_num(c.CUPosDia_Campanya), // contacts utiles positifs (résultats)
+    negatifs:_num(c.CUNegDia_Campanya), // contacts utiles négatifs
+    nonUtiles:_num(c.CNUDia_Campanya),  // contacts non utiles
+    nonContactes:_num(c.NCDia_Campanya),// non joignables
+    abandons:_num(c.AbDia),           // abandons du jour
+    finalises:_num(c.F)               // fiches finalisées par un agent
+  })).sort((a,b)=>b.appels-a.appels);
+  // Agents : on garde ceux ayant une activité de numérotation (sortant) ou des appels.
+  const agents=evoParse(rawAg).map(a=>({
+    nom:a._name, id:a._id,
+    campagne:(typeof a.CmpPau==="string"&&a.CmpPau)||"–", // campagne en cours
+    appels:_num(a.TraDia),            // transactions (appels) du jour
+    appelsHeure:_num(a.TraHora),
+    positifs:_num(a.CUPosDia_Agente), // résultats positifs
+    negatifs:_num(a.CUNegDia_Agente),
+    nonUtiles:_num(a.CNUDia_Agente),
+    nonContactes:_num(a.NCDia_Agente),
+    sessionSec:_num(a.Sesiones),      // temps en session du jour (s)
+    pauseSec:_num(a.PausasTiempo)     // temps en pause du jour (s)
+  })).filter(a=>a.appels>0||a.nonContactes>0).sort((a,b)=>b.appels-a.appels);
+  // Totaux du périmètre sortant
+  const sum=(arr,k)=>arr.reduce((s,x)=>s+x[k],0);
+  const totaux={
+    campagnes:camps.length,
+    appels:sum(camps,"appels"),
+    positifs:sum(camps,"positifs"),
+    nonContactes:sum(camps,"nonContactes"),
+    abandons:sum(camps,"abandons"),
+    agentsActifs:agents.length,
+    // Joignabilité = contacts aboutis / total tentés (positifs+négatifs+nonUtiles+nonContactés)
+    joignabilite:(function(){
+      const ab=sum(camps,"positifs")+sum(camps,"negatifs")+sum(camps,"nonUtiles");
+      const tot=ab+sum(camps,"nonContactes");
+      return tot>0?Math.round(ab/tot*100):null;
+    })()
+  };
+  return{totaux,campagnes:camps,agents};
 }
 
 async function getToken(force){
@@ -1146,63 +1200,64 @@ const server=http.createServer(async(req,res)=>{
     return;
   }
   // === MODULE EVO SORTANT (plateforme Evolution/Ekiom, temps réel du jour) ===
-  // Agrège les mesurables campagnes + agents d'Evolution, filtre sur le sortant,
-  // et renvoie un JSON propre prêt à afficher. Source distincte d'INO.
+  // Le serveur Evolution est sur le réseau interne du client : Railway ne peut pas
+  // l'appeler directement. Architecture en push : un script local (planifié sur un
+  // poste qui voit Evolution) appelle l'API et POST le résultat brut vers
+  // /api/evo/ingest ; cette route sert simplement le dernier envoi reçu, transformé.
+  // En dev local (poste ayant un accès direct au réseau Evolution), un appel direct
+  // de secours est tenté si aucun envoi récent n'est en cache.
   if(url==="/api/evo/sortant"&&session){
     try{
-      const[rawCamp,rawAg]=await Promise.all([
-        evoGetAuto("/manager/api/v1/measurable/campaigns?format=json"),
-        evoGetAuto("/manager/api/v1/measurable/agents?format=json")
-      ]);
-      const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>({
-        nom:c._name, id:c._id,
-        agents:_num(c.T),                 // agents connectés à la campagne
-        appels:_num(c.TrDia),             // transactions (appels) du jour
-        appelsHeure:_num(c.TrHora),       // appels de la dernière heure
-        positifs:_num(c.CUPosDia_Campanya), // contacts utiles positifs (résultats)
-        negatifs:_num(c.CUNegDia_Campanya), // contacts utiles négatifs
-        nonUtiles:_num(c.CNUDia_Campanya),  // contacts non utiles
-        nonContactes:_num(c.NCDia_Campanya),// non joignables
-        abandons:_num(c.AbDia),           // abandons du jour
-        finalises:_num(c.F)               // fiches finalisées par un agent
-      })).sort((a,b)=>b.appels-a.appels);
-      // Agents : on garde ceux ayant une activité de numérotation (sortant) ou des appels.
-      const agents=evoParse(rawAg).map(a=>({
-        nom:a._name, id:a._id,
-        campagne:(typeof a.CmpPau==="string"&&a.CmpPau)||"–", // campagne en cours
-        appels:_num(a.TraDia),            // transactions (appels) du jour
-        appelsHeure:_num(a.TraHora),
-        positifs:_num(a.CUPosDia_Agente), // résultats positifs
-        negatifs:_num(a.CUNegDia_Agente),
-        nonUtiles:_num(a.CNUDia_Agente),
-        nonContactes:_num(a.NCDia_Agente),
-        sessionSec:_num(a.Sesiones),      // temps en session du jour (s)
-        pauseSec:_num(a.PausasTiempo)     // temps en pause du jour (s)
-      })).filter(a=>a.appels>0||a.nonContactes>0).sort((a,b)=>b.appels-a.appels);
-      // Totaux du périmètre sortant
-      const sum=(arr,k)=>arr.reduce((s,x)=>s+x[k],0);
-      const totaux={
-        campagnes:camps.length,
-        appels:sum(camps,"appels"),
-        positifs:sum(camps,"positifs"),
-        nonContactes:sum(camps,"nonContactes"),
-        abandons:sum(camps,"abandons"),
-        agentsActifs:agents.length,
-        // Joignabilité = contacts aboutis / total tentés (positifs+négatifs+nonUtiles+nonContactés)
-        joignabilite:(function(){
-          const ab=sum(camps,"positifs")+sum(camps,"negatifs")+sum(camps,"nonUtiles");
-          const tot=ab+sum(camps,"nonContactes");
-          return tot>0?Math.round(ab/tot*100):null;
-        })()
-      };
+      let rawCamp,rawAg,generatedAt;
+      const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
+      if(cacheFresh){
+        ({rawCamp,rawAg}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+      }else{
+        try{
+          [rawCamp,rawAg]=await Promise.all([
+            evoGetAuto("/manager/api/v1/measurable/campaigns?format=json"),
+            evoGetAuto("/manager/api/v1/measurable/agents?format=json")
+          ]);
+          generatedAt=new Date().toISOString();
+        }catch(directErr){
+          if(_evoCache){ // repli sur un cache périmé plutôt que rien — on le signale clairement
+            ({rawCamp,rawAg}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+          }else{
+            res.writeHead(200,{"Content-Type":"application/json"});
+            return res.end(JSON.stringify({ok:false,error:"En attente du premier envoi depuis le poste local (voir script evo_push). "+directErr.message}));
+          }
+        }
+      }
+      const payload=evoBuildPayload(rawCamp,rawAg);
+      const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt:new Date().toISOString(),totaux,campagnes:camps,agents}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
       // ok:false → le client affiche un message clair (« Evo injoignable ») sans inventer de données
       return res.end(JSON.stringify({ok:false,error:e&&e.message?e.message:String(e)}));
     }
+  }
+  // Réception des données poussées par le script local (Planificateur de tâches).
+  // Protégé par un secret partagé (pas par session : appel machine-à-machine).
+  if(url==="/api/evo/ingest"&&req.method==="POST"){
+    if((req.headers["x-evo-push-secret"]||"")!==EVO_PUSH_SECRET){
+      res.writeHead(401,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Secret invalide"}));
+    }
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",()=>{
+      try{
+        const{campaigns,agents}=JSON.parse(body);
+        if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
+        _evoCache={rawCamp:campaigns,rawAg:agents};_evoCacheAt=Date.now();
+        console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
+        res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
+      }catch(e){
+        res.writeHead(400,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));
+      }
+    });
+    return;
   }
   // === STATUT FILES (agrégation temps réel depuis histories du jour) ===
   if(url==="/api/queues-status"&&session){
