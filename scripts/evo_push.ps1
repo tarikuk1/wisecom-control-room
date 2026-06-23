@@ -26,8 +26,8 @@
 $EvoHost      = "evo1.ekiom.net"                 # serveur Evolution
 $EvoLogin     = "NCADMIN"                        # identifiant Manager Evolution
 $EvoPwd       = "NCADMIN"                        # mot de passe Manager Evolution
-$DashboardUrl = "https://VOTRE-APP.up.railway.app/api/evo/ingest"  # ⚠️ à remplacer par l'URL réelle du tableau de bord
-$PushSecret   = "CHANGE_ME_evo_push"             # doit être identique à EVO_PUSH_SECRET sur Railway
+$DashboardUrl = "https://control-room-production-a320.up.railway.app/api/evo/ingest"
+$PushSecret   = "286828"                         # doit être identique à EVO_PUSH_SECRET sur Railway
 # ─────────────────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
