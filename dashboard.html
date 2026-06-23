@@ -1243,6 +1243,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <button role="tab" aria-selected="false" class="tab" onclick="switchTab('skills',this)">Matrice compétences</button>
       <button role="tab" aria-selected="false" class="tab" onclick="switchTab('whatsapp',this)"  id="tab-btn-whatsapp">Export WhatsApp</button>
       <button role="tab" aria-selected="false" class="tab" onclick="switchTab('alertes',this)" id="tab-btn-alertes">Alertes <span id="alert-badge" style="display:none;background:var(--c-pink);color:var(--c-white);font-size:var(--fs-xs);border-radius:10px;padding:1px 6px;margin-left:3px;"></span></button>
+      <button role="tab" aria-selected="false" class="tab" onclick="switchTab('evo',this)" id="tab-btn-evo" title="Appels sortants via la plateforme Evolution (Ekiom) — source distincte d'INO">📞 Evo sortant</button>
     </div>
     <span id="agent-count" style="margin-left:auto;font-size:var(--fs-body);color:var(--t-disabled);padding-right:4px;"></span>
   </div>
@@ -1342,6 +1343,38 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       </div>
       <div id="wa-config-panel"></div>
       <div id="wa-preview" style="padding:16px;overflow-x:auto;"></div>
+    </div>
+  </div>
+
+  <!-- ══ ONGLET EVO SORTANT (plateforme Evolution / Ekiom) ═══════════════════ -->
+  <div id="tab-evo" style="display:none;">
+    <div class="panel">
+      <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="panel-title">📞 Appels sortants — Evolution</span>
+          <span id="evo-timestamp" style="font-size:var(--fs-body);color:var(--t-disabled);"></span>
+        </div>
+        <button class="btn btn-refresh" onclick="loadEvo()" id="btn-evo-refresh" style="font-size:var(--fs-body);padding:6px 14px;" title="Recharger les données temps réel depuis Evolution">↺ Actualiser</button>
+      </div>
+      <div style="padding:6px 14px 0;font-size:var(--fs-sm);color:var(--t-disabled);">
+        Source : plateforme téléphonique <b>Evolution (Ekiom)</b>, données temps réel du jour — distinctes d'INO.
+        Seules les campagnes <b>sortantes</b> (émission/numérotation) sont affichées.
+      </div>
+      <div id="evo-kpis" class="kpi-grid" style="padding:12px 14px;"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">Production par campagne sortante</span></div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table class="tbl" id="evo-camp-table"></table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">classés par nombre d'appels</span></span></div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table class="tbl" id="evo-agent-table"></table>
+      </div>
     </div>
   </div>
 
@@ -4489,11 +4522,102 @@ function toggleFilters(){
 }
 
 function switchTab(id,btn){
-  ["tableau","graphiques","skills","whatsapp","alertes"].forEach(t=>{document.getElementById("tab-"+t).style.display=t===id?"block":"none";});
+  ["tableau","graphiques","skills","whatsapp","alertes","evo"].forEach(t=>{document.getElementById("tab-"+t).style.display=t===id?"block":"none";});
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   if(id==="whatsapp")renderWA();
   if(id==="alertes")renderAlerts(getFiltered());
+  if(id==="evo")loadEvo();
+}
+
+// ── Module Evo sortant : charge et affiche les appels sortants depuis Evolution ──
+let _evoLoading=false;
+async function loadEvo(){
+  if(_evoLoading)return; _evoLoading=true;
+  const btn=document.getElementById("btn-evo-refresh");
+  const ts=document.getElementById("evo-timestamp");
+  if(btn){btn.disabled=true;btn.textContent="⏳ Chargement…";}
+  if(ts)ts.textContent="";
+  try{
+    const r=await fetch("/api/evo/sortant");
+    const d=await r.json();
+    if(!d.ok){
+      // Mode honnête : on explique l'échec, on n'invente aucun chiffre.
+      const msg=/HTTP 401|refus/i.test(d.error||"")?"Identifiants Evolution refusés (vérifier EVO_LOGIN / EVO_PWD)"
+        :/délai|timeout|ENOTFOUND|ECONN|injoign/i.test(d.error||"")?"Serveur Evolution injoignable depuis le tableau de bord (réseau interne ?)"
+        :("Evolution : "+(d.error||"erreur inconnue"));
+      document.getElementById("evo-kpis").innerHTML=`<div class="kpi-card alert" style="flex:1;"><div class="kpi-label">Evo indisponible</div><div class="kpi-value" style="font-size:15px;line-height:1.3">${msg}</div></div>`;
+      document.getElementById("evo-camp-table").innerHTML="";
+      document.getElementById("evo-agent-table").innerHTML="";
+      showToast(msg,"error",6000);
+      return;
+    }
+    renderEvo(d);
+    if(ts)ts.textContent="Mis à jour à "+new Date(d.generatedAt).toLocaleTimeString("fr-FR");
+  }catch(e){
+    showToast("Erreur de chargement Evo : "+(e.message||e),"error",5000);
+  }finally{
+    _evoLoading=false;
+    if(btn){btn.disabled=false;btn.textContent="↺ Actualiser";}
+  }
+}
+
+function renderEvo(d){
+  const t=d.totaux||{};
+  const kpis=[
+    {l:"Appels sortants",v:(t.appels||0).toLocaleString("fr-FR"),sub:t.campagnes+" campagne"+(t.campagnes>1?"s":"")+" sortante"+(t.campagnes>1?"s":""),hero:true},
+    {l:"Contacts positifs",v:(t.positifs||0).toLocaleString("fr-FR"),sub:"Résultats obtenus (CU+)",good:true},
+    {l:"Joignabilité",v:t.joignabilite==null?"n.d.":t.joignabilite+"%",sub:"Contacts aboutis / tentés",gauge:t.joignabilite},
+    {l:"Non joignables",v:(t.nonContactes||0).toLocaleString("fr-FR"),sub:"Aucune réponse / occupé"},
+    {l:"Abandons",v:(t.abandons||0).toLocaleString("fr-FR"),sub:"Appelés ayant raccroché",alert:(t.abandons||0)>0},
+    {l:"Agents actifs",v:t.agentsActifs||0,sub:"Avec activité sortante"},
+  ];
+  document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
+    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}">
+      <div class="kpi-label">${k.l}</div>
+      <div class="kpi-value">${k.v}</div>
+      ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
+      ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge||0)}%;background:#30d158"></div></div>`:""}
+    </div>`).join("");
+
+  // Échappement HTML (les noms de campagnes/agents viennent d'une source externe)
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  // Durée en h/min lisible (les temps de session dépassent souvent l'heure)
+  const hm=sec=>{if(!sec||sec<0)return"–";const h=Math.floor(sec/3600),m=Math.round(sec%3600/60);return h>0?h+"h"+String(m).padStart(2,"0"):m+"min";};
+  const camps=d.campagnes||[];
+  document.getElementById("evo-camp-table").innerHTML=camps.length?`
+    <thead><tr>
+      <th style="text-align:left">Campagne</th><th>Agents</th><th>Appels</th>
+      <th>Positifs</th><th>Négatifs</th><th>Non joign.</th><th>Abandons</th><th>Fiches finalisées</th>
+    </tr></thead>
+    <tbody>${camps.map(c=>`<tr>
+      <td style="text-align:left">${ec(c.nom)}</td>
+      <td>${c.agents}</td><td><b>${c.appels.toLocaleString("fr-FR")}</b></td>
+      <td style="color:#30d158">${c.positifs.toLocaleString("fr-FR")}</td>
+      <td>${c.negatifs.toLocaleString("fr-FR")}</td>
+      <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
+      <td>${c.abandons.toLocaleString("fr-FR")}</td>
+      <td>${c.finalises.toLocaleString("fr-FR")}</td>
+    </tr>`).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sortante active actuellement.</td></tr></tbody>`;
+
+  // Tableau agents
+  const ags=d.agents||[];
+  document.getElementById("evo-agent-table").innerHTML=ags.length?`
+    <thead><tr>
+      <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
+      <th>Appels</th><th>Positifs</th><th>Négatifs</th><th>Non joign.</th>
+      <th>Temps session</th><th>Temps pause</th>
+    </tr></thead>
+    <tbody>${ags.map(a=>`<tr>
+      <td style="text-align:left">${ec(a.nom)}</td>
+      <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
+      <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
+      <td style="color:#30d158">${a.positifs.toLocaleString("fr-FR")}</td>
+      <td>${a.negatifs.toLocaleString("fr-FR")}</td>
+      <td>${a.nonContactes.toLocaleString("fr-FR")}</td>
+      <td>${hm(a.sessionSec)}</td>
+      <td>${hm(a.pauseSec)}</td>
+    </tr>`).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sortante actuellement.</td></tr></tbody>`;
 }
 
 function showToast(msg,color="#30d158",durationMs){

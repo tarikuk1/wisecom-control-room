@@ -9,6 +9,15 @@ let SECURITY_CODE=process.env.SECURITY_CODE||"286828";
 const USERS_RAW=process.env.USERS||"tarik:Wisecom2026!,admin:ControlRoom2026!";
 const USERS=Object.fromEntries(USERS_RAW.split(",").map(u=>{const[l,...r]=u.trim().split(":");return[l.toLowerCase(),r.join(":")];}));
 
+// ── Module « Evo sortant » : plateforme téléphonique Evolution (Ekiom) ─────────
+// API REST Manager (auth Basic, JSON). Source distincte d'INO, dédiée aux appels
+// sortants. Définir EVO_LOGIN/EVO_PWD dans les env vars Railway en production.
+const EVO_HOST=process.env.EVO_HOST||"evo1.ekiom.net";
+const EVO_LOGIN=process.env.EVO_LOGIN||"NCADMIN";
+const EVO_PWD=process.env.EVO_PWD||"NCADMIN";
+// http ou https : les domaines publics répondent en https ; on tente https puis http en repli.
+const EVO_PROTO=(process.env.EVO_PROTO||"https").toLowerCase();
+
 // Favicon — petit phare stylisé (clin d'œil "tour de contrôle"), sert toutes les pages
 const FAVICON_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 <rect width="64" height="64" rx="14" fill="#0c0c0c"/>
@@ -280,6 +289,67 @@ function apiReqFull(method,p,body,token,timeoutMs){
     req.on("error",e=>{done(reject,e);});
     if(data)req.write(data);req.end();
   });
+}
+
+// ── Client API Evolution (Ekiom) ──────────────────────────────────────────────
+const EVO_TIMEOUT_MS=15000;
+// GET sur l'API Manager d'Evolution. Auth Basic, réponse JSON. On force le module
+// http/https selon `proto`. Rejette en cas de status >=400 ou de réponse non-JSON
+// (mode honnête : on ne renvoie jamais des données inventées en cas d'échec).
+function evoGet(apiPath,proto,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    const mod=proto==="http"?http:https;
+    const auth="Basic "+Buffer.from(EVO_LOGIN+":"+EVO_PWD).toString("base64");
+    const opts={hostname:EVO_HOST,path:apiPath,method:"GET",headers:{"Authorization":auth,"Accept":"application/json"}};
+    const ms=timeoutMs||EVO_TIMEOUT_MS;
+    let settled=false;
+    const done=(fn,val)=>{if(!settled){settled=true;clearTimeout(timer);fn(val);}};
+    const timer=setTimeout(()=>{done(reject,new Error("Evo: délai dépassé (>"+ms+"ms)"));},ms);
+    const req=mod.request(opts,r=>{
+      let buf="";const status=r.statusCode;
+      r.on("data",c=>buf+=c);
+      r.on("end",()=>{
+        if(status>=400){done(reject,new Error("Evo: HTTP "+status+(status===401?" (identifiants Manager refusés)":"")));return;}
+        try{done(resolve,JSON.parse(buf));}catch(e){done(reject,new Error("Evo: réponse non-JSON (le serveur a peut-être renvoyé une page HTML)"));}
+      });
+    });
+    req.on("error",e=>{done(reject,e);});
+    req.end();
+  });
+}
+// Tente le protocole configuré (https par défaut) puis bascule sur l'autre en cas
+// d'échec de connexion — évite de devoir deviner http vs https côté Evolution.
+async function evoGetAuto(apiPath){
+  try{return await evoGet(apiPath,EVO_PROTO);}
+  catch(e){
+    const alt=EVO_PROTO==="https"?"http":"https";
+    try{return await evoGet(apiPath,alt);}
+    catch(e2){throw e;} // on remonte l'erreur du protocole principal (plus parlante)
+  }
+}
+// Convertit le format Evolution {Headers:[{Name}], DataSet:[{EntityName,Row}]} en
+// tableau d'objets {_id,_name, <Name>:valeur}. Gère "Row" ET "Ligne" (le champ peut
+// être traduit par certains navigateurs/proxys — l'API brute renvoie "Row").
+function evoParse(payload){
+  const names=((payload&&payload.Headers)||[]).map(h=>h&&h.Name);
+  const rows=(payload&&payload.DataSet)||[];
+  return rows.map(r=>{
+    const o={_id:r.EntityId,_name:r.EntityName};
+    const vals=r.Row||r.Ligne||r.Rows||[];
+    names.forEach((n,i)=>{if(n)o[n]=vals[i];});
+    return o;
+  });
+}
+const _num=v=>{const n=Number(v);return isFinite(n)?n:0;};
+// Une campagne est « sortante » si elle présente une activité de NUMÉROTATION :
+//  - des non-joignables (NCDia : on ne « non-contacte » que des numéros qu'on appelle),
+//  - un stock de fiches planifiées (NP),
+//  - ou des appels en cours de numérotation (Mr).
+// On n'utilise PAS PS/PA (fiches planifiées système/agent) : des campagnes de RÉCEPTION
+// peuvent en avoir quelques-unes (rappels résiduels) → faux positifs constatés (ex. « EKIOM
+// Réception d'Appels » avec PS=1/PA=7). NCDia reste à 0 en réception pure.
+function evoIsOutbound(c){
+  return _num(c.NCDia_Campanya)>0||_num(c.NP)>0||_num(c.Mr)>0;
 }
 
 async function getToken(force){
@@ -1074,6 +1144,65 @@ const server=http.createServer(async(req,res)=>{
       res.end(JSON.stringify({error:e.message}));
     }
     return;
+  }
+  // === MODULE EVO SORTANT (plateforme Evolution/Ekiom, temps réel du jour) ===
+  // Agrège les mesurables campagnes + agents d'Evolution, filtre sur le sortant,
+  // et renvoie un JSON propre prêt à afficher. Source distincte d'INO.
+  if(url==="/api/evo/sortant"&&session){
+    try{
+      const[rawCamp,rawAg]=await Promise.all([
+        evoGetAuto("/manager/api/v1/measurable/campaigns?format=json"),
+        evoGetAuto("/manager/api/v1/measurable/agents?format=json")
+      ]);
+      const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>({
+        nom:c._name, id:c._id,
+        agents:_num(c.T),                 // agents connectés à la campagne
+        appels:_num(c.TrDia),             // transactions (appels) du jour
+        appelsHeure:_num(c.TrHora),       // appels de la dernière heure
+        positifs:_num(c.CUPosDia_Campanya), // contacts utiles positifs (résultats)
+        negatifs:_num(c.CUNegDia_Campanya), // contacts utiles négatifs
+        nonUtiles:_num(c.CNUDia_Campanya),  // contacts non utiles
+        nonContactes:_num(c.NCDia_Campanya),// non joignables
+        abandons:_num(c.AbDia),           // abandons du jour
+        finalises:_num(c.F)               // fiches finalisées par un agent
+      })).sort((a,b)=>b.appels-a.appels);
+      // Agents : on garde ceux ayant une activité de numérotation (sortant) ou des appels.
+      const agents=evoParse(rawAg).map(a=>({
+        nom:a._name, id:a._id,
+        campagne:(typeof a.CmpPau==="string"&&a.CmpPau)||"–", // campagne en cours
+        appels:_num(a.TraDia),            // transactions (appels) du jour
+        appelsHeure:_num(a.TraHora),
+        positifs:_num(a.CUPosDia_Agente), // résultats positifs
+        negatifs:_num(a.CUNegDia_Agente),
+        nonUtiles:_num(a.CNUDia_Agente),
+        nonContactes:_num(a.NCDia_Agente),
+        sessionSec:_num(a.Sesiones),      // temps en session du jour (s)
+        pauseSec:_num(a.PausasTiempo)     // temps en pause du jour (s)
+      })).filter(a=>a.appels>0||a.nonContactes>0).sort((a,b)=>b.appels-a.appels);
+      // Totaux du périmètre sortant
+      const sum=(arr,k)=>arr.reduce((s,x)=>s+x[k],0);
+      const totaux={
+        campagnes:camps.length,
+        appels:sum(camps,"appels"),
+        positifs:sum(camps,"positifs"),
+        nonContactes:sum(camps,"nonContactes"),
+        abandons:sum(camps,"abandons"),
+        agentsActifs:agents.length,
+        // Joignabilité = contacts aboutis / total tentés (positifs+négatifs+nonUtiles+nonContactés)
+        joignabilite:(function(){
+          const ab=sum(camps,"positifs")+sum(camps,"negatifs")+sum(camps,"nonUtiles");
+          const tot=ab+sum(camps,"nonContactes");
+          return tot>0?Math.round(ab/tot*100):null;
+        })()
+      };
+      res.writeHead(200,{"Content-Type":"application/json"});
+      return res.end(JSON.stringify({ok:true,generatedAt:new Date().toISOString(),totaux,campagnes:camps,agents}));
+    }catch(e){
+      console.error("[evo/sortant] Erreur:",e&&e.message||e);
+      res.writeHead(200,{"Content-Type":"application/json"});
+      // ok:false → le client affiche un message clair (« Evo injoignable ») sans inventer de données
+      return res.end(JSON.stringify({ok:false,error:e&&e.message?e.message:String(e)}));
+    }
   }
   // === STATUT FILES (agrégation temps réel depuis histories du jour) ===
   if(url==="/api/queues-status"&&session){
