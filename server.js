@@ -447,8 +447,9 @@ function evoProcessSqlFiles(rows){
   });
   return out;
 }
-// Agrège les lignes SQL brutes (agent × campagne) en un tableau par agent,
-// avec un sous-tableau de campagnes et les totaux cumulés de la journée.
+// Agrège les lignes SQL brutes (agent × campagne) en un tableau par agent.
+// session_span_sec = du premier appel au dernier appel terminé (inclus wrap-up)
+// → mesure la durée réelle de production, pas seulement le temps des appels.
 function evoProcessAgentCamps(rows){
   if(!rows||!rows.length)return[];
   const byAgent={};
@@ -457,7 +458,7 @@ function evoProcessAgentCamps(rows){
     if(!byAgent[aid])byAgent[aid]={idAgente:aid,camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,prod_sec:0,dmt_sum:0,dmt_n:0};
     const a=byAgent[aid];
     const nb=_num(r.nb);
-    const ps=_num(r.sum_call_sec)+_num(r.sum_wrapup_sec);
+    const ps=_num(r.session_span_sec);  // durée réelle (premier→dernier appel)
     a.camps.push({
       idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
@@ -473,12 +474,25 @@ function evoProcessAgentCamps(rows){
     dmt:a.dmt_n>0?Math.round(a.dmt_sum/a.dmt_n):null
   })).sort((a,b)=>b.nb-a.nb);
 }
+// Somme les session_span_sec par campagne (depuis q3) pour obtenir les heures
+// de production RÉELLES par campagne (somme des sessions de tous les agents).
+function evoAgentCampsToProdByCamp(agentCamps){
+  const out={};
+  agentCamps.forEach(a=>{
+    a.camps.forEach(cc=>{
+      const id=cc.idCampanya;
+      out[id]=(out[id]||0)+cc.prod_sec;
+    });
+  });
+  return out;
+}
 // Transforme les deux payloads bruts Evolution (campagnes + agents mesurables) en
 // JSON propre {totaux, campagnes, agents}, filtré sur le périmètre sortant.
-function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles){
+function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campProdBySqlId){
   // État des listes (fichier) par campagne, indexé par id ET par nom pour la jointure.
   const sqlStatsByCamp=evoProcessSqlStats(rawSqlStats||[]);
   const sqlFilesByCamp=evoProcessSqlFiles(rawSqlFiles||[]);
+  const prodByCamp=campProdBySqlId||{};
   const estadoArr=evoParseEstado(rawEstado);
   const estadoById={},estadoByName={};
   estadoArr.forEach(e=>{ if(e.id)estadoById[String(e.id)]=e; if(e.campaign)estadoByName[e.campaign.toLowerCase()]=e; });
@@ -502,8 +516,14 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles){
     fichierVierge: est?est.neuf     :null,  // fiches jamais appelées (« New »)
     restantATraiter:est?est.available:null, // fiches encore disponibles à appeler
     fichesConclues:est?est.finished :null,  // fiches clôturées
-    // Indicateurs SQL (DMC, DMT, refus/h, faux numéro, état fichier) — null si SQL indisponible
-    sql:sqlStatsByCamp[String(c._id)]||null,
+    // Indicateurs SQL — null si SQL indisponible
+    // total_prod_sec = somme des sessions agent (q3) = mesure réelle de production
+    sql:(()=>{
+      const s=sqlStatsByCamp[String(c._id)]||null;
+      if(!s)return null;
+      const realProd=prodByCamp[String(c._id)]||0;
+      return realProd>0?{...s,total_prod_sec:realProd}:s;
+    })(),
     fichier:sqlFilesByCamp[String(c._id)]||null
     };
   }).sort((a,b)=>b.appels-a.appels);
@@ -1361,8 +1381,10 @@ const server=http.createServer(async(req,res)=>{
           }
         }
       }
-      const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles);
       const agentCamps=evoProcessAgentCamps(rawSqlAgentCamps||[]);
+      // Heures de prod réelles par campagne (somme sessions agents depuis q3)
+      const campProdBySqlId=evoAgentCampsToProdByCamp(agentCamps);
+      const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campProdBySqlId);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
       return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,...payload}));

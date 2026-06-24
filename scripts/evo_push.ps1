@@ -178,9 +178,10 @@ SELECT
          AND LOWER(ISNULL(f.DESCRIPCION,'')) NOT LIKE '%rappel%'
          AND ISNULL(f.CONTACTADO, 0) <> 1
         THEN 1 ELSE 0 END)                                          AS definitifs,
-    SUM(CASE WHEN t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
-             THEN DATEDIFF(second, t.tInicio, t.tFinal) ELSE 0 END) AS sum_call_sec,
-    SUM(ISNULL(CAST(t.nTAdmin AS bigint), 0))                       AS sum_wrapup_sec,
+    DATEDIFF(second, MIN(t.tInicio),
+        MAX(CASE WHEN t.tFinal IS NOT NULL
+                 THEN DATEADD(second, ISNULL(t.nTAdmin, 0), t.tFinal)
+                 ELSE t.tInicio END))                               AS session_span_sec,
     AVG(CAST(t.nTAdmin AS float))                                   AS dmt_sec
 FROM TRANSACCION t WITH (NOLOCK)
 LEFT JOIN CAMPANYA c WITH (NOLOCK) ON c.IDCAMPANYA = t.idCampanya
@@ -198,17 +199,17 @@ ORDER BY t.idAgente, COUNT(*) DESC
     $rows3 = @()
     foreach ($r in $dt3.Rows) {
         $dmtA = if ($r["dmt_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmt_sec"] }
+        $spanA = if ($r["session_span_sec"] -is [System.DBNull]) { 0 } else { [long]$r["session_span_sec"] }
         $rows3 += @{
-            idAgente      = [string]$r["idAgente"]
-            idCampanya    = [string]$r["idCampanya"]
-            campNom       = [string]$r["campNom"]
-            nb            = [int]$r["nb"]
-            cuPos         = [int]$r["cuPos"]
-            cuTotal       = [int]$r["cuTotal"]
-            definitifs    = [int]$r["definitifs"]
-            sum_call_sec  = [long]$r["sum_call_sec"]
-            sum_wrapup_sec= [long]$r["sum_wrapup_sec"]
-            dmt_sec       = $dmtA
+            idAgente         = [string]$r["idAgente"]
+            idCampanya       = [string]$r["idCampanya"]
+            campNom          = [string]$r["campNom"]
+            nb               = [int]$r["nb"]
+            cuPos            = [int]$r["cuPos"]
+            cuTotal          = [int]$r["cuTotal"]
+            definitifs       = [int]$r["definitifs"]
+            session_span_sec = $spanA
+            dmt_sec          = $dmtA
         }
     }
     $sqlAgentCamps = $rows3
