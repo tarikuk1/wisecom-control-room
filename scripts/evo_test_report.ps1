@@ -1,5 +1,5 @@
-# evo_test_report.ps1 - Capture le corps de la reponse en cas d'erreur 500
-# pour comprendre ce qu'Evolution reproche aux valeurs des parametres.
+# evo_test_report.ps1 - Trouve le bon format de parametres pour le rapport 100000012.
+# Insight doc: les heures (hdesde/hhasta) sont des NOMBRES (0 a 2400), pas "HH:mm:ss".
 # Resultat enregistre dans evo_test_report_output.json (a envoyer pour analyse).
 
 $EvoHost   = "evo1.ekiom.net"
@@ -22,98 +22,93 @@ function Read-ErrorBody($Err) {
         $body = $reader.ReadToEnd()
         $reader.Close()
         return $body
-    } catch {
-        return ("Impossible de lire le corps : " + $_.Exception.Message)
-    }
+    } catch { return $null }
 }
 
 function Invoke-EvoReport($ReportId, $Body, $Label) {
     Write-Host ("=== {0} (rapport {1}) ===" -f $Label, $ReportId)
-    Write-Host ("Body envoye : {0}" -f $Body)
     try {
         $url = "https://$EvoHost/manager/api/v1/admin/reports/$ReportId/invoke?format=json"
         $resp = Invoke-WebRequest -Uri $url -Headers $webHeaders -Method Post -Body $Body -TimeoutSec 60 -UseBasicParsing
         $json = $resp.Content | ConvertFrom-Json
         $rowsCount = 0
         if ($json.ReportData -and $json.ReportData.RowsCount) { $rowsCount = $json.ReportData.RowsCount }
-        Write-Host ("OK - {0} lignes" -f $rowsCount)
-        return @{
-            label = $Label
-            reportId = $ReportId
-            bodySent = $Body
-            ok = $true
-            rowsCount = $rowsCount
-            response = $json
-        }
+        Write-Host ("  OK (200) - {0} lignes" -f $rowsCount)
+        return @{ label=$Label; reportId=$ReportId; bodySent=$Body; ok=$true; rowsCount=$rowsCount; response=$json }
     } catch {
         $errBody = Read-ErrorBody $_
-        Write-Host ("ERREUR HTTP : {0}" -f $_.Exception.Message)
-        Write-Host ("Corps de la reponse : {0}" -f $errBody)
-        return @{
-            label = $Label
-            reportId = $ReportId
-            bodySent = $Body
-            ok = $false
-            errorMessage = $_.Exception.Message
-            errorBody = $errBody
-        }
+        Write-Host ("  ERREUR : {0}" -f $_.Exception.Message)
+        return @{ label=$Label; reportId=$ReportId; bodySent=$Body; ok=$false; errorMessage=$_.Exception.Message; errorBody=$errBody }
     }
 }
 
-$today_iso = Get-Date -Format "yyyy-MM-dd"
+$d_iso = "2026-06-23"
+$d_fr  = "23/06/2026"
 
 $tests = @()
 
-# Controle : pas de parametres (on sait que ca renvoie 0 lignes sans erreur)
-$tests += Invoke-EvoReport 100000012 '{"Parameters":[]}' "Ctrl_vide"
-
-# Test 1 : valeurs string -1
+# V1 : ids=-1 (string), dates ISO, HEURES = NOMBRES 0 et 2400, transorg=-1
 $tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
-    '{"Name":"idsvc","Value":"-1"},' +
-    '{"Name":"idcampa","Value":"-1"},' +
-    '{"Name":"idsegm","Value":"-1"},' +
-    '{"Name":"idagent","Value":"-1"},' +
-    '{"Name":"idfinal","Value":"-1"},' +
-    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
-    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
-    '{"Name":"hdesde","Value":"00:00:00"},' +
-    '{"Name":"hhasta","Value":"23:59:59"},' +
-    '{"Name":"transorg","Value":"-1"}' +
-']}') "T1_string_moins1_ISO"
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":"-1"}]}') "V1_ids-1_ISO_heuresNombres"
 
-# Test 2 : valeurs entieres -1 (pas de guillemets autour)
+# V2 : ids=0, dates ISO, heures nombres
 $tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
-    '{"Name":"idsvc","Value":-1},' +
-    '{"Name":"idcampa","Value":-1},' +
-    '{"Name":"idsegm","Value":-1},' +
-    '{"Name":"idagent","Value":-1},' +
-    '{"Name":"idfinal","Value":-1},' +
-    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
-    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
-    '{"Name":"hdesde","Value":"00:00:00"},' +
-    '{"Name":"hhasta","Value":"23:59:59"},' +
-    '{"Name":"transorg","Value":-1}' +
-']}') "T2_int_moins1_ISO"
+  '{"Name":"idsvc","Value":"0"},{"Name":"idcampa","Value":"0"},{"Name":"idsegm","Value":"0"},' +
+  '{"Name":"idagent","Value":"0"},{"Name":"idfinal","Value":"0"},' +
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":"0"}]}') "V2_ids0_ISO_heuresNombres"
 
-# Test 3 : seulement les dates (pas d'IDs)
+# V3 : seulement dates + heures nombres (pas d'ids)
 $tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
-    '{"Name":"fdesde","Value":"' + $today_iso + '"},' +
-    '{"Name":"fhasta","Value":"' + $today_iso + '"},' +
-    '{"Name":"hdesde","Value":"00:00:00"},' +
-    '{"Name":"hhasta","Value":"23:59:59"}' +
-']}') "T3_dates_seules"
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400}]}') "V3_datesISO_heuresNombres_seul"
 
-# Test 4 : un seul parametre (fdesde) pour voir si l'erreur est plus parlante
+# V4 : dates FR + heures nombres
 $tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
-    '{"Name":"fdesde","Value":"' + $today_iso + '"}' +
-']}') "T4_fdesde_seul"
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"'+$d_fr+'"},{"Name":"fhasta","Value":"'+$d_fr+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":"-1"}]}') "V4_ids-1_FR_heuresNombres"
 
-# Test 5 : nom de cle "value" en minuscules
+# V5 : dates ISO avec heure "yyyy-MM-dd HH:mm:ss", heures nombres
 $tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
-    '{"name":"idsvc","value":"-1"},' +
-    '{"name":"fdesde","value":"' + $today_iso + '"}' +
-']}') "T5_keys_minuscules"
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"2026-06-23 00:00:00"},{"Name":"fhasta","Value":"2026-06-23 23:59:59"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":"-1"}]}') "V5_datetimeSpace_heuresNombres"
+
+# V6 : heures en string "0"/"2400"
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":"0"},{"Name":"hhasta","Value":"2400"},{"Name":"transorg","Value":"-1"}]}') "V6_heuresStringNombres"
+
+# V7 : tout en nombres (ids entiers -1, heures nombres, transorg entier)
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+  '{"Name":"idsvc","Value":-1},{"Name":"idcampa","Value":-1},{"Name":"idsegm","Value":-1},' +
+  '{"Name":"idagent","Value":-1},{"Name":"idfinal","Value":-1},' +
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":-1}]}') "V7_idsEntiers_heuresNombres"
+
+# V8 : dates format compact yyyyMMdd, heures nombres
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"20260623"},{"Name":"fhasta","Value":"20260623"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2400},{"Name":"transorg","Value":"-1"}]}') "V8_datesCompact_heuresNombres"
+
+# V9 : heures 0 et 2359
+$tests += Invoke-EvoReport 100000012 ('{"Parameters":[' +
+  '{"Name":"idsvc","Value":"-1"},{"Name":"idcampa","Value":"-1"},{"Name":"idsegm","Value":"-1"},' +
+  '{"Name":"idagent","Value":"-1"},{"Name":"idfinal","Value":"-1"},' +
+  '{"Name":"fdesde","Value":"'+$d_iso+'"},{"Name":"fhasta","Value":"'+$d_iso+'"},' +
+  '{"Name":"hdesde","Value":0},{"Name":"hhasta","Value":2359},{"Name":"transorg","Value":"-1"}]}') "V9_heures0_2359"
 
 $tests | ConvertTo-Json -Depth 12 | Out-File -FilePath $OutputFile -Encoding UTF8
 Write-Host ""
 Write-Host ("Resultat enregistre dans : {0}" -f $OutputFile)
+Write-Host "Regarde quelle ligne affiche 'OK (200)' au lieu de 'ERREUR'."
