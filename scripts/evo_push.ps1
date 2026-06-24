@@ -90,7 +90,10 @@ SELECT
              THEN CAST(DATEDIFF(second, t.tInicio, t.tFinal) AS float)
              ELSE NULL END)         AS dmc_sec,
     AVG(CAST(t.nTAdmin AS float))   AS dmt_sec,
-    AVG(CAST(t.nTQ    AS float))    AS attente_sec
+    AVG(CAST(t.nTQ    AS float))    AS attente_sec,
+    SUM(CASE WHEN t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
+             THEN DATEDIFF(second, t.tInicio, t.tFinal) ELSE 0 END) AS sum_call_sec,
+    SUM(ISNULL(CAST(t.nTAdmin AS bigint), 0))                       AS sum_wrapup_sec
 FROM TRANSACCION t WITH (NOLOCK)
 LEFT JOIN CAMPANYA c WITH (NOLOCK) ON c.IDCAMPANYA = t.idCampanya
 LEFT JOIN FINALES  f WITH (NOLOCK) ON f.IDCAMPANYA = t.idCampanya AND f.IDFINAL = t.idFinal
@@ -109,17 +112,21 @@ ORDER BY t.idCampanya, COUNT(*) DESC
         $dmc = if ($r["dmc_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmc_sec"] }
         $dmt = if ($r["dmt_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmt_sec"] }
         $att = if ($r["attente_sec"] -is [System.DBNull]) { $null } else { [double]$r["attente_sec"] }
+        $cSec = if ($r["sum_call_sec"]   -is [System.DBNull]) { 0 } else { [long]$r["sum_call_sec"] }
+        $wSec = if ($r["sum_wrapup_sec"] -is [System.DBNull]) { 0 } else { [long]$r["sum_wrapup_sec"] }
         $rows1 += @{
-            idCampanya = [string]$r["idCampanya"]
-            campNom    = [string]$r["campNom"]
-            idFinal    = [string]$r["idFinal"]
-            finalNom   = [string]$r["finalNom"]
-            contactado = [int]$r["contactado"]
-            claseFinal = [int]$r["claseFinal"]
-            nb         = [int]$r["nb"]
-            dmc_sec    = $dmc
-            dmt_sec    = $dmt
-            attente_sec= $att
+            idCampanya    = [string]$r["idCampanya"]
+            campNom       = [string]$r["campNom"]
+            idFinal       = [string]$r["idFinal"]
+            finalNom      = [string]$r["finalNom"]
+            contactado    = [int]$r["contactado"]
+            claseFinal    = [int]$r["claseFinal"]
+            nb            = [int]$r["nb"]
+            dmc_sec       = $dmc
+            dmt_sec       = $dmt
+            attente_sec   = $att
+            sum_call_sec  = $cSec
+            sum_wrapup_sec= $wSec
         }
     }
     $sqlStats = $rows1

@@ -4598,7 +4598,17 @@ async function loadEvo(){
     const _dp=document.getElementById("evo-date-filter");
     if(_dp&&!_dp.value){_dp.value=new Date().toLocaleDateString("sv");_evoDateFilter=_dp.value;}
     renderEvo(d);
-    if(ts)ts.textContent="Mis à jour à "+new Date(d.generatedAt).toLocaleTimeString("fr-FR");
+    if(ts){
+      const nbAg=(d.agents||[]).length;
+      const nbCamp=(d.campagnes||[]).length;
+      const sqlOk=nbCamp>0&&(d.campagnes||[]).some(c=>c.sql);
+      const ageMin=d.staleSec>0?Math.round(d.staleSec/60):0;
+      const ageTxt=ageMin>0?" · données âgées de "+ageMin+" min":"";
+      const agColor=nbAg===0?"color:#ff9f0a;":"";
+      ts.innerHTML=`<span style="color:var(--t-disabled)">Mis à jour à ${new Date(d.generatedAt).toLocaleTimeString("fr-FR")}</span>`
+        +` · <span style="${agColor}font-weight:600">${nbAg} agent${nbAg!==1?"s":""} actif${nbAg!==1?"s":""}</span>`
+        +` · <span style="color:var(--t-disabled)">${nbCamp} campagne${nbCamp!==1?"s":""}${sqlOk?" · SQL ✓":""}${ageTxt}</span>`;
+    }
   }catch(e){
     showToast("Erreur de chargement Evo : "+(e.message||e),"error",5000);
   }finally{
@@ -4729,9 +4739,10 @@ function renderEvo(d){
   const cu=positifs+negatifs;                // total contacts utiles (CU)
   const nonContactes=sum(camps,"nonContactes");
   const abandons=sum(camps,"abandons");
-  // Heures de production = somme des temps de session des agents du périmètre,
-  // arrondies à 5 min. (Source réelle : temps de session du jour par agent.)
-  const heuresProd=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
+  // Heures de production = somme des sessions agents (REST), ou somme SQL appels+wrapup si agents absents
+  const heuresProdRest=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
+  const heuresProdSql=camps.reduce((s,c)=>s+(c.sql&&c.sql.total_prod_sec>0?c.sql.total_prod_sec/3600:0),0);
+  const heuresProd=heuresProdRest>0?heuresProdRest:heuresProdSql;
   const joign=(function(){const ab=positifs+negatifs+nonUtiles;const tot=ab+nonContactes;return tot>0?Math.round(ab/tot*100):null;})();
   const fmtH=h=>h>0?(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min"):"–";
   const fmtR=r=>r==null?"n.d.":r.toLocaleString("fr-FR");
@@ -4781,32 +4792,42 @@ function renderEvo(d){
   // Durée en h/min lisible (les temps de session dépassent souvent l'heure)
   const hm=sec=>{if(!sec||sec<0)return"–";const h=Math.floor(sec/3600),m=Math.round(sec%3600/60);return h>0?h+"h"+String(m).padStart(2,"0"):m+"min";};
 
-  // Heures de production par campagne = somme des sessions des agents actuellement sur cette campagne
+  // Heures de production par campagne
+  // Priorité 1 : sessions des agents REST (si dispo et affectés à une campagne)
+  // Priorité 2 : temps cumulé appels + wrap-up depuis SQL (proxy fiable si REST absent)
   const heuresParCamp={};
   (d.agents||[]).forEach(a=>{heuresParCamp[a.campagne]=(heuresParCamp[a.campagne]||0)+evoHeuresProd5(a.sessionSec);});
+  // Fonction qui renvoie les heures prod pour une campagne (REST ou fallback SQL)
+  const getHP=c=>{
+    const rest=heuresParCamp[c.nom]||0;
+    if(rest>0)return rest;
+    // Fallback SQL : total_prod_sec = somme durées appels + wrap-up de la journée
+    return c.sql&&c.sql.total_prod_sec>0 ? c.sql.total_prod_sec/3600 : 0;
+  };
 
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th>Agents</th><th>Appels</th>
-      <th>CU total</th><th>Accords (CU+)</th><th>H. prod</th><th>CU/h</th><th>Accords/h</th>
+      <th>CU total</th><th>Accords (CU+)</th><th title="Heures prod (session agents ou cumul appels SQL si REST absent)">H. prod</th><th>CU/h</th><th>Accords/h</th>
       <th>Non joign.</th><th>Fiches finalisées</th>
       <th title="Durée Moy. Conv. (source SQL)">DMC</th><th title="Taux de contact SQL">Contact%</th><th>Refus/h</th><th>Fichier dispo</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
-      const hp=heuresParCamp[c.nom]||0; const cuC=(c.positifs||0)+(c.negatifs||0);
+      const hp=getHP(c); const cuC=(c.positifs||0)+(c.negatifs||0);
+      const hpSrc=heuresParCamp[c.nom]>0?"":"*"; // * = source SQL (pas session REST)
       return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
       <td>${c.agents}</td><td><b>${c.appels.toLocaleString("fr-FR")}</b></td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
       <td style="color:#30d158">${c.positifs.toLocaleString("fr-FR")}</td>
-      <td>${fmtH(hp)}</td>
+      <td title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
       <td>${fmtR(evoParH(cuC,hp))}</td>
       <td style="color:#30d158">${fmtR(evoParH(c.positifs,hp))}</td>
       <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td>${c.sql&&c.sql.tauxContact!=null?c.sql.tauxContact+"%":"–"}</td>
-      <td>${c.sql&&heuresParCamp[c.nom]>0?fmtR(evoParH(c.sql.refus,heuresParCamp[c.nom])):"–"}</td>
+      <td>${c.sql&&hp>0?fmtR(evoParH(c.sql.refus,hp)):"–"}</td>
       <td>${c.fichier?c.fichier.disponibles.toLocaleString("fr-FR")+(c.fichier.tauxDescente!=null?" ("+c.fichier.tauxDescente+"% fini)":""):"–"}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
 

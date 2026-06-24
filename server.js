@@ -396,7 +396,8 @@ function evoProcessSqlStats(rows){
       idCampanya:id, campNom:r.campNom||"",
       nbTrans:0, cuTotal:0, cuPos:0, cuNeg:0,
       refus:0, fauxNum:0, repondeur:0, sansRep:0,
-      dmc_sum:0, dmc_n:0, dmt_sum:0, dmt_n:0, att_sum:0, att_n:0
+      dmc_sum:0, dmc_n:0, dmt_sum:0, dmt_n:0, att_sum:0, att_n:0,
+      call_sum:0, wrapup_sum:0
     };
     const c=byCamp[id];
     const nb=_num(r.nb);
@@ -414,6 +415,9 @@ function evoProcessSqlStats(rows){
     if(r.dmc_sec!=null&&ctd>0){c.dmc_sum+=r.dmc_sec*nb;c.dmc_n+=nb;}
     if(r.dmt_sec!=null){c.dmt_sum+=r.dmt_sec*nb;c.dmt_n+=nb;}
     if(r.attente_sec!=null){c.att_sum+=r.attente_sec*nb;c.att_n+=nb;}
+    // Temps total appels + wrap-up (base des calculs par heure si session REST non dispo)
+    c.call_sum+=_num(r.sum_call_sec);
+    c.wrapup_sum+=_num(r.sum_wrapup_sec);
   });
   const out={};
   Object.values(byCamp).forEach(c=>{
@@ -422,7 +426,8 @@ function evoProcessSqlStats(rows){
       dmc: c.dmc_n>0?Math.round(c.dmc_sum/c.dmc_n):null,
       dmt: c.dmt_n>0?Math.round(c.dmt_sum/c.dmt_n):null,
       attente: c.att_n>0?Math.round(c.att_sum/c.att_n):null,
-      tauxContact: c.nbTrans>0?Math.round(c.cuTotal/c.nbTrans*100):null
+      tauxContact: c.nbTrans>0?Math.round(c.cuTotal/c.nbTrans*100):null,
+      total_prod_sec: c.call_sum+c.wrapup_sum   // proxy heures prod (appels+wrapup SQL)
     };
   });
   return out;
@@ -451,7 +456,9 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles){
   const estadoArr=evoParseEstado(rawEstado);
   const estadoById={},estadoByName={};
   estadoArr.forEach(e=>{ if(e.id)estadoById[String(e.id)]=e; if(e.campaign)estadoByName[e.campaign.toLowerCase()]=e; });
-  const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>{
+  // Campagnes ayant de l'activité SQL aujourd'hui : incluses même si les compteurs REST sont à 0
+  const sqlActiveCampIds=new Set(Object.keys(sqlStatsByCamp));
+  const camps=evoParse(rawCamp).filter(c=>evoIsOutbound(c)||sqlActiveCampIds.has(String(c._id))).map(c=>{
     const est=estadoById[String(c._id)]||estadoByName[String(c._name||"").toLowerCase()]||null;
     return {
     nom:c._name, id:c._id,
