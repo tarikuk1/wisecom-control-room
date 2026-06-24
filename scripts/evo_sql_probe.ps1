@@ -54,7 +54,9 @@ function Run-Query($conn,$sql){
     $da = New-Object System.Data.SqlClient.SqlDataAdapter $cmd
     $dt = New-Object System.Data.DataTable
     $da.Fill($dt) | Out-Null
-    return $dt
+    # ,$dt : la virgule empeche PowerShell de "derouler" la DataTable en lignes
+    # (sinon l'appelant recoit des DataRow et $x.Rows devient null).
+    return ,$dt
 }
 function Dump-Table($dt,$maxRows){
     if($dt.Rows.Count -eq 0){ Out2 "   (aucune ligne)"; return }
