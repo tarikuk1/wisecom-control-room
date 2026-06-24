@@ -447,6 +447,32 @@ function evoProcessSqlFiles(rows){
   });
   return out;
 }
+// Agrège les lignes SQL brutes (agent × campagne) en un tableau par agent,
+// avec un sous-tableau de campagnes et les totaux cumulés de la journée.
+function evoProcessAgentCamps(rows){
+  if(!rows||!rows.length)return[];
+  const byAgent={};
+  rows.forEach(r=>{
+    const aid=String(r.idAgente||"");
+    if(!byAgent[aid])byAgent[aid]={idAgente:aid,camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,prod_sec:0,dmt_sum:0,dmt_n:0};
+    const a=byAgent[aid];
+    const nb=_num(r.nb);
+    const ps=_num(r.sum_call_sec)+_num(r.sum_wrapup_sec);
+    a.camps.push({
+      idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
+      nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
+      prod_sec:ps,
+      dmt:r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null
+    });
+    a.nb+=nb; a.cuPos+=_num(r.cuPos); a.cuTotal+=_num(r.cuTotal);
+    a.definitifs+=_num(r.definitifs); a.prod_sec+=ps;
+    if(r.dmt_sec!=null){a.dmt_sum+=_num(r.dmt_sec)*nb;a.dmt_n+=nb;}
+  });
+  return Object.values(byAgent).map(a=>({
+    ...a,
+    dmt:a.dmt_n>0?Math.round(a.dmt_sum/a.dmt_n):null
+  })).sort((a,b)=>b.nb-a.nb);
+}
 // Transforme les deux payloads bruts Evolution (campagnes + agents mesurables) en
 // JSON propre {totaux, campagnes, agents}, filtré sur le périmètre sortant.
 function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles){
@@ -1315,10 +1341,10 @@ const server=http.createServer(async(req,res)=>{
   // de secours est tenté si aucun envoi récent n'est en cache.
   if(url==="/api/evo/sortant"&&session){
     try{
-      let rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,generatedAt;
+      let rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,generatedAt;
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
       if(cacheFresh){
-        ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+        ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
       }else{
         try{
           [rawCamp,rawAg]=await Promise.all([
@@ -1328,7 +1354,7 @@ const server=http.createServer(async(req,res)=>{
           generatedAt=new Date().toISOString();
         }catch(directErr){
           if(_evoCache){ // repli sur un cache périmé plutôt que rien — on le signale clairement
-            ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+            ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
           }else{
             res.writeHead(200,{"Content-Type":"application/json"});
             return res.end(JSON.stringify({ok:false,error:"En attente du premier envoi depuis le poste local (voir script evo_push). "+directErr.message}));
@@ -1336,9 +1362,10 @@ const server=http.createServer(async(req,res)=>{
         }
       }
       const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles);
+      const agentCamps=evoProcessAgentCamps(rawSqlAgentCamps||[]);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1355,10 +1382,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents,estado,sqlStats,sqlFiles}=JSON.parse(body);
+        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
-        // 'estado', 'sqlStats', 'sqlFiles' sont optionnels — compat avec l'ancien script.
-        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null};_evoCacheAt=Date.now();
+        // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps' sont optionnels — compat avec l'ancien script.
+        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null};_evoCacheAt=Date.now();
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){

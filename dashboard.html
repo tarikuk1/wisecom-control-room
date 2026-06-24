@@ -1402,15 +1402,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">⏳ Indicateurs détaillés — à venir</span></div>
-      <div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-muted);line-height:1.6;">
-        DMC, DMT, temps d'attente, taux de contact et état du fichier sont maintenant lus directement
-        depuis la <b>base de données Evolution</b> (lecture seule) et s'affichent dans les tableaux ci-dessus
-        dès que le script <code>evo_push.ps1</code> tourne. Si les colonnes affichent "–", c'est que le
-        script n'a pas encore envoyé de données SQL (relancez-le manuellement ou attendez le Planificateur).
-        <br>Restent à venir : <b>tentatives moyennes par fiche</b> (données fichier enrichies) et les
-        <b>indicateurs historiques multi-jours</b>.
-      </div>
+      <div class="panel-header"><span class="panel-title">Production par agent — détail par campagne <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">source SQL, données du jour</span></span></div>
+      <div id="evo-agent-camp-table" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -4852,6 +4845,59 @@ function renderEvo(d){
       <td>${fmtR(evoParH(a.appels,hp))}</td>
       <td>${hm(a.pauseSec)}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sur les campagnes sélectionnées.</td></tr></tbody>`;
+
+  // ── Tableau agent × campagne (source SQL) ──────────────────────────────────
+  const box2=document.getElementById("evo-agent-camp-table");
+  if(!box2)return;
+  const agCamps=(d.agentCamps||[]);
+  if(!agCamps.length){
+    box2.innerHTML=`<div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-disabled)">Données agent par campagne non disponibles (en attente du prochain envoi SQL).</div>`;
+    return;
+  }
+  // Formateurs locaux
+  const fmtSec2=s=>s==null||s<=0?"–":(s<60?Math.round(s)+"s":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0")+"s");
+  const fmtH2=h=>h<=0?"–":(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min");
+  const ec2=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+  // Mapper les noms d'agents REST sur leurs ID Evolution (pour affichage du nom)
+  const agNameById={};
+  (d.agents||[]).forEach(a=>{if(a.id&&a.nom)agNameById[String(a.id)]=a.nom;});
+
+  box2.innerHTML=`<table class="tbl">
+    <thead><tr>
+      <th style="text-align:left">Agent</th>
+      <th title="Temps cumulé appels + wrap-up (source SQL)">H. prod (SQL)</th>
+      <th>Appels</th><th>CU+</th><th title="Contacts utiles + accords par heure prod SQL">CU+/h</th>
+      <th title="Fiches hors refus / rappel / NRP — conclusions définitives">Fiches défin.</th>
+      <th title="Durée Moy. Traitement (wrap-up moyen SQL)">DMT moy.</th>
+      <th>Détail campagnes</th>
+    </tr></thead>
+    <tbody>${agCamps.map(a=>{
+      const nom=agNameById[a.idAgente]||("Agent #"+a.idAgente);
+      const ph=a.prod_sec>0?a.prod_sec/3600:0;
+      const detailRows=a.camps.map(cc=>{
+        const ph2=cc.prod_sec>0?cc.prod_sec/3600:0;
+        return `<span style="display:inline-flex;gap:6px;align-items:center;background:var(--s-4);border-radius:4px;padding:2px 7px;font-size:10px;white-space:nowrap;">`
+          +`<b style="color:var(--t-primary)">${ec2(cc.campNom)||("Camp."+cc.idCampanya)}</b>`
+          +` ${cc.nb} app.`
+          +` · CU+ ${cc.cuPos}`
+          +` · ${fmtH2(ph2)}`
+          +` · défin. ${cc.definitifs}`
+          +(cc.dmt!=null?` · DMT ${fmtSec2(cc.dmt)}`:"")
+          +`</span>`;
+      }).join(" ");
+      return `<tr>
+        <td style="text-align:left;font-weight:600">${ec2(nom)}</td>
+        <td>${fmtH2(ph)}</td>
+        <td>${a.nb.toLocaleString("fr-FR")}</td>
+        <td style="color:#30d158;font-weight:600">${a.cuPos.toLocaleString("fr-FR")}</td>
+        <td>${ph>0?fmtR(evoParH(a.cuPos,ph)):"–"}</td>
+        <td>${a.definitifs.toLocaleString("fr-FR")}</td>
+        <td>${fmtSec2(a.dmt)}</td>
+        <td style="max-width:400px;white-space:normal;line-height:1.8">${detailRows||"–"}</td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table>`;
 }
 
 function showToast(msg,color="#30d158",durationMs){

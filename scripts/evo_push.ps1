@@ -68,6 +68,7 @@ try {
 # --- Requete SQL EVOLUTIONDB (LECTURE SEULE) ---
 $sqlStats = $null
 $sqlFiles = $null
+$sqlAgentCamps = $null
 try {
     $cs = "Server=45.129.110.3;Database=EVOLUTIONDB;User Id=sa;Password=Kj41mg65e!;Encrypt=False;TrustServerCertificate=True;Connect Timeout=12"
     $sc = New-Object System.Data.SqlClient.SqlConnection $cs
@@ -162,14 +163,64 @@ GROUP BY isc.IDCAMPANYA
         }
     }
     $sqlFiles = $rows2
+
+    # Stats par agent x campagne (production individuelle, fiches definitives)
+    $q3 = @"
+SELECT
+    t.idAgente,
+    t.idCampanya,
+    c.NOMBRE                                                        AS campNom,
+    COUNT(*)                                                        AS nb,
+    SUM(CASE WHEN ISNULL(f.CONTACTADO,0) >= 2 THEN 1 ELSE 0 END)   AS cuPos,
+    SUM(CASE WHEN ISNULL(f.CONTACTADO,0) > 0  THEN 1 ELSE 0 END)   AS cuTotal,
+    SUM(CASE
+        WHEN t.idFinal NOT IN (1, 19)
+         AND LOWER(ISNULL(f.DESCRIPCION,'')) NOT LIKE '%rappel%'
+         AND ISNULL(f.CONTACTADO, 0) <> 1
+        THEN 1 ELSE 0 END)                                          AS definitifs,
+    SUM(CASE WHEN t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
+             THEN DATEDIFF(second, t.tInicio, t.tFinal) ELSE 0 END) AS sum_call_sec,
+    SUM(ISNULL(CAST(t.nTAdmin AS bigint), 0))                       AS sum_wrapup_sec,
+    AVG(CAST(t.nTAdmin AS float))                                   AS dmt_sec
+FROM TRANSACCION t WITH (NOLOCK)
+LEFT JOIN CAMPANYA c WITH (NOLOCK) ON c.IDCAMPANYA = t.idCampanya
+LEFT JOIN FINALES  f WITH (NOLOCK) ON f.IDCAMPANYA = t.idCampanya AND f.IDFINAL = t.idFinal
+WHERE t.tInicio >= CAST(CAST(GETDATE() AS date) AS datetime)
+  AND t.tInicio <  DATEADD(day,1,CAST(CAST(GETDATE() AS date) AS datetime))
+  AND t.nOrigenTransaccion IN (4,5)
+  AND t.Estado = 1
+GROUP BY t.idAgente, t.idCampanya, c.NOMBRE
+ORDER BY t.idAgente, COUNT(*) DESC
+"@
+    $cmd3 = $sc.CreateCommand(); $cmd3.CommandText = $q3; $cmd3.CommandTimeout = 30
+    $da3 = New-Object System.Data.SqlClient.SqlDataAdapter $cmd3
+    $dt3 = New-Object System.Data.DataTable; $da3.Fill($dt3) | Out-Null
+    $rows3 = @()
+    foreach ($r in $dt3.Rows) {
+        $dmtA = if ($r["dmt_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmt_sec"] }
+        $rows3 += @{
+            idAgente      = [string]$r["idAgente"]
+            idCampanya    = [string]$r["idCampanya"]
+            campNom       = [string]$r["campNom"]
+            nb            = [int]$r["nb"]
+            cuPos         = [int]$r["cuPos"]
+            cuTotal       = [int]$r["cuTotal"]
+            definitifs    = [int]$r["definitifs"]
+            sum_call_sec  = [long]$r["sum_call_sec"]
+            sum_wrapup_sec= [long]$r["sum_wrapup_sec"]
+            dmt_sec       = $dmtA
+        }
+    }
+    $sqlAgentCamps = $rows3
+
     $sc.Close()
-    Write-Log ("SQL OK : " + $rows1.Count + " lignes stats, " + $rows2.Count + " campagnes fichier")
+    Write-Log ("SQL OK : " + $rows1.Count + " lignes stats, " + $rows2.Count + " campagnes fichier, " + $rows3.Count + " lignes agent x campagne")
 } catch {
     Write-Log ("AVERTISSEMENT SQL (lecture seule) : " + $_.Exception.Message + " - envoi sans stats SQL.")
 }
 
 try {
-    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado; sqlStats = $sqlStats; sqlFiles = $sqlFiles } | ConvertTo-Json -Depth 12 -Compress
+    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado; sqlStats = $sqlStats; sqlFiles = $sqlFiles; sqlAgentCamps = $sqlAgentCamps } | ConvertTo-Json -Depth 12 -Compress
     $pushHeaders = @{ "X-Evo-Push-Secret" = $PushSecret; "Content-Type" = "application/json" }
     $resp = Invoke-RestMethod -Uri $DashboardUrl -Headers $pushHeaders -Method Post -Body $body -TimeoutSec 15
 
