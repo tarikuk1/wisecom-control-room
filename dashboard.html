@@ -461,6 +461,7 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
 body.light .kpi-card{background:#fff;border-color:#e4e4ec;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .kpi-card.alert{border-color:var(--c-pink);background:linear-gradient(135deg,#1a0810,#141414);}
 .kpi-card.good{border-color:var(--c-green);background:linear-gradient(135deg,#081a10,#141414);}
+.kpi-card.dim{opacity:0.45;}
 .kpi-label{font-size:var(--fs-xs);color:var(--t-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:var(--fw-medium);}
 .kpi-value{font-size:var(--fs-kpi);font-weight:var(--fw-black);color:var(--c-white);line-height:1.1;font-variant-numeric:tabular-nums;}
 body.light .kpi-value{color:var(--s-1);}
@@ -1403,15 +1404,12 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">⏳ Indicateurs détaillés — à venir</span></div>
       <div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-muted);line-height:1.6;">
-        Les indicateurs suivants nécessitent le <b>détail des transactions</b> et l'<b>état des fichiers</b> d'Evolution :
-        <b>DMC</b> (durée moyenne de conversation), <b>DMT</b> (durée moyenne de traitement),
-        <b>temps d'attente avant appel</b>, <b>refus de répondre / h</b>, <b>faux numéro / h</b>,
-        <b>fichier vierge restant</b>, <b>nombre de tentatives moyen par fiche</b>,
-        <b>taux de contact</b> et <b>taux de descente</b>.<br>
-        Ces rapports répondent dans l'interface web d'Evolution mais leur API publique refuse actuellement
-        tout filtrage (erreur serveur 500 dès qu'on envoie une date ou une campagne ; sans filtre, l'API
-        ne renvoie qu'une seule campagne). Ils seront ajoutés dès qu'un <b>accès direct à la base de données</b>
-        Evolution sera en place — toutes ces données y sont disponibles dans les tables de transactions et de fichiers.
+        DMC, DMT, temps d'attente, taux de contact et état du fichier sont maintenant lus directement
+        depuis la <b>base de données Evolution</b> (lecture seule) et s'affichent dans les tableaux ci-dessus
+        dès que le script <code>evo_push.ps1</code> tourne. Si les colonnes affichent "–", c'est que le
+        script n'a pas encore envoyé de données SQL (relancez-le manuellement ou attendez le Planificateur).
+        <br>Restent à venir : <b>tentatives moyennes par fiche</b> (données fichier enrichies) et les
+        <b>indicateurs historiques multi-jours</b>.
       </div>
     </div>
   </div>
@@ -4738,6 +4736,22 @@ function renderEvo(d){
   const fmtH=h=>h>0?(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min"):"–";
   const fmtR=r=>r==null?"n.d.":r.toLocaleString("fr-FR");
 
+  // Agrégats SQL du périmètre sélectionné (null si SQL non disponible)
+  const sqlCamps=camps.filter(c=>c.sql);
+  const hasSql=sqlCamps.length>0;
+  const wAvg=(arr,val,wt)=>{let sv=0,sw=0;arr.forEach(c=>{if(c.sql&&c.sql[val]!=null&&c.sql[wt]>0){sv+=c.sql[val]*c.sql[wt];sw+=c.sql[wt];}});return sw>0?Math.round(sv/sw):null;};
+  const sqlSum=(arr,k)=>hasSql?arr.reduce((s,c)=>s+(c.sql&&c.sql[k]||0),0):null;
+  const dmc=wAvg(camps,"dmc","dmc_n");     // DMC global pondéré
+  const dmt=wAvg(camps,"dmt","dmt_n");     // DMT global pondéré
+  const attente=wAvg(camps,"attente","att_n"); // temps d'attente global
+  const refus=sqlSum(camps,"refus");
+  const fauxNum=sqlSum(camps,"fauxNum");
+  const nbTransSql=sqlSum(camps,"nbTrans");
+  const cuTotalSql=sqlSum(camps,"cuTotal");
+  const tauxContact=nbTransSql>0?Math.round(cuTotalSql/nbTransSql*100):null;
+  const fmtSec=s=>s==null?"n.d.":(s<60?Math.round(s)+"s":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0")+"s");
+  const fmtPct=p=>p==null?"n.d.":p+"%";
+
   const kpis=[
     {l:"Appels sortants",v:appels.toLocaleString("fr-FR"),sub:camps.length+" campagne"+(camps.length>1?"s":"")+" sélectionnée"+(camps.length>1?"s":""),hero:true},
     {l:"Total contacts CU",v:cu.toLocaleString("fr-FR"),sub:"Positifs + négatifs",good:true},
@@ -4747,9 +4761,15 @@ function renderEvo(d){
     {l:"Accords / heure",v:fmtR(evoParH(positifs,heuresProd)),sub:"CU+ par heure"},
     {l:"Fiches traitées / heure",v:fmtR(evoParH(appels,heuresProd)),sub:"Appels par heure"},
     {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"Contacts aboutis / tentés",gauge:joign},
+    {l:"DMC (durée moy. conv.)",v:fmtSec(dmc),sub:"Secondes agent / contact utile",sql:!hasSql},
+    {l:"DMT (wrap-up moyen)",v:fmtSec(dmt),sub:"Temps après appel agent"},
+    {l:"Temps d'attente",v:fmtSec(attente),sub:"Attente en file avant décroché"},
+    {l:"Refus / heure",v:fmtR(evoParH(refus||0,heuresProd)),sub:"Refus agent par heure prod"},
+    {l:"Faux numéros / h",v:fmtR(evoParH(fauxNum||0,heuresProd)),sub:"N° incorrect + modem/fax"},
+    {l:"Taux de contact",v:fmtPct(tauxContact),sub:"Contacts utiles / total appels (SQL)",gauge:tauxContact},
   ];
   document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
-    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}">
+    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}">
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
@@ -4770,6 +4790,7 @@ function renderEvo(d){
       <th style="text-align:left">Campagne</th><th>Agents</th><th>Appels</th>
       <th>CU total</th><th>Accords (CU+)</th><th>H. prod</th><th>CU/h</th><th>Accords/h</th>
       <th>Non joign.</th><th>Fiches finalisées</th>
+      <th title="Durée Moy. Conv. (source SQL)">DMC</th><th title="Taux de contact SQL">Contact%</th><th>Refus/h</th><th>Fichier dispo</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
       const hp=heuresParCamp[c.nom]||0; const cuC=(c.positifs||0)+(c.negatifs||0);
@@ -4783,6 +4804,10 @@ function renderEvo(d){
       <td style="color:#30d158">${fmtR(evoParH(c.positifs,hp))}</td>
       <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
+      <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
+      <td>${c.sql&&c.sql.tauxContact!=null?c.sql.tauxContact+"%":"–"}</td>
+      <td>${c.sql&&heuresParCamp[c.nom]>0?fmtR(evoParH(c.sql.refus,heuresParCamp[c.nom])):"–"}</td>
+      <td>${c.fichier?c.fichier.disponibles.toLocaleString("fr-FR")+(c.fichier.tauxDescente!=null?" ("+c.fichier.tauxDescente+"% fini)":""):"–"}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
 
   // Tableau agents (filtré sur les campagnes sélectionnées)

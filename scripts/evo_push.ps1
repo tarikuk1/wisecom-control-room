@@ -65,8 +65,104 @@ try {
     Write-Log "AVERTISSEMENT : rapport Estado de listas indisponible ($($_.Exception.Message)) - envoi sans l'etat du fichier."
 }
 
+# --- Requete SQL EVOLUTIONDB (LECTURE SEULE) ---
+$sqlStats = $null
+$sqlFiles = $null
 try {
-    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado } | ConvertTo-Json -Depth 12 -Compress
+    $cs = "Server=45.129.110.3;Database=EVOLUTIONDB;User Id=sa;Password=Kj41mg65e!;Encrypt=False;TrustServerCertificate=True;Connect Timeout=12"
+    $sc = New-Object System.Data.SqlClient.SqlConnection $cs
+    $sc.Open()
+    $cmdIso = $sc.CreateCommand()
+    $cmdIso.CommandText = "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;"
+    $cmdIso.ExecuteNonQuery() | Out-Null
+
+    # Stats par campagne + code de resolution
+    $q1 = @"
+SELECT
+    t.idCampanya,
+    c.NOMBRE        AS campNom,
+    t.idFinal,
+    ISNULL(f.DESCRIPCION,'')        AS finalNom,
+    ISNULL(f.CONTACTADO, 0)         AS contactado,
+    ISNULL(f.CLASEFINAL, 2)         AS claseFinal,
+    COUNT(*)                        AS nb,
+    AVG(CASE WHEN ISNULL(f.CONTACTADO,0) > 0 AND t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
+             THEN CAST(DATEDIFF(second, t.tInicio, t.tFinal) AS float)
+             ELSE NULL END)         AS dmc_sec,
+    AVG(CAST(t.nTAdmin AS float))   AS dmt_sec,
+    AVG(CAST(t.nTQ    AS float))    AS attente_sec
+FROM TRANSACCION t WITH (NOLOCK)
+LEFT JOIN CAMPANYA c WITH (NOLOCK) ON c.IDCAMPANYA = t.idCampanya
+LEFT JOIN FINALES  f WITH (NOLOCK) ON f.IDCAMPANYA = t.idCampanya AND f.IDFINAL = t.idFinal
+WHERE t.tInicio >= CAST(CAST(GETDATE() AS date) AS datetime)
+  AND t.tInicio <  DATEADD(day,1,CAST(CAST(GETDATE() AS date) AS datetime))
+  AND t.nOrigenTransaccion IN (4,5)
+  AND t.Estado = 1
+GROUP BY t.idCampanya, c.NOMBRE, t.idFinal, f.DESCRIPCION, f.CONTACTADO, f.CLASEFINAL
+ORDER BY t.idCampanya, COUNT(*) DESC
+"@
+    $cmd1 = $sc.CreateCommand(); $cmd1.CommandText = $q1; $cmd1.CommandTimeout = 30
+    $da1 = New-Object System.Data.SqlClient.SqlDataAdapter $cmd1
+    $dt1 = New-Object System.Data.DataTable; $da1.Fill($dt1) | Out-Null
+    $rows1 = @()
+    foreach ($r in $dt1.Rows) {
+        $dmc = if ($r["dmc_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmc_sec"] }
+        $dmt = if ($r["dmt_sec"] -is [System.DBNull]) { $null } else { [double]$r["dmt_sec"] }
+        $att = if ($r["attente_sec"] -is [System.DBNull]) { $null } else { [double]$r["attente_sec"] }
+        $rows1 += @{
+            idCampanya = [string]$r["idCampanya"]
+            campNom    = [string]$r["campNom"]
+            idFinal    = [string]$r["idFinal"]
+            finalNom   = [string]$r["finalNom"]
+            contactado = [int]$r["contactado"]
+            claseFinal = [int]$r["claseFinal"]
+            nb         = [int]$r["nb"]
+            dmc_sec    = $dmc
+            dmt_sec    = $dmt
+            attente_sec= $att
+        }
+    }
+    $sqlStats = $rows1
+
+    # Etat des fichiers par campagne
+    $q2 = @"
+SELECT
+    isc.IDCAMPANYA,
+    COUNT(*)                                                     AS total,
+    SUM(CASE WHEN isc.nEstado = 0   THEN 1 ELSE 0 END)           AS disponibles,
+    SUM(CASE WHEN isc.nEstado = 300 THEN 1 ELSE 0 END)           AS terminees,
+    AVG(CAST(isc.NUMINTENTOSCONTACTOREALIZADOS AS float))         AS moy_tentatives
+FROM tbIdentidadSujetoCampanya isc WITH (NOLOCK)
+WHERE isc.IDCAMPANYA IN (
+    SELECT DISTINCT idCampanya FROM TRANSACCION WITH (NOLOCK)
+    WHERE tInicio >= CAST(CAST(GETDATE() AS date) AS datetime)
+      AND nOrigenTransaccion IN (4,5)
+)
+GROUP BY isc.IDCAMPANYA
+"@
+    $cmd2 = $sc.CreateCommand(); $cmd2.CommandText = $q2; $cmd2.CommandTimeout = 30
+    $da2 = New-Object System.Data.SqlClient.SqlDataAdapter $cmd2
+    $dt2 = New-Object System.Data.DataTable; $da2.Fill($dt2) | Out-Null
+    $rows2 = @()
+    foreach ($r in $dt2.Rows) {
+        $moy = if ($r["moy_tentatives"] -is [System.DBNull]) { $null } else { [double]$r["moy_tentatives"] }
+        $rows2 += @{
+            idCampanya  = [string]$r["IDCAMPANYA"]
+            total       = [int]$r["total"]
+            disponibles = [int]$r["disponibles"]
+            terminees   = [int]$r["terminees"]
+            moy_tentatives = $moy
+        }
+    }
+    $sqlFiles = $rows2
+    $sc.Close()
+    Write-Log ("SQL OK : " + $rows1.Count + " lignes stats, " + $rows2.Count + " campagnes fichier")
+} catch {
+    Write-Log ("AVERTISSEMENT SQL (lecture seule) : " + $_.Exception.Message + " - envoi sans stats SQL.")
+}
+
+try {
+    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado; sqlStats = $sqlStats; sqlFiles = $sqlFiles } | ConvertTo-Json -Depth 12 -Compress
     $pushHeaders = @{ "X-Evo-Push-Secret" = $PushSecret; "Content-Type" = "application/json" }
     $resp = Invoke-RestMethod -Uri $DashboardUrl -Headers $pushHeaders -Method Post -Body $body -TimeoutSec 15
 
