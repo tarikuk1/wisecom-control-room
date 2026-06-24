@@ -1381,14 +1381,13 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">⏳ Indicateurs détaillés — à venir</span></div>
       <div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-muted);line-height:1.6;">
-        Les indicateurs suivants nécessitent les <b>rapports détaillés</b> d'Evolution (détail des transactions) :
+        Les indicateurs suivants nécessitent le <b>détail des transactions</b> d'Evolution :
         <b>DMC</b> (durée moyenne de conversation), <b>DMT</b> (durée moyenne de traitement),
         <b>temps d'attente avant appel</b>, <b>refus de répondre / h</b>, <b>faux numéro / h</b>,
-        <b>fichier vierge restant</b>, <b>nombre de tentatives moyen par fiche</b>,
-        <b>taux de contact</b> et <b>taux de descente</b>.<br>
+        <b>nombre de tentatives moyen par fiche</b>, <b>taux de contact</b> et <b>taux de descente</b>.<br>
         Ces rapports répondent dans l'interface web d'Evolution mais leur API publique refuse actuellement
         tout filtrage (erreur serveur 500 dès qu'on envoie une date ou une campagne). Ils seront ajoutés
-        dès qu'un accès fiable aux données détaillées sera en place (rapport « Estado de listas » ou accès base de données).
+        dès qu'un accès fiable aux données détaillées sera en place (accès base de données).
       </div>
     </div>
   </div>
@@ -4652,6 +4651,15 @@ function renderEvo(d){
   const joign=(function(){const ab=positifs+negatifs+nonUtiles;const tot=ab+nonContactes;return tot>0?Math.round(ab/tot*100):null;})();
   const fmtH=h=>h>0?(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min"):"–";
   const fmtR=r=>r==null?"n.d.":r.toLocaleString("fr-FR");
+  const fmtN=n=>n==null?"n.d.":Number(n).toLocaleString("fr-FR");
+
+  // État du fichier (rapport « Estado de listas ») — agrégé sur la sélection.
+  // null si aucune campagne sélectionnée n'a de données d'état de liste.
+  const sumNul=(arr,k)=>{let any=false,s=0;arr.forEach(x=>{if(x[k]!=null){any=true;s+=x[k];}});return any?s:null;};
+  const fichierVierge=sumNul(camps,"fichierVierge");
+  const fichierRecu=sumNul(camps,"fichierRecu");
+  const fichesConclues=sumNul(camps,"fichesConclues");
+  const hasEstado=camps.some(c=>c.fichierRecu!=null);
 
   const kpis=[
     {l:"Appels sortants",v:appels.toLocaleString("fr-FR"),sub:camps.length+" campagne"+(camps.length>1?"s":"")+" sélectionnée"+(camps.length>1?"s":""),hero:true},
@@ -4663,6 +4671,11 @@ function renderEvo(d){
     {l:"Fiches traitées / heure",v:fmtR(evoParH(appels,heuresProd)),sub:"Appels par heure"},
     {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"Contacts aboutis / tentés",gauge:joign},
   ];
+  // KPI état du fichier (uniquement si le rapport « Estado de listas » est disponible)
+  if(hasEstado){
+    kpis.push({l:"Fichier vierge restant",v:fmtN(fichierVierge),sub:"Fiches jamais appelées"});
+    kpis.push({l:"Avancement fichier",v:(fichierRecu&&fichierRecu>0)?Math.round((fichesConclues||0)/fichierRecu*100)+"%":"n.d.",sub:"Fiches conclues / reçues"});
+  }
   document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
     <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}">
       <div class="kpi-label">${k.l}</div>
@@ -4684,10 +4697,15 @@ function renderEvo(d){
     <thead><tr>
       <th style="text-align:left">Campagne</th><th>Agents</th><th>Appels</th>
       <th>CU total</th><th>Accords (CU+)</th><th>H. prod</th><th>CU/h</th><th>Accords/h</th>
-      <th>Non joign.</th><th>Fiches finalisées</th>
+      <th>Non joign.</th>
+      <th title="Fichier total reçu (importé)">Fichier reçu</th>
+      <th title="Fiches jamais appelées">Vierge restant</th>
+      <th title="Fiches encore disponibles à appeler">Restant à traiter</th>
+      <th title="Fiches conclues / reçues">Avancement</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
       const hp=heuresParCamp[c.nom]||0; const cuC=(c.positifs||0)+(c.negatifs||0);
+      const av=(c.fichierRecu&&c.fichierRecu>0)?Math.round((c.fichesConclues||0)/c.fichierRecu*100)+"%":"n.d.";
       return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
       <td>${c.agents}</td><td><b>${c.appels.toLocaleString("fr-FR")}</b></td>
@@ -4697,7 +4715,10 @@ function renderEvo(d){
       <td>${fmtR(evoParH(cuC,hp))}</td>
       <td style="color:#30d158">${fmtR(evoParH(c.positifs,hp))}</td>
       <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
-      <td>${c.finalises.toLocaleString("fr-FR")}</td>
+      <td>${fmtN(c.fichierRecu)}</td>
+      <td>${fmtN(c.fichierVierge)}</td>
+      <td>${fmtN(c.restantATraiter)}</td>
+      <td>${av}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
 
   // Tableau agents (filtré sur les campagnes sélectionnées)

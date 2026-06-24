@@ -349,6 +349,32 @@ function evoParse(payload){
   });
 }
 const _num=v=>{const n=Number(v);return isFinite(n)?n:0;};
+// Parse le rapport Evolution « Estado de listas » (100000035), au format
+// {ReportData:{Headers:[{Header}],Rows:[{Values:[...]}]}} — DIFFÉRENT du format
+// des mesurables. Renvoie [{campaign, id, imported, pending, available, finished, new}].
+// La colonne « Campaign » contient le nom suivi de l'id entre crochets : « NOM [100000185] ».
+function evoParseEstado(rawEstado){
+  const rd=rawEstado&&rawEstado.ReportData; if(!rd||!rd.Rows)return[];
+  const heads=(rd.Headers||[]).map(h=>(h&&(h.Header||h.Name)||"").trim());
+  const idx=name=>heads.findIndex(h=>h.toLowerCase()===name.toLowerCase());
+  const iCamp=idx("Campaign"),iImp=idx("Imported"),iPend=idx("Pending"),
+        iAvail=idx("Total_Available"),iFin=idx("Finished"),iNew=idx("New");
+  return (rd.Rows||[]).map(r=>{
+    const v=r.Values||r.Value||[];
+    const campRaw=iCamp>=0?String(v[iCamp]||""):"";
+    const m=campRaw.match(/\[(\d+)\]\s*$/);            // extrait l'id entre crochets
+    const id=m?m[1]:null;
+    const nom=campRaw.replace(/\s*\[\d+\]\s*$/,"").trim();
+    return {
+      campaign:nom, id,
+      imported:iImp>=0?_num(v[iImp]):0,
+      pending:iPend>=0?_num(v[iPend]):0,
+      available:iAvail>=0?_num(v[iAvail]):0,
+      finished:iFin>=0?_num(v[iFin]):0,
+      neuf:iNew>=0?_num(v[iNew]):0     // « New » = fiches jamais mises en file (vierges)
+    };
+  }).filter(x=>x.campaign||x.id);
+}
 // Une campagne est « sortante » si elle présente une activité de NUMÉROTATION :
 //  - des non-joignables (NCDia : on ne « non-contacte » que des numéros qu'on appelle),
 //  - un stock de fiches planifiées (NP),
@@ -361,8 +387,14 @@ function evoIsOutbound(c){
 }
 // Transforme les deux payloads bruts Evolution (campagnes + agents mesurables) en
 // JSON propre {totaux, campagnes, agents}, filtré sur le périmètre sortant.
-function evoBuildPayload(rawCamp,rawAg){
-  const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>({
+function evoBuildPayload(rawCamp,rawAg,rawEstado){
+  // État des listes (fichier) par campagne, indexé par id ET par nom pour la jointure.
+  const estadoArr=evoParseEstado(rawEstado);
+  const estadoById={},estadoByName={};
+  estadoArr.forEach(e=>{ if(e.id)estadoById[String(e.id)]=e; if(e.campaign)estadoByName[e.campaign.toLowerCase()]=e; });
+  const camps=evoParse(rawCamp).filter(evoIsOutbound).map(c=>{
+    const est=estadoById[String(c._id)]||estadoByName[String(c._name||"").toLowerCase()]||null;
+    return {
     nom:c._name, id:c._id,
     agents:_num(c.T),                 // agents connectés à la campagne
     appels:_num(c.TrDia),             // transactions (appels) du jour
@@ -372,8 +404,14 @@ function evoBuildPayload(rawCamp,rawAg){
     nonUtiles:_num(c.CNUDia_Campanya),  // contacts non utiles
     nonContactes:_num(c.NCDia_Campanya),// non joignables
     abandons:_num(c.AbDia),           // abandons du jour
-    finalises:_num(c.F)               // fiches finalisées par un agent
-  })).sort((a,b)=>b.appels-a.appels);
+    finalises:_num(c.F),              // fiches finalisées par un agent
+    // État du fichier (rapport « Estado de listas ») — null si non disponible
+    fichierRecu:   est?est.imported :null,  // fichier reçu (total importé)
+    fichierVierge: est?est.neuf     :null,  // fiches jamais appelées (« New »)
+    restantATraiter:est?est.available:null, // fiches encore disponibles à appeler
+    fichesConclues:est?est.finished :null   // fiches clôturées
+    };
+  }).sort((a,b)=>b.appels-a.appels);
   // Agents : on garde ceux ayant une activité de numérotation (sortant) ou des appels.
   const agents=evoParse(rawAg).map(a=>({
     nom:a._name, id:a._id,
@@ -1208,10 +1246,10 @@ const server=http.createServer(async(req,res)=>{
   // de secours est tenté si aucun envoi récent n'est en cache.
   if(url==="/api/evo/sortant"&&session){
     try{
-      let rawCamp,rawAg,generatedAt;
+      let rawCamp,rawAg,rawEstado,generatedAt;
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
       if(cacheFresh){
-        ({rawCamp,rawAg}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+        ({rawCamp,rawAg,rawEstado}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
       }else{
         try{
           [rawCamp,rawAg]=await Promise.all([
@@ -1221,14 +1259,14 @@ const server=http.createServer(async(req,res)=>{
           generatedAt=new Date().toISOString();
         }catch(directErr){
           if(_evoCache){ // repli sur un cache périmé plutôt que rien — on le signale clairement
-            ({rawCamp,rawAg}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+            ({rawCamp,rawAg,rawEstado}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
           }else{
             res.writeHead(200,{"Content-Type":"application/json"});
             return res.end(JSON.stringify({ok:false,error:"En attente du premier envoi depuis le poste local (voir script evo_push). "+directErr.message}));
           }
         }
       }
-      const payload=evoBuildPayload(rawCamp,rawAg);
+      const payload=evoBuildPayload(rawCamp,rawAg,rawEstado);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
       return res.end(JSON.stringify({ok:true,generatedAt,staleSec,...payload}));
@@ -1248,9 +1286,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents}=JSON.parse(body);
+        const{campaigns,agents,estado}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
-        _evoCache={rawCamp:campaigns,rawAg:agents};_evoCacheAt=Date.now();
+        // 'estado' (rapport État des listes) est optionnel — compat avec l'ancien script.
+        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null};_evoCacheAt=Date.now();
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){

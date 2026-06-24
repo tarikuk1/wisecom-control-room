@@ -54,8 +54,19 @@ try {
     exit 1
 }
 
+# Rapport « Estado de listas » (état du fichier par campagne). Optionnel : si ça
+# échoue, on continue quand même l'envoi des données principales.
+$estado = $null
 try {
-    $body = @{ campaigns = $campaigns; agents = $agents } | ConvertTo-Json -Depth 10 -Compress
+    $estadoUrl  = "https://$EvoHost/manager/api/v1/admin/reports/100000035/invoke?format=json"
+    $estadoHead = @{ Authorization = "Basic $basicAuth"; Accept = "application/json"; "Content-Type" = "application/json" }
+    $estado = Invoke-RestMethod -Uri $estadoUrl -Headers $estadoHead -Method Post -Body '{"Parameters":[]}' -TimeoutSec 20
+} catch {
+    Write-Log "AVERTISSEMENT : rapport Estado de listas indisponible ($($_.Exception.Message)) - envoi sans l'etat du fichier."
+}
+
+try {
+    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado } | ConvertTo-Json -Depth 12 -Compress
     $pushHeaders = @{ "X-Evo-Push-Secret" = $PushSecret; "Content-Type" = "application/json" }
     $resp = Invoke-RestMethod -Uri $DashboardUrl -Headers $pushHeaders -Method Post -Body $body -TimeoutSec 15
 
