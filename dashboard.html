@@ -1360,6 +1360,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         Source : plateforme téléphonique <b>Evolution (Ekiom)</b>, données temps réel du jour — distinctes d'INO.
         Seules les campagnes <b>sortantes</b> (émission/numérotation) sont affichées.
       </div>
+      <div id="evo-camp-filter" style="padding:10px 14px 0;"></div>
       <div id="evo-kpis" class="kpi-grid" style="padding:12px 14px;"></div>
     </div>
 
@@ -1374,6 +1375,20 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">classés par nombre d'appels</span></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table class="tbl" id="evo-agent-table"></table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">⏳ Indicateurs détaillés — à venir</span></div>
+      <div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-muted);line-height:1.6;">
+        Les indicateurs suivants nécessitent les <b>rapports détaillés</b> d'Evolution (détail des transactions) :
+        <b>DMC</b> (durée moyenne de conversation), <b>DMT</b> (durée moyenne de traitement),
+        <b>temps d'attente avant appel</b>, <b>refus de répondre / h</b>, <b>faux numéro / h</b>,
+        <b>fichier vierge restant</b>, <b>nombre de tentatives moyen par fiche</b>,
+        <b>taux de contact</b> et <b>taux de descente</b>.<br>
+        Ces rapports répondent dans l'interface web d'Evolution mais leur API publique refuse actuellement
+        tout filtrage (erreur serveur 500 dès qu'on envoie une date ou une campagne). Ils seront ajoutés
+        dès qu'un accès fiable aux données détaillées sera en place (rapport « Estado de listas » ou accès base de données).
       </div>
     </div>
   </div>
@@ -4532,6 +4547,8 @@ function switchTab(id,btn){
 
 // ── Module Evo sortant : charge et affiche les appels sortants depuis Evolution ──
 let _evoLoading=false;
+let _evoData=null;            // dernier payload reçu de /api/evo/sortant
+let _evoSelectedCamps=null;   // Set des campagnes sélectionnées (null = pas encore initialisé)
 async function loadEvo(){
   if(_evoLoading)return; _evoLoading=true;
   const btn=document.getElementById("btn-evo-refresh");
@@ -4552,6 +4569,7 @@ async function loadEvo(){
       showToast(msg,"error",6000);
       return;
     }
+    _evoData=d;
     renderEvo(d);
     if(ts)ts.textContent="Mis à jour à "+new Date(d.generatedAt).toLocaleTimeString("fr-FR");
   }catch(e){
@@ -4562,15 +4580,88 @@ async function loadEvo(){
   }
 }
 
+// Arrondi d'une durée (en secondes) au multiple de 5 minutes le plus proche,
+// renvoyé en HEURES décimales — base de calcul des indicateurs « par heure ».
+// Demandé explicitement : « total heure de production arrondi a 5 mins pret ».
+function evoHeuresProd5(sec){
+  if(!sec||sec<0)return 0;
+  const min5=Math.round((sec/60)/5)*5;   // minutes arrondies au pas de 5
+  return min5/60;                          // → heures décimales
+}
+// Taux « X par heure » : renvoie null (affiché « n.d. ») si pas d'heures de prod,
+// pour ne jamais afficher un chiffre trompeur (division par ~0).
+function evoParH(valeur,heures){ return heures>0 ? +(valeur/heures).toFixed(1) : null; }
+
+// (Re)construit le sélecteur de campagnes (multi-sélection) à partir des données reçues.
+function renderEvoCampFilter(d){
+  const box=document.getElementById("evo-camp-filter"); if(!box)return;
+  const camps=(d.campagnes||[]).map(c=>c.nom);
+  if(!camps.length){box.innerHTML="";return;}
+  // Première fois : tout sélectionné par défaut.
+  if(_evoSelectedCamps===null) _evoSelectedCamps=new Set(camps);
+  // On retire du set les campagnes qui n'existent plus, on garde les autres.
+  _evoSelectedCamps=new Set([..._evoSelectedCamps].filter(n=>camps.includes(n)));
+  if(_evoSelectedCamps.size===0) _evoSelectedCamps=new Set(camps);
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const chips=camps.map(n=>{
+    const on=_evoSelectedCamps.has(n);
+    return `<button type="button" class="evo-chip" data-camp="${ec(n)}" onclick="evoToggleCamp(this.dataset.camp)"
+      style="font-size:var(--fs-sm);padding:5px 11px;border-radius:14px;cursor:pointer;border:1px solid ${on?'#30d158':'var(--border)'};
+      background:${on?'rgba(48,209,88,.15)':'transparent'};color:${on?'#30d158':'var(--t-muted)'};font-weight:${on?'600':'400'};">${on?'✓ ':''}${ec(n)}</button>`;
+  }).join("");
+  box.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:var(--fs-sm);color:var(--t-muted);font-weight:600;">Campagnes :</span>
+      ${chips}
+      <span style="flex:1"></span>
+      <button type="button" class="btn" style="font-size:var(--fs-sm);padding:4px 10px;" onclick="evoSelectAllCamps(true)">Tout</button>
+      <button type="button" class="btn" style="font-size:var(--fs-sm);padding:4px 10px;" onclick="evoSelectAllCamps(false)">Aucune</button>
+    </div>`;
+}
+function evoToggleCamp(nom){
+  if(!_evoSelectedCamps)return;
+  if(_evoSelectedCamps.has(nom))_evoSelectedCamps.delete(nom); else _evoSelectedCamps.add(nom);
+  if(_evoData)renderEvo(_evoData);
+}
+function evoSelectAllCamps(all){
+  if(!_evoData)return;
+  _evoSelectedCamps = all ? new Set((_evoData.campagnes||[]).map(c=>c.nom)) : new Set();
+  renderEvo(_evoData);
+}
+
 function renderEvo(d){
-  const t=d.totaux||{};
+  renderEvoCampFilter(d);
+  const sel=_evoSelectedCamps||new Set((d.campagnes||[]).map(c=>c.nom));
+  // Campagnes retenues selon la sélection
+  const camps=(d.campagnes||[]).filter(c=>sel.has(c.nom));
+  // Agents retenus : ceux dont la campagne en cours fait partie de la sélection
+  const ags=(d.agents||[]).filter(a=>sel.has(a.campagne));
+
+  // Agrégats sur le périmètre sélectionné
+  const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
+  const appels=sum(camps,"appels");
+  const positifs=sum(camps,"positifs");      // contacts utiles positifs (≈ accords)
+  const negatifs=sum(camps,"negatifs");
+  const nonUtiles=sum(camps,"nonUtiles");
+  const cu=positifs+negatifs;                // total contacts utiles (CU)
+  const nonContactes=sum(camps,"nonContactes");
+  const abandons=sum(camps,"abandons");
+  // Heures de production = somme des temps de session des agents du périmètre,
+  // arrondies à 5 min. (Source réelle : temps de session du jour par agent.)
+  const heuresProd=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
+  const joign=(function(){const ab=positifs+negatifs+nonUtiles;const tot=ab+nonContactes;return tot>0?Math.round(ab/tot*100):null;})();
+  const fmtH=h=>h>0?(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min"):"–";
+  const fmtR=r=>r==null?"n.d.":r.toLocaleString("fr-FR");
+
   const kpis=[
-    {l:"Appels sortants",v:(t.appels||0).toLocaleString("fr-FR"),sub:t.campagnes+" campagne"+(t.campagnes>1?"s":"")+" sortante"+(t.campagnes>1?"s":""),hero:true},
-    {l:"Contacts positifs",v:(t.positifs||0).toLocaleString("fr-FR"),sub:"Résultats obtenus (CU+)",good:true},
-    {l:"Joignabilité",v:t.joignabilite==null?"n.d.":t.joignabilite+"%",sub:"Contacts aboutis / tentés",gauge:t.joignabilite},
-    {l:"Non joignables",v:(t.nonContactes||0).toLocaleString("fr-FR"),sub:"Aucune réponse / occupé"},
-    {l:"Abandons",v:(t.abandons||0).toLocaleString("fr-FR"),sub:"Appelés ayant raccroché",alert:(t.abandons||0)>0},
-    {l:"Agents actifs",v:t.agentsActifs||0,sub:"Avec activité sortante"},
+    {l:"Appels sortants",v:appels.toLocaleString("fr-FR"),sub:camps.length+" campagne"+(camps.length>1?"s":"")+" sélectionnée"+(camps.length>1?"s":""),hero:true},
+    {l:"Total contacts CU",v:cu.toLocaleString("fr-FR"),sub:"Positifs + négatifs",good:true},
+    {l:"Accords (CU+)",v:positifs.toLocaleString("fr-FR"),sub:"Contacts utiles positifs",good:true},
+    {l:"Heures de production",v:fmtH(heuresProd),sub:"Session agents, arrondi 5 min"},
+    {l:"CU / heure",v:fmtR(evoParH(cu,heuresProd)),sub:"Contacts utiles par heure"},
+    {l:"Accords / heure",v:fmtR(evoParH(positifs,heuresProd)),sub:"CU+ par heure"},
+    {l:"Fiches traitées / heure",v:fmtR(evoParH(appels,heuresProd)),sub:"Appels par heure"},
+    {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"Contacts aboutis / tentés",gauge:joign},
   ];
   document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
     <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}">
@@ -4584,40 +4675,52 @@ function renderEvo(d){
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   // Durée en h/min lisible (les temps de session dépassent souvent l'heure)
   const hm=sec=>{if(!sec||sec<0)return"–";const h=Math.floor(sec/3600),m=Math.round(sec%3600/60);return h>0?h+"h"+String(m).padStart(2,"0"):m+"min";};
-  const camps=d.campagnes||[];
+
+  // Heures de production par campagne = somme des sessions des agents actuellement sur cette campagne
+  const heuresParCamp={};
+  (d.agents||[]).forEach(a=>{heuresParCamp[a.campagne]=(heuresParCamp[a.campagne]||0)+evoHeuresProd5(a.sessionSec);});
+
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th>Agents</th><th>Appels</th>
-      <th>Positifs</th><th>Négatifs</th><th>Non joign.</th><th>Abandons</th><th>Fiches finalisées</th>
+      <th>CU total</th><th>Accords (CU+)</th><th>H. prod</th><th>CU/h</th><th>Accords/h</th>
+      <th>Non joign.</th><th>Fiches finalisées</th>
     </tr></thead>
-    <tbody>${camps.map(c=>`<tr>
+    <tbody>${camps.map(c=>{
+      const hp=heuresParCamp[c.nom]||0; const cuC=(c.positifs||0)+(c.negatifs||0);
+      return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
       <td>${c.agents}</td><td><b>${c.appels.toLocaleString("fr-FR")}</b></td>
+      <td>${cuC.toLocaleString("fr-FR")}</td>
       <td style="color:#30d158">${c.positifs.toLocaleString("fr-FR")}</td>
-      <td>${c.negatifs.toLocaleString("fr-FR")}</td>
+      <td>${fmtH(hp)}</td>
+      <td>${fmtR(evoParH(cuC,hp))}</td>
+      <td style="color:#30d158">${fmtR(evoParH(c.positifs,hp))}</td>
       <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
-      <td>${c.abandons.toLocaleString("fr-FR")}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
-    </tr>`).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sortante active actuellement.</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
 
-  // Tableau agents
-  const ags=d.agents||[];
+  // Tableau agents (filtré sur les campagnes sélectionnées)
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
-      <th>Appels</th><th>Positifs</th><th>Négatifs</th><th>Non joign.</th>
-      <th>Temps session</th><th>Temps pause</th>
+      <th>Appels</th><th>CU total</th><th>Accords (CU+)</th><th>H. prod</th>
+      <th>CU/h</th><th>Accords/h</th><th>Fiches/h</th><th>Temps pause</th>
     </tr></thead>
-    <tbody>${ags.map(a=>`<tr>
+    <tbody>${ags.map(a=>{
+      const hp=evoHeuresProd5(a.sessionSec); const cuA=(a.positifs||0)+(a.negatifs||0);
+      return `<tr>
       <td style="text-align:left">${ec(a.nom)}</td>
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
       <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
+      <td>${cuA.toLocaleString("fr-FR")}</td>
       <td style="color:#30d158">${a.positifs.toLocaleString("fr-FR")}</td>
-      <td>${a.negatifs.toLocaleString("fr-FR")}</td>
-      <td>${a.nonContactes.toLocaleString("fr-FR")}</td>
-      <td>${hm(a.sessionSec)}</td>
+      <td>${fmtH(hp)}</td>
+      <td>${fmtR(evoParH(cuA,hp))}</td>
+      <td style="color:#30d158">${fmtR(evoParH(a.positifs,hp))}</td>
+      <td>${fmtR(evoParH(a.appels,hp))}</td>
       <td>${hm(a.pauseSec)}</td>
-    </tr>`).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sortante actuellement.</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sur les campagnes sélectionnées.</td></tr></tbody>`;
 }
 
 function showToast(msg,color="#30d158",durationMs){
