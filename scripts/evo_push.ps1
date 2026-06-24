@@ -90,8 +90,8 @@ SELECT
     AVG(CASE WHEN ISNULL(f.CONTACTADO,0) > 0 AND t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
              THEN CAST(DATEDIFF(second, t.tInicio, t.tFinal) AS float)
              ELSE NULL END)         AS dmc_sec,
-    AVG(CAST(t.nTAdmin AS float))   AS dmt_sec,
-    AVG(CAST(t.nTQ    AS float))    AS attente_sec,
+    AVG(CASE WHEN t.nTAdmin > 0 THEN CAST(t.nTAdmin AS float) ELSE NULL END) AS dmt_sec,
+    AVG(CASE WHEN t.nTQ    > 0 THEN CAST(t.nTQ    AS float) ELSE NULL END) AS attente_sec,
     SUM(CASE WHEN t.tInicio IS NOT NULL AND t.tFinal IS NOT NULL
              THEN DATEDIFF(second, t.tInicio, t.tFinal) ELSE 0 END) AS sum_call_sec,
     SUM(ISNULL(CAST(t.nTAdmin AS bigint), 0))                       AS sum_wrapup_sec
@@ -182,7 +182,7 @@ SELECT
         MAX(CASE WHEN t.tFinal IS NOT NULL
                  THEN DATEADD(second, ISNULL(t.nTAdmin, 0), t.tFinal)
                  ELSE t.tInicio END))                               AS session_span_sec,
-    AVG(CAST(t.nTAdmin AS float))                                   AS dmt_sec
+    AVG(CASE WHEN t.nTAdmin > 0 THEN CAST(t.nTAdmin AS float) ELSE NULL END) AS dmt_sec
 FROM TRANSACCION t WITH (NOLOCK)
 LEFT JOIN CAMPANYA c WITH (NOLOCK) ON c.IDCAMPANYA = t.idCampanya
 LEFT JOIN FINALES  f WITH (NOLOCK) ON f.IDCAMPANYA = t.idCampanya AND f.IDFINAL = t.idFinal
