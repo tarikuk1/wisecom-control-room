@@ -4617,7 +4617,7 @@ function evoHeuresProd5(sec){
 }
 // Taux « X par heure » : renvoie null (affiché « n.d. ») si pas d'heures de prod,
 // pour ne jamais afficher un chiffre trompeur (division par ~0).
-function evoParH(valeur,heures){ return heures>0 ? +(valeur/heures).toFixed(1) : null; }
+function evoParH(valeur,heures){ if(valeur==null)return null; return heures>0 ? +(valeur/heures).toFixed(1) : null; }
 
 function evoApplyDateFilter(){
   const dp=document.getElementById("evo-date-filter");
@@ -4764,8 +4764,8 @@ function renderEvo(d){
     {l:"DMC (durée moy. conv.)",v:fmtSec(dmc),sub:"Secondes agent / contact utile",sql:!hasSql},
     {l:"DMT (wrap-up moyen)",v:fmtSec(dmt),sub:"Temps après appel agent"},
     {l:"Temps d'attente",v:fmtSec(attente),sub:"Attente en file avant décroché"},
-    {l:"Refus / heure",v:fmtR(evoParH(refus||0,heuresProd)),sub:"Refus agent par heure prod"},
-    {l:"Faux numéros / h",v:fmtR(evoParH(fauxNum||0,heuresProd)),sub:"N° incorrect + modem/fax"},
+    {l:"Refus / heure",v:fmtR(evoParH(refus,heuresProd)),sub:"Refus agent par heure prod"},
+    {l:"Faux numéros / h",v:fmtR(evoParH(fauxNum,heuresProd)),sub:"N° incorrect + modem/fax"},
     {l:"Taux de contact",v:fmtPct(tauxContact),sub:"Contacts utiles / total appels (SQL)",gauge:tauxContact},
   ];
   document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
