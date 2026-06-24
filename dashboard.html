@@ -1360,6 +1360,28 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
         Source : plateforme téléphonique <b>Evolution (Ekiom)</b>, données temps réel du jour — distinctes d'INO.
         Seules les campagnes <b>sortantes</b> (émission/numérotation) sont affichées.
       </div>
+      <!-- Filtres date et plage horaire -->
+      <div style="padding:10px 14px 4px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);">
+        <span style="font-size:var(--fs-sm);color:var(--t-secondary);font-weight:600;">Filtres</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label for="evo-date-filter" style="font-size:var(--fs-sm);color:var(--t-muted);">Journée</label>
+          <input type="date" id="evo-date-filter" onchange="evoApplyDateFilter()"
+            style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:var(--fs-sm);cursor:pointer;outline:none;">
+          <button type="button" onclick="evoSetToday()"
+            style="background:transparent;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 9px;font-size:var(--fs-sm);color:var(--t-muted);cursor:pointer;">
+            Aujourd'hui
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label for="evo-heure-deb" style="font-size:var(--fs-sm);color:var(--t-muted);">Horaire</label>
+          <input type="time" id="evo-heure-deb" value="07:00" onchange="evoApplyDateFilter()"
+            style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:var(--fs-sm);cursor:pointer;outline:none;">
+          <span style="color:var(--t-disabled);font-size:var(--fs-sm);">→</span>
+          <input type="time" id="evo-heure-fin" value="20:00" onchange="evoApplyDateFilter()"
+            style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:var(--fs-sm);cursor:pointer;outline:none;">
+        </div>
+        <span id="evo-filter-badge" style="display:none;font-size:var(--fs-xs);color:var(--t-muted);background:var(--s-4);padding:3px 8px;border-radius:10px;"></span>
+      </div>
       <div id="evo-camp-filter" style="padding:10px 14px 0;"></div>
       <div id="evo-kpis" class="kpi-grid" style="padding:12px 14px;"></div>
     </div>
@@ -4550,6 +4572,9 @@ function switchTab(id,btn){
 let _evoLoading=false;
 let _evoData=null;            // dernier payload reçu de /api/evo/sortant
 let _evoSelectedCamps=null;   // Set des campagnes sélectionnées (null = pas encore initialisé)
+let _evoDateFilter=null;      // date sélectionnée (YYYY-MM-DD) ; null = aujourd'hui
+let _evoHeureDebFilter="07:00";
+let _evoHeureFinFilter="20:00";
 async function loadEvo(){
   if(_evoLoading)return; _evoLoading=true;
   const btn=document.getElementById("btn-evo-refresh");
@@ -4571,6 +4596,9 @@ async function loadEvo(){
       return;
     }
     _evoData=d;
+    // Init date picker to today on first load (does not overwrite user selection)
+    const _dp=document.getElementById("evo-date-filter");
+    if(_dp&&!_dp.value){_dp.value=new Date().toLocaleDateString("sv");_evoDateFilter=_dp.value;}
     renderEvo(d);
     if(ts)ts.textContent="Mis à jour à "+new Date(d.generatedAt).toLocaleTimeString("fr-FR");
   }catch(e){
@@ -4592,6 +4620,22 @@ function evoHeuresProd5(sec){
 // Taux « X par heure » : renvoie null (affiché « n.d. ») si pas d'heures de prod,
 // pour ne jamais afficher un chiffre trompeur (division par ~0).
 function evoParH(valeur,heures){ return heures>0 ? +(valeur/heures).toFixed(1) : null; }
+
+function evoApplyDateFilter(){
+  const dp=document.getElementById("evo-date-filter");
+  const hd=document.getElementById("evo-heure-deb");
+  const hf=document.getElementById("evo-heure-fin");
+  _evoDateFilter=(dp&&dp.value)||null;
+  _evoHeureDebFilter=(hd&&hd.value)||"07:00";
+  _evoHeureFinFilter=(hf&&hf.value)||"20:00";
+  if(_evoData)renderEvo(_evoData);
+}
+function evoSetToday(){
+  const today=new Date().toLocaleDateString("sv");
+  const dp=document.getElementById("evo-date-filter");
+  if(dp){dp.value=today;}_evoDateFilter=today;
+  if(_evoData)renderEvo(_evoData);
+}
 
 // (Re)construit le sélecteur de campagnes (multi-sélection) à partir des données reçues.
 function renderEvoCampFilter(d){
@@ -4633,10 +4677,50 @@ function evoSelectAllCamps(all){
 function renderEvo(d){
   renderEvoCampFilter(d);
   const sel=_evoSelectedCamps||new Set((d.campagnes||[]).map(c=>c.nom));
+
+  // ── Filtre date ────────────────────────────────────────────────────────────
+  const todayStr=new Date().toLocaleDateString("sv");   // "YYYY-MM-DD" locale-safe
+  const selectedDate=_evoDateFilter||todayStr;
+  const isToday=selectedDate===todayStr;
+  // Badge indiquant le filtre actif
+  const badge=document.getElementById("evo-filter-badge");
+  if(badge){
+    const hLabel=(_evoHeureDebFilter||"07:00")+" → "+(_evoHeureFinFilter||"20:00");
+    const dLabel=isToday?"Aujourd'hui":new Date(selectedDate+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+    badge.style.display="inline";
+    badge.textContent=dLabel+" · "+hLabel;
+  }
+  if(!isToday){
+    // Données historiques non disponibles (seul le dernier snapshot est conservé)
+    const noData=`<tbody><tr><td colspan="10" style="padding:18px 14px;color:var(--t-disabled);font-size:var(--fs-body);">
+      Aucune donnée disponible pour le <b>${new Date(selectedDate+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</b>.<br>
+      Le tableau de bord conserve uniquement les données en temps réel d'aujourd'hui.
+      Pour accéder à l'historique, le Planificateur de tâches doit tourner en continu.
+    </td></tr></tbody>`;
+    document.getElementById("evo-kpis").innerHTML=`<div class="kpi-card" style="flex:1;padding:18px;color:var(--t-disabled);">
+      Données historiques non disponibles — seules les données temps réel du jour actuel sont affichées.
+      <br><button type="button" onclick="evoSetToday()" style="margin-top:10px;background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:var(--fs-sm);">Revenir à aujourd'hui</button>
+    </div>`;
+    document.getElementById("evo-camp-table").innerHTML=noData;
+    document.getElementById("evo-agent-table").innerHTML=noData;
+    return;
+  }
+
+  // ── Filtre horaire : ne retenir que les agents dont la session chevauche la plage ──
+  const genMs=d.generatedAt?new Date(d.generatedAt).getTime():Date.now();
+  const todayMidnight=new Date(todayStr+"T00:00:00").getTime();
+  const toMs=t=>{const p=(t||"").split(":");return todayMidnight+(+p[0]||0)*3600000+(+p[1]||0)*60000;};
+  const winStart=toMs(_evoHeureDebFilter||"07:00");
+  const winEnd=toMs(_evoHeureFinFilter||"20:00");
+
   // Campagnes retenues selon la sélection
   const camps=(d.campagnes||[]).filter(c=>sel.has(c.nom));
-  // Agents retenus : ceux dont la campagne en cours fait partie de la sélection
-  const ags=(d.agents||[]).filter(a=>sel.has(a.campagne));
+  // Agents retenus : campagne sélectionnée ET session chevauchant la plage horaire
+  const ags=(d.agents||[]).filter(a=>{
+    if(!sel.has(a.campagne))return false;
+    const loginEst=genMs-(a.sessionSec||0)*1000;
+    return loginEst<winEnd && genMs>winStart;
+  });
 
   // Agrégats sur le périmètre sélectionné
   const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
