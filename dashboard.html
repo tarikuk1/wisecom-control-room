@@ -4809,7 +4809,7 @@ function renderEvo(d){
   // Agrégats sur le périmètre sélectionné — PRIORITÉ SQL (les compteurs REST sont
   // souvent à 0 en cours de journée ; le SQL est la source fiable).
   const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
-  const cApp=c=>c.sql?(c.sql.nbTrans||0):(c.appels||0);    // appels (SQL → REST)
+  const cApp=c=>c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0)); // appels TRAITÉS (SQL→REST honnête : retire les non-joignables composeur)
   const cAcc=c=>c.sql?(c.sql.cuPos||0):(c.positifs||0);    // accords (CU+)
   const cRef=c=>c.sql?(c.sql.cuNeg||0):(c.negatifs||0);    // refus (CU−)
   const appels=camps.reduce((s,c)=>s+cApp(c),0);
@@ -4869,12 +4869,11 @@ function renderEvo(d){
     {l:"DMT (wrap-up)",v:fmtSec(dmt),sub:"sur appels traités"},
     {l:"Temps d'attente",v:fmtSec(attente),sub:"file avant décroché"},
   ];
-  // AXE B — Temps réel composeur (source REST live : voit toutes les tentatives)
+  // AXE B — Présence agents (source REST live). Données composeur (non-joignables,
+  // joignabilité) retirées : non exploitables pour le pilotage (décision Tarik).
   const cardsLive=[
-    {l:"Non joignables",v:rNC.toLocaleString("fr-FR"),sub:"numéros composés sans contact",title:"Source Evolution (live) — tentatives du composeur : occupé, répondeur, faux n°…"},
     {l:"Agents connectés",v:totalAgentsAgg.toLocaleString("fr-FR"),sub:"en ce moment"},
     {l:"Temps de présence",v:fmtH(heuresProd),sub:presenceSrc==="presence"?"session agents (live)":"temps de communication (SQL)"},
-    {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"contacts ÷ tentatives",gauge:joign},
   ];
   const cardHtml=k=>`<div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}"${k.title?` title="${k.title}"`:''}>
       <div class="kpi-label">${k.l}</div>
@@ -4884,8 +4883,11 @@ function renderEvo(d){
     </div>`;
   const grp=(t,st,cards)=>`<div class="evo-kpi-group"><div class="evo-kpi-group-title">${t}<span class="evo-kpi-group-sub">${st}</span></div><div class="kpi-grid" style="margin-bottom:0">${cards.map(cardHtml).join("")}</div></div>`;
   const kbox=document.getElementById("evo-kpis"); kbox.className="";
-  kbox.innerHTML=grp("📊 Réalisé aujourd'hui","appels traités par les agents — source SQL",cardsJour)
-    +grp("📡 Temps réel composeur","tentatives & présence — source Evolution (live)",cardsLive);
+  const sqlAbsent=camps.length>0&&camps.every(c=>!c.sql);
+  const sqlBanner=sqlAbsent?`<div class="evo-sql-banner" style="margin-bottom:14px;padding:11px 14px;border-radius:10px;background:rgba(255,59,48,.10);border:1px solid rgba(255,59,48,.35);color:#ff6b6b;font-size:var(--fs-sm);font-weight:600;">🔴 SQL Evolution indisponible — durées &amp; productivité (/h, DMC, DMT, attente, détail agent) en attente du prochain envoi SQL. <span style="font-weight:400;color:var(--t-muted)">Les compteurs ci-dessous viennent du REST live ; « appels traités » exclut les non-joignables.</span></div>`:"";
+  kbox.innerHTML=sqlBanner
+    +grp("📊 Réalisé aujourd'hui","appels traités par les agents (hors non-joignables)",cardsJour)
+    +grp("👥 Présence agents","effectif &amp; temps de présence — source live",cardsLive);
 
   // Échappement HTML (les noms de campagnes/agents viennent d'une source externe)
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
@@ -4910,7 +4912,7 @@ function renderEvo(d){
       <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels traités par les agents (réalisé du jour, source SQL)">Appels traités</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
-      <th title="Non joignables (composeur, source live)">Non joign.</th><th title="Fiches finalisées agent (live)">Fiches final.</th>
+      <th title="Fiches finalisées agent (live)">Fiches final.</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
@@ -4934,13 +4936,12 @@ function renderEvo(d){
       <td title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
       <td>${fmtR(evoParH(cuC,hp))}</td>
       <td style="color:#30d158">${fmtR(evoParH(accords,hp))}</td>
-      <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td>${contactPct==null?"–":contactPct+"%"}</td>
       <td>${refusPct==null?"–":refusPct+"%"}</td>
       <td>${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="15" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="14" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
 
   // Tableau agents (filtré sur les campagnes sélectionnées)
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
@@ -5051,8 +5052,8 @@ function renderEvo(d){
 
   // Module objectifs (utilise _evoPerim calculé plus haut)
   renderEvoObjectifs(true);
-  // Diagnostic composeur (répartition origine × état) — visible seulement si fourni
-  renderEvoDiag(d.sqlDiag);
+  // Diagnostic composeur retiré (direction #1 — données composeur non exploitables).
+  const _diagBox=document.getElementById("evo-diag-panel"); if(_diagBox){_diagBox.style.display="none";_diagBox.innerHTML="";}
 }
 
 // Diagnostic : répartition des transactions du jour par origine (nOrigenTransaccion)
