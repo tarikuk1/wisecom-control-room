@@ -521,6 +521,17 @@ body.light .tbl tr:hover td{background:#fff8fc;}
 .tbl .total-row td{background:#1a0a0f!important;border-top:2px solid var(--c-pink);font-weight:var(--fw-bold);}
 body.light .tbl .total-row td{background:#fff0f7!important;}
 
+/* Tableaux Evo : colonnes chiffrées centrées (1re colonne = libellé, à gauche) */
+.tbl.evo-num th,.tbl.evo-num td{text-align:center;}
+.tbl.evo-num th:first-child,.tbl.evo-num td:first-child{text-align:left;}
+/* Sous-lignes détail agent×campagne : lisibles (au lieu du fond quasi noir) */
+.tbl .evo-sub-row td{background:#242428;color:#d8d8d8;}
+.tbl .evo-sub-row:hover td{background:#2c2c31;}
+.tbl .evo-agent-row{cursor:pointer;}
+.tbl .evo-agent-row:hover td{background:#222!important;}
+/* KPI Evo : contenu centré pour un alignement propre en grille */
+#evo-kpis .kpi-card,#evo-obj-results .kpi-card{text-align:center;display:flex;flex-direction:column;justify-content:center;}
+
 /* Badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);}
 .badge-camp{background:#1e0a14;color:var(--c-pink);}
@@ -1396,14 +1407,14 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">Production par campagne sortante</span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
-        <table class="tbl" id="evo-camp-table"></table>
+        <table class="tbl evo-num" id="evo-camp-table"></table>
       </div>
     </div>
 
     <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">classés par nombre d'appels</span></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
-        <table class="tbl" id="evo-agent-table"></table>
+        <table class="tbl evo-num" id="evo-agent-table"></table>
       </div>
     </div>
 
@@ -4788,11 +4799,15 @@ function renderEvo(d){
     return loginEst<winEnd && genMs>winStart;
   });
 
-  // Agrégats sur le périmètre sélectionné
+  // Agrégats sur le périmètre sélectionné — PRIORITÉ SQL (les compteurs REST sont
+  // souvent à 0 en cours de journée ; le SQL est la source fiable).
   const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
-  const appels=sum(camps,"appels");
-  const positifs=sum(camps,"positifs");      // contacts utiles positifs (≈ accords)
-  const negatifs=sum(camps,"negatifs");
+  const cApp=c=>c.sql?(c.sql.nbTrans||0):(c.appels||0);    // appels (SQL → REST)
+  const cAcc=c=>c.sql?(c.sql.cuPos||0):(c.positifs||0);    // accords (CU+)
+  const cRef=c=>c.sql?(c.sql.cuNeg||0):(c.negatifs||0);    // refus (CU−)
+  const appels=camps.reduce((s,c)=>s+cApp(c),0);
+  const positifs=camps.reduce((s,c)=>s+cAcc(c),0);   // contacts utiles positifs (≈ accords)
+  const negatifs=camps.reduce((s,c)=>s+cRef(c),0);
   const nonUtiles=sum(camps,"nonUtiles");
   const cu=positifs+negatifs;                // total contacts utiles (CU)
   const nonContactes=sum(camps,"nonContactes");
@@ -4884,22 +4899,24 @@ function renderEvo(d){
       <th title="Fiches encore à traiter / fichier total en production">Fichier (dispo/total)</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
-      const hp=getHP(c); const cuC=(c.positifs||0)+(c.negatifs||0);
+      const hp=getHP(c);
+      const accords=cAcc(c), refusN=cRef(c), appelsC=cApp(c);
+      const cuC=accords+refusN;
       const hpSrc=heuresParCamp[c.nom]>0?"":"*"; // * = source SQL (pas session REST)
-      const accPct=cuC>0?Math.round(c.positifs/cuC*100):null;
-      const refusPct=cuC>0?Math.round((c.negatifs||0)/cuC*100):null;
+      const accPct=cuC>0?Math.round(accords/cuC*100):null;
+      const refusPct=cuC>0?Math.round(refusN/cuC*100):null;
       const fichierT=evoFichierTotal(c);
       const contactPct=fichierT>0?Math.round(cuC/fichierT*100):null;
       const dispo=c.fichier?c.fichier.disponibles:null;
       return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
-      <td>${c.agents}</td><td><b>${c.appels.toLocaleString("fr-FR")}</b></td>
+      <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${c.positifs.toLocaleString("fr-FR")}</td>
+      <td style="color:#30d158">${accords.toLocaleString("fr-FR")}</td>
       <td style="color:#30d158">${accPct==null?"–":accPct+"%"}</td>
       <td title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
       <td>${fmtR(evoParH(cuC,hp))}</td>
-      <td style="color:#30d158">${fmtR(evoParH(c.positifs,hp))}</td>
+      <td style="color:#30d158">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.nonContactes.toLocaleString("fr-FR")}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
@@ -4974,8 +4991,8 @@ function renderEvo(d){
     // Sous-lignes par campagne (masquées par défaut)
     const subRows=multiCamp?a.camps.map(cc=>{
       const ph2=cc.prod_sec>0?cc.prod_sec/3600:0;
-      return `<tr class="evo-sub-row" data-agent="${a.idAgente}" style="display:none;background:var(--s-1);">
-        <td style="text-align:left;padding-left:32px;color:var(--t-muted);font-size:var(--fs-sm);">↳ ${ec2(cc.campNom)||("Camp."+cc.idCampanya)}</td>
+      return `<tr class="evo-sub-row" data-agent="${a.idAgente}" style="display:none;">
+        <td style="text-align:left;padding-left:34px;font-size:var(--fs-sm);">↳ ${ec2(cc.campNom)||("Camp."+cc.idCampanya)}</td>
         <td style="font-size:var(--fs-sm)">${fmtH2(ph2)}</td>
         <td style="font-size:var(--fs-sm)">${cc.nb.toLocaleString("fr-FR")}</td>
         <td style="font-size:var(--fs-sm)">${cc.cuTotal.toLocaleString("fr-FR")}</td>
@@ -4990,7 +5007,7 @@ function renderEvo(d){
     return mainRow+subRows;
   }).join("");
 
-  box2.innerHTML=`<table class="tbl">
+  box2.innerHTML=`<table class="tbl evo-num">
     <thead><tr>
       <th style="text-align:left">Agent</th>
       <th title="Durée session réelle : du 1er au dernier appel terminé (SQL)">H. prod (SQL)</th>

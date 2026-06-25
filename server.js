@@ -526,7 +526,29 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
     })(),
     fichier:sqlFilesByCamp[String(c._id)]||null
     };
-  }).sort((a,b)=>b.appels-a.appels);
+  });
+  // Campagnes présentes en SQL mais absentes des mesurables REST (ex. sous-fichiers
+  // C_143, C_327…). Sans cet ajout, toute l'activité réelle reste hors périmètre et les
+  // KPI affichent 0 alors que les données existent. On les reconstruit depuis le SQL.
+  const restIds=new Set(camps.map(c=>String(c.id)));
+  Object.values(sqlStatsByCamp).forEach(s=>{
+    const sid=String(s.idCampanya);
+    if(restIds.has(sid))return;
+    const realProd=prodByCamp[sid]||0;
+    const est=estadoById[sid]||estadoByName[String(s.campNom||"").toLowerCase()]||null;
+    camps.push({
+      nom:s.campNom||("Campagne "+sid), id:s.idCampanya,
+      agents:0, appels:s.nbTrans||0, appelsHeure:0,
+      positifs:s.cuPos||0, negatifs:s.cuNeg||0, nonUtiles:0, nonContactes:0,
+      abandons:0, finalises:0,
+      fichierRecu:est?est.imported:null, fichierVierge:est?est.neuf:null,
+      restantATraiter:est?est.available:null, fichesConclues:est?est.finished:null,
+      sql: realProd>0?{...s,total_prod_sec:realProd}:s,
+      fichier:sqlFilesByCamp[sid]||null,
+      _sqlOnly:true
+    });
+  });
+  camps.sort((a,b)=>b.appels-a.appels);
   // Agents : on garde ceux ayant une activité de numérotation (sortant) ou des appels.
   const agents=evoParse(rawAg).map(a=>({
     nom:a._name, id:a._id,
