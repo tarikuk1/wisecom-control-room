@@ -531,6 +531,11 @@ body.light .tbl .total-row td{background:#fff0f7!important;}
 .tbl .evo-agent-row:hover td{background:#222!important;}
 /* KPI Evo : contenu centré pour un alignement propre en grille */
 #evo-kpis .kpi-card,#evo-obj-results .kpi-card{text-align:center;display:flex;flex-direction:column;justify-content:center;}
+/* Groupes de KPI Evo (axes : réalisé jour / temps réel / fichier) */
+.evo-kpi-group{margin-bottom:16px;}
+.evo-kpi-group:last-child{margin-bottom:0;}
+.evo-kpi-group-title{font-size:var(--fs-sm);font-weight:700;color:var(--t-primary);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px;display:flex;align-items:baseline;gap:8px;border-left:3px solid var(--c-pink);padding-left:10px;}
+.evo-kpi-group-sub{font-weight:400;font-size:var(--fs-xs);color:var(--t-disabled);text-transform:none;letter-spacing:0;}
 
 /* Badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:var(--fs-sm);font-weight:var(--fw-medium);}
@@ -1399,7 +1404,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">🎯 Objectifs &amp; performance <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">périmètre sélectionné — fixez vos objectifs, les écarts se calculent seuls</span></span></div>
+      <div class="panel-header"><span class="panel-title">🎯 Objectifs &amp; performance <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">objectif campagne &amp; état du fichier (cumulé) — fixez vos objectifs, les écarts se calculent seuls</span></span></div>
       <div id="evo-obj-controls" style="padding:12px 14px 0;"></div>
       <div id="evo-obj-results" class="kpi-grid" style="padding:12px 14px;"></div>
     </div>
@@ -1412,17 +1417,19 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">classés par nombre d'appels</span></span></div>
+      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live) — présence &amp; activité instantanée</span></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table class="tbl evo-num" id="evo-agent-table"></table>
       </div>
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par agent — détail par campagne <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">source SQL, données du jour</span></span></div>
+      <div class="panel-header"><span class="panel-title">Production par agent — détail par campagne <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">réalisé du jour clôturé (source SQL)</span></span></div>
       <div id="evo-agent-filter" style="padding:10px 14px 0;"></div>
       <div id="evo-agent-camp-table" style="overflow-x:auto;"></div>
     </div>
+
+    <div id="evo-diag-panel" style="margin-top:14px;display:none;"></div>
   </div>
 
 </div>
@@ -4812,63 +4819,73 @@ function renderEvo(d){
   const cu=positifs+negatifs;                // total contacts utiles (CU)
   const nonContactes=sum(camps,"nonContactes");
   const abandons=sum(camps,"abandons");
-  // Heures de production = somme des sessions agents (REST), ou somme SQL appels+wrapup si agents absents
+  // Temps de PRÉSENCE = session des agents (REST, live), indépendant du nb d'appels.
+  // Repli SQL = temps de communication (appels+wrap-up), borné — JAMAIS le « span »
+  // d'amplitude (cf. audit : un span 1er→dernier appel n'est pas du temps de travail).
   const heuresProdRest=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
   const heuresProdSql=camps.reduce((s,c)=>s+(c.sql&&c.sql.total_prod_sec>0?c.sql.total_prod_sec/3600:0),0);
   const heuresProd=heuresProdRest>0?heuresProdRest:heuresProdSql;
-  const joign=(function(){const ab=positifs+negatifs+nonUtiles;const tot=ab+nonContactes;return tot>0?Math.round(ab/tot*100):null;})();
+  const presenceSrc=heuresProdRest>0?"presence":"comm";
+  // Joignabilité : ENTIÈREMENT en REST (le composeur live voit toutes les tentatives).
+  // Interdit de mélanger numérateur SQL et dénominateur REST dans un même ratio.
+  const rPos=sum(camps,"positifs"), rNeg=sum(camps,"negatifs"), rNonU=sum(camps,"nonUtiles"), rNC=sum(camps,"nonContactes");
+  const joign=(function(){const ab=rPos+rNeg+rNonU;const tot=ab+rNC;return tot>0?Math.round(ab/tot*100):null;})();
   const fmtH=h=>h>0?(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min"):"–";
   const fmtR=r=>r==null?"n.d.":r.toLocaleString("fr-FR");
 
-  // Agrégats SQL du périmètre sélectionné (null si SQL non disponible)
+  // Moyennes SQL pondérées (réalisé du jour). null si SQL non disponible.
   const sqlCamps=camps.filter(c=>c.sql);
   const hasSql=sqlCamps.length>0;
   const wAvg=(arr,val,wt)=>{let sv=0,sw=0;arr.forEach(c=>{if(c.sql&&c.sql[val]!=null&&c.sql[wt]>0){sv+=c.sql[val]*c.sql[wt];sw+=c.sql[wt];}});return sw>0?Math.round(sv/sw):null;};
-  const sqlSum=(arr,k)=>hasSql?arr.reduce((s,c)=>s+(c.sql&&c.sql[k]||0),0):null;
-  const dmc=wAvg(camps,"dmc","dmc_n");     // DMC global pondéré
-  const dmt=wAvg(camps,"dmt","dmt_n");     // DMT global pondéré
-  const attente=wAvg(camps,"attente","att_n"); // temps d'attente global
-  const refus=sqlSum(camps,"refus");
-  const fauxNum=sqlSum(camps,"fauxNum");
-  const nbTransSql=sqlSum(camps,"nbTrans");
-  const cuTotalSql=sqlSum(camps,"cuTotal");
-  const tauxContact=nbTransSql>0?Math.round(cuTotalSql/nbTransSql*100):null;
+  const dmc=wAvg(camps,"dmc","dmc_n");
+  const dmt=wAvg(camps,"dmt","dmt_n");
+  const attente=wAvg(camps,"attente","att_n");
   const fmtSec=s=>s==null?"n.d.":(s<60?Math.round(s)+"s":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0")+"s");
   const fmtPct=p=>p==null?"n.d.":p+"%";
 
-  // Agrégats fichier + taux qualité (périmètre sélectionné)
+  // Fichier (cumulé) + agents (instantané)
   const fichierTotalAgg=camps.reduce((s,c)=>s+evoFichierTotal(c),0);
   const clotureesAgg=camps.reduce((s,c)=>s+evoCloturees(c),0);
   const totalAgentsAgg=camps.reduce((s,c)=>s+(c.agents||0),0);
-  const tauxAccord=cu>0?Math.round(positifs/cu*100):null;            // accords ÷ CU
-  const tauxRefus=cu>0?Math.round(negatifs/cu*100):null;            // refus ÷ CU
-  const tauxContactFile=fichierTotalAgg>0?Math.round(cu/fichierTotalAgg*100):null; // CU ÷ fichier total
-  _evoPerim={heuresProd,cu,accords:positifs,refus:negatifs,appels,fichierTotal:fichierTotalAgg,cloturees:clotureesAgg,totalAgents:totalAgentsAgg,nCamps:camps.length};
+  const tauxAccord=cu>0?Math.round(positifs/cu*100):null;            // accords ÷ CU (jour)
+  const tauxRefus=cu>0?Math.round(negatifs/cu*100):null;            // refus ÷ CU (jour)
+  // Taux de contact DU JOUR = CU ÷ appels traités du jour (même période, même source).
+  const tauxContactJour=appels>0?Math.round(cu/appels*100):null;
+  _evoPerim={heuresProd,presenceSrc,cu,accords:positifs,refus:negatifs,appels,nonJoign:rNC,fichierTotal:fichierTotalAgg,cloturees:clotureesAgg,totalAgents:totalAgentsAgg,nCamps:camps.length};
 
-  const kpis=[
-    {l:"Appels sortants",v:appels.toLocaleString("fr-FR"),sub:camps.length+" campagne"+(camps.length>1?"s":"")+" sélectionnée"+(camps.length>1?"s":""),hero:true},
-    {l:"Total contacts CU",v:cu.toLocaleString("fr-FR"),sub:"Positifs + négatifs",good:true},
-    {l:"Accords (CU+)",v:positifs.toLocaleString("fr-FR"),sub:"Contacts utiles positifs",good:true},
-    {l:"Taux d'accord",v:tauxAccord==null?"n.d.":tauxAccord+"%",sub:"Accords ÷ contacts utiles",good:true,gauge:tauxAccord},
-    {l:"Heures de production",v:fmtH(heuresProd),sub:"Session agents, arrondi 5 min"},
-    {l:"CU / heure",v:fmtR(evoParH(cu,heuresProd)),sub:"Contacts utiles par heure"},
-    {l:"Accords / heure",v:fmtR(evoParH(positifs,heuresProd)),sub:"CU+ par heure"},
-    {l:"Fiches traitées / heure",v:fmtR(evoParH(appels,heuresProd)),sub:"Appels par heure"},
-    {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"Contacts aboutis / tentés",gauge:joign},
-    {l:"DMC (durée moy. conv.)",v:fmtSec(dmc),sub:"Secondes agent / contact utile",sql:!hasSql},
-    {l:"DMT (wrap-up moyen)",v:fmtSec(dmt),sub:"Temps après appel agent"},
-    {l:"Temps d'attente",v:fmtSec(attente),sub:"Attente en file avant décroché"},
-    {l:"Refus / heure",v:fmtR(evoParH(refus,heuresProd)),sub:"Refus agent par heure prod"},
-    {l:"Taux de refus",v:tauxRefus==null?"n.d.":tauxRefus+"%",sub:"Refus ÷ contacts utiles (CU)"},
-    {l:"Taux de contact",v:tauxContactFile==null?"n.d.":tauxContactFile+"%",sub:"Contacts utiles ÷ fichier total",gauge:tauxContactFile},
+  // AXE A — Réalisé aujourd'hui (source SQL : appels traités et clôturés du jour)
+  const cardsJour=[
+    {l:"Appels traités",v:appels.toLocaleString("fr-FR"),sub:"par les agents aujourd'hui",hero:true,title:"Source SQL — transactions traitées et clôturées du jour (hors tentatives composeur)"},
+    {l:"Contacts utiles (CU)",v:cu.toLocaleString("fr-FR"),sub:"accords + refus",good:true},
+    {l:"Accords (CU+)",v:positifs.toLocaleString("fr-FR"),sub:"contacts utiles positifs",good:true},
+    {l:"Taux d'accord",v:tauxAccord==null?"n.d.":tauxAccord+"%",sub:"accords ÷ CU",good:true,gauge:tauxAccord},
+    {l:"Taux de refus",v:tauxRefus==null?"n.d.":tauxRefus+"%",sub:"refus (CU−) ÷ CU"},
+    {l:"Taux de contact",v:tauxContactJour==null?"n.d.":tauxContactJour+"%",sub:"CU ÷ appels traités (jour)",gauge:tauxContactJour},
+    {l:"Appels traités / h",v:fmtR(evoParH(appels,heuresProd)),sub:"par heure de présence"},
+    {l:"CU / heure",v:fmtR(evoParH(cu,heuresProd)),sub:"par heure de présence"},
+    {l:"Accords / heure",v:fmtR(evoParH(positifs,heuresProd)),sub:"par heure de présence"},
+    {l:"Refus / heure",v:fmtR(evoParH(negatifs,heuresProd)),sub:"refus (CU−) par heure"},
+    {l:"DMC (durée conv.)",v:dmc==null?"n.d.":fmtSec(dmc),sub:dmc==null?"aucun contact utile encore":"sur contacts utiles",sql:!hasSql},
+    {l:"DMT (wrap-up)",v:fmtSec(dmt),sub:"sur appels traités"},
+    {l:"Temps d'attente",v:fmtSec(attente),sub:"file avant décroché"},
   ];
-  document.getElementById("evo-kpis").innerHTML=kpis.map(k=>`
-    <div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}">
+  // AXE B — Temps réel composeur (source REST live : voit toutes les tentatives)
+  const cardsLive=[
+    {l:"Non joignables",v:rNC.toLocaleString("fr-FR"),sub:"numéros composés sans contact",title:"Source Evolution (live) — tentatives du composeur : occupé, répondeur, faux n°…"},
+    {l:"Agents connectés",v:totalAgentsAgg.toLocaleString("fr-FR"),sub:"en ce moment"},
+    {l:"Temps de présence",v:fmtH(heuresProd),sub:presenceSrc==="presence"?"session agents (live)":"temps de communication (SQL)"},
+    {l:"Joignabilité",v:joign==null?"n.d.":joign+"%",sub:"contacts ÷ tentatives",gauge:joign},
+  ];
+  const cardHtml=k=>`<div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}"${k.title?` title="${k.title}"`:''}>
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
-      ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,k.gauge||0)}%;background:#30d158"></div></div>`:""}
-    </div>`).join("");
+      ${k.gauge!=null?`<div class="kpi-gauge"><div class="kpi-gauge-fill" style="width:${Math.min(100,Math.max(0,k.gauge||0))}%;background:#30d158"></div></div>`:""}
+    </div>`;
+  const grp=(t,st,cards)=>`<div class="evo-kpi-group"><div class="evo-kpi-group-title">${t}<span class="evo-kpi-group-sub">${st}</span></div><div class="kpi-grid" style="margin-bottom:0">${cards.map(cardHtml).join("")}</div></div>`;
+  const kbox=document.getElementById("evo-kpis"); kbox.className="";
+  kbox.innerHTML=grp("📊 Réalisé aujourd'hui","appels traités par les agents — source SQL",cardsJour)
+    +grp("📡 Temps réel composeur","tentatives & présence — source Evolution (live)",cardsLive);
 
   // Échappement HTML (les noms de campagnes/agents viennent d'une source externe)
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
@@ -4890,13 +4907,13 @@ function renderEvo(d){
 
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
-      <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne">Agents</th><th>Appels</th>
+      <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels traités par les agents (réalisé du jour, source SQL)">Appels traités</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
-      <th title="Heures prod (session agents ou cumul appels SQL si REST absent)">H. prod</th><th>CU/h</th><th>Accords/h</th>
-      <th>Non joign.</th><th>Fiches finalisées</th>
-      <th title="Durée Moy. Conv. (source SQL)">DMC</th>
-      <th title="Contacts utiles ÷ fichier total">Contact%</th><th title="Refus ÷ contacts utiles">Refus %</th>
-      <th title="Fiches encore à traiter / fichier total en production">Fichier (dispo/total)</th>
+      <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
+      <th title="Non joignables (composeur, source live)">Non joign.</th><th title="Fiches finalisées agent (live)">Fiches final.</th>
+      <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
+      <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
+      <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
       const hp=getHP(c);
@@ -4906,7 +4923,7 @@ function renderEvo(d){
       const accPct=cuC>0?Math.round(accords/cuC*100):null;
       const refusPct=cuC>0?Math.round(refusN/cuC*100):null;
       const fichierT=evoFichierTotal(c);
-      const contactPct=fichierT>0?Math.round(cuC/fichierT*100):null;
+      const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
       const dispo=c.fichier?c.fichier.disponibles:null;
       return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
@@ -4929,8 +4946,8 @@ function renderEvo(d){
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
-      <th>Appels</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th>H. prod</th>
-      <th>CU/h</th><th>Accords/h</th><th>Fiches/h</th><th>Temps pause</th>
+      <th title="Appels du jour (compteur live agent)">Appels</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
+      <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Appels/h</th><th>Temps pause</th>
     </tr></thead>
     <tbody>${ags.map(a=>{
       const hp=evoHeuresProd5(a.sessionSec); const cuA=(a.positifs||0)+(a.negatifs||0);
@@ -5010,7 +5027,7 @@ function renderEvo(d){
   box2.innerHTML=`<table class="tbl evo-num">
     <thead><tr>
       <th style="text-align:left">Agent</th>
-      <th title="Durée session réelle : du 1er au dernier appel terminé (SQL)">H. prod (SQL)</th>
+      <th title="Amplitude entre le 1er et le dernier appel terminé (SQL) — repère, pas du temps de travail effectif">Amplitude</th>
       <th>Appels</th>
       <th title="Contacts aboutis positifs + négatifs">CU total</th>
       <th title="Contacts utiles par heure de production">CU/h</th>
@@ -5034,6 +5051,48 @@ function renderEvo(d){
 
   // Module objectifs (utilise _evoPerim calculé plus haut)
   renderEvoObjectifs(true);
+  // Diagnostic composeur (répartition origine × état) — visible seulement si fourni
+  renderEvoDiag(d.sqlDiag);
+}
+
+// Diagnostic : répartition des transactions du jour par origine (nOrigenTransaccion)
+// et état (Estado). Sert à identifier les codes des tentatives du composeur (non
+// joignables) exclues des « appels traités ». N'apparaît que si le script l'envoie.
+function renderEvoDiag(diag){
+  const box=document.getElementById("evo-diag-panel"); if(!box)return;
+  if(!diag||!diag.length){box.style.display="none";box.innerHTML="";return;}
+  box.style.display="block";
+  const total=diag.reduce((s,r)=>s+(r.nb||0),0);
+  const rows=diag.slice().sort((a,b)=>(b.nb||0)-(a.nb||0)).map(r=>{
+    const traite=(r.origine===4||r.origine===5)&&r.etat===1; // périmètre « appels traités »
+    const pct=total>0?Math.round((r.nb||0)/total*100):0;
+    return `<tr${traite?' style="color:#30d158"':''}>
+      <td style="text-align:center">${r.origine==null?"–":r.origine}</td>
+      <td style="text-align:center">${r.etat==null?"–":r.etat}</td>
+      <td style="text-align:center"><b>${(r.nb||0).toLocaleString("fr-FR")}</b></td>
+      <td style="text-align:center">${pct}%</td>
+      <td style="text-align:left;color:var(--t-muted)">${traite?"✓ compté dans « Appels traités »":"exclu (tentative composeur / en cours)"}</td>
+    </tr>`;
+  }).join("");
+  box.innerHTML=`<div class="panel">
+    <details>
+      <summary style="cursor:pointer;padding:12px 14px;font-weight:600;color:var(--t-primary);list-style:none;">
+        🔎 Diagnostic composeur — répartition des ${total.toLocaleString("fr-FR")} transactions du jour
+        <span style="font-weight:400;font-size:var(--fs-xs);color:var(--t-disabled);margin-left:6px">cliquer pour déplier · explique pourquoi « Appels traités » ≠ « Non joignables »</span>
+      </summary>
+      <div style="padding:0 14px 14px;overflow-x:auto;">
+        <table class="tbl"><thead><tr>
+          <th style="text-align:center">Origine</th><th style="text-align:center">État</th>
+          <th style="text-align:center">Nombre</th><th style="text-align:center">%</th>
+          <th style="text-align:left">Interprétation</th>
+        </tr></thead><tbody>${rows}</tbody></table>
+        <div style="font-size:var(--fs-xs);color:var(--t-disabled);margin-top:8px;">
+          En vert : les transactions comptées comme « appels traités » (origine 4/5, état 1).
+          Les autres lignes = tentatives du composeur prédictif (occupé, répondeur, faux numéro…) ou appels en cours, exclus du comptage agent.
+        </div>
+      </div>
+    </details>
+  </div>`;
 }
 
 // ── Module Objectifs & performance ──────────────────────────────────────────
@@ -5104,20 +5163,19 @@ function renderEvoObjectifs(rebuildControls){
   const vsObj=(real,obj)=>obj==null||real==null?null:(real>=obj?'#30d158':'#E8006E');
   const cards=[
     card("Total CU à réaliser",cuObjectif==null?"n.d.":nb(cuObjectif),
-      fichier>0?nb(fichier)+" fiches × "+(isNaN(objCU)?"?":objCU)+"%":"fichier inconnu",{hero:true,title:"Fichier total × taux de CU objectif"}),
-    card("CU réalisés",nb(p.cu),
+      fichier>0?nb(fichier)+" fiches × "+(isNaN(objCU)?"?":objCU)+"%":"fichier inconnu",{hero:true,title:"Objectif campagne = fichier total × taux de CU objectif"}),
+    card("CU réalisés (aujourd'hui)",nb(p.cu),
       atteinte==null?"objectif non défini":atteinte+"% de l'objectif"+(reste?" · reste "+nb(reste):""),
-      {gauge:atteinte,good:atteinte!=null&&atteinte>=100,gColor:atteinte!=null&&atteinte>=100?'#30d158':'#4C9AFF',title:"Contacts utiles réalisés sur le périmètre"}),
-    card("Taux de contact",pc(tauxContact),"Contacts utiles ÷ fichier total",{gauge:tauxContact,title:"CU ÷ fichier total en production"}),
-    card("Taux d'exploitation",pc(tauxExpl),"Fiches clôturées ÷ fichier",{gauge:tauxExpl,title:"Avancement : part du fichier déjà conclue"}),
-    card("Taux de descente",pc(tauxDescente),"Accords ÷ fichier total",{gauge:tauxDescente,gColor:'#30d158',title:"Accords obtenus rapportés au fichier total"}),
+      {gauge:atteinte,good:atteinte!=null&&atteinte>=100,gColor:atteinte!=null&&atteinte>=100?'#30d158':'#4C9AFF',title:"Contacts utiles réalisés aujourd'hui (à comparer à l'objectif campagne, qui se construit sur plusieurs jours)"}),
+    card("Taux d'exploitation",pc(tauxExpl),"fiches clôturées ÷ fichier (cumulé)",{gauge:tauxExpl,title:"Avancement du fichier depuis le début de la campagne"}),
+    card("Taux de descente",pc(tauxDescente),"accords du jour ÷ fichier",{gauge:tauxDescente,gColor:'#30d158',title:"Accords obtenus rapportés au fichier total (cumulé)"}),
     card("CU / heure",cuH==null?"n.d.":cuH.toLocaleString("fr-FR"),
-      objCUhN!=null?"objectif "+objCUhN:"réalisé",{color:vsObj(cuH,objCUhN),title:"Contacts utiles par heure de production"}),
+      objCUhN!=null?"réalisé · objectif "+objCUhN:"réalisé",{color:vsObj(cuH,objCUhN),title:"Contacts utiles par heure de présence"}),
     card("Accords / heure",accH==null?"n.d.":accH.toLocaleString("fr-FR"),
-      objAcchN!=null?"objectif "+objAcchN:"réalisé",{color:vsObj(accH,objAcchN),title:"Accords par heure de production"}),
-    card("Agents connectés",nb(p.totalAgents),"Sur le périmètre sélectionné",{}),
+      objAcchN!=null?"réalisé · objectif "+objAcchN:"réalisé",{color:vsObj(accH,objAcchN),title:"Accords par heure de présence"}),
+    card("Agents connectés",nb(p.totalAgents),"en ce moment",{}),
     card("Fichier en production",nb(fichier),
-      "Clôturées "+nb(p.cloturees)+" · à traiter "+nb(nonClot),{title:"Total fiches chargées / clôturées / non clôturées"}),
+      "clôturées "+nb(p.cloturees)+" · à traiter "+nb(nonClot)+" (cumulé)",{title:"Total fiches chargées / clôturées / non clôturées — état du fichier depuis le début"}),
   ];
   resBox.innerHTML=cards.join("");
 }

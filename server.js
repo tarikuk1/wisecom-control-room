@@ -516,14 +516,11 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
     fichierVierge: est?est.neuf     :null,  // fiches jamais appelées (« New »)
     restantATraiter:est?est.available:null, // fiches encore disponibles à appeler
     fichesConclues:est?est.finished :null,  // fiches clôturées
-    // Indicateurs SQL — null si SQL indisponible
-    // total_prod_sec = somme des sessions agent (q3) = mesure réelle de production
-    sql:(()=>{
-      const s=sqlStatsByCamp[String(c._id)]||null;
-      if(!s)return null;
-      const realProd=prodByCamp[String(c._id)]||0;
-      return realProd>0?{...s,total_prod_sec:realProd}:s;
-    })(),
+    // Indicateurs SQL — null si SQL indisponible.
+    // total_prod_sec = temps de communication (appels + wrap-up), borné. On n'utilise
+    // PLUS le « span » d'amplitude (1er→dernier appel) qui gonflait à 2,4 h pour 1 appel
+    // (cf. audit cohérence : un span n'est pas du temps de travail).
+    sql: sqlStatsByCamp[String(c._id)]||null,
     fichier:sqlFilesByCamp[String(c._id)]||null
     };
   });
@@ -534,7 +531,6 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
   Object.values(sqlStatsByCamp).forEach(s=>{
     const sid=String(s.idCampanya);
     if(restIds.has(sid))return;
-    const realProd=prodByCamp[sid]||0;
     const est=estadoById[sid]||estadoByName[String(s.campNom||"").toLowerCase()]||null;
     camps.push({
       nom:s.campNom||("Campagne "+sid), id:s.idCampanya,
@@ -543,7 +539,7 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
       abandons:0, finalises:0,
       fichierRecu:est?est.imported:null, fichierVierge:est?est.neuf:null,
       restantATraiter:est?est.available:null, fichesConclues:est?est.finished:null,
-      sql: realProd>0?{...s,total_prod_sec:realProd}:s,
+      sql: s,
       fichier:sqlFilesByCamp[sid]||null,
       _sqlOnly:true
     });
@@ -1383,10 +1379,10 @@ const server=http.createServer(async(req,res)=>{
   // de secours est tenté si aucun envoi récent n'est en cache.
   if(url==="/api/evo/sortant"&&session){
     try{
-      let rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,generatedAt;
+      let rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag,generatedAt;
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
       if(cacheFresh){
-        ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+        ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
       }else{
         try{
           [rawCamp,rawAg]=await Promise.all([
@@ -1396,7 +1392,7 @@ const server=http.createServer(async(req,res)=>{
           generatedAt=new Date().toISOString();
         }catch(directErr){
           if(_evoCache){ // repli sur un cache périmé plutôt que rien — on le signale clairement
-            ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
+            ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
           }else{
             res.writeHead(200,{"Content-Type":"application/json"});
             return res.end(JSON.stringify({ok:false,error:"En attente du premier envoi depuis le poste local (voir script evo_push). "+directErr.message}));
@@ -1409,7 +1405,7 @@ const server=http.createServer(async(req,res)=>{
       const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campProdBySqlId);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1426,10 +1422,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps}=JSON.parse(body);
+        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
-        // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps' sont optionnels — compat avec l'ancien script.
-        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null};_evoCacheAt=Date.now();
+        // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps', 'sqlDiag' sont optionnels — compat avec l'ancien script.
+        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null};_evoCacheAt=Date.now();
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){

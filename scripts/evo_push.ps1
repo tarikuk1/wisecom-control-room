@@ -69,6 +69,7 @@ try {
 $sqlStats = $null
 $sqlFiles = $null
 $sqlAgentCamps = $null
+$sqlDiag = $null
 try {
     $cs = "Server=45.129.110.3;Database=EVOLUTIONDB;User Id=sa;Password=Kj41mg65e!;Encrypt=False;TrustServerCertificate=True;Connect Timeout=12"
     $sc = New-Object System.Data.SqlClient.SqlConnection $cs
@@ -214,14 +215,41 @@ ORDER BY t.idAgente, COUNT(*) DESC
     }
     $sqlAgentCamps = $rows3
 
+    # Diagnostic (LECTURE SEULE) : repartition des transactions du jour par origine et
+    # etat. Permet de voir quels codes nOrigenTransaccion / Estado correspondent aux
+    # tentatives du composeur (non-joignables) exclues du comptage "appels traites".
+    $q4 = @"
+SELECT
+    t.nOrigenTransaccion        AS origine,
+    t.Estado                    AS etat,
+    COUNT(*)                    AS nb
+FROM TRANSACCION t WITH (NOLOCK)
+WHERE t.tInicio >= CAST(CAST(GETDATE() AS date) AS datetime)
+  AND t.tInicio <  DATEADD(day,1,CAST(CAST(GETDATE() AS date) AS datetime))
+GROUP BY t.nOrigenTransaccion, t.Estado
+ORDER BY COUNT(*) DESC
+"@
+    $cmd4 = $sc.CreateCommand(); $cmd4.CommandText = $q4; $cmd4.CommandTimeout = 30
+    $da4 = New-Object System.Data.SqlClient.SqlDataAdapter $cmd4
+    $dt4 = New-Object System.Data.DataTable; $da4.Fill($dt4) | Out-Null
+    $rows4 = @()
+    foreach ($r in $dt4.Rows) {
+        $rows4 += @{
+            origine = if ($r["origine"] -is [System.DBNull]) { $null } else { [int]$r["origine"] }
+            etat    = if ($r["etat"]    -is [System.DBNull]) { $null } else { [int]$r["etat"] }
+            nb      = [int]$r["nb"]
+        }
+    }
+    $sqlDiag = $rows4
+
     $sc.Close()
-    Write-Log ("SQL OK : " + $rows1.Count + " lignes stats, " + $rows2.Count + " campagnes fichier, " + $rows3.Count + " lignes agent x campagne")
+    Write-Log ("SQL OK : " + $rows1.Count + " lignes stats, " + $rows2.Count + " campagnes fichier, " + $rows3.Count + " lignes agent x campagne, " + $rows4.Count + " lignes diagnostic")
 } catch {
     Write-Log ("AVERTISSEMENT SQL (lecture seule) : " + $_.Exception.Message + " - envoi sans stats SQL.")
 }
 
 try {
-    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado; sqlStats = $sqlStats; sqlFiles = $sqlFiles; sqlAgentCamps = $sqlAgentCamps } | ConvertTo-Json -Depth 12 -Compress
+    $body = @{ campaigns = $campaigns; agents = $agents; estado = $estado; sqlStats = $sqlStats; sqlFiles = $sqlFiles; sqlAgentCamps = $sqlAgentCamps; sqlDiag = $sqlDiag } | ConvertTo-Json -Depth 12 -Compress
     $pushHeaders = @{ "X-Evo-Push-Secret" = $PushSecret; "Content-Type" = "application/json" }
     $resp = Invoke-RestMethod -Uri $DashboardUrl -Headers $pushHeaders -Method Post -Body $body -TimeoutSec 15
 
