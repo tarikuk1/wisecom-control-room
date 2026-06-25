@@ -1404,7 +1404,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">🎯 Objectifs &amp; performance <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">objectif campagne &amp; état du fichier (cumulé) — fixez vos objectifs, les écarts se calculent seuls</span></span></div>
+      <div class="panel-header"><span class="panel-title">🎯 Objectifs &amp; performance <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">un objectif PAR campagne (fichier × taux de CU visé) — suivi et écarts calculés automatiquement</span></span></div>
       <div id="evo-obj-controls" style="padding:12px 14px 0;"></div>
       <div id="evo-obj-results" class="kpi-grid" style="padding:12px 14px;"></div>
     </div>
@@ -4662,7 +4662,10 @@ function evoCloturees(c){
 // Objectifs (persistés dans le navigateur). Clé '' = valeur auto (laisser vide).
 function evoGetObj(key,def){ try{const v=localStorage.getItem('evoObj_'+key); return v==null?def:v;}catch(e){return def;} }
 function evoSetObj(key,val){ try{localStorage.setItem('evoObj_'+key,val);}catch(e){} renderEvoObjectifs(false); }
-function evoResetObj(){ try{['cu','cuh','acch','fichier'].forEach(k=>localStorage.removeItem('evoObj_'+k));}catch(e){} renderEvoObjectifs(true); }
+// Objectifs PAR campagne : clé evoObjC_<idCampagne>_<key> (#2 suivi par campagne)
+function evoGetObjC(id,key,def){ try{const v=localStorage.getItem('evoObjC_'+id+'_'+key); return v==null?def:v;}catch(e){return def;} }
+function evoSetObjC(id,key,val){ try{localStorage.setItem('evoObjC_'+id+'_'+key,val);}catch(e){} renderEvoObjectifs(false); }
+function evoResetObj(){ try{['cu','cuh','acch','fichier'].forEach(k=>localStorage.removeItem('evoObj_'+k));Object.keys(localStorage).filter(k=>k.indexOf('evoObjC_')===0).forEach(k=>localStorage.removeItem(k));}catch(e){} renderEvoObjectifs(true); }
 let _evoPerim=null; // agrégats du périmètre sélectionné (alimentés par renderEvo, lus par renderEvoObjectifs)
 
 function evoApplyDateFilter(){
@@ -5050,6 +5053,8 @@ function renderEvo(d){
     if(chev)chev.style.transform=isOpen?"":"rotate(90deg)";
   };
 
+  // Détail par campagne pour le suivi des objectifs PAR campagne (#2)
+  if(_evoPerim)_evoPerim.camps=camps.map(c=>({id:String(c.id),nom:c.nom,cu:cAcc(c)+cRef(c),accords:cAcc(c),fichierTotal:evoFichierTotal(c),cloturees:evoCloturees(c),heuresProd:getHP(c),agents:c.agents||0}));
   // Module objectifs (utilise _evoPerim calculé plus haut)
   renderEvoObjectifs(true);
   // Diagnostic composeur retiré (direction #1 — données composeur non exploitables).
@@ -5102,55 +5107,87 @@ function renderEvoObjectifs(rebuildControls){
   const ctrlBox=document.getElementById("evo-obj-controls");
   const resBox=document.getElementById("evo-obj-results");
   if(!resBox)return;
+  resBox.className=""; // bloc : tableau de suivi par campagne + grille de cartes
   const p=_evoPerim;
   if(!p||!p.nCamps){
     if(ctrlBox&&rebuildControls)ctrlBox.innerHTML="";
     resBox.innerHTML=`<div class="kpi-card" style="flex:1;color:var(--t-disabled)">Sélectionnez au moins une campagne pour suivre les objectifs.</div>`;
     return;
   }
-  // Objectifs saisis (persistés navigateur)
-  const objCU=parseFloat(evoGetObj('cu','25'));                       // taux de CU objectif (%)
-  const objCUh=evoGetObj('cuh','');  const objCUhN=objCUh!==''&&!isNaN(parseFloat(objCUh))?parseFloat(objCUh):null;
-  const objAcch=evoGetObj('acch',''); const objAcchN=objAcch!==''&&!isNaN(parseFloat(objAcch))?parseFloat(objAcch):null;
-  const fichierManu=evoGetObj('fichier','');
-  const fichier=fichierManu!==''&&!isNaN(parseFloat(fichierManu))?parseFloat(fichierManu):p.fichierTotal;
-  // Calculs
-  const cuObjectif=(fichier>0&&!isNaN(objCU))?Math.round(fichier*objCU/100):null;
-  const atteinte=cuObjectif>0?Math.round(p.cu/cuObjectif*100):null;
-  const reste=cuObjectif!=null?Math.max(0,cuObjectif-p.cu):null;
-  const tauxContact=fichier>0?Math.round(p.cu/fichier*100):null;      // CU ÷ fichier
-  const tauxExpl=fichier>0?Math.round(p.cloturees/fichier*100):null;  // clôturées ÷ fichier
-  const tauxDescente=fichier>0?Math.round(p.accords/fichier*100):null;// accords ÷ fichier
-  const nonClot=fichier>0?Math.max(0,fichier-p.cloturees):null;
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const nb=v=>v==null?"n.d.":v.toLocaleString("fr-FR");
+  const pc=v=>v==null?"n.d.":v+"%";
+  // Objectif PAR campagne : clé evoObjC_<id>_cu / _fichier. Fichier vide = auto.
+  const cs=(p.camps||[]).map(c=>{
+    const tauxCU=parseFloat(evoGetObjC(c.id,'cu','25'));
+    const fMan=evoGetObjC(c.id,'fichier','');
+    const fichier=fMan!==''&&!isNaN(parseFloat(fMan))?parseFloat(fMan):c.fichierTotal;
+    const cuObj=(fichier>0&&!isNaN(tauxCU))?Math.round(fichier*tauxCU/100):null;
+    const atteinte=cuObj>0?Math.round(c.cu/cuObj*100):null;
+    const reste=cuObj!=null?Math.max(0,cuObj-c.cu):null;
+    return Object.assign({},c,{tauxCU,fMan,fichier,cuObj,atteinte,reste});
+  });
+  // Agrégats périmètre = somme des objectifs par campagne
+  const aggCuObj=cs.reduce((s,c)=>s+(c.cuObj||0),0)||null;
+  const aggCu=p.cu;
+  const aggAtteinte=aggCuObj>0?Math.round(aggCu/aggCuObj*100):null;
+  const aggReste=aggCuObj!=null?Math.max(0,aggCuObj-aggCu):null;
+  const aggFichier=cs.reduce((s,c)=>s+(c.fichier||0),0);
+  const tauxExpl=aggFichier>0?Math.round(p.cloturees/aggFichier*100):null;
+  const tauxDescente=aggFichier>0?Math.round(p.accords/aggFichier*100):null;
+  const nonClot=aggFichier>0?Math.max(0,aggFichier-p.cloturees):null;
   const cuH=evoParH(p.cu,p.heuresProd);
   const accH=evoParH(p.accords,p.heuresProd);
-  // Contrôles (saisie objectifs) — reconstruits seulement si demandé
+  const objCUh=evoGetObj('cuh','');  const objCUhN=objCUh!==''&&!isNaN(parseFloat(objCUh))?parseFloat(objCUh):null;
+  const objAcch=evoGetObj('acch',''); const objAcchN=objAcch!==''&&!isNaN(parseFloat(objAcch))?parseFloat(objAcch):null;
+  // Contrôles : un objectif PAR campagne (reconstruits seulement si demandé, pour préserver le focus)
   if(ctrlBox&&rebuildControls){
-    const inS="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 9px;font-size:var(--fs-sm);outline:none;width:120px;";
+    const inN="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 8px;font-size:var(--fs-sm);outline:none;";
     const lbl="font-size:var(--fs-xs);color:var(--t-secondary);text-transform:uppercase;letter-spacing:.05em;font-weight:600;";
-    ctrlBox.innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;padding-bottom:12px;border-bottom:1px solid var(--border);">
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="${lbl}">Fichier total en production</label>
-        <input type="number" min="0" step="1" value="${fichierManu}" placeholder="auto : ${p.fichierTotal.toLocaleString('fr-FR')}" oninput="evoSetObj('fichier',this.value)" style="${inS}">
+    const irows=cs.map(c=>`<tr>
+      <td style="text-align:left;font-weight:600">${ec(c.nom)}</td>
+      <td><input type="number" min="0" step="1" value="${c.fMan}" placeholder="auto ${c.fichierTotal.toLocaleString('fr-FR')}" oninput="evoSetObjC('${c.id}','fichier',this.value)" style="${inN};width:110px"></td>
+      <td><input type="number" min="0" max="100" step="0.5" value="${isNaN(c.tauxCU)?'':c.tauxCU}" oninput="evoSetObjC('${c.id}','cu',this.value)" style="${inN};width:80px"></td>
+    </tr>`).join("");
+    ctrlBox.innerHTML=`<div style="overflow-x:auto;padding-bottom:10px;border-bottom:1px solid var(--border);">
+      <div style="${lbl};margin-bottom:6px">🎯 Objectifs par campagne (fichier × taux de CU visé)</div>
+      <table class="tbl" style="min-width:380px"><thead><tr>
+        <th style="text-align:left">Campagne</th><th title="Fichier total en production (vide = auto)">Fichier</th><th title="Taux de CU visé sur le fichier">Taux CU obj %</th>
+      </tr></thead><tbody>${irows}</tbody></table>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
+        <div style="display:flex;flex-direction:column;gap:5px;"><label style="${lbl}">CU / heure objectif (périmètre)</label>
+          <input type="number" min="0" step="0.5" value="${objCUh}" placeholder="optionnel" oninput="evoSetObj('cuh',this.value)" style="${inN};width:130px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;"><label style="${lbl}">Accords / heure objectif (périmètre)</label>
+          <input type="number" min="0" step="0.5" value="${objAcch}" placeholder="optionnel" oninput="evoSetObj('acch',this.value)" style="${inN};width:130px"></div>
+        <button type="button" onclick="evoResetObj()" style="font-size:var(--fs-xs);padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--s-3);color:var(--t-secondary);cursor:pointer;font-weight:600;">↺ Réinitialiser</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="${lbl}">Taux de CU objectif (%)</label>
-        <input type="number" min="0" max="100" step="0.5" value="${isNaN(objCU)?'':objCU}" oninput="evoSetObj('cu',this.value)" style="${inS}">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="${lbl}">CU / heure objectif</label>
-        <input type="number" min="0" step="0.5" value="${objCUh}" placeholder="optionnel" oninput="evoSetObj('cuh',this.value)" style="${inS}">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="${lbl}">Accords / heure objectif</label>
-        <input type="number" min="0" step="0.5" value="${objAcch}" placeholder="optionnel" oninput="evoSetObj('acch',this.value)" style="${inS}">
-      </div>
-      <button type="button" onclick="evoResetObj()" style="font-size:var(--fs-xs);padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--s-3);color:var(--t-secondary);cursor:pointer;font-weight:600;">↺ Réinitialiser</button>
     </div>`;
   }
-  // Cartes résultats
-  const pc=v=>v==null?"n.d.":v+"%";
-  const nb=v=>v==null?"n.d.":v.toLocaleString("fr-FR");
+  // ── Suivi PAR campagne (calculé, mis à jour à chaque saisie) ──
+  const vsObj=(real,obj)=>obj==null||real==null?null:(real>=obj?'#30d158':'#E8006E');
+  const srows=cs.map(c=>{
+    const col=c.atteinte==null?'var(--t-muted)':(c.atteinte>=100?'#30d158':'#4C9AFF');
+    return `<tr>
+      <td style="text-align:left;font-weight:600">${ec(c.nom)}</td>
+      <td>${nb(c.fichier)}</td>
+      <td>${isNaN(c.tauxCU)?'–':c.tauxCU+'%'}</td>
+      <td><b>${c.cuObj==null?'n.d.':nb(c.cuObj)}</b></td>
+      <td style="color:#30d158">${nb(c.cu)}</td>
+      <td style="color:${col};font-weight:600">${c.atteinte==null?'–':c.atteinte+'%'}</td>
+      <td>${c.reste==null?'–':nb(c.reste)}</td>
+    </tr>`;
+  }).join("");
+  const suivi=`<div style="overflow-x:auto"><table class="tbl" style="min-width:520px;margin-bottom:14px"><thead><tr>
+      <th style="text-align:left">Campagne</th><th>Fichier</th><th>Taux obj</th>
+      <th title="Fichier × taux CU objectif">CU objectif</th><th title="CU réalisés aujourd'hui">CU réalisé</th>
+      <th title="CU réalisé ÷ CU objectif">Atteinte</th><th>Reste</th>
+    </tr></thead><tbody>${srows}</tbody>
+    <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)">
+      <td style="text-align:left">TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td>
+      <td>${aggCuObj==null?'n.d.':nb(aggCuObj)}</td><td style="color:#30d158">${nb(aggCu)}</td>
+      <td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>${aggReste==null?'–':nb(aggReste)}</td>
+    </tr></tfoot></table></div>`;
+  // ── Cartes agrégées (périmètre) ──
   const card=(label,value,sub,o)=>{
     o=o||{};
     const cls='kpi-card'+(o.good?' good':'')+(o.alert?' alert':'')+(o.hero?' hero':'');
@@ -5160,25 +5197,22 @@ function renderEvoObjectifs(rebuildControls){
       +`<div class="kpi-value"${o.color?` style="color:${o.color}"`:''}>${value}</div>`
       +(sub?`<div class="kpi-sub">${sub}</div>`:'')+gauge+`</div>`;
   };
-  // Couleur réalisé vs objectif
-  const vsObj=(real,obj)=>obj==null||real==null?null:(real>=obj?'#30d158':'#E8006E');
   const cards=[
-    card("Total CU à réaliser",cuObjectif==null?"n.d.":nb(cuObjectif),
-      fichier>0?nb(fichier)+" fiches × "+(isNaN(objCU)?"?":objCU)+"%":"fichier inconnu",{hero:true,title:"Objectif campagne = fichier total × taux de CU objectif"}),
-    card("CU réalisés (aujourd'hui)",nb(p.cu),
-      atteinte==null?"objectif non défini":atteinte+"% de l'objectif"+(reste?" · reste "+nb(reste):""),
-      {gauge:atteinte,good:atteinte!=null&&atteinte>=100,gColor:atteinte!=null&&atteinte>=100?'#30d158':'#4C9AFF',title:"Contacts utiles réalisés aujourd'hui (à comparer à l'objectif campagne, qui se construit sur plusieurs jours)"}),
-    card("Taux d'exploitation",pc(tauxExpl),"fiches clôturées ÷ fichier (cumulé)",{gauge:tauxExpl,title:"Avancement du fichier depuis le début de la campagne"}),
-    card("Taux de descente",pc(tauxDescente),"accords du jour ÷ fichier",{gauge:tauxDescente,gColor:'#30d158',title:"Accords obtenus rapportés au fichier total (cumulé)"}),
+    card("Total CU à réaliser",aggCuObj==null?"n.d.":nb(aggCuObj),"somme des objectifs campagne",{hero:true,title:"Σ (fichier × taux CU objectif) des campagnes sélectionnées"}),
+    card("CU réalisés (aujourd'hui)",nb(aggCu),
+      aggAtteinte==null?"objectif non défini":aggAtteinte+"% de l'objectif"+(aggReste?" · reste "+nb(aggReste):""),
+      {gauge:aggAtteinte,good:aggAtteinte!=null&&aggAtteinte>=100,gColor:aggAtteinte!=null&&aggAtteinte>=100?'#30d158':'#4C9AFF',title:"Contacts utiles réalisés aujourd'hui vs objectif cumulé"}),
+    card("Taux d'exploitation",pc(tauxExpl),"fiches clôturées ÷ fichier (cumulé)",{gauge:tauxExpl,title:"Avancement du fichier depuis le début"}),
+    card("Taux de descente",pc(tauxDescente),"accords du jour ÷ fichier",{gauge:tauxDescente,gColor:'#30d158',title:"Accords rapportés au fichier total"}),
     card("CU / heure",cuH==null?"n.d.":cuH.toLocaleString("fr-FR"),
-      objCUhN!=null?"réalisé · objectif "+objCUhN:"réalisé",{color:vsObj(cuH,objCUhN),title:"Contacts utiles par heure de présence"}),
+      objCUhN!=null?"réalisé · objectif "+objCUhN:"réalisé",{color:vsObj(cuH,objCUhN),title:"Contacts utiles par heure (périmètre)"}),
     card("Accords / heure",accH==null?"n.d.":accH.toLocaleString("fr-FR"),
-      objAcchN!=null?"réalisé · objectif "+objAcchN:"réalisé",{color:vsObj(accH,objAcchN),title:"Accords par heure de présence"}),
+      objAcchN!=null?"réalisé · objectif "+objAcchN:"réalisé",{color:vsObj(accH,objAcchN),title:"Accords par heure (périmètre)"}),
     card("Agents connectés",nb(p.totalAgents),"en ce moment",{}),
-    card("Fichier en production",nb(fichier),
-      "clôturées "+nb(p.cloturees)+" · à traiter "+nb(nonClot)+" (cumulé)",{title:"Total fiches chargées / clôturées / non clôturées — état du fichier depuis le début"}),
+    card("Fichier en production",nb(aggFichier),
+      "clôturées "+nb(p.cloturees)+" · à traiter "+nb(nonClot)+" (cumulé)",{title:"Total fiches / clôturées / non clôturées (cumulé)"}),
   ];
-  resBox.innerHTML=cards.join("");
+  resBox.innerHTML=suivi+`<div class="kpi-grid">`+cards.join("")+`</div>`;
 }
 
 function showToast(msg,color="#30d158",durationMs){
