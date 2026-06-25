@@ -1429,6 +1429,11 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       <div id="evo-agent-camp-table" style="overflow-x:auto;"></div>
     </div>
 
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">Production par campagne → agents <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">cumul campagne + détail agent par connexion (réalisé · source SQL)</span></span></div>
+      <div id="evo-campagent-table" style="overflow-x:auto;"></div>
+    </div>
+
     <div id="evo-diag-panel" style="margin-top:14px;display:none;"></div>
   </div>
 
@@ -5053,12 +5058,79 @@ function renderEvo(d){
     if(chev)chev.style.transform=isOpen?"":"rotate(90deg)";
   };
 
+  // Vue Production par campagne → agents (spec Tarik : cumul campagne + détail agent)
+  renderEvoCampAgents(d,camps);
   // Détail par campagne pour le suivi des objectifs PAR campagne (#2)
   if(_evoPerim)_evoPerim.camps=camps.map(c=>({id:String(c.id),nom:c.nom,cu:cAcc(c)+cRef(c),accords:cAcc(c),fichierTotal:evoFichierTotal(c),cloturees:evoCloturees(c),heuresProd:getHP(c),agents:c.agents||0}));
   // Module objectifs (utilise _evoPerim calculé plus haut)
   renderEvoObjectifs(true);
   // Diagnostic composeur retiré (direction #1 — données composeur non exploitables).
   const _diagBox=document.getElementById("evo-diag-panel"); if(_diagBox){_diagBox.style.display="none";_diagBox.innerHTML="";}
+}
+
+// Vue « Production par campagne → agents » (spec Tarik) : pour chaque campagne
+// sélectionnée, une ligne cumul + les agents en dessous (base : connexion sur la
+// campagne). Stats : C+/h, CU/h, fiches traitées/h, taux d'accord, heures connexion.
+function renderEvoCampAgents(d,selCamps){
+  const box=document.getElementById("evo-campagent-table"); if(!box)return;
+  const agentCamps=d.agentCamps||[];
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const agName={}; (d.agents||[]).forEach(a=>{if(a.id&&a.nom)agName[String(a.id)]=a.nom;});
+  if(!agentCamps.length){box.innerHTML=`<div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-disabled)">Données agent par campagne non disponibles (en attente du prochain envoi SQL).</div>`;return;}
+  const agSel=(typeof _evoSelectedAgents!=='undefined')?_evoSelectedAgents:null; // null = tous
+  // Regrouper par campagne → agents
+  const byCamp={};
+  agentCamps.forEach(a=>{
+    if(agSel&&!agSel.has(a.idAgente))return;
+    (a.camps||[]).forEach(cc=>{
+      const id=String(cc.idCampanya);
+      if(!byCamp[id])byCamp[id]={id,nom:cc.campNom||("Camp "+id),agents:[]};
+      byCamp[id].agents.push({id:a.idAgente,nom:agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0});
+    });
+  });
+  const selIds=selCamps&&selCamps.length?new Set(selCamps.map(c=>String(c.id))):null;
+  let camps=Object.values(byCamp);
+  if(selIds)camps=camps.filter(c=>selIds.has(c.id));
+  if(!camps.length){box.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée agent pour les campagnes sélectionnées.</div>`;return;}
+  const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0});
+  camps.sort((a,b)=>sumOf(b.agents).nb-sumOf(a.agents).nb);
+  const nb=v=>v==null?"–":v.toLocaleString("fr-FR");
+  const perH=(v,sec)=>sec>0?v/(sec/3600):null;
+  const r1=v=>v==null?"–":v.toLocaleString("fr-FR",{maximumFractionDigits:1});
+  const fmtH=sec=>sec>0?(sec>=3600?(sec/3600).toFixed(1).replace(".",",")+" h":Math.round(sec/60)+" min"):"–";
+  const pct=(a,b)=>b>0?Math.round(a/b*100)+"%":"–";
+  const cells=(label,o,isCamp)=>{
+    const refus=o.cuTotal-o.cuPos;
+    const w=isCamp?'font-weight:700;':'';
+    return `<td style="text-align:left;${w}${isCamp?'':'padding-left:26px;color:var(--t-secondary)'}">${label}</td>
+      <td style="${w}">${fmtH(o.prod_sec)}</td>
+      <td style="color:#30d158;${w}">${nb(o.cuPos)}</td>
+      <td style="color:#30d158;${w}">${r1(perH(o.cuPos,o.prod_sec))}</td>
+      <td style="${w}">${nb(refus)}</td>
+      <td style="${w}">${nb(o.cuTotal)}</td>
+      <td style="${w}">${r1(perH(o.cuTotal,o.prod_sec))}</td>
+      <td style="${w}">${nb(o.nb)}</td>
+      <td style="${w}">${r1(perH(o.nb,o.prod_sec))}</td>
+      <td style="color:#30d158;${w}">${pct(o.cuPos,o.cuTotal)}</td>`;
+  };
+  const body=camps.map(c=>{
+    const cum=sumOf(c.agents);
+    const head=`<tr style="background:rgba(232,0,110,.07)">${cells("📁 "+ec(c.nom)+" — "+c.agents.length+" ag.",cum,true)}</tr>`;
+    const ags=c.agents.slice().sort((a,b)=>b.cuPos-a.cuPos).map(a=>`<tr>${cells("↳ "+ec(a.nom),a,false)}</tr>`).join("");
+    return head+ags;
+  }).join("");
+  box.innerHTML=`<table class="tbl evo-num" style="min-width:780px"><thead><tr>
+    <th style="text-align:left">Campagne / Agent</th>
+    <th title="Heures de connexion (session sur la campagne)">H. conn.</th>
+    <th title="Accords — cœur de cible positif" style="color:#30d158">C+ (accord)</th>
+    <th title="Accords par heure de connexion" style="color:#30d158">C+/h</th>
+    <th title="Refus — cœur de cible négatif">Refus</th>
+    <th title="Contacts utiles = accords + refus">CU</th>
+    <th title="Contacts utiles par heure">CU/h</th>
+    <th title="Fiches traitées (transactions clôturées : accord/refus/faux n°/hors cible)">Traitées</th>
+    <th title="Fiches traitées par heure">Trait./h</th>
+    <th title="Accords ÷ CU" style="color:#30d158">Taux accord</th>
+  </tr></thead><tbody>${body}</tbody></table>`;
 }
 
 // Diagnostic : répartition des transactions du jour par origine (nOrigenTransaccion)
