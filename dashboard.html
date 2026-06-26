@@ -5068,17 +5068,123 @@ function renderEvo(d){
   const _diagBox=document.getElementById("evo-diag-panel"); if(_diagBox){_diagBox.style.display="none";_diagBox.innerHTML="";}
 }
 
-// Vue « Production par campagne → agents » (spec Tarik) : pour chaque campagne
-// sélectionnée, une ligne cumul + les agents en dessous (base : connexion sur la
-// campagne). Stats : C+/h, CU/h, fiches traitées/h, taux d'accord, heures connexion.
+// ── Vue « Production par campagne → agents » (spec Tarik) ───────────────────
+// Carte par campagne : en-tête (logo marque) cliquable → panneau objectifs ;
+// bandeau KPI ; tableau agents triable (clic en-tête). Palette Wisecom rose/noir/gris.
+const EVO_ECC=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const EVO_NB=v=>v==null?"–":v.toLocaleString("fr-FR");
+const EVO_R1=v=>v==null?"–":v.toLocaleString("fr-FR",{maximumFractionDigits:1});
+const EVO_PH=(v,sec)=>sec>0?v/(sec/3600):null;
+const EVO_PHN=(v,sec)=>sec>0?v/(sec/3600):0;
+const EVO_FH=sec=>sec>0?(sec>=3600?(sec/3600).toFixed(1).replace(".",",")+" h":Math.round(sec/60)+" min"):"–";
+const EVO_PCTN=(a,b)=>b>0?Math.round(a/b*100):0;
+function EVO_TAUX(o){const p=EVO_PCTN(o.cuPos,o.cuTotal);const col=p>=15?'#E8006E':(p>=5?'#D4537E':'#aa6a82');return o.cuTotal>0?`<b style="color:${col}">${p}%</b>`:'–';}
+const EVO_COLS=[
+  {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
+  {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif)',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'pink'},
+  {k:'cph',l:'C+/h',t:'Accords par heure',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'pink'},
+  {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos,fmt:o=>EVO_NB(o.cuTotal-o.cuPos),cls:'muted'},
+  {k:'cu',l:'CU',t:'Contacts utiles = accords + refus',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
+  {k:'cuh',l:'CU/h',t:'Contacts utiles par heure',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'muted'},
+  {k:'nb',l:'Trait.',t:'Fiches traitées (toutes clôtures)',get:o=>o.nb,fmt:o=>EVO_NB(o.nb),cls:''},
+  {k:'nbh',l:'/h',t:'Fiches traitées par heure',get:o=>EVO_PHN(o.nb,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.nb,o.prod_sec)),cls:'muted'},
+  {k:'taux',l:'Taux',t:'Taux d\'accord = accords ÷ CU',get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:''},
+];
+// Détection de la marque/compte client depuis le nom de campagne → logo + couleur.
+function evoBrand(name){
+  const u=String(name||"").toUpperCase();
+  const map=[['HYUNDAI','hyundai','#002C5F'],['VOLKSWAGEN','volkswagen','#001E50'],['VWVU','volkswagen','#001E50'],['VW','volkswagen','#001E50'],['AUDI','audi','#BB0A30'],['NISSAN','nissan','#C3002F'],['SEAT','seat','#33302E'],['SKODA','skoda','#0E3A2F'],['KIA','kia','#05141F'],['OMODA','','#0a0a0a'],['JAECOO','','#0a0a0a'],['MERCER','','#1f3a5f'],['AFNOR','','#1f3a5f'],['COVID','','#5f5e5a'],['GS_','','#5f5e5a']];
+  for(let i=0;i<map.length;i++){const m=map[i];if(u.indexOf(m[0])>=0)return{slug:m[1],col:m[2],letters:(m[0][0]+(m[0][1]||"")).toUpperCase()};}
+  const letters=u.replace(/[^A-Z]/g,'').slice(0,2)||'??';
+  return{slug:'',col:'#888780',letters};
+}
+function evoLogo(name){
+  const b=evoBrand(name);
+  if(b.slug)return `<span style="position:relative;width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">${b.letters}</span><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/${b.slug}.svg" alt="" style="position:relative;width:26px;height:26px;object-fit:contain;background:#fff;border-radius:5px;padding:3px;box-sizing:border-box" onerror="this.style.display='none'"></span>`;
+  return `<span style="width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">${b.letters}</span>`;
+}
+function evoAgentRows(id){
+  const c=window._evoCS[id]; if(!c)return"";
+  const st=(window._evoSort&&window._evoSort[id])||{k:'taux',dir:-1};
+  const ags=c.agents.slice();
+  if(st.k==='name')ags.sort((a,b)=>a.nom.localeCompare(b.nom,'fr')*st.dir);
+  else{const col=EVO_COLS.find(x=>x.k===st.k)||EVO_COLS[EVO_COLS.length-1];ags.sort((a,b)=>(col.get(a)-col.get(b))*st.dir);}
+  const rows=ags.map((a,i)=>{
+    const rank=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0)?'<i class="ti ti-trophy" style="color:#E8006E;font-size:14px;vertical-align:-2px;margin-right:4px"></i>':`<span style="display:inline-block;width:15px;text-align:center;color:var(--t-disabled);margin-right:4px">${i+1}</span>`;
+    const tds=EVO_COLS.map(col=>{const cc=col.cls==='pink'?'color:#E8006E':(col.cls==='muted'?'color:var(--t-secondary)':'');return `<td style="text-align:center;${cc}">${col.fmt(a)}</td>`;}).join('');
+    return `<tr style="border-bottom:0.5px solid var(--border)"><td style="text-align:left">${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td>${tds}</tr>`;
+  }).join('');
+  const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td style="text-align:center">${col.fmt(cum)}</td>`).join('');
+  return rows+`<tr style="background:#191919;color:#fff;font-weight:600"><td style="text-align:left;padding-left:10px">Cumul campagne</td>${cumTds}</tr>`;
+}
+function evoSortCamp(id,k,th){
+  window._evoSort=window._evoSort||{};
+  const cur=window._evoSort[id]||{k:'taux',dir:-1};
+  const dir=cur.k===k?-cur.dir:(k==='name'?1:-1);
+  window._evoSort[id]={k,dir};
+  const tb=document.getElementById('tb-'+id); if(tb)tb.innerHTML=evoAgentRows(id);
+  if(th){const tr=th.parentNode;for(let i=0;i<tr.children.length;i++){const a=tr.children[i].querySelector('.evo-sarr');if(a)a.textContent='';}const a=th.querySelector('.evo-sarr');if(a)a.textContent=dir<0?' ▾':' ▴';}
+}
+function evoSetTxAcc(id,val){try{localStorage.setItem('evoObjC_'+id+'_txacc',val);}catch(e){}const p=document.getElementById('objp-'+id);if(p&&p.style.display!=='none')p.innerHTML=evoObjPanel(id);}
+function evoObjPanel(id){
+  const c=window._evoCS[id]; if(!c)return"";
+  const tgt=parseFloat(evoGetObjC(id,'txacc','20'))||20;
+  const maxT=Math.max(tgt+5,1,...c.agents.map(a=>EVO_PCTN(a.cuPos,a.cuTotal)));
+  const rows=c.agents.slice().sort((a,b)=>EVO_PCTN(b.cuPos,b.cuTotal)-EVO_PCTN(a.cuPos,a.cuTotal)).map(a=>{
+    const p=EVO_PCTN(a.cuPos,a.cuTotal);const gap=p-tgt;const over=gap>=0;
+    const col=over?'#E8006E':(p>=tgt*0.6?'#D4537E':'#ED93B1');
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">
+      <span style="width:96px;font-weight:600;color:var(--t-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${EVO_ECC(a.nom)}</span>
+      <span style="flex:1;position:relative;height:18px;background:var(--s-3);border-radius:4px">
+        <span style="position:absolute;left:0;top:0;height:100%;width:${Math.min(100,p/maxT*100)}%;background:${col};border-radius:4px"></span>
+        <span style="position:absolute;left:${Math.min(100,tgt/maxT*100)}%;top:-3px;bottom:-3px;width:2px;background:var(--t-primary)"></span>
+      </span>
+      <span style="width:96px;text-align:right;color:${over?'#E8006E':'var(--t-secondary)'};font-weight:600">${a.cuTotal>0?p+'%':'–'} <span style="color:var(--t-disabled);font-weight:400">(${over&&a.cuTotal>0?'+':''}${a.cuTotal>0?gap:0})</span></span>
+    </div>`;
+  }).join('');
+  return `<div style="background:var(--s-3);border-bottom:0.5px solid var(--border);padding:12px 14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <i class="ti ti-target-arrow" style="font-size:16px;color:#E8006E"></i>
+      <span style="font-weight:600;font-size:13px;color:var(--t-primary)">Objectifs &amp; positionnement des agents</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--t-secondary)">Objectif taux d'accord</span>
+      <input type="number" min="0" max="100" step="1" value="${tgt}" oninput="evoSetTxAcc('${id}',this.value)" onclick="event.stopPropagation()" style="width:64px;background:var(--s-2);color:var(--t-primary);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:12px">
+      <span style="font-size:12px;color:var(--t-secondary)">%</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">${rows}</div>
+    <div style="font-size:11px;color:var(--t-disabled);margin-top:10px">trait vertical = objectif · barre rose au-dessus de la cible · écart à droite</div>
+  </div>`;
+}
+function evoToggleObj(id){
+  const p=document.getElementById('objp-'+id),ch=document.getElementById('chev-'+id);
+  if(!p)return;
+  if(p.style.display!=='none'){p.style.display='none';if(ch)ch.className='ti ti-chevron-down';return;}
+  p.innerHTML=evoObjPanel(id);p.style.display='block';if(ch)ch.className='ti ti-chevron-up';
+}
+function evoCampBlock(id){
+  const c=window._evoCS[id];const cum=c.cum;const tx=EVO_PCTN(cum.cuPos,cum.cuTotal);
+  const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Traitées',EVO_NB(cum.nb),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
+  const kpiHtml=kpi.map((k,i)=>`<div style="text-align:center;padding:10px 6px;${i<5?'border-right:0.5px solid var(--border);':''}"><div style="font-size:11px;color:var(--t-secondary)">${k[0]}</div><div style="font-size:19px;font-weight:600;color:${k[2]||'var(--t-primary)'}">${k[1]}</div></div>`).join('');
+  const ths=`<th onclick="evoSortCamp('${id}','name',this)" style="text-align:left;cursor:pointer;white-space:nowrap">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" style="text-align:center;cursor:pointer;white-space:nowrap;${col.cls==='pink'?'color:#E8006E':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
+  return `<div style="border:0.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;background:var(--s-2)">
+    <div role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}" style="display:flex;align-items:center;gap:11px;padding:12px 14px;background:#191919;color:#fff;cursor:pointer">
+      ${evoLogo(c.nom)}
+      <div style="min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(c.nom)}</div><div style="font-size:11.5px;color:#9a9a9a"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> ${c.agents.length} agents · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(cum.prod_sec)}</div></div>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="background:${tx>=15?'#E8006E':'#3a2630'};color:#fff;font-weight:600;font-size:13px;padding:4px 11px;border-radius:6px">Taux ${cum.cuTotal>0?tx+'%':'–'}</span>
+        <i id="chev-${id}" class="ti ti-chevron-down" style="font-size:18px;color:#9a9a9a"></i>
+      </span>
+    </div>
+    <div id="objp-${id}" style="display:none"></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:0.5px solid var(--border)">${kpiHtml}</div>
+    <div style="overflow-x:auto"><table class="tbl evo-num" style="min-width:720px"><thead><tr style="font-size:10.5px">${ths}</tr></thead><tbody id="tb-${id}">${evoAgentRows(id)}</tbody></table></div>
+  </div>`;
+}
 function renderEvoCampAgents(d,selCamps){
   const box=document.getElementById("evo-campagent-table"); if(!box)return;
   const agentCamps=d.agentCamps||[];
-  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const agName={}; (d.agents||[]).forEach(a=>{if(a.id&&a.nom)agName[String(a.id)]=a.nom;});
   if(!agentCamps.length){box.innerHTML=`<div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-disabled)">Données agent par campagne non disponibles (en attente du prochain envoi SQL).</div>`;return;}
-  const agSel=(typeof _evoSelectedAgents!=='undefined')?_evoSelectedAgents:null; // null = tous
-  // Regrouper par campagne → agents
+  const agSel=(typeof _evoSelectedAgents!=='undefined')?_evoSelectedAgents:null;
   const byCamp={};
   agentCamps.forEach(a=>{
     if(agSel&&!agSel.has(a.idAgente))return;
@@ -5094,43 +5200,9 @@ function renderEvoCampAgents(d,selCamps){
   if(!camps.length){box.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée agent pour les campagnes sélectionnées.</div>`;return;}
   const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0});
   camps.sort((a,b)=>sumOf(b.agents).nb-sumOf(a.agents).nb);
-  const nb=v=>v==null?"–":v.toLocaleString("fr-FR");
-  const perH=(v,sec)=>sec>0?v/(sec/3600):null;
-  const r1=v=>v==null?"–":v.toLocaleString("fr-FR",{maximumFractionDigits:1});
-  const fmtH=sec=>sec>0?(sec>=3600?(sec/3600).toFixed(1).replace(".",",")+" h":Math.round(sec/60)+" min"):"–";
-  const pct=(a,b)=>b>0?Math.round(a/b*100)+"%":"–";
-  const cells=(label,o,isCamp)=>{
-    const refus=o.cuTotal-o.cuPos;
-    const w=isCamp?'font-weight:700;':'';
-    return `<td style="text-align:left;${w}${isCamp?'':'padding-left:26px;color:var(--t-secondary)'}">${label}</td>
-      <td style="${w}">${fmtH(o.prod_sec)}</td>
-      <td style="color:#30d158;${w}">${nb(o.cuPos)}</td>
-      <td style="color:#30d158;${w}">${r1(perH(o.cuPos,o.prod_sec))}</td>
-      <td style="${w}">${nb(refus)}</td>
-      <td style="${w}">${nb(o.cuTotal)}</td>
-      <td style="${w}">${r1(perH(o.cuTotal,o.prod_sec))}</td>
-      <td style="${w}">${nb(o.nb)}</td>
-      <td style="${w}">${r1(perH(o.nb,o.prod_sec))}</td>
-      <td style="color:#30d158;${w}">${pct(o.cuPos,o.cuTotal)}</td>`;
-  };
-  const body=camps.map(c=>{
-    const cum=sumOf(c.agents);
-    const head=`<tr style="background:rgba(232,0,110,.07)">${cells("📁 "+ec(c.nom)+" — "+c.agents.length+" ag.",cum,true)}</tr>`;
-    const ags=c.agents.slice().sort((a,b)=>b.cuPos-a.cuPos).map(a=>`<tr>${cells("↳ "+ec(a.nom),a,false)}</tr>`).join("");
-    return head+ags;
-  }).join("");
-  box.innerHTML=`<table class="tbl evo-num" style="min-width:780px"><thead><tr>
-    <th style="text-align:left">Campagne / Agent</th>
-    <th title="Heures de connexion (session sur la campagne)">H. conn.</th>
-    <th title="Accords — cœur de cible positif" style="color:#30d158">C+ (accord)</th>
-    <th title="Accords par heure de connexion" style="color:#30d158">C+/h</th>
-    <th title="Refus — cœur de cible négatif">Refus</th>
-    <th title="Contacts utiles = accords + refus">CU</th>
-    <th title="Contacts utiles par heure">CU/h</th>
-    <th title="Fiches traitées (transactions clôturées : accord/refus/faux n°/hors cible)">Traitées</th>
-    <th title="Fiches traitées par heure">Trait./h</th>
-    <th title="Accords ÷ CU" style="color:#30d158">Taux accord</th>
-  </tr></thead><tbody>${body}</tbody></table>`;
+  window._evoCS={};
+  camps.forEach(c=>{window._evoCS[c.id]={agents:c.agents,cum:sumOf(c.agents),nom:c.nom};});
+  box.innerHTML=camps.map(c=>evoCampBlock(c.id)).join("");
 }
 
 // Diagnostic : répartition des transactions du jour par origine (nOrigenTransaccion)
