@@ -134,7 +134,12 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
             })
-    return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta,
+    # date ISO du jour des données (fdesde dd/mm/yyyy -> yyyy-mm-dd) pour le filtre date du dashboard
+    try:
+        dd, mm, yy = fdesde.split("/"); data_date = f"{yy}-{mm.zfill(2)}-{dd.zfill(2)}"
+    except Exception:
+        data_date = None
+    return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
             "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents}
 
 if __name__ == "__main__":

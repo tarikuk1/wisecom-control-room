@@ -4643,6 +4643,7 @@ let _evoData=null;            // dernier payload reçu de /api/evo/sortant
 let _evoSelectedCamps=null;   // Set des campagnes sélectionnées (null = pas encore initialisé)
 let _evoSelectedAgents=null;  // Set des agents sélectionnés par idAgente (null = tous)
 let _evoDateFilter=null;      // date sélectionnée (YYYY-MM-DD) ; null = aujourd'hui
+let _evoDateUserSet=false;    // true dès que l'utilisateur choisit une date (sinon on cale sur la date des données)
 let _evoHeureDebFilter="07:00";
 let _evoHeureFinFilter="20:00";
 async function loadEvo(){
@@ -4726,6 +4727,7 @@ function evoApplyDateFilter(){
   const hd=document.getElementById("evo-heure-deb");
   const hf=document.getElementById("evo-heure-fin");
   _evoDateFilter=(dp&&dp.value)||null;
+  _evoDateUserSet=true;
   _evoHeureDebFilter=(hd&&hd.value)||"07:00";
   _evoHeureFinFilter=(hf&&hf.value)||"20:00";
   if(_evoData)renderEvo(_evoData);
@@ -4817,31 +4819,36 @@ function renderEvo(d){
   renderEvoCampFilter(d);
   const sel=_evoSelectedCamps||new Set((d.campagnes||[]).map(c=>c.nom));
 
-  // ── Filtre date ────────────────────────────────────────────────────────────
-  const todayStr=new Date().toLocaleDateString("sv");   // "YYYY-MM-DD" locale-safe
-  const selectedDate=_evoDateFilter||todayStr;
-  const isToday=selectedDate===todayStr;
-  // Badge indiquant le filtre actif
+  // ── Filtre date : les données chargées correspondent à d.dataDate (jour du snapshot) ──
+  const todayStr=new Date().toLocaleDateString("sv");
+  const dataDate=d.dataDate||todayStr;   // date réelle des données chargées
+  // Si l'utilisateur n'a pas encore choisi de date, caler le sélecteur sur la date des données
+  if(!_evoDateUserSet && dataDate!==todayStr){
+    _evoDateFilter=dataDate;
+    const _dp0=document.getElementById("evo-date-filter"); if(_dp0)_dp0.value=dataDate;
+  }
+  const selectedDate=_evoDateFilter||dataDate;
+  const dataAvailable=selectedDate===dataDate;
+  const dFmt=ds=>new Date(ds+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
   const badge=document.getElementById("evo-filter-badge");
   if(badge){
     const hLabel=(_evoHeureDebFilter||"07:00")+" → "+(_evoHeureFinFilter||"20:00");
-    const dLabel=isToday?"Aujourd'hui":new Date(selectedDate+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+    const dLabel=new Date(selectedDate+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})+(selectedDate===todayStr?" (live)":"");
     badge.style.display="inline";
     badge.textContent=dLabel+" · "+hLabel;
   }
-  if(!isToday){
-    // Données historiques non disponibles (seul le dernier snapshot est conservé)
-    const noData=`<tbody><tr><td colspan="10" style="padding:18px 14px;color:var(--t-disabled);font-size:var(--fs-body);">
-      Aucune donnée disponible pour le <b>${new Date(selectedDate+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</b>.<br>
-      Le tableau de bord conserve uniquement les données en temps réel d'aujourd'hui.
-      Pour accéder à l'historique, le Planificateur de tâches doit tourner en continu.
+  if(!dataAvailable){
+    const avail=dFmt(dataDate);
+    const noData=`<tbody><tr><td colspan="14" style="padding:18px 14px;color:var(--t-disabled);font-size:var(--fs-body);">
+      Aucune donnée pour le <b>${dFmt(selectedDate)}</b>. Données actuellement chargées : <b>${avail}</b>.
     </td></tr></tbody>`;
     document.getElementById("evo-kpis").innerHTML=`<div class="kpi-card" style="flex:1;padding:18px;color:var(--t-disabled);">
-      Données historiques non disponibles — seules les données temps réel du jour actuel sont affichées.
-      <br><button type="button" onclick="evoSetToday()" style="margin-top:10px;background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:var(--fs-sm);">Revenir à aujourd'hui</button>
+      Aucune donnée pour la date sélectionnée. Données chargées : <b>${avail}</b>.
+      <br><button type="button" onclick="(function(){var dp=document.getElementById('evo-date-filter');if(dp)dp.value='${dataDate}';_evoDateFilter='${dataDate}';_evoDateUserSet=true;if(_evoData)renderEvo(_evoData);})()" style="margin-top:10px;background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:var(--fs-sm);">Voir le ${avail}</button>
     </div>`;
     document.getElementById("evo-camp-table").innerHTML=noData;
     document.getElementById("evo-agent-table").innerHTML=noData;
+    const _ca=document.getElementById("evo-campagent-table"); if(_ca)_ca.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée pour cette date (chargé : ${avail}).</div>`;
     _evoPerim=null; renderEvoObjectifs(true);
     return;
   }
@@ -5346,7 +5353,9 @@ function renderEvoObjectifs(rebuildControls){
     const txExpl=c.fichier>0?Math.round(c.cloturees/c.fichier*100):null;
     const txAcc=c.cu>0?Math.round(c.accords/c.cu*100):null;
     const txDesc=c.fichier>0?Math.round(c.accords/c.fichier*100):null;
+    const txAccObjRaw=evoGetObjC(c.id,'txacc','');const txAccObj=parseFloat(txAccObjRaw);
     const attCol=c.atteinte==null?'var(--t-secondary)':(c.atteinte>=100?'#E8006E':'#4C9AFF');
+    const accCol=txAcc==null?'var(--t-secondary)':(!isNaN(txAccObj)&&txAcc>=txAccObj?'#1d9e75':'#E8006E');
     return `<tr>
       <td style="text-align:left;font-weight:600">${ec(c.nom)}</td>
       <td><input type="number" min="0" value="${c.fMan}" placeholder="${c.fichierTotal?c.fichierTotal.toLocaleString('fr-FR'):'auto'}" onchange="evoSetObjC('${c.id}','fichier',this.value)" class="eca-inp" style="width:82px"></td>
@@ -5355,16 +5364,17 @@ function renderEvoObjectifs(rebuildControls){
       <td class="eca-pink">${nb(c.cu)}</td>
       <td style="color:${attCol};font-weight:600">${c.atteinte==null?'–':c.atteinte+'%'}</td>
       <td>${pcc(txExpl)}</td>
-      <td class="eca-pink">${pcc(txAcc)}</td>
+      <td style="font-weight:600;color:${accCol}">${pcc(txAcc)}</td>
+      <td><input type="number" min="0" max="100" step="1" value="${txAccObjRaw}" placeholder="20" onchange="evoSetObjC('${c.id}','txacc',this.value)" class="eca-inp" style="width:52px"></td>
       <td>${pcc(txDesc)}</td>
     </tr>`;
   }).join("");
   resBox.innerHTML=`<div class="eca-tw"><table class="eca-tbl" style="font-size:11.5px"><thead><tr>
       <th>Campagne</th><th title="Fichier en production (vide = auto depuis Evo)">Fichier</th><th title="Taux de CU visé sur le fichier">Taux CU obj</th>
       <th title="Fichier × taux CU objectif">CU objectif</th><th title="CU réalisés">CU réalisé</th><th title="CU réalisé ÷ CU objectif">Atteinte</th>
-      <th title="Fiches clôturées ÷ fichier">Tx exploit.</th><th title="Accords ÷ CU">Tx accord</th><th title="Accords ÷ fichier">Tx descente</th>
+      <th title="Fiches clôturées ÷ fichier">Tx exploit.</th><th title="Accords ÷ CU (réalisé)">Tx accord</th><th title="Objectif taux d'accord">Obj. accord</th><th title="Accords ÷ fichier">Tx descente</th>
     </tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>${pcc(aggTxExpl)}</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>${pcc(aggTxDesc)}</td></tr></tfoot>
+    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>${pcc(aggTxExpl)}</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>–</td><td>${pcc(aggTxDesc)}</td></tr></tfoot>
     </table></div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px;color:var(--t-secondary)">
       <span>CU / h (périmètre) : <b style="color:#E8006E">${cuH==null?'n.d.':cuH.toLocaleString('fr-FR')}</b></span>
