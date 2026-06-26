@@ -525,10 +525,10 @@ body.light .tbl .total-row td{background:#fff0f7!important;}
 .tbl.evo-num th,.tbl.evo-num td{text-align:center;}
 .tbl.evo-num th:first-child,.tbl.evo-num td:first-child{text-align:left;}
 /* Sous-lignes détail agent×campagne : lisibles (au lieu du fond quasi noir) */
-.tbl .evo-sub-row td{background:#242428;color:#d8d8d8;}
-.tbl .evo-sub-row:hover td{background:#2c2c31;}
+.tbl .evo-sub-row td{background:var(--s-3);color:var(--t-secondary);}
+.tbl .evo-sub-row:hover td{background:var(--s-2);}
 .tbl .evo-agent-row{cursor:pointer;}
-.tbl .evo-agent-row:hover td{background:#222!important;}
+.tbl .evo-agent-row:hover td{background:var(--s-2)!important;}
 /* KPI Evo : contenu centré pour un alignement propre en grille */
 #evo-kpis .kpi-card,#evo-obj-results .kpi-card{text-align:center;display:flex;flex-direction:column;justify-content:center;}
 /* Groupes de KPI Evo (axes : réalisé jour / temps réel / fichier) */
@@ -5165,7 +5165,7 @@ function evoCampBlock(id){
   const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Traitées',EVO_NB(cum.nb),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
   const kpiHtml=kpi.map((k,i)=>`<div style="text-align:center;padding:10px 6px;${i<5?'border-right:0.5px solid var(--border);':''}"><div style="font-size:11px;color:var(--t-secondary)">${k[0]}</div><div style="font-size:19px;font-weight:600;color:${k[2]||'var(--t-primary)'}">${k[1]}</div></div>`).join('');
   const ths=`<th onclick="evoSortCamp('${id}','name',this)" style="text-align:left;cursor:pointer;white-space:nowrap">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" style="text-align:center;cursor:pointer;white-space:nowrap;${col.cls==='pink'?'color:#E8006E':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
-  return `<div style="border:0.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;background:var(--s-2)">
+  return `<div style="border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s-2)">
     <div role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}" style="display:flex;align-items:center;gap:11px;padding:12px 14px;background:#191919;color:#fff;cursor:pointer">
       ${evoLogo(c.nom)}
       <div style="min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(c.nom)}</div><div style="font-size:11.5px;color:#9a9a9a"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> ${c.agents.length} agents · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(cum.prod_sec)}</div></div>
@@ -5176,7 +5176,7 @@ function evoCampBlock(id){
     </div>
     <div id="objp-${id}" style="display:none"></div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:0.5px solid var(--border)">${kpiHtml}</div>
-    <div style="overflow-x:auto"><table class="tbl evo-num" style="min-width:720px"><thead><tr style="font-size:10.5px">${ths}</tr></thead><tbody id="tb-${id}">${evoAgentRows(id)}</tbody></table></div>
+    <div style="overflow-x:auto"><table class="tbl evo-num" style="min-width:560px;font-size:11.5px"><thead><tr style="font-size:10px">${ths}</tr></thead><tbody id="tb-${id}">${evoAgentRows(id)}</tbody></table></div>
   </div>`;
 }
 function renderEvoCampAgents(d,selCamps){
@@ -5202,7 +5202,7 @@ function renderEvoCampAgents(d,selCamps){
   camps.sort((a,b)=>sumOf(b.agents).nb-sumOf(a.agents).nb);
   window._evoCS={};
   camps.forEach(c=>{window._evoCS[c.id]={agents:c.agents,cum:sumOf(c.agents),nom:c.nom};});
-  box.innerHTML=camps.map(c=>evoCampBlock(c.id)).join("");
+  box.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(620px,720px));gap:14px;justify-content:start;align-items:start">'+camps.map(c=>evoCampBlock(c.id)).join("")+'</div>';
 }
 
 // Diagnostic : répartition des transactions du jour par origine (nOrigenTransaccion)
