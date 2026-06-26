@@ -29,6 +29,14 @@ CTX = ssl.create_default_context(); CTX.check_hostname = False; CTX.verify_mode 
 R_TRANS = "100000012"   # Num. trans. Agen vs Camp (agent × campagne × résolution)
 R_SESS  = "100000052"   # Sesiones de agentes (durée de connexion)
 
+def clean_name(s):
+    """Evolution renvoie souvent 'Prenom Prenom Nom' — on retire les mots consécutifs dupliqués."""
+    out = []
+    for w in str(s).split():
+        if not out or out[-1].lower() != w.lower():
+            out.append(w)
+    return " ".join(out)
+
 def _get(path):
     req = urllib.request.Request(f"{BASE}{path}", headers={"Authorization": "Basic " + AUTH})
     return json.load(urllib.request.urlopen(req, context=CTX, timeout=30))
@@ -61,6 +69,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     sqlStats = []
     agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "dmt_sum": 0, "dmt_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
+    names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     for sid in services:
         try:
             tr = invoke(R_TRANS, {**base_p, "idsvc": sid})
@@ -85,7 +94,9 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 "dmt_sec": None, "attente_sec": None,
                 "sum_call_sec": hms(r.get("AT_Agent")) * nb, "sum_wrapup_sec": 0,
             })
-            a = agByKey[(str(r.get("idAgente")), cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
+            aid = str(r.get("idAgente"))
+            names[aid] = clean_name(str(r.get("nomAgente", "")).split(' [')[0])
+            a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
             if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
             elif kind == "ref": a["cuTotal"] += nb
             t = hms(r.get("AT_Agent"))
@@ -109,21 +120,22 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     camps_by_agent = collections.defaultdict(list)
     for (aid, cid), v in agByKey.items():
         camps_by_agent[aid].append((cid, v))
-    sqlAgentCamps = []
+    sqlAgentCamps = []  # lignes PLATES — le serveur (evoProcessAgentCamps) les regroupe par agent
+    agents = []
     for aid, lst in camps_by_agent.items():
         tot = sum(v["nb"] for _, v in lst) or 1
         agent_sess = agent_sess_total.get(aid, 0)
-        camps = []
+        nom = names.get(aid, "Agent #" + aid)
+        agents.append({"id": aid, "nom": nom})
         for cid, v in lst:
-            camps.append({
-                "idCampanya": cid, "campNom": v["camp"], "nb": v["nb"],
-                "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
+            sqlAgentCamps.append({
+                "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
+                "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
             })
-        sqlAgentCamps.append({"idAgente": aid, "camps": camps})
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta,
-            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps}
+            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

@@ -455,8 +455,9 @@ function evoProcessAgentCamps(rows){
   const byAgent={};
   rows.forEach(r=>{
     const aid=String(r.idAgente||"");
-    if(!byAgent[aid])byAgent[aid]={idAgente:aid,camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,prod_sec:0,dmt_sum:0,dmt_n:0};
+    if(!byAgent[aid])byAgent[aid]={idAgente:aid,nom:"",camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,prod_sec:0,dmt_sum:0,dmt_n:0};
     const a=byAgent[aid];
+    if(!a.nom&&r.agentNom)a.nom=r.agentNom; // nom historique (agents pas connectés maintenant)
     const nb=_num(r.nb);
     const ps=_num(r.session_span_sec);  // durée réelle (premier→dernier appel)
     a.camps.push({

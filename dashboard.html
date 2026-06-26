@@ -4996,7 +4996,7 @@ function renderEvo(d){
   const agVisible=agCamps.filter(a=>agSel.has(a.idAgente));
 
   const rows=agVisible.map(a=>{
-    const nom=agNameById[a.idAgente]||("Agent #"+a.idAgente);
+    const nom=a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente);
     const ph=a.prod_sec>0?a.prod_sec/3600:0;
     const multiCamp=a.camps.length>1;
     // Ligne totale de l'agent (cliquable si plusieurs campagnes)
@@ -5191,7 +5191,7 @@ function renderEvoCampAgents(d,selCamps){
     (a.camps||[]).forEach(cc=>{
       const id=String(cc.idCampanya);
       if(!byCamp[id])byCamp[id]={id,nom:cc.campNom||("Camp "+id),agents:[]};
-      byCamp[id].agents.push({id:a.idAgente,nom:agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0});
+      byCamp[id].agents.push({id:a.idAgente,nom:a.nom||agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0});
     });
   });
   const selIds=selCamps&&selCamps.length?new Set(selCamps.map(c=>String(c.id))):null;
