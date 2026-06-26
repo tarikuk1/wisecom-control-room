@@ -60,7 +60,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
 
     sqlStats = []
     agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "dmt_sum": 0, "dmt_n": 0, "camp": ""})
-    sess = collections.defaultdict(int)
+    seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     for sid in services:
         try:
             tr = invoke(R_TRANS, {**base_p, "idsvc": sid})
@@ -90,21 +90,29 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             elif kind == "ref": a["cuTotal"] += nb
             t = hms(r.get("AT_Agent"))
             if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
-        # Session par (agent, service) — évite le double comptage cross-service.
+        # Sessions : 1 ligne (GroupLevel 0) = 1 session. Dédup par idSesionAgente car une
+        # même session revient sous plusieurs services → sinon gonflement (>24h/jour).
         for s in se:
-            sess[(str(s.get("idAgente")), sid)] += hms(s.get("Session_duration"))
+            if s.get("GroupLevel") != 0:
+                continue
+            sid_ses = s.get("idSesionAgente")
+            if sid_ses in seen_sessions:
+                continue
+            seen_sessions[sid_ses] = (str(s.get("idAgente")), hms(s.get("Session_duration")))
 
-    # Heures de connexion par agent = session de l'agent sur LE service de chaque campagne.
-    # (corrige le gonflement : on n'additionne plus les sessions de tous les services.)
+    # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).
+    agent_sess_total = collections.defaultdict(int)
+    for _sid, (aid, dur) in seen_sessions.items():
+        agent_sess_total[aid] += dur
+    # Réparti sur les campagnes de l'agent au prorata des fiches traitées (approx : la session
+    # n'est pas découpée par campagne dans Evolution).
     camps_by_agent = collections.defaultdict(list)
-    svc_of_camp = {}
     for (aid, cid), v in agByKey.items():
         camps_by_agent[aid].append((cid, v))
     sqlAgentCamps = []
     for aid, lst in camps_by_agent.items():
         tot = sum(v["nb"] for _, v in lst) or 1
-        # session totale de l'agent (tous services confondus, mais sans double-compter une session)
-        agent_sess = sum(sec for (a, _s), sec in sess.items() if a == aid)
+        agent_sess = agent_sess_total.get(aid, 0)
         camps = []
         for cid, v in lst:
             camps.append({
@@ -136,4 +144,4 @@ if __name__ == "__main__":
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "evo_payload_" + fd.replace("/", "") + ".json")
     json.dump(payload, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    print(f"OK : {len(payload['sqlStats'])} lignes stats, {len(payload['sqlAgentCamps'])} agents → {out}")
+    print(f"OK : {len(payload['sqlStats'])} lignes stats, {len(payload['sqlAgentCamps'])} agents -> {out}")
