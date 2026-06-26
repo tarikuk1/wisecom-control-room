@@ -1,3 +1,5 @@
 node_modules/
 data/
 .claude/
+
+evo_payload_*.json
