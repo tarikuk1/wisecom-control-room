@@ -511,12 +511,13 @@ body.light .panel-title{color:#555;}
    Tokens: --s-1, --s-2, --s-4, --t-primary, --t-disabled
    ─────────────────────────────────────────────────────── */
 .tbl{width:100%;border-collapse:collapse;font-size:var(--fs-body);}
-.tbl th{padding:8px 10px;color:#d0d0d0;font-weight:var(--fw-bold);text-align:left;border-bottom:1px solid #2a2a2a;background:#111;font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;letter-spacing:.03em;}
+.tbl th{padding:4px 9px;color:#d0d0d0;font-weight:var(--fw-bold);text-align:left;border-bottom:1px solid #2a2a2a;background:#111;font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;letter-spacing:.03em;}
 body.light .tbl th{background:var(--s-light-2);border-bottom-color:var(--s-light-border);color:var(--t-muted);}
 .tbl th:hover,.tbl th.active{color:var(--c-pink);}
-.tbl td{padding:8px 10px;border-bottom:1px solid #1e1e1e;vertical-align:middle;transition:background .1s;color:#e0e0e0;}
+.tbl td{padding:3px 9px;border-bottom:1px solid #1e1e1e;vertical-align:middle;transition:background .1s;color:#e0e0e0;}
 body.light .tbl td{border-bottom-color:var(--s-light-2);color:#222;}
 .tbl tr:hover td{background:var(--s-2);}
+body.light .tbl tr:hover td{background:#eef0f3;}
 body.light .tbl tr:hover td{background:#fff8fc;}
 .tbl .total-row td{background:#1a0a0f!important;border-top:2px solid var(--c-pink);font-weight:var(--fw-bold);}
 body.light .tbl .total-row td{background:#fff0f7!important;}
@@ -529,6 +530,10 @@ body.light .tbl .total-row td{background:#fff0f7!important;}
 .tbl .evo-sub-row:hover td{background:var(--s-2);}
 .tbl .evo-agent-row{cursor:pointer;}
 .tbl .evo-agent-row:hover td{background:var(--s-2)!important;}
+body.light .tbl .evo-agent-row:hover td{background:#eef0f3!important;}
+/* Tables evo en largeur-contenu (fini les colonnes étirées / gros gaps) + denses */
+.tbl.evo-num{width:auto;font-size:var(--fs-sm);}
+.tbl.evo-num th,.tbl.evo-num td{padding:3px 10px;}
 body.light .tbl .evo-sub-row td{background:#eef0f3;color:#3a3a40;}
 body.light .tbl .evo-sub-row:hover td{background:#e6e8ec;}
 /* Vue campagne -> agents (eca) — light/dark natif, lisible */
@@ -539,6 +544,8 @@ body.light .eca-card{background:#fff;border-color:#e6e6ec;box-shadow:0 1px 4px r
 body.light .eca-head{background:#f6f6f9;color:#1a1a1f;}
 .eca-head .eca-sub{font-size:11px;opacity:.65;}
 .eca-badge{margin-left:auto;font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;}
+.eca-dl{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;font-size:15px;padding:2px 4px;margin-left:4px;line-height:1;}
+.eca-dl:hover{opacity:1;color:#E8006E;}
 .eca-kpis{display:grid;grid-template-columns:repeat(6,1fr);}
 .eca-kpi{text-align:center;padding:8px 4px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);}
 .eca-kpi:last-child{border-right:none;}
@@ -5191,6 +5198,18 @@ function evoObjPanel(id){
     <div style="font-size:11px;color:var(--t-disabled);margin-top:10px">trait vertical = objectif · barre rose au-dessus de la cible · écart à droite</div>
   </div>`;
 }
+function evoExportCamp(id){
+  const c=window._evoCS[id]; if(!c)return;
+  const head=['Agent','Heures connexion','Accords (C+)','C+/h','Refus','CU','CU/h','Fiches traitees','Traitees/h','Taux accord %'];
+  const line=o=>[o.nom!==undefined?o.nom:('CUMUL '+c.nom),EVO_FH(o.prod_sec),o.cuPos,EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),o.cuTotal-o.cuPos,o.cuTotal,EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),o.nb,EVO_R1(EVO_PH(o.nb,o.prod_sec)),EVO_PCTN(o.cuPos,o.cuTotal)];
+  const ags=c.agents.slice().sort((a,b)=>EVO_PCTN(b.cuPos,b.cuTotal)-EVO_PCTN(a.cuPos,a.cuTotal));
+  const rows=[head].concat(ags.map(line)).concat([line(Object.assign({nom:'CUMUL '+c.nom},c.cum))]);
+  const csv=rows.map(r=>r.map(x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='production_'+String(c.nom).replace(/[^A-Za-z0-9_]+/g,'_').slice(0,50)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+}
 function evoToggleObj(id){
   const p=document.getElementById('objp-'+id),ch=document.getElementById('chev-'+id);
   if(!p)return;
@@ -5207,7 +5226,8 @@ function evoCampBlock(id){
       ${evoLogo(c.nom)}
       <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(c.nom)}</div><div class="eca-sub"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> ${c.agents.length} ag. · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(cum.prod_sec)}</div></div>
       <span class="eca-badge" style="${tx>=15?'background:#E8006E;color:#fff':'background:rgba(232,0,110,.12);color:#E8006E'}">Taux ${cum.cuTotal>0?tx+'%':'–'}</span>
-      <i id="chev-${id}" class="ti ti-chevron-down" style="font-size:18px;opacity:.55;margin-left:4px"></i>
+      <button class="eca-dl" onclick="event.stopPropagation();evoExportCamp('${id}')" title="Télécharger cette campagne (Excel/CSV)" aria-label="Télécharger"><i class="ti ti-download"></i></button>
+      <i id="chev-${id}" class="ti ti-chevron-down" style="font-size:18px;opacity:.55;margin-left:2px"></i>
     </div>
     <div id="objp-${id}" style="display:none"></div>
     <div class="eca-kpis">${kpiHtml}</div>
