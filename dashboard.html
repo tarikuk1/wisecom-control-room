@@ -571,6 +571,7 @@ body.light .eca-tbl .eca-cum td{background:#f0f0f4;}
 body.light .eca-tbl .eca-mut{color:#787882;}
 .eca-tbl .eca-key{color:#E8006E;font-weight:600;background:rgba(232,0,110,.07);}
 .eca-tbl th.eca-key{background:rgba(232,0,110,.11);color:#E8006E;}
+.eca-tbl .eca-good{color:#1d9e75;font-weight:600;background:rgba(29,158,117,.10);}
 .eca-objp{border-bottom:0.5px solid var(--border);padding:11px 13px;background:var(--s-3);}
 body.light .eca-objp{background:#fafafb;}
 .eca-track{position:relative;height:18px;border-radius:4px;background:var(--s-2);}
@@ -4996,11 +4997,11 @@ function renderEvo(d){
       <td style="text-align:left">${ec(c.nom)}</td>
       <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${accords.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${accPct==null?"–":accPct+"%"}</td>
+      <td style="color:#E8006E">${accords.toLocaleString("fr-FR")}</td>
+      <td style="color:#E8006E">${accPct==null?"–":accPct+"%"}</td>
       <td title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
       <td>${fmtR(evoParH(cuC,hp))}</td>
-      <td style="color:#30d158">${fmtR(evoParH(accords,hp))}</td>
+      <td style="color:#E8006E">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td>${contactPct==null?"–":contactPct+"%"}</td>
@@ -5023,11 +5024,11 @@ function renderEvo(d){
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
       <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
       <td>${cuA.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${a.positifs.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${accPctA==null?"–":accPctA+"%"}</td>
+      <td style="color:#E8006E">${a.positifs.toLocaleString("fr-FR")}</td>
+      <td style="color:#E8006E">${accPctA==null?"–":accPctA+"%"}</td>
       <td>${fmtH(hp)}</td>
       <td>${fmtR(evoParH(cuA,hp))}</td>
-      <td style="color:#30d158">${fmtR(evoParH(a.positifs,hp))}</td>
+      <td style="color:#E8006E">${fmtR(evoParH(a.positifs,hp))}</td>
       <td>${fmtR(evoParH(a.appels,hp))}</td>
       <td>${hm(a.pauseSec)}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sur les campagnes sélectionnées.</td></tr></tbody>`;
@@ -5065,9 +5066,9 @@ function renderEvo(d){
       <td>${a.nb.toLocaleString("fr-FR")}</td>
       <td>${a.cuTotal.toLocaleString("fr-FR")}</td>
       <td>${ph>0?fmtR(evoParH(a.cuTotal,ph)):"–"}</td>
-      <td style="color:#30d158;font-weight:600">${a.cuPos.toLocaleString("fr-FR")}</td>
-      <td style="color:#30d158">${ph>0?fmtR(evoParH(a.cuPos,ph)):"–"}</td>
-      <td style="color:#30d158">${a.cuTotal>0?Math.round(a.cuPos/a.cuTotal*100)+"%":"–"}</td>
+      <td style="color:#E8006E;font-weight:600">${a.cuPos.toLocaleString("fr-FR")}</td>
+      <td style="color:#E8006E">${ph>0?fmtR(evoParH(a.cuPos,ph)):"–"}</td>
+      <td style="color:#E8006E">${a.cuTotal>0?Math.round(a.cuPos/a.cuTotal*100)+"%":"–"}</td>
       <td>${a.definitifs.toLocaleString("fr-FR")}</td>
       <td>${fmtSec2(a.dmt)}</td>
     </tr>`;
@@ -5080,9 +5081,9 @@ function renderEvo(d){
         <td style="font-size:var(--fs-sm)">${cc.nb.toLocaleString("fr-FR")}</td>
         <td style="font-size:var(--fs-sm)">${cc.cuTotal.toLocaleString("fr-FR")}</td>
         <td style="font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuTotal,ph2)):"–"}</td>
-        <td style="color:#30d158;font-size:var(--fs-sm)">${cc.cuPos.toLocaleString("fr-FR")}</td>
-        <td style="color:#30d158;font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuPos,ph2)):"–"}</td>
-        <td style="color:#30d158;font-size:var(--fs-sm)">${cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100)+"%":"–"}</td>
+        <td style="color:#E8006E;font-size:var(--fs-sm)">${cc.cuPos.toLocaleString("fr-FR")}</td>
+        <td style="color:#E8006E;font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuPos,ph2)):"–"}</td>
+        <td style="color:#E8006E;font-size:var(--fs-sm)">${cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100)+"%":"–"}</td>
         <td style="font-size:var(--fs-sm)">${cc.definitifs.toLocaleString("fr-FR")}</td>
         <td style="font-size:var(--fs-sm)">${fmtSec2(cc.dmt)}</td>
       </tr>`;
@@ -5097,9 +5098,9 @@ function renderEvo(d){
       <th>Appels</th>
       <th title="Contacts aboutis positifs + négatifs">CU total</th>
       <th title="Contacts utiles par heure de production">CU/h</th>
-      <th title="Accords (CU positifs uniquement)" style="color:#30d158">Accords</th>
-      <th title="Accords par heure de production" style="color:#30d158">Accords/h</th>
-      <th title="Accords ÷ contacts utiles" style="color:#30d158">Acc.%</th>
+      <th title="Accords (CU positifs uniquement)" style="color:#E8006E">Accords</th>
+      <th title="Accords par heure de production" style="color:#E8006E">Accords/h</th>
+      <th title="Accords ÷ contacts utiles" style="color:#E8006E">Acc.%</th>
       <th title="Fiches hors refus / rappel / NRP — conclusions définitives">Fiches défin.</th>
       <th title="Durée Moy. Traitement (wrap-up moyen — appels avec wrap-up uniquement)">DMT moy.</th>
     </tr></thead>
@@ -5137,7 +5138,7 @@ const EVO_FH=sec=>sec>0?(sec>=3600?(sec/3600).toFixed(1).replace(".",",")+" h":M
 const EVO_SEC=s=>(s==null||s<=0)?"–":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0");
 const EVO_OCC=o=>o.prod_sec>0?Math.round((o.talk_sec||0)/o.prod_sec*100)+"%":"–";
 const EVO_PCTN=(a,b)=>b>0?Math.round(a/b*100):0;
-function EVO_TAUX(o){const p=EVO_PCTN(o.cuPos,o.cuTotal);const col=p>=15?'#E8006E':(p>=5?'#D4537E':'#aa6a82');return o.cuTotal>0?`<b style="color:${col}">${p}%</b>`:'–';}
+function EVO_TAUX(o){return o.cuTotal>0?EVO_PCTN(o.cuPos,o.cuTotal)+'%':'–';}
 const EVO_COLS=[
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
   {k:'dmc',l:'DMC',t:'Durée moyenne de traitement (communication ÷ fiches)',get:o=>o.nb>0?(o.talk_sec||0)/o.nb:0,fmt:o=>EVO_SEC(o.nb>0?Math.round((o.talk_sec||0)/o.nb):null),cls:'muted'},
@@ -5168,12 +5169,22 @@ function evoAgentRows(id){
   const ags=c.agents.slice();
   if(st.k==='name')ags.sort((a,b)=>a.nom.localeCompare(b.nom,'fr')*st.dir);
   else{const col=EVO_COLS.find(x=>x.k===st.k)||EVO_COLS[EVO_COLS.length-1];ags.sort((a,b)=>(col.get(a)-col.get(b))*st.dir);}
+  const txAccObj=parseFloat(evoGetObjC(id,'txacc',''));
+  const cuhObj=parseFloat(evoGetObj('cuh','')); const cphObj=parseFloat(evoGetObj('acch',''));
+  const keyClass=(col,o)=>{ // VERT si >= objectif KPI enregistré, sinon ROSE (marque)
+    if(col.cls!=='key')return col.cls==='muted'?'eca-mut':'';
+    let obj=null;
+    if(col.k==='taux')obj=isNaN(txAccObj)?null:txAccObj/100;
+    else if(col.k==='cuh')obj=isNaN(cuhObj)?null:cuhObj;
+    else if(col.k==='cph')obj=isNaN(cphObj)?null:cphObj;
+    return (obj!=null&&col.get(o)>=obj)?'eca-good':'eca-key';
+  };
   const rows=ags.map((a,i)=>{
     const rank=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0)?'<i class="ti ti-trophy" style="color:#E8006E;font-size:14px;vertical-align:-2px;margin-right:4px"></i>':`<span style="display:inline-block;width:15px;text-align:center;color:var(--t-disabled);margin-right:4px">${i+1}</span>`;
-    const tds=EVO_COLS.map(col=>{const cc=col.cls==='key'?'eca-key':(col.cls==='muted'?'eca-mut':'');return `<td class="${cc}">${col.fmt(a)}</td>`;}).join('');
+    const tds=EVO_COLS.map(col=>`<td class="${keyClass(col,a)}">${col.fmt(a)}</td>`).join('');
     return `<tr><td>${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td>${tds}</tr>`;
   }).join('');
-  const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${col.cls==='key'?'eca-key':''}">${col.fmt(cum)}</td>`).join('');
+  const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${keyClass(col,cum)}">${col.fmt(cum)}</td>`).join('');
   return rows+`<tr class="eca-cum"><td>Cumul campagne</td>${cumTds}</tr>`;
 }
 function evoSortCamp(id,k,th){
