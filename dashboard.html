@@ -5141,7 +5141,6 @@ function EVO_TAUX(o){const p=EVO_PCTN(o.cuPos,o.cuTotal);const col=p>=15?'#E8006
 const EVO_COLS=[
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
   {k:'dmc',l:'DMC',t:'Durée moyenne de traitement (communication ÷ fiches)',get:o=>o.nb>0?(o.talk_sec||0)/o.nb:0,fmt:o=>EVO_SEC(o.nb>0?Math.round((o.talk_sec||0)/o.nb):null),cls:'muted'},
-  {k:'occ',l:'Occ%',t:"Taux d'occupation = temps de communication ÷ temps de connexion",get:o=>o.prod_sec>0?(o.talk_sec||0)/o.prod_sec:0,fmt:o=>EVO_OCC(o),cls:''},
   {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif) — indicateur clé',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'key'},
   {k:'cph',l:'C+/h',t:'Accords par heure — indicateur clé',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'key'},
   {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos,fmt:o=>EVO_NB(o.cuTotal-o.cuPos),cls:'muted'},
