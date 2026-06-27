@@ -463,9 +463,9 @@ function evoProcessAgentCamps(rows){
     a.camps.push({
       idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
-      tft:_num(r.tft),talk_sec:_num(r.talk_sec),
+      tft:_num(r.tft),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
       prod_sec:ps,
-      dmt:r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null
+      dmt:r.dmc_sec!=null?Math.round(_num(r.dmc_sec)):(r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null)
     });
     a.nb+=nb; a.cuPos+=_num(r.cuPos); a.cuTotal+=_num(r.cuTotal);
     a.definitifs+=_num(r.definitifs); a.prod_sec+=ps;

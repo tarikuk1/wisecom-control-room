@@ -72,7 +72,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     if hhasta: base_p["hhasta"] = hhasta
 
     sqlStats = []
-    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "dmt_sum": 0, "dmt_n": 0, "camp": ""})
+    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     for sid in services:
@@ -107,6 +107,9 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
             t = hms(r.get("AT_Agent"))
             if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
+            # Durée de COMMUNICATION : seulement sur les contacts utiles (accord+refus),
+            # sinon les répondeurs/faux n° (très courts) écrasent la moyenne.
+            if t and kind in ("acc", "ref"): a["comm_sum"] += t * nb; a["comm_n"] += nb
         # Sessions : 1 ligne (GroupLevel 0) = 1 session. Dédup par idSesionAgente car une
         # même session revient sous plusieurs services → sinon gonflement (>24h/jour).
         for s in se:
@@ -138,8 +141,10 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
                 "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
                 "tft": v["tft"], "talk_sec": v["dmt_sum"],
+                "comm_sec": v["comm_sum"], "comm_n": v["comm_n"],
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
+                "dmc_sec": round(v["comm_sum"] / v["comm_n"]) if v["comm_n"] else None,
             })
     # date ISO du jour des données (fdesde dd/mm/yyyy -> yyyy-mm-dd) pour le filtre date du dashboard
     try:
