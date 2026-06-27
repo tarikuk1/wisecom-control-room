@@ -572,6 +572,18 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .eca-tbl .eca-key{color:#E8006E;font-weight:600;background:rgba(232,0,110,.07);}
 .eca-tbl th.eca-key{background:rgba(232,0,110,.11);color:#E8006E;}
 .eca-tbl .eca-good{color:#1d9e75;font-weight:600;background:rgba(29,158,117,.10);}
+/* Plein écran d'un module (clic sur ⛶) */
+.panel-fullscreen{position:fixed!important;inset:0;z-index:9999;margin:0!important;border-radius:0;overflow:auto;background:var(--s-1);padding:0 0 30px;}
+body.light .panel-fullscreen{background:#f4f4f6;}
+.panel-fullscreen .panel-header{position:sticky;top:0;z-index:2;background:var(--s-1);border-bottom:1px solid var(--border);padding:12px 18px;}
+body.light .panel-fullscreen .panel-header{background:#fff;}
+.panel-fullscreen .tbl-wrap,.panel-fullscreen .eca-tw{overflow-x:auto;padding:0 14px;}
+.panel-fullscreen .tbl.evo-num{width:100%;font-size:13px;}
+.panel-fullscreen .tbl.evo-num th,.panel-fullscreen .tbl.evo-num td{padding:7px 12px;}
+.panel-fullscreen .eca-grid{grid-template-columns:repeat(auto-fill,minmax(560px,1fr));padding:14px;}
+.panel-fullscreen #evo-obj-body,.panel-fullscreen #evo-obj-results{display:block!important;}
+.evo-fs-btn{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--t-secondary);border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;}
+.evo-fs-btn:hover{border-color:#E8006E;color:#E8006E;}
 .eca-objp{border-bottom:0.5px solid var(--border);padding:11px 13px;background:var(--s-3);}
 body.light .eca-objp{background:#fafafb;}
 .eca-track{position:relative;height:18px;border-radius:4px;background:var(--s-2);}
@@ -4818,7 +4830,30 @@ function evoSelectAllAgents(all){
   renderEvo(_evoData);
 }
 
+// Plein écran d'un module (bouton ⛶ dans l'en-tête) — utilise tout l'écran, plus lisible.
+function evoFs(btn){
+  const p=btn.closest('.panel'); if(!p)return;
+  const on=p.classList.toggle('panel-fullscreen');
+  if(on){const ob=p.querySelector('#evo-obj-body'); if(ob)ob.style.display='block'; const ch=p.querySelector('#evo-obj-chev'); if(ch)ch.className='ti ti-chevron-up';}
+  btn.innerHTML=on?'<i class="ti ti-x"></i>':'<i class="ti ti-arrows-maximize"></i>';
+  btn.title=on?'Quitter le plein écran (Échap)':'Plein écran';
+  document.body.style.overflow=on?'hidden':'';
+}
+function evoAddFsButtons(){
+  ['evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-obj-body'].forEach(function(id){
+    var el=document.getElementById(id); if(!el)return;
+    var panel=el.closest('.panel'); if(!panel)return;
+    var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-fs-btn'))return;
+    head.style.display='flex'; head.style.alignItems='center';
+    var b=document.createElement('button'); b.type='button'; b.className='evo-fs-btn'; b.title='Plein écran';
+    b.innerHTML='<i class="ti ti-arrows-maximize"></i>';
+    b.onclick=function(e){e.stopPropagation();evoFs(b);};
+    head.appendChild(b);
+  });
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var p=document.querySelector('.panel-fullscreen');if(p){var b=p.querySelector('.evo-fs-btn');if(b)evoFs(b);}}});
 function renderEvo(d){
+  evoAddFsButtons();
   renderEvoCampFilter(d);
   const sel=_evoSelectedCamps||new Set((d.campagnes||[]).map(c=>c.nom));
 
