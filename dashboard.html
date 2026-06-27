@@ -532,8 +532,9 @@ body.light .tbl .total-row td{background:#fff0f7!important;}
 .tbl .evo-agent-row:hover td{background:var(--s-2)!important;}
 body.light .tbl .evo-agent-row:hover td{background:#eef0f3!important;}
 /* Tables evo en largeur-contenu (fini les colonnes étirées / gros gaps) + denses */
-.tbl.evo-num{width:auto;font-size:var(--fs-sm);}
-.tbl.evo-num th,.tbl.evo-num td{padding:3px 10px;}
+.tbl.evo-num{width:100%;font-size:var(--fs-sm);}
+.tbl.evo-num th,.tbl.evo-num td{padding:3px 10px;width:1%;white-space:nowrap;}
+.tbl.evo-num th:first-child,.tbl.evo-num td:first-child{width:auto;}
 body.light .tbl .evo-sub-row td{background:#eef0f3;color:#3a3a40;}
 body.light .tbl .evo-sub-row:hover td{background:#e6e8ec;}
 body.light .tbl tr:hover td{background:#eef0f3;}
