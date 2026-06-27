@@ -463,6 +463,7 @@ function evoProcessAgentCamps(rows){
     a.camps.push({
       idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
+      tft:_num(r.tft),talk_sec:_num(r.talk_sec),
       prod_sec:ps,
       dmt:r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null
     });

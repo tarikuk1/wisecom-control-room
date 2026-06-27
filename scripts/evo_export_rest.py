@@ -60,6 +60,11 @@ def resmap(res):
     if r in ("Refus", "Refus Répondre", "Refus R�pondre"): return ("ref", 1)  # CU négatif
     return ("oth", 0)                              # autres clôtures (faux n°, répondeur, rappel…)
 
+def is_tft(res):
+    """Total Fiches Traitées = accord + refus + refus de répondre + hors cible (exclut faux n°, répondeur, rappel, système)."""
+    r = res.split(' [')[0].strip().lower()
+    return ('accord' in r) or ('refus' in r) or ('hors' in r and 'cible' in r)
+
 def export(fdesde, fhasta, hdesde=None, hhasta=None):
     services = [str(r["EntityId"]) for r in _get("/v1/measurable/services?format=json").get("DataSet", [])]
     base_p = {"fdesde": fdesde, "fhasta": fhasta}
@@ -67,7 +72,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     if hhasta: base_p["hhasta"] = hhasta
 
     sqlStats = []
-    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "dmt_sum": 0, "dmt_n": 0, "camp": ""})
+    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "dmt_sum": 0, "dmt_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     for sid in services:
@@ -99,6 +104,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
             if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
             elif kind == "ref": a["cuTotal"] += nb
+            if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
             t = hms(r.get("AT_Agent"))
             if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
         # Sessions : 1 ligne (GroupLevel 0) = 1 session. Dédup par idSesionAgente car une
@@ -131,6 +137,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             sqlAgentCamps.append({
                 "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
                 "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
+                "tft": v["tft"], "talk_sec": v["dmt_sum"],
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
             })

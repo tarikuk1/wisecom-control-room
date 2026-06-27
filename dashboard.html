@@ -569,6 +569,8 @@ body.light .eca-tbl .eca-cum td{background:#f0f0f4;}
 .eca-tbl .eca-pink,.eca-pink{color:#E8006E;}
 .eca-tbl .eca-mut{color:#9a9aa0;}
 body.light .eca-tbl .eca-mut{color:#787882;}
+.eca-tbl .eca-key{color:#E8006E;font-weight:600;background:rgba(232,0,110,.07);}
+.eca-tbl th.eca-key{background:rgba(232,0,110,.11);color:#E8006E;}
 .eca-objp{border-bottom:0.5px solid var(--border);padding:11px 13px;background:var(--s-3);}
 body.light .eca-objp{background:#fafafb;}
 .eca-track{position:relative;height:18px;border-radius:4px;background:var(--s-2);}
@@ -5132,18 +5134,21 @@ const EVO_R1=v=>v==null?"–":v.toLocaleString("fr-FR",{maximumFractionDigits:1}
 const EVO_PH=(v,sec)=>sec>0?v/(sec/3600):null;
 const EVO_PHN=(v,sec)=>sec>0?v/(sec/3600):0;
 const EVO_FH=sec=>sec>0?(sec>=3600?(sec/3600).toFixed(1).replace(".",",")+" h":Math.round(sec/60)+" min"):"–";
+const EVO_SEC=s=>(s==null||s<=0)?"–":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0");
+const EVO_OCC=o=>o.prod_sec>0?Math.round((o.talk_sec||0)/o.prod_sec*100)+"%":"–";
 const EVO_PCTN=(a,b)=>b>0?Math.round(a/b*100):0;
 function EVO_TAUX(o){const p=EVO_PCTN(o.cuPos,o.cuTotal);const col=p>=15?'#E8006E':(p>=5?'#D4537E':'#aa6a82');return o.cuTotal>0?`<b style="color:${col}">${p}%</b>`:'–';}
 const EVO_COLS=[
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
-  {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif)',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'pink'},
-  {k:'cph',l:'C+/h',t:'Accords par heure',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'pink'},
+  {k:'dmc',l:'DMC',t:'Durée moyenne de traitement (communication ÷ fiches)',get:o=>o.nb>0?(o.talk_sec||0)/o.nb:0,fmt:o=>EVO_SEC(o.nb>0?Math.round((o.talk_sec||0)/o.nb):null),cls:'muted'},
+  {k:'occ',l:'Occ%',t:"Taux d'occupation = temps de communication ÷ temps de connexion",get:o=>o.prod_sec>0?(o.talk_sec||0)/o.prod_sec:0,fmt:o=>EVO_OCC(o),cls:''},
+  {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif) — indicateur clé',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'key'},
+  {k:'cph',l:'C+/h',t:'Accords par heure — indicateur clé',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'key'},
   {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos,fmt:o=>EVO_NB(o.cuTotal-o.cuPos),cls:'muted'},
   {k:'cu',l:'CU',t:'Contacts utiles = accords + refus',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
-  {k:'cuh',l:'CU/h',t:'Contacts utiles par heure',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'muted'},
-  {k:'nb',l:'Trait.',t:'Fiches traitées (toutes clôtures)',get:o=>o.nb,fmt:o=>EVO_NB(o.nb),cls:''},
-  {k:'nbh',l:'/h',t:'Fiches traitées par heure',get:o=>EVO_PHN(o.nb,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.nb,o.prod_sec)),cls:'muted'},
-  {k:'taux',l:'Taux',t:'Taux d\'accord = accords ÷ CU',get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:''},
+  {k:'cuh',l:'CU/h',t:'Contacts utiles par heure — indicateur clé',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'key'},
+  {k:'tft',l:'TFT',t:'Total fiches traitées (accord+refus+hors cible+refus de répondre)',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
+  {k:'taux',l:'Taux acc.',t:"Taux d'accord = accords ÷ CU — indicateur clé",get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:'key'},
 ];
 // Détection de la marque/compte client depuis le nom de campagne → logo + couleur.
 function evoBrand(name){
@@ -5166,10 +5171,10 @@ function evoAgentRows(id){
   else{const col=EVO_COLS.find(x=>x.k===st.k)||EVO_COLS[EVO_COLS.length-1];ags.sort((a,b)=>(col.get(a)-col.get(b))*st.dir);}
   const rows=ags.map((a,i)=>{
     const rank=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0)?'<i class="ti ti-trophy" style="color:#E8006E;font-size:14px;vertical-align:-2px;margin-right:4px"></i>':`<span style="display:inline-block;width:15px;text-align:center;color:var(--t-disabled);margin-right:4px">${i+1}</span>`;
-    const tds=EVO_COLS.map(col=>{const cc=col.cls==='pink'?'eca-pink':(col.cls==='muted'?'eca-mut':'');return `<td class="${cc}">${col.fmt(a)}</td>`;}).join('');
+    const tds=EVO_COLS.map(col=>{const cc=col.cls==='key'?'eca-key':(col.cls==='muted'?'eca-mut':'');return `<td class="${cc}">${col.fmt(a)}</td>`;}).join('');
     return `<tr><td>${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td>${tds}</tr>`;
   }).join('');
-  const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${col.cls==='pink'?'eca-pink':''}">${col.fmt(cum)}</td>`).join('');
+  const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${col.cls==='key'?'eca-key':''}">${col.fmt(cum)}</td>`).join('');
   return rows+`<tr class="eca-cum"><td>Cumul campagne</td>${cumTds}</tr>`;
 }
 function evoSortCamp(id,k,th){
@@ -5231,7 +5236,7 @@ function evoCampBlock(id){
   const c=window._evoCS[id];const cum=c.cum;const tx=EVO_PCTN(cum.cuPos,cum.cuTotal);
   const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Traitées',EVO_NB(cum.nb),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
   const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
-  const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='pink'?'eca-pink':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
+  const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
   return `<div class="eca-card">
     <div class="eca-head" role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}">
       ${evoLogo(c.nom)}
@@ -5257,14 +5262,14 @@ function renderEvoCampAgents(d,selCamps){
     (a.camps||[]).forEach(cc=>{
       const id=String(cc.idCampanya);
       if(!byCamp[id])byCamp[id]={id,nom:cc.campNom||("Camp "+id),agents:[]};
-      byCamp[id].agents.push({id:a.idAgente,nom:a.nom||agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0});
+      byCamp[id].agents.push({id:a.idAgente,nom:a.nom||agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0,tft:cc.tft||0,talk_sec:cc.talk_sec||0});
     });
   });
   const selIds=selCamps&&selCamps.length?new Set(selCamps.map(c=>String(c.id))):null;
   let camps=Object.values(byCamp);
   if(selIds)camps=camps.filter(c=>selIds.has(c.id));
   if(!camps.length){box.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée agent pour les campagnes sélectionnées.</div>`;return;}
-  const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0});
+  const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec,tft:s.tft+(x.tft||0),talk_sec:s.talk_sec+(x.talk_sec||0)}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0,tft:0,talk_sec:0});
   camps.sort((a,b)=>sumOf(b.agents).nb-sumOf(a.agents).nb);
   window._evoCS={};
   camps.forEach(c=>{window._evoCS[c.id]={agents:c.agents,cum:sumOf(c.agents),nom:c.nom};});
