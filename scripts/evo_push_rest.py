@@ -28,9 +28,13 @@ def main():
     fh = (today + datetime.timedelta(days=1)).strftime("%d/%m/%Y")  # fhasta EXCLUSIF
     payload = ex.export(fd, fh)
     if not payload.get("sqlAgentCamps"):
-        # Pas encore de données aujourd'hui (tôt le matin) → dernier jour clôturé (hier)
-        y = today - datetime.timedelta(days=1)
-        payload = ex.export(y.strftime("%d/%m/%Y"), today.strftime("%d/%m/%Y"))
+        # Pas de données aujourd'hui (tôt le matin / week-end) → remonter jusqu'à 7 jours
+        # pour afficher le dernier jour clôturé avec de l'activité.
+        for back in range(1, 8):
+            dprev = today - datetime.timedelta(days=back)
+            payload = ex.export(dprev.strftime("%d/%m/%Y"), (dprev + datetime.timedelta(days=1)).strftime("%d/%m/%Y"))
+            if payload.get("sqlAgentCamps"):
+                break
     camps = ex._get("/v1/measurable/campaigns?format=json")
     agents = ex._get("/v1/measurable/agents?format=json")
     body = json.dumps({
