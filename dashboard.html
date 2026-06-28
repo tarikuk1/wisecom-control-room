@@ -4840,16 +4840,42 @@ function evoFs(btn){
   btn.title=on?'Quitter le plein écran (Échap)':'Plein écran';
   document.body.style.overflow=on?'hidden':'';
 }
+function evoPanelTitle(panel){return ((panel.querySelector('.panel-title')||{}).textContent||'export').split('  ')[0].trim();}
+function evoExportPanelCsv(btn){
+  var panel=btn.closest('.panel'); if(!panel)return;
+  var rows=[];
+  panel.querySelectorAll('table').forEach(function(tbl){
+    tbl.querySelectorAll('tr').forEach(function(tr){
+      var cs=[].map.call(tr.querySelectorAll('th,td'),function(c){var inp=c.querySelector('input');var t=inp?inp.value:(c.innerText||'');return '"'+t.replace(/\s+/g,' ').replace(/"/g,'""').trim()+'"';});
+      if(cs.length)rows.push(cs.join(';'));
+    });
+    rows.push('');
+  });
+  var blob=new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='Wisecom_'+evoPanelTitle(panel).replace(/[^A-Za-z0-9]+/g,'_').slice(0,40)+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+}
+function evoExportPanelPdf(btn){
+  var panel=btn.closest('.panel'); if(!panel)return;
+  var title=evoPanelTitle(panel); var html='';
+  panel.querySelectorAll('table').forEach(function(t){html+=t.outerHTML;});
+  var w=window.open('','_blank'); if(!w)return;
+  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:18px;color:#191919}h1{font-size:16px;color:#E8006E;margin:0 0 2px}.sub{font-size:11px;color:#777;margin-bottom:14px}table{border-collapse:collapse;width:100%;font-size:10.5px;margin:0 0 18px}th,td{border:1px solid #ddd;padding:4px 7px;text-align:center;white-space:nowrap}th{background:#191919;color:#fff}th:first-child,td:first-child{text-align:left}input{border:none;background:none;font:inherit;width:55px;text-align:center}@media print{@page{size:landscape;margin:9mm}}</style></head><body><h1>Wisecom Control Room — '+title+'</h1><div class="sub">'+new Date().toLocaleString('fr-FR')+'</div>'+html+'<script>setTimeout(function(){window.print();},350);<\/script></body></html>');
+  w.document.close();
+}
 function evoAddFsButtons(){
   ['evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-obj-body'].forEach(function(id){
     var el=document.getElementById(id); if(!el)return;
     var panel=el.closest('.panel'); if(!panel)return;
-    var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-fs-btn'))return;
+    var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-tools'))return;
     head.style.display='flex'; head.style.alignItems='center';
-    var b=document.createElement('button'); b.type='button'; b.className='evo-fs-btn'; b.title='Plein écran';
-    b.innerHTML='<i class="ti ti-arrows-maximize"></i>';
-    b.onclick=function(e){e.stopPropagation();evoFs(b);};
-    head.appendChild(b);
+    var box=document.createElement('span'); box.className='evo-tools'; box.style.cssText='margin-left:auto;display:inline-flex;gap:6px;flex-shrink:0';
+    var mk=function(icon,title,fn){var b=document.createElement('button');b.type='button';b.className='evo-fs-btn';b.title=title;b.innerHTML='<i class="ti ti-'+icon+'"></i>';b.onclick=function(e){e.stopPropagation();fn(b);};return b;};
+    box.appendChild(mk('file-spreadsheet','Export Excel / CSV',evoExportPanelCsv));
+    box.appendChild(mk('printer','Export PDF (impression)',evoExportPanelPdf));
+    box.appendChild(mk('arrows-maximize','Plein écran',evoFs));
+    head.appendChild(box);
   });
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var p=document.querySelector('.panel-fullscreen');if(p){var b=p.querySelector('.evo-fs-btn');if(b)evoFs(b);}}});
@@ -5216,7 +5242,8 @@ function evoAgentRows(id){
     return (obj!=null&&col.get(o)>=obj)?'eca-good':'eca-key';
   };
   const rows=ags.map((a,i)=>{
-    const rank=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0)?'<i class="ti ti-trophy" style="color:#E8006E;font-size:14px;vertical-align:-2px;margin-right:4px"></i>':`<span style="display:inline-block;width:15px;text-align:center;color:var(--t-disabled);margin-right:4px">${i+1}</span>`;
+    const isTop=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0);
+    const rank=`<span style="display:inline-block;width:16px;text-align:center;color:${isTop?'#E8006E':'var(--t-disabled)'};font-weight:${isTop?'700':'400'};margin-right:4px">${i+1}</span>`+(isTop?'<i class="ti ti-trophy" style="color:#E8006E;font-size:12px;vertical-align:-1px;margin-right:3px"></i>':'');
     const tds=EVO_COLS.map(col=>`<td class="${keyClass(col,a)}">${col.fmt(a)}</td>`).join('');
     return `<tr><td>${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td>${tds}</tr>`;
   }).join('');
@@ -5280,6 +5307,9 @@ function evoToggleObj(id){
 }
 function evoCampBlock(id){
   const c=window._evoCS[id];const cum=c.cum;const tx=EVO_PCTN(cum.cuPos,cum.cuTotal);
+  const txObj=parseFloat(evoGetObjC(id,'txacc','')); const cuh=EVO_PH(cum.cuTotal,cum.prod_sec); const cuhObj=parseFloat(evoGetObj('cuh',''));
+  const txGood=!isNaN(txObj)&&tx>=txObj; const cuhGood=!isNaN(cuhObj)&&cuh!=null&&cuh>=cuhObj;
+  const ecaPill=(lab,val,objStr,good)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;
   const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Traitées',EVO_NB(cum.nb),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
   const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
   const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
@@ -5287,9 +5317,12 @@ function evoCampBlock(id){
     <div class="eca-head" role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}">
       ${evoLogo(c.nom)}
       <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(c.nom)}</div><div class="eca-sub"><i class="ti ti-users" style="font-size:12px;vertical-align:-1px"></i> ${c.agents.length} ag. · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(cum.prod_sec)}</div></div>
-      <span class="eca-badge" style="${tx>=15?'background:#E8006E;color:#fff':'background:rgba(232,0,110,.12);color:#E8006E'}">Taux ${cum.cuTotal>0?tx+'%':'–'}</span>
-      <button class="eca-dl" onclick="event.stopPropagation();evoExportCamp('${id}')" title="Télécharger cette campagne (Excel/CSV)" aria-label="Télécharger"><i class="ti ti-download"></i></button>
-      <i id="chev-${id}" class="ti ti-chevron-down" style="font-size:18px;opacity:.55;margin-left:2px"></i>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${ecaPill("Taux acc.",cum.cuTotal>0?tx+'%':'–',isNaN(txObj)?'':txObj+'%',txGood)}
+        ${ecaPill("CU/h",cuh==null?'–':EVO_R1(cuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),cuhGood)}
+        <button class="eca-dl" onclick="event.stopPropagation();evoExportCamp('${id}')" title="Télécharger cette campagne (Excel/CSV)" aria-label="Télécharger"><i class="ti ti-download"></i></button>
+        <i id="chev-${id}" class="ti ti-chevron-down" style="font-size:18px;opacity:.55;margin-left:2px"></i>
+      </span>
     </div>
     <div id="objp-${id}" style="display:none"></div>
     <div class="eca-kpis">${kpiHtml}</div>
