@@ -4863,16 +4863,48 @@ function evoFs(btn){
   document.body.style.overflow=on?'hidden':'';
 }
 function evoPanelTitle(panel){return ((panel.querySelector('.panel-title')||{}).textContent||'export').split('  ')[0].trim();}
+// Découpe un panneau en sections exportables : bandeaux KPI (cartes), cartes campagne/agent
+// (nom + pills + tableau), ou tableaux simples — sinon un export "tables brutes" perd tout
+// le contexte (nom de campagne/agent) qui n'est affiché que dans l'en-tête de carte, pas
+// dans le tableau lui-même → CSV/PDF illisibles pour les modules en cartes.
+function evoCollectPanelSections(panel){
+  var sections=[];
+  panel.querySelectorAll('.evo-kpi-group').forEach(function(grp){
+    var t=(grp.querySelector('.evo-kpi-group-title')||{}).textContent||'';
+    var kpis=[].map.call(grp.querySelectorAll('.kpi-card'),function(k){
+      return {lab:(k.querySelector('.kpi-label')||{}).textContent||'',val:(k.querySelector('.kpi-value')||{}).textContent||'',sub:(k.querySelector('.kpi-sub')||{}).textContent||''};
+    });
+    if(kpis.length)sections.push({title:t.replace(/\s+/g,' ').trim(),kpis:kpis});
+  });
+  var cards=panel.querySelectorAll('.eca-card');
+  if(cards.length){
+    cards.forEach(function(card){
+      var nameEl=card.querySelector('.eca-head > div > div');
+      var name=nameEl?nameEl.textContent.replace(/\s+/g,' ').trim():'';
+      var sub=((card.querySelector('.eca-sub')||{}).textContent||'').replace(/\s+/g,' ').trim();
+      var pills=[].map.call(card.querySelectorAll('.eca-head span[style*="inline-flex"]'),function(p){return p.textContent.replace(/\s+/g,' ').trim();}).join(' · ');
+      var tbl=card.querySelector('table');
+      sections.push({title:name,subtitle:[sub,pills].filter(Boolean).join(' — '),table:tbl});
+    });
+  }else{
+    panel.querySelectorAll('table').forEach(function(tbl){sections.push({title:'',table:tbl});});
+  }
+  return sections;
+}
 function evoExportPanelCsv(btn){
   var panel=btn.closest('.panel'); if(!panel)return;
+  var esc=function(t){return '"'+String(t==null?'':t).replace(/\s+/g,' ').replace(/"/g,'""').trim()+'"';};
   var rows=[];
-  panel.querySelectorAll('table').forEach(function(tbl){
-    tbl.querySelectorAll('tr').forEach(function(tr){
-      var cs=[].map.call(tr.querySelectorAll('th,td'),function(c){var inp=c.querySelector('input');var t=inp?inp.value:(c.innerText||'');return '"'+t.replace(/\s+/g,' ').replace(/"/g,'""').trim()+'"';});
+  evoCollectPanelSections(panel).forEach(function(sec){
+    if(sec.title||sec.subtitle)rows.push(esc((sec.title||'')+(sec.subtitle?' — '+sec.subtitle:'')));
+    if(sec.kpis)sec.kpis.forEach(function(k){rows.push(esc(k.lab)+';'+esc(k.val)+(k.sub?';'+esc(k.sub):''));});
+    if(sec.table)sec.table.querySelectorAll('tr').forEach(function(tr){
+      var cs=[].map.call(tr.querySelectorAll('th,td'),function(c){var inp=c.querySelector('input');var t=inp?inp.value:(c.innerText||c.textContent||'');return esc(t);});
       if(cs.length)rows.push(cs.join(';'));
     });
     rows.push('');
   });
+  if(!rows.length){showToast('Rien à exporter — aucune donnée affichée','warn');return;}
   var blob=new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='Wisecom_'+evoPanelTitle(panel).replace(/[^A-Za-z0-9]+/g,'_').slice(0,40)+'_'+new Date().toISOString().slice(0,10)+'.csv';
@@ -4880,14 +4912,49 @@ function evoExportPanelCsv(btn){
 }
 function evoExportPanelPdf(btn){
   var panel=btn.closest('.panel'); if(!panel)return;
-  var title=evoPanelTitle(panel); var html='';
-  panel.querySelectorAll('table').forEach(function(t){html+=t.outerHTML;});
+  var title=evoPanelTitle(panel);
+  var esc=function(t){return String(t==null?'':t).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
+  var sections=evoCollectPanelSections(panel);
+  var body='';
+  sections.forEach(function(sec){
+    body+='<section>';
+    if(sec.title)body+='<h2>'+esc(sec.title)+(sec.subtitle?' <span class="sub2">'+esc(sec.subtitle)+'</span>':'')+'</h2>';
+    if(sec.kpis)body+='<table class="kpitbl"><tbody>'+sec.kpis.map(function(k){return '<tr><td class="lab">'+esc(k.lab)+'</td><td class="val">'+esc(k.val)+'</td><td class="sub">'+esc(k.sub)+'</td></tr>';}).join('')+'</tbody></table>';
+    if(sec.table)body+=sec.table.outerHTML;
+    body+='</section>';
+  });
+  if(!sections.length){showToast('Rien à exporter — aucune donnée affichée','warn');return;}
+  var badge=document.getElementById('evo-filter-badge');
+  var ctx=badge&&badge.textContent?badge.textContent.trim():'';
   var w=window.open('','_blank'); if(!w)return;
-  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:18px;color:#191919}h1{font-size:16px;color:#E8006E;margin:0 0 2px}.sub{font-size:11px;color:#777;margin-bottom:14px}table{border-collapse:collapse;width:100%;font-size:10.5px;margin:0 0 18px}th,td{border:1px solid #ddd;padding:4px 7px;text-align:center;white-space:nowrap}th{background:#191919;color:#fff}th:first-child,td:first-child{text-align:left}input{border:none;background:none;font:inherit;width:55px;text-align:center}@media print{@page{size:landscape;margin:9mm}}</style></head><body><h1>Wisecom Control Room — '+title+'</h1><div class="sub">'+new Date().toLocaleString('fr-FR')+'</div>'+html+'<script>setTimeout(function(){window.print();},350);<\/script></body></html>');
+  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'
+    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;padding:22px;color:#191919}'
+    +'.hdr{display:flex;align-items:baseline;gap:8px;border-bottom:3px solid #E8006E;padding-bottom:9px;margin-bottom:2px}'
+    +'.hdr b{font-size:17px;color:#E8006E}.hdr span{font-size:15px;font-weight:600}'
+    +'.sub{font-size:11px;color:#777;margin-bottom:16px}'
+    +'section{page-break-inside:avoid;margin-bottom:14px}'
+    +'h2{font-size:12.5px;color:#191919;background:#f4f2f2;border-left:4px solid #E8006E;padding:5px 9px;margin:14px 0 6px;border-radius:0 4px 4px 0}'
+    +'h2 .sub2{font-weight:400;color:#777;font-size:10px;margin-left:8px}'
+    +'table{border-collapse:collapse;width:100%;font-size:10px;margin:0 0 4px}'
+    +'th,td{border:1px solid #ddd;padding:4px 6px;text-align:center;white-space:nowrap}'
+    +'th{background:#191919;color:#fff;font-size:9.5px}thead{display:table-header-group}'
+    +'tbody tr:nth-child(even) td{background:#faf7f9}'
+    +'th:first-child,td:first-child{text-align:left;white-space:normal}'
+    +'.kpitbl{width:auto;min-width:260px}.kpitbl td{border:none;padding:2px 10px 2px 0;text-align:left;white-space:normal}'
+    +'.kpitbl .lab{color:#777}.kpitbl .val{font-weight:700;color:#E8006E}.kpitbl .sub{color:#aaa;font-size:9px}'
+    +'input{border:none;background:none;font:inherit;width:55px;text-align:center}'
+    +'.ftr{margin-top:18px;font-size:9px;color:#999;border-top:1px solid #eee;padding-top:6px}'
+    +'@media print{@page{size:landscape;margin:9mm}}'
+    +'</style></head><body>'
+    +'<div class="hdr"><b>Wisecom</b><span>Control Room — '+esc(title)+'</span></div>'
+    +'<div class="sub">Généré le '+new Date().toLocaleString('fr-FR')+(ctx?' · Filtre : '+esc(ctx):'')+'</div>'
+    +body
+    +'<div class="ftr">Wisecom · Control Room · export automatique</div>'
+    +'<script>setTimeout(function(){window.print();},400);<\/script></body></html>');
   w.document.close();
 }
 function evoAddFsButtons(){
-  ['evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-obj-body'].forEach(function(id){
+  ['evo-kpis','evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-obj-body'].forEach(function(id){
     var el=document.getElementById(id); if(!el)return;
     var panel=el.closest('.panel'); if(!panel)return;
     var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-tools'))return;
@@ -4897,7 +4964,10 @@ function evoAddFsButtons(){
     box.appendChild(mk('file-spreadsheet','Export Excel / CSV',evoExportPanelCsv));
     box.appendChild(mk('printer','Export PDF (impression)',evoExportPanelPdf));
     box.appendChild(mk('arrows-maximize','Plein écran',evoFs));
-    head.appendChild(box);
+    // Si l'en-tête a déjà un bouton (ex: "Actualiser"), insérer les outils juste avant
+    // pour que ce bouton reste bien à l'extrême droite (justify-content:space-between).
+    if(head.children.length>1)head.insertBefore(box,head.lastElementChild);
+    else head.appendChild(box);
   });
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var p=document.querySelector('.panel-fullscreen');if(p){var b=p.querySelector('.evo-fs-btn');if(b)evoFs(b);}}});
