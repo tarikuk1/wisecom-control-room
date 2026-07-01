@@ -496,7 +496,7 @@ body.light .tab.active{color:var(--c-pink);}
    ─────────────────────────────────────────────────────── */
 .panel{background:var(--s-1);border:1px solid #2c2c2c;border-radius:11px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3);}
 body.light .panel{background:var(--c-white);border-color:#e4e4ec;box-shadow:0 1px 4px rgba(0,0,0,.05);}
-.panel-header{padding:12px 16px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;background:#131313;}
+.panel-header{padding:12px 16px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;background:#131313;flex-wrap:wrap;row-gap:8px;}
 body.light .panel-header{border-bottom-color:#ececf2;background:#fafafc;}
 .panel-title{font-size:var(--fs-body);color:#e8e8e8;font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.05em;}
 body.light .panel-title{color:#555;}
@@ -4964,9 +4964,12 @@ function evoAddFsButtons(){
     box.appendChild(mk('file-spreadsheet','Export Excel / CSV',evoExportPanelCsv));
     box.appendChild(mk('printer','Export PDF (impression)',evoExportPanelPdf));
     box.appendChild(mk('arrows-maximize','Plein écran',evoFs));
-    // Si l'en-tête a déjà un bouton (ex: "Actualiser"), insérer les outils juste avant
-    // pour que ce bouton reste bien à l'extrême droite (justify-content:space-between).
-    if(head.children.length>1)head.insertBefore(box,head.lastElementChild);
+    // Regrouper avec les badges (Taux acc./CU/h) s'il y en a, pour rester UN seul bloc à
+    // droite — sinon, avec justify-content:space-between sur 3 enfants, le groupe d'outils
+    // finit coincé au milieu de l'en-tête (invisible/écrasé sur les panneaux en demi-largeur).
+    var badges=head.querySelector('.eca-hdr-badges');
+    if(badges){box.style.marginLeft='10px';badges.style.marginLeft='auto';badges.appendChild(box);}
+    else if(head.children.length>1)head.insertBefore(box,head.lastElementChild);
     else head.appendChild(box);
   });
 }
