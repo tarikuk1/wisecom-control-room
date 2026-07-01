@@ -539,6 +539,7 @@ body.light .tbl .evo-sub-row td{background:#eef0f3;color:#3a3a40;}
 body.light .tbl .evo-sub-row:hover td{background:#e6e8ec;}
 body.light .tbl tr:hover td{background:#eef0f3;}
 body.light .tbl .evo-agent-row:hover td{background:#e7e9ee!important;}
+.eca-hdr-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 /* Vue campagne -> agents (eca) — light/dark natif, lisible */
 .eca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(540px,600px));gap:14px;justify-content:start;align-items:start;}
 .eca-card{border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s-2);}
@@ -1474,21 +1475,21 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par campagne sortante</span></div>
+      <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table class="tbl evo-num" id="evo-camp-table"></table>
       </div>
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live) — présence &amp; activité instantanée</span></span></div>
+      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live) — présence &amp; activité instantanée</span></span><span id="evo-agent-hdr-badge" class="eca-hdr-badges"></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table class="tbl evo-num" id="evo-agent-table"></table>
       </div>
     </div>
 
     <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par agent — détail par campagne <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">réalisé du jour clôturé (source SQL)</span></span></div>
+      <div class="panel-header"><span class="panel-title">Production par agent — détail par campagne <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">réalisé du jour clôturé (source SQL)</span></span><span id="evo-agentcamp-hdr-badge" class="eca-hdr-badges"></span></div>
       <div id="evo-agent-filter" style="padding:10px 14px 0;"></div>
       <div id="evo-agent-camp-table" style="overflow-x:auto;"></div>
     </div>
@@ -4914,6 +4915,7 @@ function renderEvo(d){
     document.getElementById("evo-camp-table").innerHTML=noData;
     document.getElementById("evo-agent-table").innerHTML=noData;
     const _ca=document.getElementById("evo-campagent-table"); if(_ca)_ca.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée pour cette date (chargé : ${avail}).</div>`;
+    ['evo-camp-hdr-badge','evo-agent-hdr-badge','evo-agentcamp-hdr-badge'].forEach(id=>{const b=document.getElementById(id);if(b)b.innerHTML="";});
     _evoPerim=null; renderEvoObjectifs(true);
     return;
   }
@@ -5035,12 +5037,17 @@ function renderEvo(d){
     return c.sql&&c.sql.total_prod_sec>0 ? c.sql.total_prod_sec/3600 : 0;
   };
 
+  // TFT par campagne (agrégé depuis le détail agent × campagne SQL)
+  const tftByCamp={};
+  (d.agentCamps||[]).forEach(a=>(a.camps||[]).forEach(cc=>{const k=String(cc.idCampanya||"");tftByCamp[k]=(tftByCamp[k]||0)+(cc.tft||0);}));
+
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels traités par les agents (réalisé du jour, source SQL)">Appels traités</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
       <th title="Fiches finalisées agent (live)">Fiches final.</th>
+      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre">TFT</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
@@ -5055,6 +5062,7 @@ function renderEvo(d){
       const fichierT=evoFichierTotal(c);
       const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
       const dispo=c.fichier?c.fichier.disponibles:null;
+      const tft=tftByCamp[String(c.id)]||0;
       return `<tr>
       <td style="text-align:left">${ec(c.nom)}</td>
       <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
@@ -5065,22 +5073,37 @@ function renderEvo(d){
       <td>${fmtR(evoParH(cuC,hp))}</td>
       <td style="color:#E8006E">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
+      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td>${contactPct==null?"–":contactPct+"%"}</td>
       <td>${refusPct==null?"–":refusPct+"%"}</td>
       <td>${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="14" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="15" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+  (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
+    const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
+    const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);
+    const gCu=gAcc+gRef;
+    const gCuh=gHp>0?gCu/gHp:null, gTx=gCu>0?Math.round(gAcc/gCu*100):null;
+    const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
+    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+  })();
 
   // Tableau agents (filtré sur les campagnes sélectionnées)
+  const tftByAgent={};
+  (d.agentCamps||[]).forEach(a=>{tftByAgent[String(a.idAgente)]=(a.camps||[]).reduce((s,cc)=>s+(cc.tft||0),0);});
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
       <th title="Appels du jour (compteur live agent)">Appels</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
-      <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Appels/h</th><th>Temps pause</th>
+      <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Appels/h</th>
+      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre (source SQL)">TFT</th>
+      <th>Temps pause</th>
     </tr></thead>
     <tbody>${ags.map(a=>{
       const hp=evoHeuresProd5(a.sessionSec); const cuA=(a.positifs||0)+(a.negatifs||0);
       const accPctA=cuA>0?Math.round((a.positifs||0)/cuA*100):null;
+      const tft=tftByAgent[String(a.id)]||0;
       return `<tr>
       <td style="text-align:left">${ec(a.nom)}</td>
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
@@ -5092,8 +5115,18 @@ function renderEvo(d){
       <td>${fmtR(evoParH(cuA,hp))}</td>
       <td style="color:#E8006E">${fmtR(evoParH(a.positifs,hp))}</td>
       <td>${fmtR(evoParH(a.appels,hp))}</td>
+      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${hm(a.pauseSec)}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sur les campagnes sélectionnées.</td></tr></tbody>`;
+  (function(){ // badge en-tête : CU/h + Taux d'accord (agents affichés) vs objectif KPI global
+    const badge=document.getElementById("evo-agent-hdr-badge"); if(!badge)return;
+    const gAcc=ags.reduce((s,a)=>s+(a.positifs||0),0), gCu=ags.reduce((s,a)=>s+(a.positifs||0)+(a.negatifs||0),0);
+    const gHp=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
+    const gCuh=gHp>0?gCu/gHp:null, gTx=gCu>0?Math.round(gAcc/gCu*100):null;
+    const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
+    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+  })();
 
   // ── Tableau agent × campagne (source SQL) ──────────────────────────────────
   const box2=document.getElementById("evo-agent-camp-table");
@@ -5132,6 +5165,7 @@ function renderEvo(d){
       <td style="color:#E8006E">${ph>0?fmtR(evoParH(a.cuPos,ph)):"–"}</td>
       <td style="color:#E8006E">${a.cuTotal>0?Math.round(a.cuPos/a.cuTotal*100)+"%":"–"}</td>
       <td>${a.definitifs.toLocaleString("fr-FR")}</td>
+      <td>${(a.tft||0).toLocaleString("fr-FR")}</td>
       <td>${fmtSec2(a.dmt)}</td>
     </tr>`;
     // Sous-lignes par campagne (masquées par défaut)
@@ -5147,6 +5181,7 @@ function renderEvo(d){
         <td style="color:#E8006E;font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuPos,ph2)):"–"}</td>
         <td style="color:#E8006E;font-size:var(--fs-sm)">${cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100)+"%":"–"}</td>
         <td style="font-size:var(--fs-sm)">${cc.definitifs.toLocaleString("fr-FR")}</td>
+        <td style="font-size:var(--fs-sm)">${(cc.tft||0).toLocaleString("fr-FR")}</td>
         <td style="font-size:var(--fs-sm)">${fmtSec2(cc.dmt)}</td>
       </tr>`;
     }).join(""):"";
@@ -5164,10 +5199,19 @@ function renderEvo(d){
       <th title="Accords par heure de production" style="color:#E8006E">Accords/h</th>
       <th title="Accords ÷ contacts utiles" style="color:#E8006E">Acc.%</th>
       <th title="Fiches hors refus / rappel / NRP — conclusions définitives">Fiches défin.</th>
+      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre">TFT</th>
       <th title="Durée Moy. Traitement (wrap-up moyen — appels avec wrap-up uniquement)">DMT moy.</th>
     </tr></thead>
-    <tbody>${rows||`<tr><td colspan="10" style="padding:14px;color:var(--t-disabled)">Aucun agent sélectionné.</td></tr>`}</tbody>
+    <tbody>${rows||`<tr><td colspan="11" style="padding:14px;color:var(--t-disabled)">Aucun agent sélectionné.</td></tr>`}</tbody>
   </table>`;
+  (function(){ // badge en-tête : CU/h + Taux d'accord vs objectif KPI global
+    const badge=document.getElementById("evo-agentcamp-hdr-badge"); if(!badge)return;
+    const gCu=agVisible.reduce((s,a)=>s+a.cuTotal,0), gAcc=agVisible.reduce((s,a)=>s+a.cuPos,0), gPs=agVisible.reduce((s,a)=>s+(a.prod_sec||0),0);
+    const gCuh=EVO_PH(gCu,gPs), gTx=gCu>0?Math.round(gAcc/gCu*100):null;
+    const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
+    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+  })();
 
   // Gestion expand/collapse via JS global (les boutons sont générés dynamiquement)
   window.evoExpandAgent=function(agId){
@@ -5201,6 +5245,7 @@ const EVO_SEC=s=>(s==null||s<=0)?"–":Math.floor(s/60)+"m"+String(Math.round(s%
 const EVO_OCC=o=>o.prod_sec>0?Math.round((o.talk_sec||0)/o.prod_sec*100)+"%":"–";
 const EVO_PCTN=(a,b)=>b>0?Math.round(a/b*100):0;
 function EVO_TAUX(o){return o.cuTotal>0?EVO_PCTN(o.cuPos,o.cuTotal)+'%':'–';}
+function evoPill(lab,val,objStr,good){return `<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;}
 const EVO_COLS=[
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
   {k:'dmc',l:'DMC',t:'Durée moyenne de communication (sur contacts utiles : accord+refus)',get:o=>o.comm_n>0?(o.comm_sec||0)/o.comm_n:0,fmt:o=>EVO_SEC(o.comm_n>0?Math.round((o.comm_sec||0)/o.comm_n):null),cls:'muted'},
@@ -5420,11 +5465,10 @@ function renderEvoObjectifs(rebuildControls){
   const pcc=v=>v==null?"–":v+"%";
   const cs=(p.camps||[]).map(c=>{
     const tauxCU=parseFloat(evoGetObjC(c.id,'cu','25'));
-    const fMan=evoGetObjC(c.id,'fichier','');
-    const fichier=fMan!==''&&!isNaN(parseFloat(fMan))?parseFloat(fMan):c.fichierTotal;
+    const fichier=c.fichierTotal; // donnée Evo, lecture seule — jamais un objectif
     const cuObj=(fichier>0&&!isNaN(tauxCU))?Math.round(fichier*tauxCU/100):null;
     const atteinte=cuObj>0?Math.round(c.cu/cuObj*100):null;
-    return Object.assign({},c,{tauxCU,fMan,fichier,cuObj,atteinte});
+    return Object.assign({},c,{tauxCU,fichier,cuObj,atteinte});
   });
   const aggCuObj=cs.reduce((s,c)=>s+(c.cuObj||0),0)||null;
   const aggCu=p.cu, aggFichier=cs.reduce((s,c)=>s+(c.fichier||0),0);
@@ -5437,28 +5481,43 @@ function renderEvoObjectifs(rebuildControls){
     const txExpl=c.fichier>0?Math.round(c.cloturees/c.fichier*100):null;
     const txAcc=c.cu>0?Math.round(c.accords/c.cu*100):null;
     const txDesc=c.fichier>0?Math.round(c.accords/c.fichier*100):null;
+    const cH=evoParH(c.cu,c.heuresProd), aH=evoParH(c.accords,c.heuresProd);
+    const restant=c.fichier!=null&&c.cloturees!=null?Math.max(0,c.fichier-c.cloturees):null; // fichier non clôturé — donnée Evo, lecture seule
     const txAccObjRaw=evoGetObjC(c.id,'txacc','');const txAccObj=parseFloat(txAccObjRaw);
+    const achObjRaw=evoGetObjC(c.id,'acch','');const achObj=parseFloat(achObjRaw);
+    const txExplObjRaw=evoGetObjC(c.id,'txexpl','');const txExplObj=parseFloat(txExplObjRaw);
+    const curObjRaw=evoGetObjC(c.id,'curest','');
     const attCol=c.atteinte==null?'var(--t-secondary)':(c.atteinte>=100?'#E8006E':'#4C9AFF');
     const accCol=txAcc==null?'var(--t-secondary)':(!isNaN(txAccObj)&&txAcc>=txAccObj?'#1d9e75':'#E8006E');
+    const achCol=aH==null?'var(--t-secondary)':(!isNaN(achObj)&&aH>=achObj?'#1d9e75':'#E8006E');
+    const txExplCol=txExpl==null?'var(--t-secondary)':(!isNaN(txExplObj)&&txExpl>=txExplObj?'#1d9e75':'#E8006E');
     return `<tr>
       <td style="text-align:left;font-weight:600">${ec(c.nom)}</td>
-      <td><input type="number" min="0" value="${c.fMan}" placeholder="${c.fichierTotal?c.fichierTotal.toLocaleString('fr-FR'):'auto'}" onchange="evoSetObjC('${c.id}','fichier',this.value)" class="eca-inp" style="width:82px"></td>
-      <td><input type="number" min="0" max="100" step="0.5" value="${isNaN(c.tauxCU)?'':c.tauxCU}" onchange="evoSetObjC('${c.id}','cu',this.value)" class="eca-inp" style="width:58px"></td>
+      <td title="Fichier en production — donnée Evo, non modifiable"><b>${c.fichier?nb(c.fichier):'–'}</b></td>
+      <td title="Fichier non clôturé restant en base — donnée Evo, non modifiable">${restant==null?'–':nb(restant)}</td>
+      <td><input type="number" min="0" max="100" step="0.5" value="${isNaN(c.tauxCU)?'':c.tauxCU}" onchange="evoSetObjC('${c.id}','cu',this.value)" class="eca-inp" style="width:56px"></td>
       <td><b>${c.cuObj==null?'–':nb(c.cuObj)}</b></td>
       <td class="eca-pink">${nb(c.cu)}</td>
       <td style="color:${attCol};font-weight:600">${c.atteinte==null?'–':c.atteinte+'%'}</td>
+      <td><input type="number" min="0" value="${curObjRaw}" placeholder="cible" onchange="evoSetObjC('${c.id}','curest',this.value)" class="eca-inp" style="width:60px"></td>
       <td>${pcc(txExpl)}</td>
+      <td><input type="number" min="0" max="100" step="1" value="${txExplObjRaw}" placeholder="obj" onchange="evoSetObjC('${c.id}','txexpl',this.value)" class="eca-inp" style="width:52px"></td>
       <td style="font-weight:600;color:${accCol}">${pcc(txAcc)}</td>
-      <td><input type="number" min="0" max="100" step="1" value="${txAccObjRaw}" placeholder="20" onchange="evoSetObjC('${c.id}','txacc',this.value)" class="eca-inp" style="width:52px"></td>
+      <td><input type="number" min="0" max="100" step="1" value="${txAccObjRaw}" placeholder="20" onchange="evoSetObjC('${c.id}','txacc',this.value)" class="eca-inp" style="width:50px"></td>
       <td>${pcc(txDesc)}</td>
+      <td style="font-weight:600;color:${achCol}">${aH==null?'–':aH.toLocaleString('fr-FR')}</td>
+      <td><input type="number" min="0" step="0.1" value="${achObjRaw}" placeholder="obj" onchange="evoSetObjC('${c.id}','acch',this.value)" class="eca-inp" style="width:48px"></td>
     </tr>`;
   }).join("");
   resBox.innerHTML=`<div class="eca-tw"><table class="eca-tbl" style="font-size:11.5px"><thead><tr>
-      <th>Campagne</th><th title="Fichier en production (vide = auto depuis Evo)">Fichier</th><th title="Taux de CU visé sur le fichier">Taux CU obj</th>
+      <th>Campagne</th><th title="Fichier en production — donnée Evo, lecture seule">Fichier</th><th title="Fichier non clôturé restant en base — donnée Evo, lecture seule">Restant</th><th title="Taux de CU visé sur le fichier">Taux CU obj</th>
       <th title="Fichier × taux CU objectif">CU objectif</th><th title="CU réalisés">CU réalisé</th><th title="CU réalisé ÷ CU objectif">Atteinte</th>
-      <th title="Fiches clôturées ÷ fichier">Tx exploit.</th><th title="Accords ÷ CU (réalisé)">Tx accord</th><th title="Objectif taux d'accord">Obj. accord</th><th title="Accords ÷ fichier">Tx descente</th>
+      <th title="Contact utile encore à réaliser (objectif)">CU à réaliser</th>
+      <th title="Fiches clôturées ÷ fichier">Tx exploit.</th><th title="Objectif taux d'exploitation">Obj. exploit.</th>
+      <th title="Accords ÷ CU (réalisé)">Tx accord</th><th title="Objectif taux d'accord">Obj. accord</th><th title="Accords ÷ fichier">Tx descente</th>
+      <th title="Accords par heure de production">C+/h</th><th title="Objectif C+/h">Obj. C+/h</th>
     </tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>${pcc(aggTxExpl)}</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>–</td><td>${pcc(aggTxDesc)}</td></tr></tfoot>
+    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>–</td><td>${pcc(aggTxExpl)}</td><td>–</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>–</td><td>${pcc(aggTxDesc)}</td><td class="eca-pink">${accH==null?'–':accH.toLocaleString('fr-FR')}</td><td>–</td></tr></tfoot>
     </table></div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px;color:var(--t-secondary)">
       <span>CU / h (périmètre) : <b style="color:#E8006E">${cuH==null?'n.d.':cuH.toLocaleString('fr-FR')}</b></span>
