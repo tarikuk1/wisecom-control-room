@@ -543,13 +543,13 @@ body.light .tbl .evo-agent-row:hover td{background:#e7e9ee!important;}
 /* Côte à côte : campagne sortante + agent live ; cartes de ligne au lieu de lignes plates */
 .evo-side-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
 @media (max-width:1150px){.evo-side-grid{grid-template-columns:1fr;}}
-.evo-cardtbl{border-collapse:separate;border-spacing:0 7px;}
+.evo-cardtbl{border-collapse:separate;border-spacing:0 4px;}
 .evo-cardtbl thead th{border-bottom:none!important;padding-bottom:6px;font-size:10.5px;}
 .evo-cardtbl tbody tr{background:var(--s-2);}
 .evo-cardtbl tbody tr:hover td{background:var(--s-3)!important;}
 body.light .evo-cardtbl tbody tr{background:#fff;}
 body.light .evo-cardtbl tbody tr:hover td{background:#f7f7fb!important;}
-.evo-cardtbl tbody td{padding:9px 9px;border:none!important;}
+.evo-cardtbl tbody td{padding:5px 8px;border:none!important;}
 body.light .evo-cardtbl tbody td{border-top:1px solid #ececf2!important;border-bottom:1px solid #ececf2!important;box-shadow:0 1px 2px rgba(0,0,0,.03);}
 body.light .evo-cardtbl tbody td:first-child{border-left:1px solid #ececf2!important;}
 body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!important;}
@@ -577,11 +577,11 @@ body.light .eca-kpi .l{color:#80808a;}
 .eca-kpi .v{font-size:18px;font-weight:600;margin-top:1px;color:#eaeaec;}
 body.light .eca-kpi .v{color:#1a1a1f;}
 .eca-tw{overflow-x:auto;}
-.eca-tbl{width:100%;border-collapse:collapse;font-size:11.5px;color:#e6e6ea;}
+.eca-tbl{width:100%;border-collapse:collapse;font-size:10.5px;color:#e6e6ea;}
 body.light .eca-tbl{color:#26262b;}
-.eca-tbl th{font-size:9.5px;text-transform:uppercase;color:#8c8c94;font-weight:600;padding:6px 5px;cursor:pointer;white-space:nowrap;border-bottom:1.5px solid var(--border);text-align:center;}
+.eca-tbl th{font-size:9px;text-transform:uppercase;color:#8c8c94;font-weight:600;padding:4px 4px;cursor:pointer;white-space:nowrap;border-bottom:1.5px solid var(--border);text-align:center;}
 .eca-tbl th:first-child{text-align:left;}
-.eca-tbl td{padding:5px 5px;text-align:center;white-space:nowrap;border-bottom:0.5px solid var(--border);}
+.eca-tbl td{padding:2.5px 4px;text-align:center;white-space:nowrap;border-bottom:0.5px solid var(--border);line-height:1.35;}
 .eca-tbl td:first-child{text-align:left;}
 .eca-tbl tbody tr:hover td{background:var(--s-3);}
 body.light .eca-tbl tbody tr:hover td{background:#f5f5f8;}
@@ -5143,10 +5143,10 @@ function renderEvo(d){
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels reçus par les agents, quelle que soit la résolution (réalisé du jour, source SQL)">Reçus</th>
+      <th title="Total appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
       <th title="Fiches finalisées agent (live)">Fiches final.</th>
-      <th title="Appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
       <th title="Reçu ET traité, hors périmètre de la campagne — compte en CU">Hors cible</th>
       <th title="Appels reçus via un service de relance automatique">Reçus RA</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
@@ -5170,6 +5170,7 @@ function renderEvo(d){
       return `<tr>
       <td style="text-align:left"><span class="evo-rc-name">${evoLogo(c.nom)}<span>${ec(c.nom)}</span></span>${evoRaBadge(raNb)}</td>
       <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
+      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
       <td style="color:#E8006E;font-weight:700">${accords.toLocaleString("fr-FR")}</td>
       <td><b style="color:${accCol}">${accPct==null?"–":accPct+"%"}</b><div class="evo-rc-bar"><i style="width:${accPct||0}%;background:${accCol}"></i></div></td>
@@ -5177,7 +5178,6 @@ function renderEvo(d){
       <td style="font-weight:700">${fmtR(evoParH(cuC,hp))}</td>
       <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
-      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${hcN.toLocaleString("fr-FR")}</td>
       <td style="color:#ff9f0a">${raNb.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
@@ -5201,9 +5201,10 @@ function renderEvo(d){
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
-      <th title="Appels reçus du jour (compteur live agent)">Reçus</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
+      <th title="Appels reçus du jour (compteur live agent)">Reçus</th>
+      <th title="Total appels traités = accord + refus + hors cible + refus de répondre (source SQL)">Traité</th>
+      <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
       <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Reçus/h</th>
-      <th title="Appels traités = accord + refus + hors cible + refus de répondre (source SQL)">Traité</th>
       <th title="Reçu ET traité, hors périmètre de la campagne — source SQL">Hors cible</th>
       <th title="Appels reçus via un service de relance automatique — source SQL">Reçus RA</th>
       <th>Temps pause</th>
@@ -5219,6 +5220,7 @@ function renderEvo(d){
       <td style="text-align:left"><span class="evo-rc-name"><span class="evo-rc-avatar">${evoInitials(a.nom)}</span><span>${ec(a.nom)}</span></span>${evoRaBadge(raNb)}</td>
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
       <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
+      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${cuA.toLocaleString("fr-FR")}</td>
       <td style="color:#E8006E;font-weight:700">${a.positifs.toLocaleString("fr-FR")}</td>
       <td><b style="color:${accCol}">${accPctA==null?"–":accPctA+"%"}</b><div class="evo-rc-bar"><i style="width:${accPctA||0}%;background:${accCol}"></i></div></td>
@@ -5226,7 +5228,6 @@ function renderEvo(d){
       <td style="font-weight:700">${fmtR(evoParH(cuA,hp))}</td>
       <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(a.positifs,hp))}</td>
       <td>${fmtR(evoParH(a.appels,hp))}</td>
-      <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${hcN.toLocaleString("fr-FR")}</td>
       <td style="color:#ff9f0a">${raNb.toLocaleString("fr-FR")}</td>
       <td>${hm(a.pauseSec)}</td>
@@ -5270,6 +5271,7 @@ function renderEvo(d){
       return `<tr>
         <td style="text-align:left">${EVO_ECC(cc.campNom)||("Camp."+cc.idCampanya)}${evoRaBadge(cc.ra_nb)}</td>
         <td class="eca-mut">${EVO_NB(cc.nb||0)}</td>
+        <td>${EVO_NB(cc.tft||0)}</td>
         <td class="eca-mut">${EVO_FH(cc.prod_sec)}</td>
         <td class="eca-mut">${fmtSec2(cc.dmt)}</td>
         <td class="eca-key">${EVO_NB(cc.cuPos)}</td>
@@ -5279,13 +5281,12 @@ function renderEvo(d){
         <td>${EVO_NB(cc.cuTotal)}</td>
         <td class="eca-key">${EVO_R1(EVO_PH(cc.cuTotal,cc.prod_sec))}</td>
         <td>${EVO_NB(cc.definitifs)}</td>
-        <td>${EVO_NB(cc.tft||0)}</td>
         <td style="color:#ff9f0a">${EVO_NB(cc.ra_nb||0)}</td>
         <td class="eca-key">${tx2==null?'–':tx2+'%'}</td>
       </tr>`;
     }).join('');
     const table=camps.length>1?`<div class="eca-tw"><table class="eca-tbl"><thead><tr>
-        <th style="text-align:left">Campagne</th><th>Reçus</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>Hors cible</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>Traité</th><th title="Appels reçus via un service de relance automatique">Reçus RA</th><th class="eca-key">Taux acc.</th>
+        <th style="text-align:left">Campagne</th><th>Reçus</th><th>Traité</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>Hors cible</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th title="Appels reçus via un service de relance automatique">Reçus RA</th><th class="eca-key">Taux acc.</th>
       </tr></thead><tbody>${rows}</tbody></table></div>`:'';
     return `<div class="eca-card">
       <div class="eca-head" style="cursor:default">
@@ -5338,6 +5339,7 @@ function evoPill(lab,val,objStr,good){return `<span style="display:inline-flex;a
 function evoRaBadge(n){return n>0?`<span title="${n} appel${n>1?'s':''} rattaché${n>1?'s':''} via un service de relance automatique (RA)" style="display:inline-flex;align-items:center;gap:3px;color:#ff9f0a;font-size:9.5px;font-weight:700;margin-left:5px;white-space:nowrap;vertical-align:1px">⁕ RA ${n}</span>`:'';}
 const EVO_COLS=[
   {k:'nb',l:'Reçus',t:'Appels reçus (tout appel routé vers l\'agent, quelle que soit la résolution)',get:o=>o.nb||0,fmt:o=>EVO_NB(o.nb||0),cls:'muted'},
+  {k:'tft',l:'Traité',t:'Total appels traités = accord+refus+hors cible+refus de répondre',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
   {k:'dmc',l:'DMC',t:'Durée moyenne de communication (sur contacts utiles : accord+refus+hors cible)',get:o=>o.comm_n>0?(o.comm_sec||0)/o.comm_n:0,fmt:o=>EVO_SEC(o.comm_n>0?Math.round((o.comm_sec||0)/o.comm_n):null),cls:'muted'},
   {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif) — indicateur clé',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'key'},
@@ -5346,7 +5348,6 @@ const EVO_COLS=[
   {k:'hc',l:'Hors cible',t:'Reçu ET traité, hors périmètre de la campagne — compte en CU',get:o=>o.hc||0,fmt:o=>EVO_NB(o.hc||0),cls:'muted'},
   {k:'cu',l:'CU',t:'Contacts utiles = accords + refus + hors cible (reçu ET traité)',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
   {k:'cuh',l:'CU/h',t:'Contacts utiles par heure — indicateur clé',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'key'},
-  {k:'tft',l:'Traité',t:'Appels traités = Total fiches traitées (accord+refus+hors cible+refus de répondre)',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
   {k:'ra',l:'Reçus RA',t:'Appels reçus via un service de relance automatique (segment croisé)',get:o=>o.ra_nb||0,fmt:o=>EVO_NB(o.ra_nb||0),cls:'muted'},
   {k:'taux',l:'Taux acc.',t:"Taux d'accord = accords ÷ CU — indicateur clé",get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:'key'},
 ];
