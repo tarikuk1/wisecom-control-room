@@ -549,7 +549,7 @@ body.light .tbl .evo-agent-row:hover td{background:#e7e9ee!important;}
 .evo-cardtbl tbody tr:hover td{background:var(--s-3)!important;}
 body.light .evo-cardtbl tbody tr{background:#fff;}
 body.light .evo-cardtbl tbody tr:hover td{background:#f7f7fb!important;}
-.evo-cardtbl tbody td{padding:5px 8px;border:none!important;}
+.evo-cardtbl tbody td{padding:4px 6px;border:none!important;}
 body.light .evo-cardtbl tbody td{border-top:1px solid #ececf2!important;border-bottom:1px solid #ececf2!important;box-shadow:0 1px 2px rgba(0,0,0,.03);}
 body.light .evo-cardtbl tbody td:first-child{border-left:1px solid #ececf2!important;}
 body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!important;}
@@ -560,7 +560,7 @@ body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!impor
 .evo-rc-bar{width:38px;height:3px;border-radius:2px;background:rgba(120,120,130,.25);overflow:hidden;margin:3px auto 0;}
 .evo-rc-bar>i{display:block;height:100%;}
 /* Vue campagne -> agents (eca) — light/dark natif, lisible */
-.eca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(540px,600px));gap:14px;justify-content:start;align-items:start;}
+.eca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(680px,760px));gap:14px;justify-content:start;align-items:start;}
 .eca-card{border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s-2);}
 body.light .eca-card{background:#fff;border-color:#e6e6ec;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 .eca-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-left:4px solid #E8006E;background:#26262b;color:#f2f2f4;}
@@ -1493,19 +1493,17 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       </div>
     </div>
 
-    <div class="evo-side-grid" style="margin-top:14px">
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
-        <div class="tbl-wrap" style="overflow-x:auto;">
-          <table class="tbl evo-num evo-cardtbl" id="evo-camp-table"></table>
-        </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table class="tbl evo-num evo-cardtbl" id="evo-camp-table"></table>
       </div>
+    </div>
 
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live)</span></span><span id="evo-agent-hdr-badge" class="eca-hdr-badges"></span></div>
-        <div class="tbl-wrap" style="overflow-x:auto;">
-          <table class="tbl evo-num evo-cardtbl" id="evo-agent-table"></table>
-        </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live)</span></span><span id="evo-agent-hdr-badge" class="eca-hdr-badges"></span></div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table class="tbl evo-num evo-cardtbl" id="evo-agent-table"></table>
       </div>
     </div>
 
@@ -5144,14 +5142,14 @@ function renderEvo(d){
     <thead><tr>
       <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels reçus par les agents, quelle que soit la résolution (réalisé du jour, source SQL)">Reçus</th>
       <th title="Total appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
-      <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
+      <th>CU total</th><th title="Accords (CU+)">Accords</th><th title="Accords ÷ contacts utiles">Acc.%</th>
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
       <th title="Fiches finalisées agent (live)">Fiches final.</th>
       <th title="Reçu ET traité, hors périmètre de la campagne — compte en CU">Hors cible</th>
       <th title="Appels reçus via un service de relance automatique">Reçus RA</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
-      <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
+      <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
       const hp=getHP(c);
@@ -5168,7 +5166,7 @@ function renderEvo(d){
       const raNb=raNbByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
-      <td style="text-align:left"><span class="evo-rc-name">${evoLogo(c.nom)}<span>${ec(c.nom)}</span></span>${evoRaBadge(raNb)}</td>
+      <td style="text-align:left;max-width:190px"><span class="evo-rc-name" title="${ec(c.nom)}">${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span>${evoRaBadge(raNb)}</td>
       <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
@@ -5191,8 +5189,8 @@ function renderEvo(d){
     const gCu=gAcc+gRef;
     const gCuh=gHp>0?gCu/gHp:null, gTx=gCu>0?Math.round(gAcc/gCu*100):null;
     const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
-    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
-      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+    evoSetHdrPills(badge,evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj));
   })();
 
   // Tableau agents (filtré sur les campagnes sélectionnées)
@@ -5238,8 +5236,8 @@ function renderEvo(d){
     const gHp=ags.reduce((s,a)=>s+evoHeuresProd5(a.sessionSec),0);
     const gCuh=gHp>0?gCu/gHp:null, gTx=gCu>0?Math.round(gAcc/gCu*100):null;
     const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
-    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
-      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+    evoSetHdrPills(badge,evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj));
   })();
 
   // ── Production par agent — détail par campagne : cartes (même style que "campagne → agents") ──
@@ -5269,7 +5267,7 @@ function renderEvo(d){
     const rows=camps.map(cc=>{
       const tx2=cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100):null;
       return `<tr>
-        <td style="text-align:left">${EVO_ECC(cc.campNom)||("Camp."+cc.idCampanya)}${evoRaBadge(cc.ra_nb)}</td>
+        <td style="text-align:left;max-width:180px"><span style="display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom" title="${EVO_ECC(cc.campNom)}">${EVO_ECC(cc.campNom)||("Camp."+cc.idCampanya)}</span>${evoRaBadge(cc.ra_nb)}</td>
         <td class="eca-mut">${EVO_NB(cc.nb||0)}</td>
         <td>${EVO_NB(cc.tft||0)}</td>
         <td class="eca-mut">${EVO_FH(cc.prod_sec)}</td>
@@ -5306,8 +5304,8 @@ function renderEvo(d){
     const badge=document.getElementById("evo-agentcamp-hdr-badge"); if(!badge)return;
     const gCu=agVisible.reduce((s,a)=>s+a.cuTotal,0), gAcc=agVisible.reduce((s,a)=>s+a.cuPos,0), gPs=agVisible.reduce((s,a)=>s+(a.prod_sec||0),0);
     const gCuh=EVO_PH(gCu,gPs), gTx=gCu>0?Math.round(gAcc/gCu*100):null;
-    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObjG)?'':txObjG+'%',!isNaN(txObjG)&&gTx!=null&&gTx>=txObjG)
-      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObjG)?'':EVO_R1(cuhObjG),!isNaN(cuhObjG)&&gCuh!=null&&gCuh>=cuhObjG);
+    evoSetHdrPills(badge,evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObjG)?'':txObjG+'%',!isNaN(txObjG)&&gTx!=null&&gTx>=txObjG)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObjG)?'':EVO_R1(cuhObjG),!isNaN(cuhObjG)&&gCuh!=null&&gCuh>=cuhObjG));
   })();
 
   // Vue Production par campagne → agents (spec Tarik : cumul campagne + détail agent)
@@ -5334,6 +5332,13 @@ const EVO_OCC=o=>o.prod_sec>0?Math.round((o.talk_sec||0)/o.prod_sec*100)+"%":"�
 const EVO_PCTN=(a,b)=>b>0?Math.round(a/b*100):0;
 function EVO_TAUX(o){return o.cuTotal>0?EVO_PCTN(o.cuPos,o.cuTotal)+'%':'–';}
 function evoPill(lab,val,objStr,good){return `<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;}
+// badge.innerHTML=... écraserait les boutons export/plein écran qu'evoAddFsButtons() a déjà
+// insérés dans ce même span (.eca-hdr-badges) — on cible un enfant dédié aux pills à la place.
+function evoSetHdrPills(badge,html){
+  let w=badge.querySelector('.eca-hdr-pills');
+  if(!w){w=document.createElement('span');w.className='eca-hdr-pills';w.style.cssText='display:inline-flex;gap:6px;align-items:center';badge.insertBefore(w,badge.firstChild);}
+  w.innerHTML=html;
+}
 // Marqueur "source RA" : appels rattachés via un service de relance automatique (segment
 // croisé) — identifie où cette donnée est intégrée, pour transparence sur son origine.
 function evoRaBadge(n){return n>0?`<span title="${n} appel${n>1?'s':''} rattaché${n>1?'s':''} via un service de relance automatique (RA)" style="display:inline-flex;align-items:center;gap:3px;color:#ff9f0a;font-size:9.5px;font-weight:700;margin-left:5px;white-space:nowrap;vertical-align:1px">⁕ RA ${n}</span>`:'';}
