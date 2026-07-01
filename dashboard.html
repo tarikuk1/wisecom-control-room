@@ -5137,11 +5137,11 @@ function renderEvo(d){
 
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
-      <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels traités par les agents (réalisé du jour, source SQL)">Appels traités</th>
+      <th style="text-align:left">Campagne</th><th title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels reçus par les agents, quelle que soit la résolution (réalisé du jour, source SQL)">Reçus</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th>
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
       <th title="Fiches finalisées agent (live)">Fiches final.</th>
-      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre">TFT</th>
+      <th title="Appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
@@ -5191,9 +5191,9 @@ function renderEvo(d){
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
-      <th title="Appels du jour (compteur live agent)">Appels</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
-      <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Appels/h</th>
-      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre (source SQL)">TFT</th>
+      <th title="Appels reçus du jour (compteur live agent)">Reçus</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
+      <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Reçus/h</th>
+      <th title="Appels traités = accord + refus + hors cible + refus de répondre (source SQL)">Traité</th>
       <th>Temps pause</th>
     </tr></thead>
     <tbody>${ags.map(a=>{
@@ -5247,13 +5247,14 @@ function renderEvo(d){
     const nom=a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente);
     const tx=EVO_PCTN(a.cuPos,a.cuTotal), cuh=EVO_PH(a.cuTotal,a.prod_sec);
     const txGood=!isNaN(txObjG)&&tx>=txObjG, cuhGood=!isNaN(cuhObjG)&&cuh!=null&&cuh>=cuhObjG;
-    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos),'var(--t-secondary)'],['TFT',EVO_NB(a.tft||0),''],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
+    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos),'var(--t-secondary)'],['Reçus',EVO_NB(a.nb||0),''],['Traité',EVO_NB(a.tft||0),''],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
     const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
     const camps=a.camps.slice().sort((x,y)=>y.cuTotal-x.cuTotal);
     const rows=camps.map(cc=>{
       const tx2=cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100):null;
       return `<tr>
         <td style="text-align:left">${EVO_ECC(cc.campNom)||("Camp."+cc.idCampanya)}${evoRaBadge(cc.ra_nb)}</td>
+        <td class="eca-mut">${EVO_NB(cc.nb||0)}</td>
         <td class="eca-mut">${EVO_FH(cc.prod_sec)}</td>
         <td class="eca-mut">${fmtSec2(cc.dmt)}</td>
         <td class="eca-key">${EVO_NB(cc.cuPos)}</td>
@@ -5267,7 +5268,7 @@ function renderEvo(d){
       </tr>`;
     }).join('');
     const table=camps.length>1?`<div class="eca-tw"><table class="eca-tbl"><thead><tr>
-        <th style="text-align:left">Campagne</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>TFT</th><th class="eca-key">Taux acc.</th>
+        <th style="text-align:left">Campagne</th><th>Reçus</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>Traité</th><th class="eca-key">Taux acc.</th>
       </tr></thead><tbody>${rows}</tbody></table></div>`:'';
     return `<div class="eca-card">
       <div class="eca-head" style="cursor:default">
@@ -5319,14 +5320,15 @@ function evoPill(lab,val,objStr,good){return `<span style="display:inline-flex;a
 // croisé) — identifie où cette donnée est intégrée, pour transparence sur son origine.
 function evoRaBadge(n){return n>0?`<span title="${n} appel${n>1?'s':''} rattaché${n>1?'s':''} via un service de relance automatique (RA)" style="display:inline-flex;align-items:center;gap:3px;color:#ff9f0a;font-size:9.5px;font-weight:700;margin-left:5px;white-space:nowrap;vertical-align:1px">⁕ RA ${n}</span>`:'';}
 const EVO_COLS=[
+  {k:'nb',l:'Reçus',t:'Appels reçus (tout appel routé vers l\'agent, quelle que soit la résolution)',get:o=>o.nb||0,fmt:o=>EVO_NB(o.nb||0),cls:'muted'},
   {k:'h',l:'H.conn',t:'Heures de connexion sur la campagne',get:o=>o.prod_sec||0,fmt:o=>EVO_FH(o.prod_sec),cls:'muted'},
-  {k:'dmc',l:'DMC',t:'Durée moyenne de communication (sur contacts utiles : accord+refus)',get:o=>o.comm_n>0?(o.comm_sec||0)/o.comm_n:0,fmt:o=>EVO_SEC(o.comm_n>0?Math.round((o.comm_sec||0)/o.comm_n):null),cls:'muted'},
+  {k:'dmc',l:'DMC',t:'Durée moyenne de communication (sur contacts utiles : accord+refus+hors cible)',get:o=>o.comm_n>0?(o.comm_sec||0)/o.comm_n:0,fmt:o=>EVO_SEC(o.comm_n>0?Math.round((o.comm_sec||0)/o.comm_n):null),cls:'muted'},
   {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif) — indicateur clé',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'key'},
   {k:'cph',l:'C+/h',t:'Accords par heure — indicateur clé',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'key'},
   {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos,fmt:o=>EVO_NB(o.cuTotal-o.cuPos),cls:'muted'},
-  {k:'cu',l:'CU',t:'Contacts utiles = accords + refus',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
+  {k:'cu',l:'CU',t:'Contacts utiles = accords + refus + hors cible (reçu ET traité)',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
   {k:'cuh',l:'CU/h',t:'Contacts utiles par heure — indicateur clé',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'key'},
-  {k:'tft',l:'TFT',t:'Total fiches traitées (accord+refus+hors cible+refus de répondre)',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
+  {k:'tft',l:'Traité',t:'Appels traités = Total fiches traitées (accord+refus+hors cible+refus de répondre)',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
   {k:'taux',l:'Taux acc.',t:"Taux d'accord = accords ÷ CU — indicateur clé",get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:'key'},
 ];
 // Détection de la marque/compte client depuis le nom de campagne → logo + couleur.
@@ -5428,7 +5430,7 @@ function evoCampBlock(id){
   const txObj=parseFloat(evoGetObjC(id,'txacc','')); const cuh=EVO_PH(cum.cuTotal,cum.prod_sec); const cuhObj=parseFloat(evoGetObj('cuh',''));
   const txGood=!isNaN(txObj)&&tx>=txObj; const cuhGood=!isNaN(cuhObj)&&cuh!=null&&cuh>=cuhObj;
   const ecaPill=(lab,val,objStr,good)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;
-  const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Traitées',EVO_NB(cum.nb),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
+  const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Reçus',EVO_NB(cum.nb),''],['Traité',EVO_NB(cum.tft||0),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
   const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
   const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
   return `<div class="eca-card">

@@ -61,9 +61,10 @@ def resmap(res):
     # par certaines campagnes, ex. COVID_19) tombait dans "oth" → accords non comptés, absents du
     # CU/DMC. Aligné sur is_tft() qui utilise déjà une correspondance par préfixe.
     r = res.split(' [')[0].strip().lower()
-    if r.startswith("accord"): return ("acc", 2)    # contact utile positif (Accord, Accord RdV, ...)
-    if r.startswith("refus"): return ("ref", 1)      # CU négatif (Refus, Refus Répondre, ...)
-    return ("oth", 0)                              # autres clôtures (faux n°, répondeur, rappel…)
+    if r.startswith("accord"): return ("acc", 2)     # contact utile positif (Accord, Accord RdV, ...)
+    if r.startswith("refus"): return ("ref", 1)       # CU négatif (Refus, Refus Répondre, ...)
+    if "hors" in r and "cible" in r: return ("hc", 1)  # reçu ET traité, hors périmètre → compte en CU (décision Tarik)
+    return ("oth", 0)                               # non traités : répondeur, faux n°, rappel, système…
 
 def is_tft(res):
     """Total Fiches Traitées = accord + refus + refus de répondre + hors cible (exclut faux n°, répondeur, rappel, système)."""
@@ -95,13 +96,13 @@ def _ingest_row(r, sqlStats, agByKey, names, ra=False):
     a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
     if ra: a["ra_nb"] += nb
     if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
-    elif kind == "ref": a["cuTotal"] += nb
+    elif kind in ("ref", "hc"): a["cuTotal"] += nb
     if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
     t = hms(r.get("AT_Agent"))
     if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
-    # Durée de COMMUNICATION : seulement sur les contacts utiles (accord+refus),
+    # Durée de COMMUNICATION : seulement sur les contacts utiles (accord+refus+hors cible),
     # sinon les répondeurs/faux n° (très courts) écrasent la moyenne.
-    if t and kind in ("acc", "ref"): a["comm_sum"] += t * nb; a["comm_n"] += nb
+    if t and kind in ("acc", "ref", "hc"): a["comm_sum"] += t * nb; a["comm_n"] += nb
 
 def export(fdesde, fhasta, hdesde=None, hhasta=None):
     svc_rows = _get("/v1/measurable/services?format=json").get("DataSet", [])
