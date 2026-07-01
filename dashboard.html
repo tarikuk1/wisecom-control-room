@@ -540,6 +540,25 @@ body.light .tbl .evo-sub-row:hover td{background:#e6e8ec;}
 body.light .tbl tr:hover td{background:#eef0f3;}
 body.light .tbl .evo-agent-row:hover td{background:#e7e9ee!important;}
 .eca-hdr-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+/* Côte à côte : campagne sortante + agent live ; cartes de ligne au lieu de lignes plates */
+.evo-side-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+@media (max-width:1150px){.evo-side-grid{grid-template-columns:1fr;}}
+.evo-cardtbl{border-collapse:separate;border-spacing:0 7px;}
+.evo-cardtbl thead th{border-bottom:none!important;padding-bottom:6px;font-size:10.5px;}
+.evo-cardtbl tbody tr{background:var(--s-2);}
+.evo-cardtbl tbody tr:hover td{background:var(--s-3)!important;}
+body.light .evo-cardtbl tbody tr{background:#fff;}
+body.light .evo-cardtbl tbody tr:hover td{background:#f7f7fb!important;}
+.evo-cardtbl tbody td{padding:9px 9px;border:none!important;}
+body.light .evo-cardtbl tbody td{border-top:1px solid #ececf2!important;border-bottom:1px solid #ececf2!important;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+body.light .evo-cardtbl tbody td:first-child{border-left:1px solid #ececf2!important;}
+body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!important;}
+.evo-cardtbl tbody td:first-child{border-radius:10px 0 0 10px;text-align:left!important;}
+.evo-cardtbl tbody td:last-child{border-radius:0 10px 10px 0;}
+.evo-rc-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#E8006E,#ff5fa8);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0;}
+.evo-rc-name{display:flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;}
+.evo-rc-bar{width:38px;height:3px;border-radius:2px;background:rgba(120,120,130,.25);overflow:hidden;margin:3px auto 0;}
+.evo-rc-bar>i{display:block;height:100%;}
 /* Vue campagne -> agents (eca) — light/dark natif, lisible */
 .eca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(540px,600px));gap:14px;justify-content:start;align-items:start;}
 .eca-card{border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s-2);}
@@ -1474,17 +1493,19 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
       </div>
     </div>
 
-    <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
-      <div class="tbl-wrap" style="overflow-x:auto;">
-        <table class="tbl evo-num" id="evo-camp-table"></table>
+    <div class="evo-side-grid" style="margin-top:14px">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
+        <div class="tbl-wrap" style="overflow-x:auto;">
+          <table class="tbl evo-num evo-cardtbl" id="evo-camp-table"></table>
+        </div>
       </div>
-    </div>
 
-    <div class="panel" style="margin-top:14px">
-      <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live) — présence &amp; activité instantanée</span></span><span id="evo-agent-hdr-badge" class="eca-hdr-badges"></span></div>
-      <div class="tbl-wrap" style="overflow-x:auto;">
-        <table class="tbl evo-num" id="evo-agent-table"></table>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Production par agent <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">temps réel (live)</span></span><span id="evo-agent-hdr-badge" class="eca-hdr-badges"></span></div>
+        <div class="tbl-wrap" style="overflow-x:auto;">
+          <table class="tbl evo-num evo-cardtbl" id="evo-agent-table"></table>
+        </div>
       </div>
     </div>
 
@@ -5063,15 +5084,16 @@ function renderEvo(d){
       const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
       const dispo=c.fichier?c.fichier.disponibles:null;
       const tft=tftByCamp[String(c.id)]||0;
+      const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
-      <td style="text-align:left">${ec(c.nom)}</td>
+      <td style="text-align:left"><span class="evo-rc-name">${evoLogo(c.nom)}<span>${ec(c.nom)}</span></span></td>
       <td>${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${cuC.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E">${accords.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E">${accPct==null?"–":accPct+"%"}</td>
+      <td style="color:#E8006E;font-weight:700">${accords.toLocaleString("fr-FR")}</td>
+      <td><b style="color:${accCol}">${accPct==null?"–":accPct+"%"}</b><div class="evo-rc-bar"><i style="width:${accPct||0}%;background:${accCol}"></i></div></td>
       <td title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
-      <td>${fmtR(evoParH(cuC,hp))}</td>
-      <td style="color:#E8006E">${fmtR(evoParH(accords,hp))}</td>
+      <td style="font-weight:700">${fmtR(evoParH(cuC,hp))}</td>
+      <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
@@ -5104,16 +5126,17 @@ function renderEvo(d){
       const hp=evoHeuresProd5(a.sessionSec); const cuA=(a.positifs||0)+(a.negatifs||0);
       const accPctA=cuA>0?Math.round((a.positifs||0)/cuA*100):null;
       const tft=tftByAgent[String(a.id)]||0;
+      const accCol=accPctA==null?'var(--t-secondary)':(accPctA>=50?'#1d9e75':'#E8006E');
       return `<tr>
-      <td style="text-align:left">${ec(a.nom)}</td>
+      <td style="text-align:left"><span class="evo-rc-name"><span class="evo-rc-avatar">${evoInitials(a.nom)}</span><span>${ec(a.nom)}</span></span></td>
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
       <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
       <td>${cuA.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E">${a.positifs.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E">${accPctA==null?"–":accPctA+"%"}</td>
+      <td style="color:#E8006E;font-weight:700">${a.positifs.toLocaleString("fr-FR")}</td>
+      <td><b style="color:${accCol}">${accPctA==null?"–":accPctA+"%"}</b><div class="evo-rc-bar"><i style="width:${accPctA||0}%;background:${accCol}"></i></div></td>
       <td>${fmtH(hp)}</td>
-      <td>${fmtR(evoParH(cuA,hp))}</td>
-      <td style="color:#E8006E">${fmtR(evoParH(a.positifs,hp))}</td>
+      <td style="font-weight:700">${fmtR(evoParH(cuA,hp))}</td>
+      <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(a.positifs,hp))}</td>
       <td>${fmtR(evoParH(a.appels,hp))}</td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${hm(a.pauseSec)}</td>
@@ -5270,6 +5293,7 @@ function evoLogo(name){
   if(b.slug)return `<span style="position:relative;width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">${b.letters}</span><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/${b.slug}.svg" alt="" style="position:relative;width:26px;height:26px;object-fit:contain;background:#fff;border-radius:5px;padding:3px;box-sizing:border-box" onerror="this.style.display='none'"></span>`;
   return `<span style="width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">${b.letters}</span>`;
 }
+function evoInitials(nom){const w=String(nom||"?").trim().split(/\s+/);return((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();}
 function evoAgentRows(id){
   const c=window._evoCS[id]; if(!c)return"";
   const st=(window._evoSort&&window._evoSort[id])||{k:'taux',dir:-1};
