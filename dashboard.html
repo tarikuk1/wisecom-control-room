@@ -4980,8 +4980,10 @@ function renderEvo(d){
   // ── Filtre date : les données chargées correspondent à d.dataDate (jour du snapshot) ──
   const todayStr=new Date().toLocaleDateString("sv");
   const dataDate=d.dataDate||todayStr;   // date réelle des données chargées
-  // Si l'utilisateur n'a pas encore choisi de date, caler le sélecteur sur la date des données
-  if(!_evoDateUserSet && dataDate!==todayStr){
+  // Si l'utilisateur n'a pas encore choisi de date, caler le sélecteur sur la date des
+  // données — TOUJOURS (y compris quand dataDate == aujourd'hui), sinon un picker resté sur
+  // une date antérieure (ex. 30/06 par défaut du navigateur) masque les données du jour.
+  if(!_evoDateUserSet){
     _evoDateFilter=dataDate;
     const _dp0=document.getElementById("evo-date-filter"); if(_dp0)_dp0.value=dataDate;
   }
