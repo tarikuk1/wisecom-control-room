@@ -5151,15 +5151,11 @@ function renderEvo(d){
       +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
   })();
 
-  // ── Tableau agent × campagne (source SQL) ──────────────────────────────────
+  // ── Production par agent — détail par campagne : cartes (même style que "campagne → agents") ──
   const box2=document.getElementById("evo-agent-camp-table");
   if(!box2)return;
   const agCamps=(d.agentCamps||[]);
-  // Formateurs locaux
   const fmtSec2=s=>s==null||s<=0?"–":(s<60?Math.round(s)+"s":Math.floor(s/60)+"m"+String(Math.round(s%60)).padStart(2,"0")+"s");
-  const fmtH2=h=>h<=0?"–":(h>=1?h.toFixed(1).replace(".",",")+" h":Math.round(h*60)+" min");
-  const ec2=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-  // Mapper les noms d'agents REST sur leurs ID Evolution
   const agNameById={};
   (d.agents||[]).forEach(a=>{if(a.id&&a.nom)agNameById[String(a.id)]=a.nom;});
   if(!agCamps.length){
@@ -5170,80 +5166,55 @@ function renderEvo(d){
   // Filtre agents sélectionnés
   const agSel=_evoSelectedAgents||new Set(agCamps.map(a=>a.idAgente));
   const agVisible=agCamps.filter(a=>agSel.has(a.idAgente));
+  const txObjG=parseFloat(evoGetObj('acch','')), cuhObjG=parseFloat(evoGetObj('cuh',''));
 
-  const rows=agVisible.map(a=>{
+  const agCard=a=>{
     const nom=a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente);
-    const ph=a.prod_sec>0?a.prod_sec/3600:0;
-    const multiCamp=a.camps.length>1;
-    // Ligne totale de l'agent (cliquable si plusieurs campagnes)
-    const chevron=multiCamp?`<span class="evo-chevron" id="chev-${a.idAgente}" style="margin-right:6px;display:inline-block;transition:transform .2s;">▶</span>`:"";
-    const clickAttr=multiCamp?`onclick="evoExpandAgent('${a.idAgente}')" style="cursor:pointer;"`:"";
-    const mainRow=`<tr class="evo-agent-row" data-agent="${a.idAgente}" ${clickAttr}>
-      <td style="text-align:left;font-weight:700">${chevron}${ec2(nom)}</td>
-      <td>${fmtH2(ph)}</td>
-      <td>${a.nb.toLocaleString("fr-FR")}</td>
-      <td>${a.cuTotal.toLocaleString("fr-FR")}</td>
-      <td>${ph>0?fmtR(evoParH(a.cuTotal,ph)):"–"}</td>
-      <td style="color:#E8006E;font-weight:600">${a.cuPos.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E">${ph>0?fmtR(evoParH(a.cuPos,ph)):"–"}</td>
-      <td style="color:#E8006E">${a.cuTotal>0?Math.round(a.cuPos/a.cuTotal*100)+"%":"–"}</td>
-      <td>${a.definitifs.toLocaleString("fr-FR")}</td>
-      <td>${(a.tft||0).toLocaleString("fr-FR")}</td>
-      <td>${fmtSec2(a.dmt)}</td>
-    </tr>`;
-    // Sous-lignes par campagne (masquées par défaut)
-    const subRows=multiCamp?a.camps.map(cc=>{
-      const ph2=cc.prod_sec>0?cc.prod_sec/3600:0;
-      return `<tr class="evo-sub-row" data-agent="${a.idAgente}" style="display:none;">
-        <td style="text-align:left;padding-left:34px;font-size:var(--fs-sm);">↳ ${ec2(cc.campNom)||("Camp."+cc.idCampanya)}</td>
-        <td style="font-size:var(--fs-sm)">${fmtH2(ph2)}</td>
-        <td style="font-size:var(--fs-sm)">${cc.nb.toLocaleString("fr-FR")}</td>
-        <td style="font-size:var(--fs-sm)">${cc.cuTotal.toLocaleString("fr-FR")}</td>
-        <td style="font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuTotal,ph2)):"–"}</td>
-        <td style="color:#E8006E;font-size:var(--fs-sm)">${cc.cuPos.toLocaleString("fr-FR")}</td>
-        <td style="color:#E8006E;font-size:var(--fs-sm)">${ph2>0?fmtR(evoParH(cc.cuPos,ph2)):"–"}</td>
-        <td style="color:#E8006E;font-size:var(--fs-sm)">${cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100)+"%":"–"}</td>
-        <td style="font-size:var(--fs-sm)">${cc.definitifs.toLocaleString("fr-FR")}</td>
-        <td style="font-size:var(--fs-sm)">${(cc.tft||0).toLocaleString("fr-FR")}</td>
-        <td style="font-size:var(--fs-sm)">${fmtSec2(cc.dmt)}</td>
+    const tx=EVO_PCTN(a.cuPos,a.cuTotal), cuh=EVO_PH(a.cuTotal,a.prod_sec);
+    const txGood=!isNaN(txObjG)&&tx>=txObjG, cuhGood=!isNaN(cuhObjG)&&cuh!=null&&cuh>=cuhObjG;
+    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos),'var(--t-secondary)'],['TFT',EVO_NB(a.tft||0),''],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
+    const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
+    const camps=a.camps.slice().sort((x,y)=>y.cuTotal-x.cuTotal);
+    const rows=camps.map(cc=>{
+      const tx2=cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100):null;
+      return `<tr>
+        <td style="text-align:left">${EVO_ECC(cc.campNom)||("Camp."+cc.idCampanya)}</td>
+        <td class="eca-mut">${EVO_FH(cc.prod_sec)}</td>
+        <td class="eca-mut">${fmtSec2(cc.dmt)}</td>
+        <td class="eca-key">${EVO_NB(cc.cuPos)}</td>
+        <td class="eca-key">${EVO_R1(EVO_PH(cc.cuPos,cc.prod_sec))}</td>
+        <td class="eca-mut">${EVO_NB(cc.cuTotal-cc.cuPos)}</td>
+        <td>${EVO_NB(cc.cuTotal)}</td>
+        <td class="eca-key">${EVO_R1(EVO_PH(cc.cuTotal,cc.prod_sec))}</td>
+        <td>${EVO_NB(cc.definitifs)}</td>
+        <td>${EVO_NB(cc.tft||0)}</td>
+        <td class="eca-key">${tx2==null?'–':tx2+'%'}</td>
       </tr>`;
-    }).join(""):"";
-    return mainRow+subRows;
-  }).join("");
-
-  box2.innerHTML=`<table class="tbl evo-num">
-    <thead><tr>
-      <th style="text-align:left">Agent</th>
-      <th title="Amplitude entre le 1er et le dernier appel terminé (SQL) — repère, pas du temps de travail effectif">Amplitude</th>
-      <th>Appels</th>
-      <th title="Contacts aboutis positifs + négatifs">CU total</th>
-      <th title="Contacts utiles par heure de production">CU/h</th>
-      <th title="Accords (CU positifs uniquement)" style="color:#E8006E">Accords</th>
-      <th title="Accords par heure de production" style="color:#E8006E">Accords/h</th>
-      <th title="Accords ÷ contacts utiles" style="color:#E8006E">Acc.%</th>
-      <th title="Fiches hors refus / rappel / NRP — conclusions définitives">Fiches défin.</th>
-      <th title="Total Fiches Traitées = accord + refus + hors cible + refus de répondre">TFT</th>
-      <th title="Durée Moy. Traitement (wrap-up moyen — appels avec wrap-up uniquement)">DMT moy.</th>
-    </tr></thead>
-    <tbody>${rows||`<tr><td colspan="11" style="padding:14px;color:var(--t-disabled)">Aucun agent sélectionné.</td></tr>`}</tbody>
-  </table>`;
+    }).join('');
+    const table=camps.length>1?`<div class="eca-tw"><table class="eca-tbl"><thead><tr>
+        <th style="text-align:left">Campagne</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>TFT</th><th class="eca-key">Taux acc.</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`:'';
+    return `<div class="eca-card">
+      <div class="eca-head" style="cursor:default">
+        <span class="evo-rc-avatar" style="width:34px;height:34px;font-size:13px">${evoInitials(nom)}</span>
+        <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(nom)}</div><div class="eca-sub"><i class="ti ti-phone-outgoing" style="font-size:12px;vertical-align:-1px"></i> ${camps.length} camp. · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(a.prod_sec)}</div></div>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${evoPill("Taux acc.",a.cuTotal>0?tx+'%':'–',isNaN(txObjG)?'':txObjG+'%',txGood)}
+          ${evoPill("CU/h",cuh==null?'–':EVO_R1(cuh),isNaN(cuhObjG)?'':EVO_R1(cuhObjG),cuhGood)}
+        </span>
+      </div>
+      <div class="eca-kpis">${kpiHtml}</div>
+      ${table}
+    </div>`;
+  };
+  box2.innerHTML=`<div class="eca-grid">${agVisible.length?agVisible.map(agCard).join(''):'<div style="padding:14px;color:var(--t-disabled)">Aucun agent sélectionné.</div>'}</div>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord vs objectif KPI global
     const badge=document.getElementById("evo-agentcamp-hdr-badge"); if(!badge)return;
     const gCu=agVisible.reduce((s,a)=>s+a.cuTotal,0), gAcc=agVisible.reduce((s,a)=>s+a.cuPos,0), gPs=agVisible.reduce((s,a)=>s+(a.prod_sec||0),0);
     const gCuh=EVO_PH(gCu,gPs), gTx=gCu>0?Math.round(gAcc/gCu*100):null;
-    const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
-    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
-      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj);
+    badge.innerHTML=evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObjG)?'':txObjG+'%',!isNaN(txObjG)&&gTx!=null&&gTx>=txObjG)
+      +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObjG)?'':EVO_R1(cuhObjG),!isNaN(cuhObjG)&&gCuh!=null&&gCuh>=cuhObjG);
   })();
-
-  // Gestion expand/collapse via JS global (les boutons sont générés dynamiquement)
-  window.evoExpandAgent=function(agId){
-    const chev=document.getElementById("chev-"+agId);
-    const subs=document.querySelectorAll(`.evo-sub-row[data-agent="${agId}"]`);
-    const isOpen=subs.length>0&&subs[0].style.display!=="none";
-    subs.forEach(r=>{r.style.display=isOpen?"none":"table-row";});
-    if(chev)chev.style.transform=isOpen?"":"rotate(90deg)";
-  };
 
   // Vue Production par campagne → agents (spec Tarik : cumul campagne + détail agent)
   renderEvoCampAgents(d,camps);
