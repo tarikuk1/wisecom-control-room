@@ -96,7 +96,8 @@ def _ingest_row(r, sqlStats, agByKey, names, ra=False):
     a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
     if ra: a["ra_nb"] += nb
     if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
-    elif kind in ("ref", "hc"): a["cuTotal"] += nb
+    elif kind == "ref": a["cuTotal"] += nb
+    elif kind == "hc": a["cuTotal"] += nb; a["hc"] += nb
     if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
     t = hms(r.get("AT_Agent"))
     if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
@@ -113,7 +114,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     if hhasta: base_p["hhasta"] = hhasta
 
     sqlStats = []
-    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "ra_nb": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
+    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "hc": 0, "ra_nb": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     native_camps_by_svc = collections.defaultdict(set)  # idsvc -> {idCampanya déjà vus via R_TRANS}
@@ -206,7 +207,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             sqlAgentCamps.append({
                 "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
                 "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
-                "tft": v["tft"], "ra_nb": v["ra_nb"], "talk_sec": v["dmt_sum"],
+                "tft": v["tft"], "hc": v["hc"], "ra_nb": v["ra_nb"], "talk_sec": v["dmt_sum"],
                 "comm_sec": v["comm_sum"], "comm_n": v["comm_n"],
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,

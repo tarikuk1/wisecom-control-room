@@ -462,7 +462,7 @@ function evoProcessAgentCamps(rows){
   const byAgent={};
   rows.forEach(r=>{
     const aid=String(r.idAgente||"");
-    if(!byAgent[aid])byAgent[aid]={idAgente:aid,nom:"",camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,tft:0,ra_nb:0,prod_sec:0,dmt_sum:0,dmt_n:0};
+    if(!byAgent[aid])byAgent[aid]={idAgente:aid,nom:"",camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,tft:0,hc:0,ra_nb:0,prod_sec:0,dmt_sum:0,dmt_n:0};
     const a=byAgent[aid];
     if(!a.nom&&r.agentNom)a.nom=r.agentNom; // nom historique (agents pas connectés maintenant)
     const nb=_num(r.nb);
@@ -470,12 +470,12 @@ function evoProcessAgentCamps(rows){
     a.camps.push({
       idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
-      tft:_num(r.tft),ra_nb:_num(r.ra_nb),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
+      tft:_num(r.tft),hc:_num(r.hc),ra_nb:_num(r.ra_nb),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
       prod_sec:ps,
       dmt:r.dmc_sec!=null?Math.round(_num(r.dmc_sec)):(r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null)
     });
     a.nb+=nb; a.cuPos+=_num(r.cuPos); a.cuTotal+=_num(r.cuTotal);
-    a.definitifs+=_num(r.definitifs); a.tft+=_num(r.tft); a.ra_nb+=_num(r.ra_nb); a.prod_sec+=ps;
+    a.definitifs+=_num(r.definitifs); a.tft+=_num(r.tft); a.hc+=_num(r.hc); a.ra_nb+=_num(r.ra_nb); a.prod_sec+=ps;
     if(r.dmt_sec!=null){a.dmt_sum+=_num(r.dmt_sec)*nb;a.dmt_n+=nb;}
   });
   return Object.values(byAgent).map(a=>({

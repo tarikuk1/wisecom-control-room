@@ -5131,9 +5131,14 @@ function renderEvo(d){
     return c.sql&&c.sql.total_prod_sec>0 ? c.sql.total_prod_sec/3600 : 0;
   };
 
-  // TFT par campagne (agrégé depuis le détail agent × campagne SQL)
-  const tftByCamp={};
-  (d.agentCamps||[]).forEach(a=>(a.camps||[]).forEach(cc=>{const k=String(cc.idCampanya||"");tftByCamp[k]=(tftByCamp[k]||0)+(cc.tft||0);}));
+  // TFT / Hors cible / Reçus RA par campagne (agrégés depuis le détail agent × campagne SQL)
+  const tftByCamp={}, hcByCamp={}, raNbByCamp={};
+  (d.agentCamps||[]).forEach(a=>(a.camps||[]).forEach(cc=>{
+    const k=String(cc.idCampanya||"");
+    tftByCamp[k]=(tftByCamp[k]||0)+(cc.tft||0);
+    hcByCamp[k]=(hcByCamp[k]||0)+(cc.hc||0);
+    raNbByCamp[k]=(raNbByCamp[k]||0)+(cc.ra_nb||0);
+  }));
 
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
@@ -5142,6 +5147,8 @@ function renderEvo(d){
       <th title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th>Accords/h</th>
       <th title="Fiches finalisées agent (live)">Fiches final.</th>
       <th title="Appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
+      <th title="Reçu ET traité, hors périmètre de la campagne — compte en CU">Hors cible</th>
+      <th title="Appels reçus via un service de relance automatique">Reçus RA</th>
       <th title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th title="Fiches encore à traiter / fichier total (cumulé)">Fichier (dispo/total)</th>
@@ -5157,7 +5164,8 @@ function renderEvo(d){
       const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
       const dispo=c.fichier?c.fichier.disponibles:null;
       const tft=tftByCamp[String(c.id)]||0;
-      const raNb=(c.sql&&c.sql.ra_nb)||0;
+      const hcN=hcByCamp[String(c.id)]||0;
+      const raNb=raNbByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
       <td style="text-align:left"><span class="evo-rc-name">${evoLogo(c.nom)}<span>${ec(c.nom)}</span></span>${evoRaBadge(raNb)}</td>
@@ -5170,11 +5178,13 @@ function renderEvo(d){
       <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
       <td>${c.finalises.toLocaleString("fr-FR")}</td>
       <td>${tft.toLocaleString("fr-FR")}</td>
+      <td>${hcN.toLocaleString("fr-FR")}</td>
+      <td style="color:#ff9f0a">${raNb.toLocaleString("fr-FR")}</td>
       <td>${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td>${contactPct==null?"–":contactPct+"%"}</td>
       <td>${refusPct==null?"–":refusPct+"%"}</td>
       <td>${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="15" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
     const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);
@@ -5186,14 +5196,16 @@ function renderEvo(d){
   })();
 
   // Tableau agents (filtré sur les campagnes sélectionnées)
-  const tftByAgent={}, raByAgent={};
-  (d.agentCamps||[]).forEach(a=>{tftByAgent[String(a.idAgente)]=(a.camps||[]).reduce((s,cc)=>s+(cc.tft||0),0);raByAgent[String(a.idAgente)]=a.ra_nb||0;});
+  const tftByAgent={}, raByAgent={}, hcByAgent={};
+  (d.agentCamps||[]).forEach(a=>{tftByAgent[String(a.idAgente)]=(a.camps||[]).reduce((s,cc)=>s+(cc.tft||0),0);raByAgent[String(a.idAgente)]=a.ra_nb||0;hcByAgent[String(a.idAgente)]=a.hc||0;});
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
       <th title="Appels reçus du jour (compteur live agent)">Reçus</th><th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
       <th>CU/h</th><th>Accords/h</th><th title="Appels par heure de présence">Reçus/h</th>
       <th title="Appels traités = accord + refus + hors cible + refus de répondre (source SQL)">Traité</th>
+      <th title="Reçu ET traité, hors périmètre de la campagne — source SQL">Hors cible</th>
+      <th title="Appels reçus via un service de relance automatique — source SQL">Reçus RA</th>
       <th>Temps pause</th>
     </tr></thead>
     <tbody>${ags.map(a=>{
@@ -5201,6 +5213,7 @@ function renderEvo(d){
       const accPctA=cuA>0?Math.round((a.positifs||0)/cuA*100):null;
       const tft=tftByAgent[String(a.id)]||0;
       const raNb=raByAgent[String(a.id)]||0;
+      const hcN=hcByAgent[String(a.id)]||0;
       const accCol=accPctA==null?'var(--t-secondary)':(accPctA>=50?'#1d9e75':'#E8006E');
       return `<tr>
       <td style="text-align:left"><span class="evo-rc-name"><span class="evo-rc-avatar">${evoInitials(a.nom)}</span><span>${ec(a.nom)}</span></span>${evoRaBadge(raNb)}</td>
@@ -5214,6 +5227,8 @@ function renderEvo(d){
       <td style="color:#E8006E;font-weight:700">${fmtR(evoParH(a.positifs,hp))}</td>
       <td>${fmtR(evoParH(a.appels,hp))}</td>
       <td>${tft.toLocaleString("fr-FR")}</td>
+      <td>${hcN.toLocaleString("fr-FR")}</td>
+      <td style="color:#ff9f0a">${raNb.toLocaleString("fr-FR")}</td>
       <td>${hm(a.pauseSec)}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td style="padding:14px;color:var(--t-disabled)">Aucun agent en activité sur les campagnes sélectionnées.</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (agents affichés) vs objectif KPI global
@@ -5247,7 +5262,7 @@ function renderEvo(d){
     const nom=a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente);
     const tx=EVO_PCTN(a.cuPos,a.cuTotal), cuh=EVO_PH(a.cuTotal,a.prod_sec);
     const txGood=!isNaN(txObjG)&&tx>=txObjG, cuhGood=!isNaN(cuhObjG)&&cuh!=null&&cuh>=cuhObjG;
-    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos),'var(--t-secondary)'],['Reçus',EVO_NB(a.nb||0),''],['Traité',EVO_NB(a.tft||0),''],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
+    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos-(a.hc||0)),'var(--t-secondary)'],['Hors cible',EVO_NB(a.hc||0),'var(--t-secondary)'],['Reçus',EVO_NB(a.nb||0),''],['Traité',EVO_NB(a.tft||0),''],['Reçus RA',EVO_NB(a.ra_nb||0),'#ff9f0a'],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
     const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
     const camps=a.camps.slice().sort((x,y)=>y.cuTotal-x.cuTotal);
     const rows=camps.map(cc=>{
@@ -5259,16 +5274,18 @@ function renderEvo(d){
         <td class="eca-mut">${fmtSec2(cc.dmt)}</td>
         <td class="eca-key">${EVO_NB(cc.cuPos)}</td>
         <td class="eca-key">${EVO_R1(EVO_PH(cc.cuPos,cc.prod_sec))}</td>
-        <td class="eca-mut">${EVO_NB(cc.cuTotal-cc.cuPos)}</td>
+        <td class="eca-mut">${EVO_NB(cc.cuTotal-cc.cuPos-(cc.hc||0))}</td>
+        <td class="eca-mut">${EVO_NB(cc.hc||0)}</td>
         <td>${EVO_NB(cc.cuTotal)}</td>
         <td class="eca-key">${EVO_R1(EVO_PH(cc.cuTotal,cc.prod_sec))}</td>
         <td>${EVO_NB(cc.definitifs)}</td>
         <td>${EVO_NB(cc.tft||0)}</td>
+        <td style="color:#ff9f0a">${EVO_NB(cc.ra_nb||0)}</td>
         <td class="eca-key">${tx2==null?'–':tx2+'%'}</td>
       </tr>`;
     }).join('');
     const table=camps.length>1?`<div class="eca-tw"><table class="eca-tbl"><thead><tr>
-        <th style="text-align:left">Campagne</th><th>Reçus</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>Traité</th><th class="eca-key">Taux acc.</th>
+        <th style="text-align:left">Campagne</th><th>Reçus</th><th>H.conn</th><th>DMT</th><th class="eca-key">C+</th><th class="eca-key">C+/h</th><th>Refus</th><th>Hors cible</th><th>CU</th><th class="eca-key">CU/h</th><th>Fiches défin.</th><th>Traité</th><th title="Appels reçus via un service de relance automatique">Reçus RA</th><th class="eca-key">Taux acc.</th>
       </tr></thead><tbody>${rows}</tbody></table></div>`:'';
     return `<div class="eca-card">
       <div class="eca-head" style="cursor:default">
@@ -5325,10 +5342,12 @@ const EVO_COLS=[
   {k:'dmc',l:'DMC',t:'Durée moyenne de communication (sur contacts utiles : accord+refus+hors cible)',get:o=>o.comm_n>0?(o.comm_sec||0)/o.comm_n:0,fmt:o=>EVO_SEC(o.comm_n>0?Math.round((o.comm_sec||0)/o.comm_n):null),cls:'muted'},
   {k:'cuPos',l:'C+',t:'Accords (cœur de cible positif) — indicateur clé',get:o=>o.cuPos,fmt:o=>EVO_NB(o.cuPos),cls:'key'},
   {k:'cph',l:'C+/h',t:'Accords par heure — indicateur clé',get:o=>EVO_PHN(o.cuPos,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuPos,o.prod_sec)),cls:'key'},
-  {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos,fmt:o=>EVO_NB(o.cuTotal-o.cuPos),cls:'muted'},
+  {k:'refus',l:'Refus',t:'Refus (cœur de cible négatif)',get:o=>o.cuTotal-o.cuPos-(o.hc||0),fmt:o=>EVO_NB(o.cuTotal-o.cuPos-(o.hc||0)),cls:'muted'},
+  {k:'hc',l:'Hors cible',t:'Reçu ET traité, hors périmètre de la campagne — compte en CU',get:o=>o.hc||0,fmt:o=>EVO_NB(o.hc||0),cls:'muted'},
   {k:'cu',l:'CU',t:'Contacts utiles = accords + refus + hors cible (reçu ET traité)',get:o=>o.cuTotal,fmt:o=>EVO_NB(o.cuTotal),cls:''},
   {k:'cuh',l:'CU/h',t:'Contacts utiles par heure — indicateur clé',get:o=>EVO_PHN(o.cuTotal,o.prod_sec),fmt:o=>EVO_R1(EVO_PH(o.cuTotal,o.prod_sec)),cls:'key'},
   {k:'tft',l:'Traité',t:'Appels traités = Total fiches traitées (accord+refus+hors cible+refus de répondre)',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
+  {k:'ra',l:'Reçus RA',t:'Appels reçus via un service de relance automatique (segment croisé)',get:o=>o.ra_nb||0,fmt:o=>EVO_NB(o.ra_nb||0),cls:'muted'},
   {k:'taux',l:'Taux acc.',t:"Taux d'accord = accords ÷ CU — indicateur clé",get:o=>o.cuTotal>0?o.cuPos/o.cuTotal:0,fmt:o=>EVO_TAUX(o),cls:'key'},
 ];
 // Détection de la marque/compte client depuis le nom de campagne → logo + couleur.
@@ -5461,14 +5480,14 @@ function renderEvoCampAgents(d,selCamps){
     (a.camps||[]).forEach(cc=>{
       const id=String(cc.idCampanya);
       if(!byCamp[id])byCamp[id]={id,nom:cc.campNom||("Camp "+id),agents:[]};
-      byCamp[id].agents.push({id:a.idAgente,nom:a.nom||agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0,tft:cc.tft||0,ra_nb:cc.ra_nb||0,talk_sec:cc.talk_sec||0,comm_sec:cc.comm_sec||0,comm_n:cc.comm_n||0});
+      byCamp[id].agents.push({id:a.idAgente,nom:a.nom||agName[a.idAgente]||("Agent #"+a.idAgente),nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0,tft:cc.tft||0,hc:cc.hc||0,ra_nb:cc.ra_nb||0,talk_sec:cc.talk_sec||0,comm_sec:cc.comm_sec||0,comm_n:cc.comm_n||0});
     });
   });
   const selIds=selCamps&&selCamps.length?new Set(selCamps.map(c=>String(c.id))):null;
   let camps=Object.values(byCamp);
   if(selIds)camps=camps.filter(c=>selIds.has(c.id));
   if(!camps.length){box.innerHTML=`<div style="padding:12px 14px;color:var(--t-disabled)">Aucune donnée agent pour les campagnes sélectionnées.</div>`;return;}
-  const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec,tft:s.tft+(x.tft||0),ra_nb:s.ra_nb+(x.ra_nb||0),talk_sec:s.talk_sec+(x.talk_sec||0),comm_sec:s.comm_sec+(x.comm_sec||0),comm_n:s.comm_n+(x.comm_n||0)}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0,tft:0,ra_nb:0,talk_sec:0,comm_sec:0,comm_n:0});
+  const sumOf=ags=>ags.reduce((s,x)=>({nb:s.nb+x.nb,cuPos:s.cuPos+x.cuPos,cuTotal:s.cuTotal+x.cuTotal,prod_sec:s.prod_sec+x.prod_sec,tft:s.tft+(x.tft||0),hc:s.hc+(x.hc||0),ra_nb:s.ra_nb+(x.ra_nb||0),talk_sec:s.talk_sec+(x.talk_sec||0),comm_sec:s.comm_sec+(x.comm_sec||0),comm_n:s.comm_n+(x.comm_n||0)}),{nb:0,cuPos:0,cuTotal:0,prod_sec:0,tft:0,hc:0,ra_nb:0,talk_sec:0,comm_sec:0,comm_n:0});
   camps.sort((a,b)=>sumOf(b.agents).nb-sumOf(a.agents).nb);
   window._evoCS={};
   camps.forEach(c=>{window._evoCS[c.id]={agents:c.agents,cum:sumOf(c.agents),nom:c.nom};});
