@@ -19,6 +19,7 @@ Pour la journée D, passer fdesde=D et fhasta=D+1. Idem heures (hhasta exclusif)
 Sortie : evo_payload_<date>.json à côté du script.
 """
 import json, urllib.request, base64, ssl, collections, re, sys, datetime
+from concurrent.futures import ThreadPoolExecutor
 
 EVO_HOST = "evo1.ekiom.net"
 EVO_LOGIN, EVO_PWD = "NCADMIN", "NCADMIN"
@@ -26,8 +27,9 @@ BASE = f"https://{EVO_HOST}/manager/api"
 AUTH = base64.b64encode(f"{EVO_LOGIN}:{EVO_PWD}".encode()).decode()
 CTX = ssl.create_default_context(); CTX.check_hostname = False; CTX.verify_mode = ssl.CERT_NONE
 
-R_TRANS = "100000012"   # Num. trans. Agen vs Camp (agent × campagne × résolution)
-R_SESS  = "100000052"   # Sesiones de agentes (durée de connexion)
+R_TRANS  = "100000012"   # Num. trans. Agen vs Camp (agent × campagne × résolution)
+R_SESS   = "100000052"   # Sesiones de agentes (durée de connexion)
+R_DETAIL = "100000077"   # Listado de transacciones — détail par transaction (voir correctif RA plus bas)
 
 def clean_name(s):
     """Evolution renvoie souvent 'Prenom Prenom Nom' — on retire les mots consécutifs dupliqués."""
@@ -68,8 +70,39 @@ def is_tft(res):
     r = res.split(' [')[0].strip().lower()
     return ('accord' in r) or ('refus' in r) or ('hors' in r and 'cible' in r)
 
+def _ingest_row(r, sqlStats, agByKey, names):
+    """Comptabilise une ligne agrégée (idCampanya/idFinal/Resolution/Transactions/AT_Agent/idAgente/nomAgente).
+    Utilisé par le passage principal (rapport 100000012) ET par le correctif RA (rapport détail 100000077,
+    dont chaque transaction individuelle est convertie en ligne équivalente Transactions=1 avant appel)."""
+    nb = r.get("Transactions", 0) or 0
+    if not nb:
+        return
+    kind, ctd = resmap(str(r.get("Resolution", "")))
+    cid = str(r.get("idCampanya")); cnom = str(r.get("nomCampanya", "")).split(' [')[0]
+    sqlStats.append({
+        "idCampanya": cid, "campNom": cnom, "idFinal": str(r.get("idFinal")),
+        "finalNom": str(r.get("nomFinal", "")).split(' [')[0],
+        "contactado": ctd, "claseFinal": 2, "nb": nb,
+        "dmc_sec": hms(r.get("AT_Agent")) if ctd > 0 else None,
+        "dmt_sec": None, "attente_sec": None,
+        "sum_call_sec": hms(r.get("AT_Agent")) * nb, "sum_wrapup_sec": 0,
+    })
+    aid = str(r.get("idAgente"))
+    names[aid] = clean_name(str(r.get("nomAgente", "")).split(' [')[0])
+    a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
+    if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
+    elif kind == "ref": a["cuTotal"] += nb
+    if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
+    t = hms(r.get("AT_Agent"))
+    if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
+    # Durée de COMMUNICATION : seulement sur les contacts utiles (accord+refus),
+    # sinon les répondeurs/faux n° (très courts) écrasent la moyenne.
+    if t and kind in ("acc", "ref"): a["comm_sum"] += t * nb; a["comm_n"] += nb
+
 def export(fdesde, fhasta, hdesde=None, hhasta=None):
-    services = [str(r["EntityId"]) for r in _get("/v1/measurable/services?format=json").get("DataSet", [])]
+    svc_rows = _get("/v1/measurable/services?format=json").get("DataSet", [])
+    services = [str(r["EntityId"]) for r in svc_rows]
+    svc_names = {str(r["EntityId"]): str(r.get("EntityName", "")) for r in svc_rows}
     base_p = {"fdesde": fdesde, "fhasta": fhasta}
     if hdesde: base_p["hdesde"] = hdesde
     if hhasta: base_p["hhasta"] = hhasta
@@ -78,6 +111,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
+    native_camps_by_svc = collections.defaultdict(set)  # idsvc -> {idCampanya déjà vus via R_TRANS}
     for sid in services:
         try:
             tr = invoke(R_TRANS, {**base_p, "idsvc": sid})
@@ -91,28 +125,8 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         except Exception:
             se = []
         for r in rows:
-            nb = r.get("Transactions", 0) or 0
-            kind, ctd = resmap(str(r.get("Resolution", "")))
-            cid = str(r.get("idCampanya")); cnom = str(r.get("nomCampanya", "")).split(' [')[0]
-            sqlStats.append({
-                "idCampanya": cid, "campNom": cnom, "idFinal": str(r.get("idFinal")),
-                "finalNom": str(r.get("nomFinal", "")).split(' [')[0],
-                "contactado": ctd, "claseFinal": 2, "nb": nb,
-                "dmc_sec": hms(r.get("AT_Agent")) if ctd > 0 else None,
-                "dmt_sec": None, "attente_sec": None,
-                "sum_call_sec": hms(r.get("AT_Agent")) * nb, "sum_wrapup_sec": 0,
-            })
-            aid = str(r.get("idAgente"))
-            names[aid] = clean_name(str(r.get("nomAgente", "")).split(' [')[0])
-            a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
-            if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
-            elif kind == "ref": a["cuTotal"] += nb
-            if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
-            t = hms(r.get("AT_Agent"))
-            if t: a["dmt_sum"] += t * nb; a["dmt_n"] += nb
-            # Durée de COMMUNICATION : seulement sur les contacts utiles (accord+refus),
-            # sinon les répondeurs/faux n° (très courts) écrasent la moyenne.
-            if t and kind in ("acc", "ref"): a["comm_sum"] += t * nb; a["comm_n"] += nb
+            native_camps_by_svc[sid].add(str(r.get("idCampanya")))
+            _ingest_row(r, sqlStats, agByKey, names)
         # Sessions : 1 ligne (GroupLevel 0) = 1 session. Dédup par idSesionAgente car une
         # même session revient sous plusieurs services → sinon gonflement (>24h/jour).
         for s in se:
@@ -122,6 +136,50 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             if sid_ses in seen_sessions:
                 continue
             seen_sessions[sid_ses] = (str(s.get("idAgente")), hms(s.get("Session_duration")))
+
+    # ── Correctif « relance automatique » (RA) ──────────────────────────────────────────
+    # Un service RA (ex. "RA - HYUNDAI_...") peut traiter, via un segment croisé, des
+    # transactions officiellement rattachées à une AUTRE campagne. Le rapport agrégé
+    # (R_TRANS) les ignore silencieusement dans ce cas — confirmé sur pièce (fiche 15345510,
+    # agent Fawnat, campagne AUDI_EMULATEUR, traitée par le service RA HYUNDAI, absente de
+    # R_TRANS mais retrouvée via le rapport détail R_DETAIL en croisant idsvc+idcampa).
+    # Coût borné : 1 seul service RA aujourd'hui → ~100 appels supplémentaires par cycle.
+    ra_services = [sid for sid in services if svc_names.get(sid, "").upper().startswith("RA")]
+    if ra_services:
+        camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
+        all_camp_ids = [str(c["EntityId"]) for c in camp_rows]
+        camp_name_by_id = {str(c["EntityId"]): str(c.get("EntityName", "")) for c in camp_rows}
+        name_to_aid = {}
+        for aid, nom in names.items():
+            name_to_aid.setdefault(nom.strip().lower(), aid)
+        def _probe(args):
+            sid, cid = args
+            try:
+                return cid, invoke(R_DETAIL, {**base_p, "idsvc": sid, "idcampa": cid, "maxnumrows": "500"})
+            except Exception:
+                return cid, []
+        for sid in ra_services:
+            foreign = [(sid, cid) for cid in all_camp_ids if cid not in native_camps_by_svc.get(sid, set())]
+            # ~100 appels réseau indépendants par service RA : parallélisés, sinon le cycle
+            # dépasse l'intervalle de la tâche planifiée (1min) — testé à 1m52 en séquentiel.
+            with ThreadPoolExecutor(max_workers=32) as pool:
+                for cid, det in pool.map(_probe, foreign):
+                    for tx in det:
+                        if tx.get("GroupLevel") != 0:
+                            continue
+                        agent_nom = clean_name(str(tx.get("Agent", "")))
+                        # "SYSTEM" = clôture automatique (pas un agent humain) — hors périmètre production agent.
+                        if not agent_nom or agent_nom.strip().upper() == "SYSTEM":
+                            continue
+                        aid = name_to_aid.get(agent_nom.strip().lower(), "ra_" + agent_nom.replace(" ", "_"))
+                        names.setdefault(aid, agent_nom)
+                        synth = {
+                            "idCampanya": cid, "nomCampanya": camp_name_by_id.get(cid, cid),
+                            "idFinal": tx.get("ResolutionID"), "nomFinal": tx.get("Description", ""),
+                            "Resolution": tx.get("Description", ""), "Transactions": 1,
+                            "AT_Agent": tx.get("AgT"), "idAgente": aid, "nomAgente": agent_nom,
+                        }
+                        _ingest_row(synth, sqlStats, agByKey, names)
 
     # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).
     agent_sess_total = collections.defaultdict(int)
