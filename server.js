@@ -400,13 +400,14 @@ function evoProcessSqlStats(rows){
     if(!byCamp[id])byCamp[id]={
       idCampanya:id, campNom:r.campNom||"",
       nbTrans:0, cuTotal:0, cuPos:0, cuNeg:0,
-      refus:0, fauxNum:0, repondeur:0, sansRep:0,
+      refus:0, fauxNum:0, repondeur:0, sansRep:0, raNb:0,
       dmc_sum:0, dmc_n:0, dmt_sum:0, dmt_n:0, att_sum:0, att_n:0,
       call_sum:0, wrapup_sum:0
     };
     const c=byCamp[id];
     const nb=_num(r.nb);
     c.nbTrans+=nb;
+    if(r.ra)c.raNb+=nb; // appels routés via un service de relance auto (RA) — cf. evo_export_rest.py
     const ctd=_num(r.contactado);
     if(ctd>0){c.cuTotal+=nb;if(ctd>=2)c.cuPos+=nb;else c.cuNeg+=nb;}
     // Codes systeme
@@ -432,7 +433,8 @@ function evoProcessSqlStats(rows){
       dmt: c.dmt_n>0?Math.round(c.dmt_sum/c.dmt_n):null,
       attente: c.att_n>0?Math.round(c.att_sum/c.att_n):null,
       tauxContact: c.nbTrans>0?Math.round(c.cuTotal/c.nbTrans*100):null,
-      total_prod_sec: c.call_sum+c.wrapup_sum   // proxy heures prod (appels+wrapup SQL)
+      total_prod_sec: c.call_sum+c.wrapup_sum,   // proxy heures prod (appels+wrapup SQL)
+      ra_nb: c.raNb
     };
   });
   return out;
@@ -460,7 +462,7 @@ function evoProcessAgentCamps(rows){
   const byAgent={};
   rows.forEach(r=>{
     const aid=String(r.idAgente||"");
-    if(!byAgent[aid])byAgent[aid]={idAgente:aid,nom:"",camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,tft:0,prod_sec:0,dmt_sum:0,dmt_n:0};
+    if(!byAgent[aid])byAgent[aid]={idAgente:aid,nom:"",camps:[],nb:0,cuPos:0,cuTotal:0,definitifs:0,tft:0,ra_nb:0,prod_sec:0,dmt_sum:0,dmt_n:0};
     const a=byAgent[aid];
     if(!a.nom&&r.agentNom)a.nom=r.agentNom; // nom historique (agents pas connectés maintenant)
     const nb=_num(r.nb);
@@ -468,12 +470,12 @@ function evoProcessAgentCamps(rows){
     a.camps.push({
       idCampanya:String(r.idCampanya||""),campNom:r.campNom||"",
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
-      tft:_num(r.tft),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
+      tft:_num(r.tft),ra_nb:_num(r.ra_nb),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
       prod_sec:ps,
       dmt:r.dmc_sec!=null?Math.round(_num(r.dmc_sec)):(r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null)
     });
     a.nb+=nb; a.cuPos+=_num(r.cuPos); a.cuTotal+=_num(r.cuTotal);
-    a.definitifs+=_num(r.definitifs); a.tft+=_num(r.tft); a.prod_sec+=ps;
+    a.definitifs+=_num(r.definitifs); a.tft+=_num(r.tft); a.ra_nb+=_num(r.ra_nb); a.prod_sec+=ps;
     if(r.dmt_sec!=null){a.dmt_sum+=_num(r.dmt_sec)*nb;a.dmt_n+=nb;}
   });
   return Object.values(byAgent).map(a=>({

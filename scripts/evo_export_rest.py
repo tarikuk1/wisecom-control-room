@@ -70,10 +70,12 @@ def is_tft(res):
     r = res.split(' [')[0].strip().lower()
     return ('accord' in r) or ('refus' in r) or ('hors' in r and 'cible' in r)
 
-def _ingest_row(r, sqlStats, agByKey, names):
+def _ingest_row(r, sqlStats, agByKey, names, ra=False):
     """Comptabilise une ligne agrégée (idCampanya/idFinal/Resolution/Transactions/AT_Agent/idAgente/nomAgente).
     Utilisé par le passage principal (rapport 100000012) ET par le correctif RA (rapport détail 100000077,
-    dont chaque transaction individuelle est convertie en ligne équivalente Transactions=1 avant appel)."""
+    dont chaque transaction individuelle est convertie en ligne équivalente Transactions=1 avant appel).
+    ra=True marque les lignes récupérées via le correctif « service de relance automatique » (voir
+    export()) — propagé jusqu'au dashboard pour afficher clairement l'origine de ces appels."""
     nb = r.get("Transactions", 0) or 0
     if not nb:
         return
@@ -86,10 +88,12 @@ def _ingest_row(r, sqlStats, agByKey, names):
         "dmc_sec": hms(r.get("AT_Agent")) if ctd > 0 else None,
         "dmt_sec": None, "attente_sec": None,
         "sum_call_sec": hms(r.get("AT_Agent")) * nb, "sum_wrapup_sec": 0,
+        "ra": ra,
     })
     aid = str(r.get("idAgente"))
     names[aid] = clean_name(str(r.get("nomAgente", "")).split(' [')[0])
     a = agByKey[(aid, cid)]; a["camp"] = cnom; a["nb"] += nb; a["def"] += nb
+    if ra: a["ra_nb"] += nb
     if kind == "acc": a["cuPos"] += nb; a["cuTotal"] += nb
     elif kind == "ref": a["cuTotal"] += nb
     if is_tft(str(r.get("Resolution", ""))): a["tft"] += nb
@@ -108,7 +112,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     if hhasta: base_p["hhasta"] = hhasta
 
     sqlStats = []
-    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
+    agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "ra_nb": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     native_camps_by_svc = collections.defaultdict(set)  # idsvc -> {idCampanya déjà vus via R_TRANS}
@@ -179,7 +183,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                             "Resolution": tx.get("Description", ""), "Transactions": 1,
                             "AT_Agent": tx.get("AgT"), "idAgente": aid, "nomAgente": agent_nom,
                         }
-                        _ingest_row(synth, sqlStats, agByKey, names)
+                        _ingest_row(synth, sqlStats, agByKey, names, ra=True)
 
     # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).
     agent_sess_total = collections.defaultdict(int)
@@ -201,7 +205,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             sqlAgentCamps.append({
                 "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
                 "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
-                "tft": v["tft"], "talk_sec": v["dmt_sum"],
+                "tft": v["tft"], "ra_nb": v["ra_nb"], "talk_sec": v["dmt_sum"],
                 "comm_sec": v["comm_sum"], "comm_n": v["comm_n"],
                 "session_span_sec": round(agent_sess * v["nb"] / tot),
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
