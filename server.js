@@ -255,6 +255,11 @@ let _queuesCache=null,_queuesCacheAt=0;
 // du réseau local, voir §evo plus bas), pas par un appel sortant du serveur Railway.
 let _evoCache=null,_evoCacheAt=0;
 const EVO_STALE_MS=10*60*1000; // au-delà de 10 min sans nouvel envoi, données considérées périmées
+// Persistance disque : le cache survit aux redémarrages du conteneur (sinon « EVO INDISPONIBLE »
+// tant que le poste local n'a pas re-poussé). Réinitialisé seulement lors d'un redéploiement.
+const EVO_CACHE_FILE=path.join(__dirname,"evo_cache.json");
+function evoSaveCache(){try{fs.writeFileSync(EVO_CACHE_FILE,JSON.stringify({at:_evoCacheAt,c:_evoCache}));}catch(e){}}
+(function evoLoadCache(){try{if(fs.existsSync(EVO_CACHE_FILE)){const j=JSON.parse(fs.readFileSync(EVO_CACHE_FILE,"utf8"));if(j&&j.c){_evoCache=j.c;_evoCacheAt=j.at||Date.now();console.log("[evo] cache rechargé depuis le disque ("+new Date(_evoCacheAt).toISOString()+")");}}}catch(e){}})();
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
@@ -1427,7 +1432,7 @@ const server=http.createServer(async(req,res)=>{
         const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,dataDate}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
         // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps', 'sqlDiag', 'dataDate' sont optionnels — compat avec l'ancien script.
-        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,dataDate:dataDate||null};_evoCacheAt=Date.now();
+        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,dataDate:dataDate||null};_evoCacheAt=Date.now();evoSaveCache();
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){
