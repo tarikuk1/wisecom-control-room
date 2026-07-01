@@ -55,9 +55,12 @@ def hms(s):
     return int(m[1]) * 3600 + int(m[2]) * 60 + int(m[3]) if m else 0
 
 def resmap(res):
-    r = res.split(' [')[0].strip()
-    if r == "Accord": return ("acc", 2)            # contact utile positif
-    if r in ("Refus", "Refus Répondre", "Refus R�pondre"): return ("ref", 1)  # CU négatif
+    # Égalité stricte AVANT correction : "Accord" passait, mais "Accord RdV" (variante utilisée
+    # par certaines campagnes, ex. COVID_19) tombait dans "oth" → accords non comptés, absents du
+    # CU/DMC. Aligné sur is_tft() qui utilise déjà une correspondance par préfixe.
+    r = res.split(' [')[0].strip().lower()
+    if r.startswith("accord"): return ("acc", 2)    # contact utile positif (Accord, Accord RdV, ...)
+    if r.startswith("refus"): return ("ref", 1)      # CU négatif (Refus, Refus Répondre, ...)
     return ("oth", 0)                              # autres clôtures (faux n°, répondeur, rappel…)
 
 def is_tft(res):
