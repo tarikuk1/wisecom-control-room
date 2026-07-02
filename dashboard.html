@@ -650,7 +650,7 @@ body.light .panel-fullscreen .panel-header{background:#fff;}
 .panel-fullscreen .tbl.evo-num th,.panel-fullscreen .tbl.evo-num td{padding:7px 12px;}
 .panel-fullscreen .eca-grid{grid-template-columns:1fr;padding:14px;}
 .panel-fullscreen #evo-obj-body,.panel-fullscreen #evo-obj-results{display:block!important;}
-.evo-fs-btn{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--t-secondary);border-radius:6px;width:28px;height:28px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;}
+.evo-fs-btn{background:transparent;border:1px solid var(--border);color:var(--t-secondary);border-radius:6px;height:28px;padding:0 10px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;white-space:nowrap;}
 .evo-fs-btn:hover{border-color:#E8006E;color:#E8006E;}
 .eca-objp{border-bottom:0.5px solid var(--border);padding:11px 13px;background:var(--s-3);}
 body.light .eca-objp{background:#fafafb;}
@@ -5012,10 +5012,12 @@ function evoAddFsButtons(){
     var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-tools'))return;
     head.style.display='flex'; head.style.alignItems='center';
     var box=document.createElement('span'); box.className='evo-tools'; box.style.cssText='margin-left:auto;display:inline-flex;gap:6px;flex-shrink:0';
-    var mk=function(icon,title,fn){var b=document.createElement('button');b.type='button';b.className='evo-fs-btn';b.title=title;b.innerHTML='<i class="ti ti-'+icon+'"></i>';b.onclick=function(e){e.stopPropagation();fn(b);};return b;};
-    box.appendChild(mk('file-spreadsheet','Export Excel / CSV',evoExportPanelCsv));
-    box.appendChild(mk('printer','Export PDF (impression)',evoExportPanelPdf));
-    box.appendChild(mk('arrows-maximize','Plein écran',evoFs));
+    // Libellés TEXTE (pas d'icône seule : si la police d'icônes ne charge pas, les boutons
+    // devenaient des carrés vides invisibles — signalé par Tarik "aucun export visible").
+    var mk=function(label,title,fn){var b=document.createElement('button');b.type='button';b.className='evo-fs-btn';b.title=title;b.textContent=label;b.onclick=function(e){e.stopPropagation();fn(b);};return b;};
+    box.appendChild(mk('⬇ Excel','Export Excel / CSV',evoExportPanelCsv));
+    box.appendChild(mk('⬇ PDF','Export PDF (impression)',evoExportPanelPdf));
+    box.appendChild(mk('⛶','Plein écran',evoFs));
     // Regrouper avec les badges (Taux acc./CU/h) s'il y en a, pour rester UN seul bloc à
     // droite — sinon, avec justify-content:space-between sur 3 enfants, le groupe d'outils
     // finit coincé au milieu de l'en-tête (invisible/écrasé sur les panneaux en demi-largeur).
@@ -5193,6 +5195,11 @@ function renderEvo(d){
     hcByCamp[k]=(hcByCamp[k]||0)+(cc.hc||0);
     raNbByCamp[k]=(raNbByCamp[k]||0)+(cc.ra_nb||0);
   }));
+  // Entrant RA par campagne : traités par un agent (raDetail) + clôtures auto (raSysByCamp)
+  // → Entr. reçus = traités + auto ; QS = traités ÷ reçus.
+  const raInAgent={};
+  (d.raDetail||[]).forEach(r=>{const k=String(r.campId||"");raInAgent[k]=(raInAgent[k]||0)+1;});
+  const raInSys=d.raSysByCamp||{};
 
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
@@ -5202,7 +5209,9 @@ function renderEvo(d){
       <th class="evo-lo" title="Temps de présence (session agents ; repli temps de communication SQL)">Présence</th><th>CU/h</th><th class="evo-lo">Accords/h</th>
       <th class="evo-lo" title="Fiches finalisées agent (live)">Fiches final.</th>
       <th class="evo-lo" title="Reçu ET traité, hors périmètre de la campagne — compte en CU">Hors cible</th>
-      <th class="evo-lo" title="Appels reçus via un service de relance automatique">Reçus RA</th>
+      <th title="Appels entrants reçus via un service de relance automatique (traités agent + clôtures auto)">Entr. reçus</th>
+      <th title="Appels entrants RA traités par un agent">Entr. traités</th>
+      <th title="QS entrant = appels RA traités par un agent ÷ appels RA reçus">QS entr.</th>
       <th class="evo-lo" title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th class="evo-lo" title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th class="evo-lo" title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th class="evo-lo" title="Fiches encore à traiter / fichier total (cumulé)">Fichier</th>
@@ -5220,6 +5229,8 @@ function renderEvo(d){
       const tft=tftByCamp[String(c.id)]||0;
       const hcN=hcByCamp[String(c.id)]||0;
       const raNb=raNbByCamp[String(c.id)]||0;
+      const raAg=raInAgent[String(c.id)]||0, raSys=raInSys[String(c.id)]||0, raTot=raAg+raSys;
+      const raQs=raTot>0?Math.round(raAg/raTot*100):null;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
       <td style="text-align:left;max-width:190px"><span class="evo-rc-name" title="${ec(c.nom)}">${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span>${evoRaBadge(raNb)}</td>
@@ -5233,12 +5244,14 @@ function renderEvo(d){
       <td class="evo-lo" style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
       <td class="evo-lo">${c.finalises.toLocaleString("fr-FR")}</td>
       <td class="evo-lo">${hcN.toLocaleString("fr-FR")}</td>
-      <td class="evo-lo" style="color:#ff9f0a">${raNb.toLocaleString("fr-FR")}</td>
+      <td style="color:#ff9f0a">${raTot?raTot.toLocaleString("fr-FR"):"–"}</td>
+      <td style="color:#ff9f0a;font-weight:700">${raTot?raAg.toLocaleString("fr-FR"):"–"}</td>
+      <td>${raQs==null?"–":`<b style="color:${raQs>=80?'#1d9e75':'#E8006E'}">${raQs}%</b>`}</td>
       <td class="evo-lo">${c.sql?fmtSec(c.sql.dmc):"–"}</td>
       <td class="evo-lo">${contactPct==null?"–":contactPct+"%"}</td>
       <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
       <td class="evo-lo">${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="19" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
     const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);

@@ -153,6 +153,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     ra_services = [sid for sid in services if svc_names.get(sid, "").upper().startswith("RA")]
     raDetail = []   # détail des appels RA TRAITÉS PAR UN AGENT (qui, quand, attente, conv)
     raSystem = 0    # clôtures automatiques (SYSTEM) : comptées pour la QS, détail inutile (milliers de lignes)
+    raSysByCamp = collections.defaultdict(int)  # clôtures SYSTEM par campagne (QS par campagne)
     if ra_services:
         camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
         all_camp_ids = [str(c["EntityId"]) for c in camp_rows]
@@ -194,6 +195,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                         is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
                         if is_system:
                             raSystem += 1  # compté pour la QS ; pas de ligne de détail (bruit)
+                            raSysByCamp[cid] += 1
                             continue
                         raDetail.append({
                             "ts": _ts(tx.get("DateTime")), "agent": agent_nom,
@@ -250,7 +252,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         data_date = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
             "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents,
-            "raDetail": raDetail, "raSystem": raSystem}
+            "raDetail": raDetail, "raSystem": raSystem, "raSysByCamp": dict(raSysByCamp)}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
