@@ -569,10 +569,14 @@ body.light .eca-head{background:#f6f6f9;color:#1a1a1f;}
 .eca-badge{margin-left:auto;font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;}
 .eca-dl{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;font-size:15px;padding:2px 4px;margin-left:4px;line-height:1;}
 .eca-dl:hover{opacity:1;color:#E8006E;}
-/* Bandeau KPI : cellules compactes fixes alignées à gauche (PAS étirées sur toute la
-   largeur de la carte, sinon chiffres minuscules noyés dans le vide sur écran large). */
-.eca-kpis{display:flex;flex-wrap:wrap;border-bottom:0.5px solid var(--border);}
-.eca-kpi{flex:0 0 auto;min-width:96px;text-align:center;padding:7px 14px;border-right:0.5px solid var(--border);}
+/* Contenu Evo capé + centré : sur écran large, marges au lieu d'un étirement à 2400px
+   (dashboard supervision — densité lisible, pas de sprawl). En dessous de 1680px : pleine
+   largeur naturelle (responsive). */
+#tab-evo{max-width:1680px;margin-left:auto;margin-right:auto;}
+/* Bandeau KPI : grille qui remplit uniformément la largeur (capée) de la carte —
+   auto-fit → cellules équilibrées, se réagencent selon la largeur dispo (responsive). */
+.eca-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));border-bottom:0.5px solid var(--border);}
+.eca-kpi{text-align:center;padding:9px 8px;border-right:0.5px solid var(--border);border-top:0.5px solid transparent;}
 .eca-kpi .l{font-size:9px;color:#9a9aa0;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
 body.light .eca-kpi .l{color:#80808a;}
 .eca-kpi .v{font-size:20px;font-weight:700;margin-top:2px;color:#eaeaec;line-height:1.1;}
