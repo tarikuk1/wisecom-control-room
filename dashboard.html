@@ -5379,24 +5379,26 @@ function renderEvo(d){
 // ── Appels RA entrants : détail transaction (qui a traité, attente, conv, QS) ─
 function renderEvoRaDetail(d){
   const box=document.getElementById("evo-ra-detail"); if(!box)return;
-  const rows=(d.raDetail||[]);
+  // raDetail = appels RA traités par un AGENT uniquement ; raSystem = nb de clôtures
+  // automatiques (compteur seul — le détail SYSTEM serait des milliers de lignes de bruit).
+  const agentRows=(d.raDetail||[]).filter(r=>r.agent!=='SYSTEM');
+  const sysN=d.raSystem||0;
+  const total=agentRows.length+sysN;
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const badge=document.getElementById("evo-ra-hdr-badge");
-  if(!rows.length){
+  if(!total){
     box.innerHTML=`<div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-disabled)">Aucun appel via un service de relance automatique sur la période.</div>`;
     if(badge)evoSetHdrPills(badge,'');
     return;
   }
-  const agentRows=rows.filter(r=>r.agent!=='SYSTEM');
-  const sysN=rows.length-agentRows.length;
   // QS = part des appels RA réellement pris par un agent (le reste = clôture auto SYSTEM)
-  const qs=rows.length?Math.round(agentRows.length/rows.length*100):null;
+  const qs=total?Math.round(agentRows.length/total*100):null;
   const avg=(arr,k)=>{const v=arr.filter(r=>r[k]>0);return v.length?Math.round(v.reduce((s,r)=>s+r[k],0)/v.length):null;};
   const attMoy=avg(agentRows,'queue_sec'), convMoy=avg(agentRows,'conv_sec');
   const fmtS=s=>s==null?'–':(s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0'));
   const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'–';
   if(badge)evoSetHdrPills(badge,evoPill("QS agent",qs==null?'–':qs+'%','',qs!=null&&qs>=80)+evoPill("Attente moy.",fmtS(attMoy),'',false));
-  const kpi=[['QS agent',qs==null?'–':qs+'%','#E8006E',true],['Reçus RA',EVO_NB(rows.length),''],['Traités agent',EVO_NB(agentRows.length),'#E8006E'],['Clôture auto',EVO_NB(sysN),'var(--t-secondary)'],['Attente moy.',fmtS(attMoy),''],['Conv. moy.',fmtS(convMoy),'']];
+  const kpi=[['QS agent',qs==null?'–':qs+'%','#E8006E',true],['Reçus RA',EVO_NB(total),''],['Traités agent',EVO_NB(agentRows.length),'#E8006E'],['Clôture auto',EVO_NB(sysN),'var(--t-secondary)'],['Attente moy.',fmtS(attMoy),''],['Conv. moy.',fmtS(convMoy),'']];
   // Agrégat par agent : qui a traité combien (tri volume desc)
   const byAg={};
   agentRows.forEach(r=>{const k=r.agent;if(!byAg[k])byAg[k]={n:0,conv:0,convN:0,att:0,attN:0};const a=byAg[k];a.n++;if(r.conv_sec>0){a.conv+=r.conv_sec;a.convN++;}if(r.queue_sec>0){a.att+=r.queue_sec;a.attN++;}});

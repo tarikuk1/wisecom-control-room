@@ -151,7 +151,8 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     # R_TRANS mais retrouvée via le rapport détail R_DETAIL en croisant idsvc+idcampa).
     # Coût borné : 1 seul service RA aujourd'hui → ~100 appels supplémentaires par cycle.
     ra_services = [sid for sid in services if svc_names.get(sid, "").upper().startswith("RA")]
-    raDetail = []  # détail transaction par transaction des appels RA (traçabilité : qui, quand, attente, conv)
+    raDetail = []   # détail des appels RA TRAITÉS PAR UN AGENT (qui, quand, attente, conv)
+    raSystem = 0    # clôtures automatiques (SYSTEM) : comptées pour la QS, détail inutile (milliers de lignes)
     if ra_services:
         camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
         all_camp_ids = [str(c["EntityId"]) for c in camp_rows]
@@ -160,9 +161,16 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         for aid, nom in names.items():
             name_to_aid.setdefault(nom.strip().lower(), aid)
         def _probe(args):
+            # maxnumrows : le rapport renvoie les transactions les plus RÉCENTES d'abord et
+            # coupe au plafond. À 500, les couples chargés en clôtures auto (ex. MERCEDES 729 :
+            # 500+ lignes/jour) perdaient les appels du début de matinée → totaux agents faux
+            # (constaté le 02/07 : accord Fazna 10:06 et refus Fawnat 10:04 tronqués).
             sid, cid = args
             try:
-                return cid, invoke(R_DETAIL, {**base_p, "idsvc": sid, "idcampa": cid, "maxnumrows": "500"})
+                rows = invoke(R_DETAIL, {**base_p, "idsvc": sid, "idcampa": cid, "maxnumrows": "5000"})
+                if len(rows) >= 5000:
+                    print(f"AVERTISSEMENT: plafond 5000 atteint sur svc={sid} camp={cid} — troncature possible", file=sys.stderr)
+                return cid, rows
             except Exception:
                 return cid, []
         _ts_re = re.compile(r'/Date\((\d+)')
@@ -184,17 +192,19 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                             continue
                         agent_nom = clean_name(str(tx.get("Agent", "")))
                         is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
-                        # Détail complet (y compris clôtures SYSTEM : nécessaires pour la QS
-                        # = part des appels réellement pris par un agent).
+                        if is_system:
+                            raSystem += 1  # compté pour la QS ; pas de ligne de détail (bruit)
+                            continue
                         raDetail.append({
-                            "ts": _ts(tx.get("DateTime")), "agent": ("SYSTEM" if is_system else agent_nom),
+                            "ts": _ts(tx.get("DateTime")), "agent": agent_nom,
                             "campId": cid, "camp": camp_name_by_id.get(cid, cid).split(' [')[0],
                             "fiche": str(tx.get("Customer", "")), "res": str(tx.get("Description", "")),
                             "queue_sec": hms(tx.get("QueueT")), "conv_sec": hms(tx.get("ConvT")),
                             "svc": svc_names.get(sid, ""),
                         })
-                        # Stats agrégées : uniquement campagnes étrangères + agent humain.
-                        if is_system or cid in native:
+                        # Stats agrégées : uniquement campagnes étrangères (les natives sont déjà
+                        # comptées par R_TRANS — double comptage sinon).
+                        if cid in native:
                             continue
                         aid = name_to_aid.get(agent_nom.strip().lower(), "ra_" + agent_nom.replace(" ", "_"))
                         names.setdefault(aid, agent_nom)
@@ -239,7 +249,8 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     except Exception:
         data_date = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
-            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents, "raDetail": raDetail}
+            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents,
+            "raDetail": raDetail, "raSystem": raSystem}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
