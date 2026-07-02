@@ -567,6 +567,10 @@ body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!impor
 /* Petit écran (tablette/mobile) : masquer les colonnes secondaires (.evo-lo) pour que
    l'essentiel (Reçus·Traité·C+·C+/h·CU/h·Taux) tienne SANS défilement horizontal. Le
    détail complet reste accessible via le bouton plein écran d'un module. */
+@media (max-width:1000px){
+  .evo-ra-cols{grid-template-columns:1fr!important;}
+  .evo-ra-cols>div:first-child{border-right:none!important;border-bottom:1px solid var(--border);}
+}
 @media (max-width:820px){
   .evo-lo{display:none!important;}
   #tab-evo{max-width:none;}
@@ -1561,6 +1565,11 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
     <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">Production par campagne → agents <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">cumul campagne + détail agent par connexion (réalisé · source SQL)</span></span></div>
       <div id="evo-campagent-table" style="overflow-x:auto;"></div>
+    </div>
+
+    <div class="panel" style="margin-top:14px" id="evo-ra-panel">
+      <div class="panel-header"><span class="panel-title">📥 Appels RA entrants <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">relance automatique — qui a traité, attente, durée (détail transaction)</span></span><span id="evo-ra-hdr-badge" class="eca-hdr-badges"></span></div>
+      <div id="evo-ra-detail"></div>
     </div>
 
     <div id="evo-diag-panel" style="margin-top:14px;display:none;"></div>
@@ -4997,7 +5006,7 @@ function evoExportPanelPdf(btn){
   w.document.close();
 }
 function evoAddFsButtons(){
-  ['evo-kpis','evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-obj-body'].forEach(function(id){
+  ['evo-kpis','evo-camp-table','evo-agent-table','evo-agent-camp-table','evo-campagent-table','evo-ra-detail','evo-obj-body'].forEach(function(id){
     var el=document.getElementById(id); if(!el)return;
     var panel=el.closest('.panel'); if(!panel)return;
     var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-tools'))return;
@@ -5357,12 +5366,72 @@ function renderEvo(d){
 
   // Vue Production par campagne → agents (spec Tarik : cumul campagne + détail agent)
   renderEvoCampAgents(d,camps);
+  // Détail des appels RA entrants (qui a traité, attente, durée, QS)
+  renderEvoRaDetail(d);
   // Détail par campagne pour le suivi des objectifs PAR campagne (#2)
   if(_evoPerim)_evoPerim.camps=camps.map(c=>({id:String(c.id),nom:c.nom,cu:cAcc(c)+cRef(c),accords:cAcc(c),fichierTotal:evoFichierTotal(c),cloturees:evoCloturees(c),heuresProd:getHP(c),agents:c.agents||0}));
   // Module objectifs (utilise _evoPerim calculé plus haut)
   renderEvoObjectifs(true);
   // Diagnostic composeur retiré (direction #1 — données composeur non exploitables).
   const _diagBox=document.getElementById("evo-diag-panel"); if(_diagBox){_diagBox.style.display="none";_diagBox.innerHTML="";}
+}
+
+// ── Appels RA entrants : détail transaction (qui a traité, attente, conv, QS) ─
+function renderEvoRaDetail(d){
+  const box=document.getElementById("evo-ra-detail"); if(!box)return;
+  const rows=(d.raDetail||[]);
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const badge=document.getElementById("evo-ra-hdr-badge");
+  if(!rows.length){
+    box.innerHTML=`<div style="padding:12px 14px;font-size:var(--fs-sm);color:var(--t-disabled)">Aucun appel via un service de relance automatique sur la période.</div>`;
+    if(badge)evoSetHdrPills(badge,'');
+    return;
+  }
+  const agentRows=rows.filter(r=>r.agent!=='SYSTEM');
+  const sysN=rows.length-agentRows.length;
+  // QS = part des appels RA réellement pris par un agent (le reste = clôture auto SYSTEM)
+  const qs=rows.length?Math.round(agentRows.length/rows.length*100):null;
+  const avg=(arr,k)=>{const v=arr.filter(r=>r[k]>0);return v.length?Math.round(v.reduce((s,r)=>s+r[k],0)/v.length):null;};
+  const attMoy=avg(agentRows,'queue_sec'), convMoy=avg(agentRows,'conv_sec');
+  const fmtS=s=>s==null?'–':(s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0'));
+  const fmtT=ts=>ts?new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'–';
+  if(badge)evoSetHdrPills(badge,evoPill("QS agent",qs==null?'–':qs+'%','',qs!=null&&qs>=80)+evoPill("Attente moy.",fmtS(attMoy),'',false));
+  const kpi=[['QS agent',qs==null?'–':qs+'%','#E8006E',true],['Reçus RA',EVO_NB(rows.length),''],['Traités agent',EVO_NB(agentRows.length),'#E8006E'],['Clôture auto',EVO_NB(sysN),'var(--t-secondary)'],['Attente moy.',fmtS(attMoy),''],['Conv. moy.',fmtS(convMoy),'']];
+  // Agrégat par agent : qui a traité combien (tri volume desc)
+  const byAg={};
+  agentRows.forEach(r=>{const k=r.agent;if(!byAg[k])byAg[k]={n:0,conv:0,convN:0,att:0,attN:0};const a=byAg[k];a.n++;if(r.conv_sec>0){a.conv+=r.conv_sec;a.convN++;}if(r.queue_sec>0){a.att+=r.queue_sec;a.attN++;}});
+  const agList=Object.entries(byAg).sort((a,b)=>b[1].n-a[1].n);
+  const agHtml=agList.map(([nom,a])=>`<tr>
+      <td><span class="evo-rc-name"><span class="evo-rc-avatar">${evoInitials(nom)}</span><span>${ec(nom)}</span></span></td>
+      <td>${EVO_NB(a.n)}</td>
+      <td class="evo-lo">${fmtS(a.attN?Math.round(a.att/a.attN):null)}</td>
+      <td>${fmtS(a.convN?Math.round(a.conv/a.convN):null)}</td>
+    </tr>`).join('');
+  // Détail des N derniers appels TRAITÉS PAR UN AGENT (les clôtures auto — souvent des
+  // milliers de "Hors intervalle d'appel" — noieraient la liste ; comptées dans les KPI).
+  const MAX=120;
+  const detHtml=agentRows.slice(0,MAX).map(r=>`<tr>
+      <td>${fmtT(r.ts)}</td>
+      <td style="text-align:left">${ec(r.agent)}</td>
+      <td style="text-align:left;max-width:170px;overflow:hidden;text-overflow:ellipsis" class="evo-lo" title="${ec(r.camp)}">${ec(r.camp)}</td>
+      <td class="evo-lo">${ec(r.fiche)}</td>
+      <td style="text-align:left">${ec(r.res)}</td>
+      <td>${fmtS(r.queue_sec||null)}</td>
+      <td class="evo-lo">${fmtS(r.conv_sec||null)}</td>
+    </tr>`).join('')||'<tr><td colspan="7" style="padding:10px;color:var(--t-disabled)">Aucun appel RA traité par un agent sur la période.</td></tr>';
+  box.innerHTML=`
+    <div class="eca-kpis">${evoKpiBand(kpi)}</div>
+    <div style="display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:0;align-items:start" class="evo-ra-cols">
+      <div class="eca-tw" style="border-right:1px solid var(--border)">
+        <table class="eca-tbl"><thead><tr><th style="text-align:left">Qui a traité</th><th>Appels</th><th class="evo-lo">Attente</th><th>Conv. moy.</th></tr></thead>
+        <tbody>${agHtml||'<tr><td colspan="4" style="padding:10px;color:var(--t-disabled)">Aucun appel traité par un agent.</td></tr>'}</tbody></table>
+      </div>
+      <div class="eca-tw">
+        <table class="eca-tbl"><thead><tr><th>Heure</th><th style="text-align:left">Agent</th><th class="evo-lo" style="text-align:left">Campagne</th><th class="evo-lo">Fiche</th><th style="text-align:left">Résolution</th><th>Attente</th><th class="evo-lo">Conv.</th></tr></thead>
+        <tbody>${detHtml}</tbody></table>
+        ${agentRows.length>MAX?`<div style="padding:7px 10px;font-size:10.5px;color:var(--t-disabled)">${agentRows.length-MAX} appels plus anciens non affichés — export Excel/PDF pour la liste complète.</div>`:''}
+      </div>
+    </div>`;
 }
 
 // ── Vue « Production par campagne → agents » (spec Tarik) ───────────────────

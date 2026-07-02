@@ -41,6 +41,7 @@ def main():
         "campaigns": camps, "agents": agents, "estado": None,
         "sqlStats": payload["sqlStats"], "sqlFiles": None,
         "sqlAgentCamps": payload["sqlAgentCamps"], "sqlDiag": None,
+        "raDetail": payload.get("raDetail"),
         "dataDate": payload.get("dataDate"),
     }).encode()
     req = urllib.request.Request(DASH, data=body,

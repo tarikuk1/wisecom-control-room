@@ -151,6 +151,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     # R_TRANS mais retrouvée via le rapport détail R_DETAIL en croisant idsvc+idcampa).
     # Coût borné : 1 seul service RA aujourd'hui → ~100 appels supplémentaires par cycle.
     ra_services = [sid for sid in services if svc_names.get(sid, "").upper().startswith("RA")]
+    raDetail = []  # détail transaction par transaction des appels RA (traçabilité : qui, quand, attente, conv)
     if ra_services:
         camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
         all_camp_ids = [str(c["EntityId"]) for c in camp_rows]
@@ -164,18 +165,36 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 return cid, invoke(R_DETAIL, {**base_p, "idsvc": sid, "idcampa": cid, "maxnumrows": "500"})
             except Exception:
                 return cid, []
+        _ts_re = re.compile(r'/Date\((\d+)')
+        def _ts(v):
+            m = _ts_re.search(str(v) or "")
+            return int(m.group(1)) if m else None
         for sid in ra_services:
-            foreign = [(sid, cid) for cid in all_camp_ids if cid not in native_camps_by_svc.get(sid, set())]
+            native = native_camps_by_svc.get(sid, set())
+            # On sonde TOUTES les campagnes (natives incluses) pour le DÉTAIL — mais on
+            # n'injecte en stats agrégées que les campagnes étrangères (les natives sont
+            # déjà comptées par R_TRANS, sinon double comptage).
+            targets = [(sid, cid) for cid in all_camp_ids]
             # ~100 appels réseau indépendants par service RA : parallélisés, sinon le cycle
             # dépasse l'intervalle de la tâche planifiée (1min) — testé à 1m52 en séquentiel.
             with ThreadPoolExecutor(max_workers=32) as pool:
-                for cid, det in pool.map(_probe, foreign):
+                for cid, det in pool.map(_probe, targets):
                     for tx in det:
                         if tx.get("GroupLevel") != 0:
                             continue
                         agent_nom = clean_name(str(tx.get("Agent", "")))
-                        # "SYSTEM" = clôture automatique (pas un agent humain) — hors périmètre production agent.
-                        if not agent_nom or agent_nom.strip().upper() == "SYSTEM":
+                        is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
+                        # Détail complet (y compris clôtures SYSTEM : nécessaires pour la QS
+                        # = part des appels réellement pris par un agent).
+                        raDetail.append({
+                            "ts": _ts(tx.get("DateTime")), "agent": ("SYSTEM" if is_system else agent_nom),
+                            "campId": cid, "camp": camp_name_by_id.get(cid, cid).split(' [')[0],
+                            "fiche": str(tx.get("Customer", "")), "res": str(tx.get("Description", "")),
+                            "queue_sec": hms(tx.get("QueueT")), "conv_sec": hms(tx.get("ConvT")),
+                            "svc": svc_names.get(sid, ""),
+                        })
+                        # Stats agrégées : uniquement campagnes étrangères + agent humain.
+                        if is_system or cid in native:
                             continue
                         aid = name_to_aid.get(agent_nom.strip().lower(), "ra_" + agent_nom.replace(" ", "_"))
                         names.setdefault(aid, agent_nom)
@@ -186,6 +205,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                             "AT_Agent": tx.get("AgT"), "idAgente": aid, "nomAgente": agent_nom,
                         }
                         _ingest_row(synth, sqlStats, agByKey, names, ra=True)
+        raDetail.sort(key=lambda r: r["ts"] or 0, reverse=True)
 
     # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).
     agent_sess_total = collections.defaultdict(int)
@@ -219,7 +239,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     except Exception:
         data_date = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
-            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents}
+            "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents, "raDetail": raDetail}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

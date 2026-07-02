@@ -1414,7 +1414,7 @@ const server=http.createServer(async(req,res)=>{
       const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campProdBySqlId);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,dataDate:(_evoCache&&_evoCache.dataDate)||null,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,raDetail:(_evoCache&&_evoCache.raDetail)||null,dataDate:(_evoCache&&_evoCache.dataDate)||null,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1431,10 +1431,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,dataDate}=JSON.parse(body);
+        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,raDetail,dataDate}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
-        // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps', 'sqlDiag', 'dataDate' sont optionnels — compat avec l'ancien script.
-        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,dataDate:dataDate||null};_evoCacheAt=Date.now();evoSaveCache();
+        // 'estado', 'sqlStats', 'sqlFiles', 'sqlAgentCamps', 'sqlDiag', 'raDetail', 'dataDate' sont optionnels — compat avec l'ancien script.
+        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,raDetail:raDetail||null,dataDate:dataDate||null};_evoCacheAt=Date.now();evoSaveCache();
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){
