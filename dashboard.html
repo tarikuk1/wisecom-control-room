@@ -533,8 +533,8 @@ body.light .tbl .total-row td{background:#fff0f7!important;}
 body.light .tbl .evo-agent-row:hover td{background:#eef0f3!important;}
 /* Tables evo en largeur-contenu (fini les colonnes étirées / gros gaps) + denses */
 .tbl.evo-num{width:100%;font-size:var(--fs-sm);}
-.tbl.evo-num th,.tbl.evo-num td{padding:3px 10px;width:1%;white-space:nowrap;}
-.tbl.evo-num th:first-child,.tbl.evo-num td:first-child{width:auto;}
+.tbl.evo-num th,.tbl.evo-num td{padding:5px 10px;width:1%;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.tbl.evo-num th:first-child,.tbl.evo-num td:first-child{width:auto;max-width:230px;overflow:hidden;text-overflow:ellipsis;}
 body.light .tbl .evo-sub-row td{background:#eef0f3;color:#3a3a40;}
 body.light .tbl .evo-sub-row:hover td{background:#e6e8ec;}
 body.light .tbl tr:hover td{background:#eef0f3;}
@@ -561,11 +561,15 @@ body.light .evo-cardtbl tbody td:last-child{border-right:1px solid #ececf2!impor
 .evo-rc-bar>i{display:block;height:100%;}
 /* Vue campagne -> agents (eca) — light/dark natif, lisible */
 .eca-grid{display:grid;grid-template-columns:1fr;gap:14px;justify-content:start;align-items:start;}
+/* Écran large : 2 cartes par rangée (au lieu d'un ruban vide pleine largeur). Seuil haut
+   pour garantir ~800px/carte → les tables détail (13-14 col) ne débordent jamais. */
+@media (min-width:1600px){.eca-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 .eca-card{border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--s-2);}
 body.light .eca-card{background:#fff;border-color:#e6e6ec;box-shadow:0 1px 4px rgba(0,0,0,.05);}
-.eca-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-left:4px solid #E8006E;background:#26262b;color:#f2f2f4;}
+.eca-head{display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;border-left:4px solid #E8006E;background:#26262b;color:#f2f2f4;}
 body.light .eca-head{background:#f6f6f9;color:#1a1a1f;}
-.eca-head .eca-sub{font-size:11px;opacity:.65;}
+.eca-head .eca-sub{font-size:10.5px;color:#9a9aa0;margin-top:1px;}
+body.light .eca-head .eca-sub{color:#70707a;}
 .eca-badge{margin-left:auto;font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;}
 .eca-dl{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;font-size:15px;padding:2px 4px;margin-left:4px;line-height:1;}
 .eca-dl:hover{opacity:1;color:#E8006E;}
@@ -575,23 +579,38 @@ body.light .eca-head{background:#f6f6f9;color:#1a1a1f;}
 #tab-evo{max-width:1680px;margin-left:auto;margin-right:auto;}
 /* Bandeau KPI : grille qui remplit uniformément la largeur (capée) de la carte —
    auto-fit → cellules équilibrées, se réagencent selon la largeur dispo (responsive). */
-.eca-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));border-bottom:0.5px solid var(--border);}
-.eca-kpi{text-align:center;padding:9px 8px;border-right:0.5px solid var(--border);border-top:0.5px solid transparent;}
+.eca-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));border-bottom:1px solid var(--border);}
+.eca-kpi{text-align:center;padding:9px 8px;border-right:1px solid var(--border);border-top:2px solid transparent;}
 .eca-kpi .l{font-size:9px;color:#9a9aa0;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
 body.light .eca-kpi .l{color:#80808a;}
-.eca-kpi .v{font-size:20px;font-weight:700;margin-top:2px;color:#eaeaec;line-height:1.1;}
+.eca-kpi .v{font-family:'IBM Plex Mono',Consolas,ui-monospace,monospace;font-size:19px;font-weight:600;margin-top:3px;color:#eaeaec;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
 body.light .eca-kpi .v{color:#1a1a1f;}
+/* KPI clés (C+/h, CU/h) : filet rose en haut, label rose, chiffre plus gros → pilotage d'abord */
+.eca-kpi.key{background:rgba(232,0,110,.05);border-top-color:var(--c-pink);}
+body.light .eca-kpi.key{background:rgba(232,0,110,.045);}
+.eca-kpi.key .l,body.light .eca-kpi.key .l{color:var(--c-pink);}
+.eca-kpi.key .v,body.light .eca-kpi.key .v{font-size:23px;font-weight:700;color:var(--c-pink);}
+/* KPI secondaire à valeur nulle : atténué (journée creuse = calme, pas cassé) */
+.eca-kpi.is-zero .v{color:#57575e;font-weight:500;}
+.eca-kpi.is-zero .l{color:#5c5c62;}
+body.light .eca-kpi.is-zero .v,body.light .eca-kpi.is-zero .l{color:#b6b6be;}
 .eca-tw{overflow-x:auto;}
 .eca-tbl{width:100%;border-collapse:collapse;font-size:11px;color:#e6e6ea;}
 body.light .eca-tbl{color:#26262b;}
-.eca-tbl th{font-size:9px;text-transform:uppercase;color:#8c8c94;font-weight:600;padding:4px 4px;cursor:pointer;white-space:nowrap;border-bottom:1.5px solid var(--border);text-align:center;}
+.eca-tbl th{font-size:9px;text-transform:uppercase;color:#8c8c94;font-weight:600;padding:5px 8px;cursor:pointer;white-space:nowrap;border-bottom:1.5px solid var(--border);text-align:right;position:sticky;top:0;background:var(--s-2);z-index:1;}
+body.light .eca-tbl th{background:#fff;}
 .eca-tbl th:first-child{text-align:left;}
-.eca-tbl td{padding:4px 6px;text-align:center;white-space:nowrap;border-bottom:0.5px solid var(--border);line-height:1.4;}
-.eca-tbl td:first-child{text-align:left;}
-.eca-tbl tbody tr:hover td{background:var(--s-3);}
-body.light .eca-tbl tbody tr:hover td{background:#f5f5f8;}
-.eca-tbl .eca-cum td{background:var(--s-3);font-weight:700;border-top:1.5px solid var(--border);border-bottom:none;}
-body.light .eca-tbl .eca-cum td{background:#f0f0f4;}
+/* chiffres : alignés à droite + tabulaires → unités sous unités, scan vertical instantané */
+.eca-tbl td{padding:5px 8px;text-align:right;white-space:nowrap;line-height:1.45;font-variant-numeric:tabular-nums;}
+.eca-tbl td:first-child{text-align:left;font-weight:600;color:#f0f0f2;}
+body.light .eca-tbl td:first-child{color:#1a1a1f;}
+/* zébrage au lieu d'un grillage de filets — guide l'œil sur toute la largeur */
+.eca-tbl tbody tr:nth-child(even) td{background:rgba(255,255,255,.025);}
+body.light .eca-tbl tbody tr:nth-child(even) td{background:rgba(0,0,0,.022);}
+.eca-tbl tbody tr:hover td{background:rgba(232,0,110,.06);}
+body.light .eca-tbl tbody tr:hover td{background:rgba(232,0,110,.05);}
+.eca-tbl .eca-cum td{background:var(--s-3)!important;font-weight:700;border-top:1.5px solid var(--border);}
+body.light .eca-tbl .eca-cum td{background:#f0f0f4!important;}
 .eca-tbl .eca-pink,.eca-pink{color:#E8006E;}
 .eca-tbl .eca-mut{color:#9a9aa0;}
 body.light .eca-tbl .eca-mut{color:#787882;}
@@ -1106,6 +1125,8 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !
   .ck-list{max-height:calc(72vh - 110px);}
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="light">
 
@@ -5268,8 +5289,8 @@ function renderEvo(d){
     const nom=a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente);
     const tx=EVO_PCTN(a.cuPos,a.cuTotal), cuh=EVO_PH(a.cuTotal,a.prod_sec);
     const txGood=!isNaN(txObjG)&&tx>=txObjG, cuhGood=!isNaN(cuhObjG)&&cuh!=null&&cuh>=cuhObjG;
-    const kpi=[['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Refus',EVO_NB(a.cuTotal-a.cuPos-(a.hc||0)),'var(--t-secondary)'],['Hors cible',EVO_NB(a.hc||0),'var(--t-secondary)'],['Reçus',EVO_NB(a.nb||0),''],['Traité',EVO_NB(a.tft||0),''],['Reçus RA',EVO_NB(a.ra_nb||0),'#ff9f0a'],['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E'],['CU/h',EVO_R1(cuh),'']];
-    const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
+    const kpi=[['C+/h',EVO_R1(EVO_PH(a.cuPos,a.prod_sec)),'#E8006E',true],['CU/h',EVO_R1(cuh),'#E8006E',true],['Accords',EVO_NB(a.cuPos),'#E8006E'],['CU',EVO_NB(a.cuTotal),''],['Traité',EVO_NB(a.tft||0),''],['Reçus',EVO_NB(a.nb||0),''],['Refus',EVO_NB(a.cuTotal-a.cuPos-(a.hc||0)),'var(--t-secondary)'],['Hors cible',EVO_NB(a.hc||0),'var(--t-secondary)'],['Reçus RA',EVO_NB(a.ra_nb||0),'#ff9f0a']];
+    const kpiHtml=evoKpiBand(kpi);
     const camps=a.camps.slice().sort((x,y)=>y.cuTotal-x.cuTotal);
     const rows=camps.map(cc=>{
       const tx2=cc.cuTotal>0?Math.round(cc.cuPos/cc.cuTotal*100):null;
@@ -5349,6 +5370,19 @@ function evoSetHdrPills(badge,html){
 // Marqueur "source RA" : appels rattachés via un service de relance automatique (segment
 // croisé) — identifie où cette donnée est intégrée, pour transparence sur son origine.
 function evoRaBadge(n){return n>0?`<span title="${n} appel${n>1?'s':''} rattaché${n>1?'s':''} via un service de relance automatique (RA)" style="display:inline-flex;align-items:center;gap:3px;color:#ff9f0a;font-size:9.5px;font-weight:700;margin-left:5px;white-space:nowrap;vertical-align:1px">⁕ RA ${n}</span>`:'';}
+// Rendu du bandeau KPI d'une carte. Chaque KPI = [label, valeur, couleur, estClé].
+// estClé → cellule mise en avant (C+/h, CU/h : indicateurs de pilotage). Valeur nulle
+// (0 / 0% / – ) sur un KPI secondaire → grisée pour ne pas crier en journée creuse.
+function evoKpiBand(arr){
+  return arr.map(k=>{
+    const lab=k[0], val=k[1], col=k[2]||'', key=!!k[3];
+    const s=String(val).trim();
+    const zero=(s===''||s==='0'||s==='0%'||s==='–'||s==='-'||s==='n.d.');
+    const cls='eca-kpi'+(key?' key':(zero?' is-zero':''));
+    const vStyle=(col&&!zero&&!key)?` style="color:${col}"`:'';
+    return `<div class="${cls}"><div class="l">${lab}</div><div class="v"${vStyle}>${val}</div></div>`;
+  }).join('');
+}
 const EVO_COLS=[
   {k:'nb',l:'Reçus',t:'Appels reçus (tout appel routé vers l\'agent, quelle que soit la résolution)',get:o=>o.nb||0,fmt:o=>EVO_NB(o.nb||0),cls:'muted'},
   {k:'tft',l:'Traité',t:'Total appels traités = accord+refus+hors cible+refus de répondre',get:o=>o.tft||0,fmt:o=>EVO_NB(o.tft||0),cls:''},
@@ -5462,8 +5496,8 @@ function evoCampBlock(id){
   const txObj=parseFloat(evoGetObjC(id,'txacc','')); const cuh=EVO_PH(cum.cuTotal,cum.prod_sec); const cuhObj=parseFloat(evoGetObj('cuh',''));
   const txGood=!isNaN(txObj)&&tx>=txObj; const cuhGood=!isNaN(cuhObj)&&cuh!=null&&cuh>=cuhObj;
   const ecaPill=(lab,val,objStr,good)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;
-  const kpi=[['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)'],['Reçus',EVO_NB(cum.nb),''],['Traité',EVO_NB(cum.tft||0),''],['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E'],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'']];
-  const kpiHtml=kpi.map(k=>`<div class="eca-kpi"><div class="l">${k[0]}</div><div class="v"${k[2]?` style="color:${k[2]}"`:''}>${k[1]}</div></div>`).join('');
+  const kpi=[['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E',true],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'#E8006E',true],['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Traité',EVO_NB(cum.tft||0),''],['Reçus',EVO_NB(cum.nb),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)']];
+  const kpiHtml=evoKpiBand(kpi);
   const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
   return `<div class="eca-card">
     <div class="eca-head" role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}">
