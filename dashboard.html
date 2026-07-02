@@ -569,19 +569,20 @@ body.light .eca-head{background:#f6f6f9;color:#1a1a1f;}
 .eca-badge{margin-left:auto;font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:6px;white-space:nowrap;}
 .eca-dl{background:none;border:none;cursor:pointer;color:inherit;opacity:.5;font-size:15px;padding:2px 4px;margin-left:4px;line-height:1;}
 .eca-dl:hover{opacity:1;color:#E8006E;}
-.eca-kpis{display:grid;grid-template-columns:repeat(6,1fr);}
-.eca-kpi{text-align:center;padding:8px 4px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);}
-.eca-kpi:last-child{border-right:none;}
-.eca-kpi .l{font-size:9.5px;color:#9a9aa0;text-transform:uppercase;letter-spacing:.02em;}
+/* Bandeau KPI : cellules compactes fixes alignées à gauche (PAS étirées sur toute la
+   largeur de la carte, sinon chiffres minuscules noyés dans le vide sur écran large). */
+.eca-kpis{display:flex;flex-wrap:wrap;border-bottom:0.5px solid var(--border);}
+.eca-kpi{flex:0 0 auto;min-width:96px;text-align:center;padding:7px 14px;border-right:0.5px solid var(--border);}
+.eca-kpi .l{font-size:9px;color:#9a9aa0;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
 body.light .eca-kpi .l{color:#80808a;}
-.eca-kpi .v{font-size:18px;font-weight:600;margin-top:1px;color:#eaeaec;}
+.eca-kpi .v{font-size:20px;font-weight:700;margin-top:2px;color:#eaeaec;line-height:1.1;}
 body.light .eca-kpi .v{color:#1a1a1f;}
 .eca-tw{overflow-x:auto;}
-.eca-tbl{width:100%;border-collapse:collapse;font-size:10.5px;color:#e6e6ea;}
+.eca-tbl{width:100%;border-collapse:collapse;font-size:11px;color:#e6e6ea;}
 body.light .eca-tbl{color:#26262b;}
 .eca-tbl th{font-size:9px;text-transform:uppercase;color:#8c8c94;font-weight:600;padding:4px 4px;cursor:pointer;white-space:nowrap;border-bottom:1.5px solid var(--border);text-align:center;}
 .eca-tbl th:first-child{text-align:left;}
-.eca-tbl td{padding:2.5px 4px;text-align:center;white-space:nowrap;border-bottom:0.5px solid var(--border);line-height:1.35;}
+.eca-tbl td{padding:4px 6px;text-align:center;white-space:nowrap;border-bottom:0.5px solid var(--border);line-height:1.4;}
 .eca-tbl td:first-child{text-align:left;}
 .eca-tbl tbody tr:hover td{background:var(--s-3);}
 body.light .eca-tbl tbody tr:hover td{background:#f5f5f8;}
@@ -4819,7 +4820,7 @@ function evoSelectAllCamps(all){
 function renderEvoAgentFilter(agCamps,agNameById){
   const box=document.getElementById("evo-agent-filter"); if(!box)return;
   if(!agCamps||!agCamps.length){box.innerHTML="";return;}
-  const agents=agCamps.map(a=>({id:a.idAgente,nom:agNameById[a.idAgente]||("Agent #"+a.idAgente)}));
+  const agents=agCamps.map(a=>({id:a.idAgente,nom:a.nom||agNameById[a.idAgente]||("Agent #"+a.idAgente)}));
   if(_evoSelectedAgents===null) _evoSelectedAgents=new Set(agents.map(a=>a.id));
   // Retirer les agents qui n'existent plus, tout réinitialiser si vide
   _evoSelectedAgents=new Set([..._evoSelectedAgents].filter(id=>agents.some(a=>a.id===id)));
