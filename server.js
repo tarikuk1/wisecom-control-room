@@ -1432,7 +1432,7 @@ const server=http.createServer(async(req,res)=>{
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       const metaSrc=histSrc||_evoCache; // champs annexes cohérents avec la journée servie
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,raDetail:(metaSrc&&metaSrc.raDetail)||null,raSystem:(metaSrc&&metaSrc.raSystem)||0,raSysByCamp:(metaSrc&&metaSrc.raSysByCamp)||null,dataDate:(metaSrc&&metaSrc.dataDate)||null,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,inbound:(metaSrc&&metaSrc.inbound)||null,dataDate:(metaSrc&&metaSrc.dataDate)||null,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1459,10 +1459,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,raDetail,raSystem,raSysByCamp,dataDate}=JSON.parse(body);
+        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,inbound,dataDate}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
         // Tous les champs sauf campaigns/agents sont optionnels — compat avec l'ancien script.
-        const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,raDetail:raDetail||null,raSystem:raSystem||0,raSysByCamp:raSysByCamp||null,dataDate:dataDate||null};
+        const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,inbound:inbound||null,dataDate:dataDate||null};
         evoSaveHist(newCache); // archive de la journée (consultable via ?date=)
         // Ne remplacer le cache LIVE que si l'envoi est du jour courant ou plus récent —
         // un backfill d'une journée antérieure ne doit pas écraser l'affichage temps réel.

@@ -49,8 +49,7 @@ def build_body(day):
         "campaigns": camps, "agents": agents, "estado": None,
         "sqlStats": payload["sqlStats"], "sqlFiles": None,
         "sqlAgentCamps": payload["sqlAgentCamps"], "sqlDiag": None,
-        "raDetail": payload.get("raDetail"), "raSystem": payload.get("raSystem"),
-        "raSysByCamp": payload.get("raSysByCamp"),
+        "inbound": payload.get("inbound"),
         "dataDate": payload.get("dataDate"),
     }
     return body, payload

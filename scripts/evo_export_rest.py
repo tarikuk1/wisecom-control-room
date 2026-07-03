@@ -31,6 +31,11 @@ R_TRANS  = "100000012"   # Num. trans. Agen vs Camp (agent × campagne × résol
 R_SESS   = "100000052"   # Sesiones de agentes (durée de connexion)
 R_DETAIL = "100000077"   # Listado de transacciones — détail par transaction (voir correctif RA plus bas)
 
+# Campagnes ENTRANTES (appels reçus via SVI) — canal DISTINCT du sortant. Confirmé par Tarik
+# dans Evolution (Supervision > Campagnes). Ces 2 campagnes sont EXCLUES des stats sortantes
+# et alimentent un module entrant dédié (reçus / répondus / QS / abandon / attente).
+INBOUND_CAMPS = {"100000189", "100000191"}  # GENESIS_QUALIFICATION_ENTRANT_C_703 · RA_HYUNDAI_LEADGEN_WISECOM_C_143
+
 def clean_name(s):
     """Evolution renvoie souvent 'Prenom Prenom Nom' — on retire les mots consécutifs dupliqués."""
     out = []
@@ -80,8 +85,11 @@ def _ingest_row(r, sqlStats, agByKey, names, ra=False):
     nb = r.get("Transactions", 0) or 0
     if not nb:
         return
+    cid = str(r.get("idCampanya"))
+    if cid in INBOUND_CAMPS:
+        return  # campagne entrante — traitée par le module entrant, jamais en sortant
     kind, ctd = resmap(str(r.get("Resolution", "")))
-    cid = str(r.get("idCampanya")); cnom = str(r.get("nomCampanya", "")).split(' [')[0]
+    cnom = str(r.get("nomCampanya", "")).split(' [')[0]
     sqlStats.append({
         "idCampanya": cid, "campNom": cnom, "idFinal": str(r.get("idFinal")),
         "finalNom": str(r.get("nomFinal", "")).split(' [')[0],
@@ -143,81 +151,65 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 continue
             seen_sessions[sid_ses] = (str(s.get("idAgente")), hms(s.get("Session_duration")))
 
-    # ── Correctif « relance automatique » (RA) ──────────────────────────────────────────
-    # Un service RA (ex. "RA - HYUNDAI_...") peut traiter, via un segment croisé, des
-    # transactions officiellement rattachées à une AUTRE campagne. Le rapport agrégé
-    # (R_TRANS) les ignore silencieusement dans ce cas — confirmé sur pièce (fiche 15345510,
-    # agent Fawnat, campagne AUDI_EMULATEUR, traitée par le service RA HYUNDAI, absente de
-    # R_TRANS mais retrouvée via le rapport détail R_DETAIL en croisant idsvc+idcampa).
-    # Coût borné : 1 seul service RA aujourd'hui → ~100 appels supplémentaires par cycle.
-    ra_services = [sid for sid in services if svc_names.get(sid, "").upper().startswith("RA")]
-    raDetail = []   # détail des appels RA TRAITÉS PAR UN AGENT (qui, quand, attente, conv)
-    raSystem = 0    # clôtures automatiques (SYSTEM) : comptées pour la QS, détail inutile (milliers de lignes)
-    raSysByCamp = collections.defaultdict(int)  # clôtures SYSTEM par campagne (QS par campagne)
-    if ra_services:
-        camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
-        all_camp_ids = [str(c["EntityId"]) for c in camp_rows]
-        camp_name_by_id = {str(c["EntityId"]): str(c.get("EntityName", "")) for c in camp_rows}
-        name_to_aid = {}
-        for aid, nom in names.items():
-            name_to_aid.setdefault(nom.strip().lower(), aid)
-        def _probe(args):
-            # maxnumrows : le rapport renvoie les transactions les plus RÉCENTES d'abord et
-            # coupe au plafond. À 500, les couples chargés en clôtures auto (ex. MERCEDES 729 :
-            # 500+ lignes/jour) perdaient les appels du début de matinée → totaux agents faux
-            # (constaté le 02/07 : accord Fazna 10:06 et refus Fawnat 10:04 tronqués).
-            sid, cid = args
-            try:
-                rows = invoke(R_DETAIL, {**base_p, "idsvc": sid, "idcampa": cid, "maxnumrows": "5000"})
-                if len(rows) >= 5000:
-                    print(f"AVERTISSEMENT: plafond 5000 atteint sur svc={sid} camp={cid} — troncature possible", file=sys.stderr)
-                return cid, rows
-            except Exception:
-                return cid, []
-        _ts_re = re.compile(r'/Date\((\d+)')
-        def _ts(v):
-            m = _ts_re.search(str(v) or "")
-            return int(m.group(1)) if m else None
-        for sid in ra_services:
-            native = native_camps_by_svc.get(sid, set())
-            # On sonde TOUTES les campagnes (natives incluses) pour le DÉTAIL — mais on
-            # n'injecte en stats agrégées que les campagnes étrangères (les natives sont
-            # déjà comptées par R_TRANS, sinon double comptage).
-            targets = [(sid, cid) for cid in all_camp_ids]
-            # ~100 appels réseau indépendants par service RA : parallélisés, sinon le cycle
-            # dépasse l'intervalle de la tâche planifiée (1min) — testé à 1m52 en séquentiel.
-            with ThreadPoolExecutor(max_workers=32) as pool:
-                for cid, det in pool.map(_probe, targets):
-                    for tx in det:
-                        if tx.get("GroupLevel") != 0:
-                            continue
-                        agent_nom = clean_name(str(tx.get("Agent", "")))
-                        is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
-                        if is_system:
-                            raSystem += 1  # compté pour la QS ; pas de ligne de détail (bruit)
-                            raSysByCamp[cid] += 1
-                            continue
-                        raDetail.append({
-                            "ts": _ts(tx.get("DateTime")), "agent": agent_nom,
-                            "campId": cid, "camp": camp_name_by_id.get(cid, cid).split(' [')[0],
-                            "fiche": str(tx.get("Customer", "")), "res": str(tx.get("Description", "")),
-                            "queue_sec": hms(tx.get("QueueT")), "conv_sec": hms(tx.get("ConvT")),
-                            "svc": svc_names.get(sid, ""),
-                        })
-                        # Stats agrégées : uniquement campagnes étrangères (les natives sont déjà
-                        # comptées par R_TRANS — double comptage sinon).
-                        if cid in native:
-                            continue
-                        aid = name_to_aid.get(agent_nom.strip().lower(), "ra_" + agent_nom.replace(" ", "_"))
-                        names.setdefault(aid, agent_nom)
-                        synth = {
-                            "idCampanya": cid, "nomCampanya": camp_name_by_id.get(cid, cid),
-                            "idFinal": tx.get("ResolutionID"), "nomFinal": tx.get("Description", ""),
-                            "Resolution": tx.get("Description", ""), "Transactions": 1,
-                            "AT_Agent": tx.get("AgT"), "idAgente": aid, "nomAgente": agent_nom,
-                        }
-                        _ingest_row(synth, sqlStats, agByKey, names, ra=True)
-        raDetail.sort(key=lambda r: r["ts"] or 0, reverse=True)
+    # ── Appels ENTRANTS (SVI) — module dédié aux 2 campagnes entrantes (canal distinct) ──
+    # Le client APPELLE ; on mesure, PAR campagne entrante et par agent :
+    #   reçus = toutes les transactions ; répondus = prises par un agent ; abandonnés =
+    #   "Abandonné" ; QS = répondus ÷ reçus ; attente moy (QueueT) ; conv moy (ConvT).
+    # Détail par transaction (rapport R_DETAIL, un appel par campagne entrante).
+    camp_rows = _get("/v1/measurable/campaigns?format=json").get("DataSet", [])
+    camp_name_by_id = {str(c["EntityId"]): str(c.get("EntityName", "")) for c in camp_rows}
+    _ts_re = re.compile(r'/Date\((\d+)')
+    def _ts(v):
+        m = _ts_re.search(str(v) or ""); return int(m.group(1)) if m else None
+    def _camp_detail(cid):
+        try:
+            rows = invoke(R_DETAIL, {**base_p, "idcampa": cid, "maxnumrows": "5000"})
+            return cid, [r for r in rows if r.get("GroupLevel") == 0]
+        except Exception:
+            return cid, []
+    inbound_camps = []
+    in_detail = []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for cid, det in pool.map(_camp_detail, sorted(INBOUND_CAMPS)):
+            recu = len(det)
+            ans = aband = q_sum = q_n = c_sum = c_n = 0
+            by_agent = collections.defaultdict(lambda: {"ans": 0, "c_sum": 0, "c_n": 0, "q_sum": 0, "q_n": 0})
+            for tx in det:
+                agent_nom = clean_name(str(tx.get("Agent", "")))
+                is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
+                res = str(tx.get("Description", "")); q = hms(tx.get("QueueT")); cv = hms(tx.get("ConvT"))
+                if q: q_sum += q; q_n += 1
+                if "abandon" in res.lower(): aband += 1
+                if not is_system:
+                    ans += 1
+                    if cv: c_sum += cv; c_n += 1
+                    a = by_agent[agent_nom]; a["ans"] += 1
+                    if cv: a["c_sum"] += cv; a["c_n"] += 1
+                    if q: a["q_sum"] += q; a["q_n"] += 1
+                    in_detail.append({
+                        "ts": _ts(tx.get("DateTime")), "agent": agent_nom,
+                        "campId": cid, "camp": camp_name_by_id.get(cid, cid).split(' [')[0],
+                        "fiche": str(tx.get("Customer", "")), "res": res,
+                        "queue_sec": q, "conv_sec": cv,
+                    })
+            inbound_camps.append({
+                "id": cid, "nom": camp_name_by_id.get(cid, cid).split(' [')[0],
+                "recu": recu, "ans": ans, "aband": aband,
+                "qs": round(ans / recu * 100) if recu else None,
+                "att_moy": round(q_sum / q_n) if q_n else None,
+                "conv_moy": round(c_sum / c_n) if c_n else None,
+                "agents": sorted([
+                    {"nom": nom, "ans": a["ans"],
+                     "conv_moy": round(a["c_sum"] / a["c_n"]) if a["c_n"] else None,
+                     "att_moy": round(a["q_sum"] / a["q_n"]) if a["q_n"] else None}
+                    for nom, a in by_agent.items()], key=lambda x: -x["ans"]),
+            })
+    in_detail.sort(key=lambda r: r["ts"] or 0, reverse=True)
+    inbound = {
+        "camps": inbound_camps, "detail": in_detail,
+        "totRecu": sum(c["recu"] for c in inbound_camps),
+        "totAns": sum(c["ans"] for c in inbound_camps),
+    }
 
     # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).
     agent_sess_total = collections.defaultdict(int)
@@ -252,7 +244,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         data_date = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
             "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents,
-            "raDetail": raDetail, "raSystem": raSystem, "raSysByCamp": dict(raSysByCamp)}
+            "inbound": inbound}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
