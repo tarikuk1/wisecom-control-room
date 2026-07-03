@@ -1440,6 +1440,16 @@ const server=http.createServer(async(req,res)=>{
       return res.end(JSON.stringify({ok:false,error:e&&e.message?e.message:String(e)}));
     }
   }
+  // Liste des journées archivées côté serveur — le poste local compare à son archive
+  // locale et re-pousse ce qui manque (rattrapage après redéploiement Railway).
+  if(url==="/api/evo/history-dates"){
+    if((req.headers["x-evo-push-secret"]||"")!==EVO_PUSH_SECRET){
+      res.writeHead(401,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Secret invalide"}));
+    }
+    let dates=[];
+    try{dates=fs.readdirSync(EVO_HIST_DIR).filter(f=>/^\d{4}-\d{2}-\d{2}\.json$/.test(f)).map(f=>f.slice(0,10));}catch(e){}
+    res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,dates}));
+  }
   // Réception des données poussées par le script local (Planificateur de tâches).
   // Protégé par un secret partagé (pas par session : appel machine-à-machine).
   if(url==="/api/evo/ingest"&&req.method==="POST"){
