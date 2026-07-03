@@ -259,6 +259,14 @@ const EVO_STALE_MS=10*60*1000; // au-delà de 10 min sans nouvel envoi, données
 // tant que le poste local n'a pas re-poussé). Réinitialisé seulement lors d'un redéploiement.
 const EVO_CACHE_FILE=path.join(__dirname,"evo_cache.json");
 function evoSaveCache(){try{fs.writeFileSync(EVO_CACHE_FILE,JSON.stringify({at:_evoCacheAt,c:_evoCache}));}catch(e){}}
+// Historique par journée : un fichier par dataDate (dernier push de la journée = journée
+// complète). Permet de consulter les jours antérieurs via /api/evo/sortant?date=YYYY-MM-DD.
+// NB : stockage sur le disque du conteneur — un redéploiement le vide ; re-poussable depuis
+// le poste local (evo_push_rest.py DD/MM/YYYY).
+const EVO_HIST_DIR=path.join(__dirname,"evo_history");
+try{fs.mkdirSync(EVO_HIST_DIR,{recursive:true});}catch(e){}
+function evoSaveHist(c){try{if(c&&c.dataDate&&/^\d{4}-\d{2}-\d{2}$/.test(c.dataDate))fs.writeFileSync(path.join(EVO_HIST_DIR,c.dataDate+".json"),JSON.stringify({at:Date.now(),c}));}catch(e){}}
+function evoLoadHist(d){try{const p=path.join(EVO_HIST_DIR,d+".json");if(fs.existsSync(p)){const j=JSON.parse(fs.readFileSync(p,"utf8"));if(j&&j.c){j.c._at=j.at;return j.c;}}}catch(e){}return null;}
 (function evoLoadCache(){try{if(fs.existsSync(EVO_CACHE_FILE)){const j=JSON.parse(fs.readFileSync(EVO_CACHE_FILE,"utf8"));if(j&&j.c){_evoCache=j.c;_evoCacheAt=j.at||Date.now();console.log("[evo] cache rechargé depuis le disque ("+new Date(_evoCacheAt).toISOString()+")");}}}catch(e){}})();
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
@@ -1389,8 +1397,17 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/api/evo/sortant"&&session){
     try{
       let rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag,generatedAt;
+      // ?date=YYYY-MM-DD → servir l'archive de cette journée si elle existe (jours antérieurs)
+      const _qm=(req.url.split("?")[1]||"").match(/(?:^|&)date=(\d{4}-\d{2}-\d{2})/);
+      const wantDate=_qm?_qm[1]:null;
+      let histSrc=null;
+      if(wantDate&&!(_evoCache&&_evoCache.dataDate===wantDate)){
+        histSrc=evoLoadHist(wantDate);
+      }
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
-      if(cacheFresh){
+      if(histSrc){
+        ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=histSrc);generatedAt=new Date(histSrc._at||Date.now()).toISOString();
+      }else if(cacheFresh){
         ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
       }else{
         try{
@@ -1413,8 +1430,9 @@ const server=http.createServer(async(req,res)=>{
       const campProdBySqlId=evoAgentCampsToProdByCamp(agentCamps);
       const payload=evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campProdBySqlId);
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
+      const metaSrc=histSrc||_evoCache; // champs annexes cohérents avec la journée servie
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,raDetail:(_evoCache&&_evoCache.raDetail)||null,raSystem:(_evoCache&&_evoCache.raSystem)||0,raSysByCamp:(_evoCache&&_evoCache.raSysByCamp)||null,dataDate:(_evoCache&&_evoCache.dataDate)||null,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,raDetail:(metaSrc&&metaSrc.raDetail)||null,raSystem:(metaSrc&&metaSrc.raSystem)||0,raSysByCamp:(metaSrc&&metaSrc.raSysByCamp)||null,dataDate:(metaSrc&&metaSrc.dataDate)||null,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1434,7 +1452,13 @@ const server=http.createServer(async(req,res)=>{
         const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,raDetail,raSystem,raSysByCamp,dataDate}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
         // Tous les champs sauf campaigns/agents sont optionnels — compat avec l'ancien script.
-        _evoCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,raDetail:raDetail||null,raSystem:raSystem||0,raSysByCamp:raSysByCamp||null,dataDate:dataDate||null};_evoCacheAt=Date.now();evoSaveCache();
+        const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,raDetail:raDetail||null,raSystem:raSystem||0,raSysByCamp:raSysByCamp||null,dataDate:dataDate||null};
+        evoSaveHist(newCache); // archive de la journée (consultable via ?date=)
+        // Ne remplacer le cache LIVE que si l'envoi est du jour courant ou plus récent —
+        // un backfill d'une journée antérieure ne doit pas écraser l'affichage temps réel.
+        if(!_evoCache||!newCache.dataDate||!_evoCache.dataDate||newCache.dataDate>=_evoCache.dataDate){
+          _evoCache=newCache;_evoCacheAt=Date.now();evoSaveCache();
+        }
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
         res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:true,receivedAt:new Date(_evoCacheAt).toISOString()}));
       }catch(e){

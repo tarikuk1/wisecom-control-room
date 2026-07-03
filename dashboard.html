@@ -4743,7 +4743,9 @@ async function loadEvo(){
   if(btn){btn.disabled=true;btn.textContent="⏳ Chargement…";}
   if(ts)ts.textContent="";
   try{
-    const r=await fetch("/api/evo/sortant");
+    // Date choisie par l'utilisateur → demander l'archive de cette journée au serveur
+    const dateQ=(_evoDateUserSet&&_evoDateFilter)?("?date="+encodeURIComponent(_evoDateFilter)):"";
+    const r=await fetch("/api/evo/sortant"+dateQ);
     const d=await r.json();
     if(!d.ok){
       // Mode honnête : on explique l'échec, on n'invente aucun chiffre.
@@ -4820,13 +4822,13 @@ function evoApplyDateFilter(){
   _evoDateUserSet=true;
   _evoHeureDebFilter=(hd&&hd.value)||"07:00";
   _evoHeureFinFilter=(hf&&hf.value)||"20:00";
-  if(_evoData)renderEvo(_evoData);
+  loadEvo(); // recharge depuis le serveur : sert l'archive de la journée demandée si disponible
 }
 function evoSetToday(){
   const today=new Date().toLocaleDateString("sv");
   const dp=document.getElementById("evo-date-filter");
-  if(dp){dp.value=today;}_evoDateFilter=today;
-  if(_evoData)renderEvo(_evoData);
+  if(dp){dp.value=today;}_evoDateFilter=today;_evoDateUserSet=false;
+  loadEvo();
 }
 
 // (Re)construit le sélecteur de campagnes — case à cocher, multi-sélection.
@@ -4840,24 +4842,38 @@ function renderEvoCampFilter(d){
   _evoSelectedCamps=new Set([..._evoSelectedCamps].filter(n=>camps.includes(n)));
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const nSel=_evoSelectedCamps.size, nTot=camps.length;
-  const chips=camps.map(n=>{
+  // Liste en colonnes alignées (tri alphabétique) : une ligne sobre par campagne au lieu
+  // d'une soupe de pastilles roses. Recherche instantanée pour trouver une campagne.
+  const items=camps.map(n=>{
     const on=_evoSelectedCamps.has(n);
-    return `<label data-c="${ec(n)}" style="display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;cursor:pointer;border:1px solid ${on?'var(--c-pink)':'#3a3a3a'};background:${on?'var(--c-pink-subtle)':'var(--s-2)'};color:${on?'#fff':'var(--t-secondary)'};font-size:var(--fs-sm);font-weight:${on?'600':'400'};user-select:none;transition:all .15s;white-space:nowrap;">`
-      +`<input type="checkbox" ${on?'checked':''} data-c="${ec(n)}" onchange="evoToggleCamp(this.dataset.c)" style="accent-color:var(--c-pink);width:15px;height:15px;cursor:pointer;margin:0;flex-shrink:0;">`
-      +`${ec(n)}</label>`;
+    return `<label class="evo-cf-item" data-c="${ec(n)}" title="${ec(n)}" style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;user-select:none;min-width:0;${on?'':'opacity:.62;'}">`
+      +`<input type="checkbox" ${on?'checked':''} data-c="${ec(n)}" onchange="evoToggleCamp(this.dataset.c)" style="accent-color:var(--c-pink);width:14px;height:14px;cursor:pointer;margin:0;flex-shrink:0;">`
+      +`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:${on?'600':'400'};color:${on?'var(--t-primary)':'var(--t-secondary)'};">${ec(n)}</span></label>`;
   }).join("");
   const smallBtn="font-size:var(--fs-xs);padding:5px 11px;border-radius:6px;border:1px solid var(--border);background:var(--s-3);color:var(--t-secondary);cursor:pointer;font-weight:600;";
   box.innerHTML=`
     <div style="border:1px solid var(--border);border-radius:10px;background:var(--s-1);overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s-2);border-bottom:1px solid var(--border);flex-wrap:wrap;">
-        <span style="font-size:var(--fs-sm);font-weight:700;color:var(--t-primary);">📋 Choisir les campagnes</span>
-        <span style="font-size:var(--fs-xs);color:${nSel?'var(--c-pink)':'var(--t-disabled)'};background:${nSel?'var(--c-pink-subtle)':'transparent'};padding:2px 9px;border-radius:10px;font-weight:600;">${nSel} / ${nTot} sélectionnée${nSel>1?'s':''}</span>
-        <span style="flex:1"></span>
-        <button type="button" onclick="evoSelectAllCamps(true)" style="${smallBtn}">✓ Tout cocher</button>
-        <button type="button" onclick="evoSelectAllCamps(false)" style="${smallBtn}">✕ Tout décocher</button>
+        <span style="font-size:var(--fs-sm);font-weight:700;color:var(--t-primary);">📋 Campagnes</span>
+        <span style="font-size:var(--fs-xs);color:${nSel?'var(--c-pink)':'var(--t-disabled)'};background:${nSel?'var(--c-pink-subtle)':'transparent'};padding:2px 9px;border-radius:10px;font-weight:600;">${nSel} / ${nTot}</span>
+        <input type="search" id="evo-camp-search" value="${ec(_evoCampQuery||'')}" placeholder="🔎 Rechercher une campagne…" oninput="evoCampSearch(this.value)"
+          style="flex:1 1 220px;min-width:160px;background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:var(--fs-sm);outline:none;">
+        <button type="button" onclick="evoSelectAllCamps(true)" style="${smallBtn}" title="Coche les campagnes actuellement affichées par la recherche">✓ Tout cocher</button>
+        <button type="button" onclick="evoSelectAllCamps(false)" style="${smallBtn}" title="Décoche les campagnes actuellement affichées par la recherche">✕ Tout décocher</button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;max-height:200px;overflow-y:auto;">${chips}</div>
+      <div id="evo-camp-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1px 14px;padding:9px 12px;max-height:190px;overflow-y:auto;">${items}</div>
     </div>`;
+  evoCampSearch(_evoCampQuery||'',true);
+}
+let _evoCampQuery='';
+// Recherche instantanée : masque les campagnes ne contenant pas le texte (insensible casse/accents)
+function evoCampSearch(q,keepFocus){
+  _evoCampQuery=q||'';
+  const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const nq=norm(_evoCampQuery.trim());
+  document.querySelectorAll('#evo-camp-list .evo-cf-item').forEach(el=>{
+    el.style.display=(!nq||norm(el.dataset.c).includes(nq))?'flex':'none';
+  });
 }
 function evoToggleCamp(nom){
   if(!_evoSelectedCamps)return;
@@ -4866,7 +4882,14 @@ function evoToggleCamp(nom){
 }
 function evoSelectAllCamps(all){
   if(!_evoData)return;
-  _evoSelectedCamps = all ? new Set((_evoData.campagnes||[]).map(c=>c.nom)) : new Set();
+  const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const nq=norm((_evoCampQuery||'').trim());
+  const allNames=(_evoData.campagnes||[]).map(c=>c.nom);
+  if(!nq){ _evoSelectedCamps = all ? new Set(allNames) : new Set(); }
+  else{ // une recherche est active : n'agir que sur les campagnes affichées
+    if(!_evoSelectedCamps)_evoSelectedCamps=new Set(allNames);
+    allNames.filter(n=>norm(n).includes(nq)).forEach(n=>{all?_evoSelectedCamps.add(n):_evoSelectedCamps.delete(n);});
+  }
   renderEvo(_evoData);
 }
 // Filtre agent (tableau SQL agent × campagne)
@@ -5028,6 +5051,43 @@ function evoAddFsButtons(){
   });
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var p=document.querySelector('.panel-fullscreen');if(p){var b=p.querySelector('.evo-fs-btn');if(b)evoFs(b);}}});
+// ── Tri générique au clic sur l'en-tête (toutes les tables evo sans tri dédié) ─────────
+// Les cartes campagne→agents ont déjà leur tri (evoSortCamp, th avec onclick) — exclues.
+// Comprend les formats français : "1 234", "12,3", "45%", "4,4 h", "38 min", "1m40", "18:01", "–".
+function evoParseCell(t){
+  t=String(t||'').replace(/ /g,' ').trim();
+  if(t===''||t==='–'||t==='-'||t==='n.d.'||t==='?')return -Infinity;
+  let m;
+  if(m=t.match(/^(\d+)m(\d+)s?$/))return +m[1]*60+ +m[2];              // 1m40 / 1m40s
+  if(m=t.match(/^(\d+)s$/))return +m[1];                                // 38s
+  if(m=t.match(/^(\d{1,2}):(\d{2})$/))return +m[1]*60+ +m[2];           // 18:01
+  if(m=t.match(/^([\d\s]+(?:,\d+)?)\s*h\b/))return parseFloat(m[1].replace(/\s/g,'').replace(',','.'))*60; // 4,4 h → min
+  if(m=t.match(/^([\d\s]+(?:,\d+)?)\s*min\b/))return parseFloat(m[1].replace(/\s/g,'').replace(',','.')); // 38 min
+  const n=parseFloat(t.replace(/[%\s]/g,'').replace(/ /g,'').replace(',','.').replace(/[^\d.\-]/g,''));
+  return isNaN(n)?null:n;
+}
+function evoSortTable(th,tbl){
+  const idx=th.cellIndex, tbody=tbl.tBodies[0]; if(!tbody)return;
+  const dir=th.dataset.sdir==='asc'?'desc':'asc'; // 1er clic = croissant, 2e = décroissant
+  tbl.querySelectorAll('th').forEach(h=>{h.dataset.sdir='';const i=h.querySelector('.evo-sort-ind');if(i)i.remove();});
+  th.dataset.sdir=dir;
+  const ind=document.createElement('span');ind.className='evo-sort-ind';ind.textContent=dir==='asc'?' ▴':' ▾';ind.style.cssText='color:#E8006E;font-size:9px';th.appendChild(ind);
+  const all=[...tbody.rows];
+  const fixed=all.filter(r=>r.classList.contains('eca-cum')||r.classList.contains('total-row')); // cumuls : toujours en bas
+  const rows=all.filter(r=>!fixed.includes(r));
+  const key=r=>{const c=r.cells[idx];if(!c)return -Infinity;const v=evoParseCell(c.innerText);return v===null?c.innerText.toLowerCase():v;};
+  rows.sort((a,b)=>{const ka=key(a),kb=key(b);
+    const cmp=(typeof ka==='string'||typeof kb==='string')?String(ka).localeCompare(String(kb),'fr'):(ka-kb);
+    return dir==='asc'?cmp:-cmp;});
+  rows.concat(fixed).forEach(r=>tbody.appendChild(r));
+}
+document.addEventListener('click',function(e){
+  const th=e.target.closest('th'); if(!th)return;
+  if(th.getAttribute('onclick'))return;                       // tables avec tri dédié (evoSortCamp)
+  const tbl=th.closest('table'); if(!tbl)return;
+  if(!tbl.classList.contains('evo-num')&&!tbl.classList.contains('eca-tbl'))return;
+  evoSortTable(th,tbl);
+});
 function renderEvo(d){
   evoAddFsButtons();
   renderEvoCampFilter(d);

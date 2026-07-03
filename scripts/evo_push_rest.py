@@ -23,18 +23,24 @@ def log(msg):
         f.write(f"[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {msg}\n")
 
 def main():
-    today = datetime.date.today()
-    fd = today.strftime("%d/%m/%Y")
-    fh = (today + datetime.timedelta(days=1)).strftime("%d/%m/%Y")  # fhasta EXCLUSIF
-    payload = ex.export(fd, fh)
-    if not payload.get("sqlAgentCamps"):
-        # Pas de données aujourd'hui (tôt le matin / week-end) → remonter jusqu'à 7 jours
-        # pour afficher le dernier jour clôturé avec de l'activité.
-        for back in range(1, 8):
-            dprev = today - datetime.timedelta(days=back)
-            payload = ex.export(dprev.strftime("%d/%m/%Y"), (dprev + datetime.timedelta(days=1)).strftime("%d/%m/%Y"))
-            if payload.get("sqlAgentCamps"):
-                break
+    # Backfill : `evo_push_rest.py DD/MM/YYYY` exporte et pousse CETTE journée (archivée côté
+    # serveur, consultable via le filtre date du dashboard — n'écrase pas l'affichage live).
+    if len(sys.argv) > 1:
+        d = datetime.datetime.strptime(sys.argv[1], "%d/%m/%Y").date()
+        payload = ex.export(d.strftime("%d/%m/%Y"), (d + datetime.timedelta(days=1)).strftime("%d/%m/%Y"))
+    else:
+        today = datetime.date.today()
+        fd = today.strftime("%d/%m/%Y")
+        fh = (today + datetime.timedelta(days=1)).strftime("%d/%m/%Y")  # fhasta EXCLUSIF
+        payload = ex.export(fd, fh)
+        if not payload.get("sqlAgentCamps"):
+            # Pas de données aujourd'hui (tôt le matin / week-end) → remonter jusqu'à 7 jours
+            # pour afficher le dernier jour clôturé avec de l'activité.
+            for back in range(1, 8):
+                dprev = today - datetime.timedelta(days=back)
+                payload = ex.export(dprev.strftime("%d/%m/%Y"), (dprev + datetime.timedelta(days=1)).strftime("%d/%m/%Y"))
+                if payload.get("sqlAgentCamps"):
+                    break
     camps = ex._get("/v1/measurable/campaigns?format=json")
     agents = ex._get("/v1/measurable/agents?format=json")
     body = json.dumps({
