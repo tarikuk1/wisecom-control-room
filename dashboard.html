@@ -97,6 +97,21 @@
   --motion-base: 200ms;
   --motion-slow: 400ms;
   --ease-default:cubic-bezier(.4,0,.2,1);
+
+  /* Bordure générique (était utilisée ~23× sans jamais être définie → bordures cassées) */
+  --border: #2c2c2c;
+  /* Vert "≥ objectif enregistré" — code métier, distinct du vert feedback --c-green (#30d158) */
+  --c-green-goal: #1d9e75;
+}
+/* ── THÈME CLAIR : redéfinir les TOKENS DE TEXTE (cause racine des bugs "illisible en clair").
+   Sans ça, var(--t-primary)=#f0f0f0 (blanc) reste blanc sur fond clair → texte invisible.
+   Les SURFACES (--s-*) restent volontairement sombres : elles sont déjà gérées par des
+   overrides de fond explicites, ET le code s'en sert comme "couleur de texte sombre" en
+   clair (color:var(--s-1)) — les flipper casserait ces usages. On ne touche donc qu'au texte
+   et à --border (qui n'était même pas défini). */
+body.light{
+  --t-primary:#1a1a1f; --t-secondary:#55555f; --t-muted:#70707a; --t-disabled:#a6a6b0;
+  --border:#e4e4ec;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 .skip-link{position:absolute;left:-9999px;top:8px;z-index:9999;background:var(--c-pink);color:var(--c-white);padding:8px 14px;border-radius:var(--r-md);font-size:var(--fs-md);font-weight:var(--fw-bold);text-decoration:none;}
@@ -1077,14 +1092,14 @@ body.light [style*="background:var(--s-5)"],
 body.light [style*="background:#0a0a0a"],
 body.light [style*="background:#080808"],
 body.light [style*="background:var(--s-3)"],
-body.light [style*="background:var(--s-base)"]{background:#f2f2f2 !important;color:var(--s-3) !important;}
+body.light [style*="background:var(--s-base)"]{background:#f2f2f2 !important;color:var(--t-primary) !important;}
 /* MODE CLAIR : texte clair inline neutralisé UNIQUEMENT sur fond sombre inline (combiné fond+texte) */
 body.light [style*="background:var(--s-0)"][style*="color:#"],
 body.light [style*="background:var(--s-1)"][style*="color:#"],
 body.light [style*="background:var(--s-2)"][style*="color:#"],
 body.light [style*="background:var(--s-5)"][style*="color:#"],
 body.light [style*="background:#0a0a0a"][style*="color:#"],
-body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--s-3) !important;}
+body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-primary) !important;}
 
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE — Tablette & smartphone
