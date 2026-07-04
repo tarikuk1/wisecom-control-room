@@ -681,6 +681,20 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .evo-view-ic{border:none;background:transparent;color:var(--t-disabled);font-size:11px;padding:5px 6px;cursor:pointer;border-left:1px solid var(--border);}
 .evo-view-ic:hover{color:var(--t-primary);background:rgba(232,0,110,.08);}
 .evo-view-del:hover{color:#E8006E;}
+/* Détail agents d'une campagne (clic sur le nom) — vignettes */
+.evo-cav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:12px 14px;background:var(--s-0);}
+body.light .evo-cav-grid{background:#f6f6f9;}
+.evo-cav{border:1px solid var(--border);border-radius:10px;background:var(--s-2);padding:9px 11px;}
+body.light .evo-cav{background:#fff;}
+.evo-cav-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0;}
+.evo-cav-n{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.evo-cav-k{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 4px;}
+.evo-cav-k>div{display:flex;flex-direction:column;line-height:1.15;}
+.evo-cav-k b{font-family:'IBM Plex Mono',Consolas,monospace;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
+.evo-cav-k span{font-size:9px;color:var(--t-muted);text-transform:uppercase;letter-spacing:.03em;}
+.evo-camp-name-clk{cursor:pointer;}
+.evo-camp-name-clk:hover .evo-rc-name>span:last-child{text-decoration:underline;text-decoration-color:var(--c-pink);}
+.evo-exp-ic{font-size:13px;color:var(--t-disabled);margin-right:3px;vertical-align:-1px;transition:transform .15s;}
 /* Pastille "campagne active" : agents connectés + CU générés */
 .evo-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#30d158;box-shadow:0 0 0 0 rgba(48,209,88,.5);animation:evoLivePulse 1.8s infinite;flex-shrink:0;}
 @keyframes evoLivePulse{0%{box-shadow:0 0 0 0 rgba(48,209,88,.5)}70%{box-shadow:0 0 0 5px rgba(48,209,88,0)}100%{box-shadow:0 0 0 0 rgba(48,209,88,0)}}
@@ -5245,6 +5259,37 @@ document.addEventListener('click',function(e){
   if(!tbl.classList.contains('evo-num')&&!tbl.classList.contains('eca-tbl'))return;
   evoSortTable(th,tbl);
 });
+// Clic sur le nom d'une campagne → déplie en vignettes le détail par agent ayant produit dessus.
+function evoToggleCampAgents(td,campId){
+  const tr=td.closest('tr'); if(!tr)return;
+  const ic=td.querySelector('.evo-exp-ic');
+  const nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('evo-camp-detail')&&nx.dataset.for===String(campId)){ nx.remove(); if(ic)ic.className='ti ti-chevron-right evo-exp-ic'; return; }
+  document.querySelectorAll('#evo-camp-table tr.evo-camp-detail').forEach(r=>r.remove());
+  document.querySelectorAll('#evo-camp-table .evo-exp-ic').forEach(i=>i.className='ti ti-chevron-right evo-exp-ic');
+  const d=_evoData; if(!d)return;
+  const ec=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const list=(d.agentCamps||[]).map(a=>{const cc=(a.camps||[]).find(x=>String(x.idCampanya)===String(campId)); return cc?{nom:a.nom||('Agent #'+a.idAgente),cc:cc}:null;})
+    .filter(Boolean).filter(x=>((x.cc.tft||0)+(x.cc.cuTotal||0))>0);
+  list.sort((x,y)=>(y.cc.cuPos||0)-(x.cc.cuPos||0));
+  let inner;
+  if(!list.length){
+    inner='<div style="padding:12px 14px;color:var(--t-disabled);font-size:var(--fs-sm)">Aucun détail agent pour cette campagne (données SQL agent×campagne indisponibles pour la journée).</div>';
+  }else{
+    const cell=(v,l)=>'<div><b>'+v+'</b><span>'+l+'</span></div>';
+    inner='<div class="evo-cav-grid">'+list.map(function(x){
+      const cc=x.cc, cu=cc.cuTotal||0, acc=cc.cuPos||0, accPct=cu>0?Math.round(acc/cu*100):null;
+      return '<div class="evo-cav"><div class="evo-cav-h"><span class="evo-rc-avatar">'+evoInitials(x.nom)+'</span><span class="evo-cav-n" title="'+ec(x.nom)+'">'+ec(x.nom)+'</span></div><div class="evo-cav-k">'
+        +cell(EVO_NB(acc),'Accords')+cell(EVO_NB(cu),'CU')+cell(EVO_NB(cc.tft||0),'Traité')
+        +cell(accPct==null?'–':accPct+'%','Acc.%')+cell(EVO_R1(EVO_PH(acc,cc.prod_sec)),'C+/h')+cell(EVO_R1(EVO_PH(cu,cc.prod_sec)),'CU/h')
+        +'</div></div>';
+    }).join('')+'</div>';
+  }
+  const detail=document.createElement('tr'); detail.className='evo-camp-detail'; detail.dataset.for=String(campId);
+  detail.innerHTML='<td colspan="'+tr.cells.length+'" style="padding:0">'+inner+'</td>';
+  tr.after(detail);
+  if(ic)ic.className='ti ti-chevron-down evo-exp-ic';
+}
 // Campagnes ENTRANTES (SVI) — exclues des tableaux sortants, affichées dans le module entrant.
 const EVO_INBOUND_IDS=new Set(['100000189','100000191']); // GENESIS_QUALIFICATION_ENTRANT · RA_HYUNDAI_LEADGEN
 function renderEvo(d){
@@ -5475,7 +5520,7 @@ function renderEvo(d){
       const hcN=hcByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
-      <td style="text-align:left;max-width:190px"><span class="evo-rc-name" title="${ec(c.nom)}">${(c.agents>0&&cuC>0)?'<span class="evo-live-dot" title="Campagne active : agents connectés + CU générés"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
+      <td class="evo-camp-name-clk" style="text-align:left;max-width:190px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${(c.agents>0&&cuC>0)?'<span class="evo-live-dot" title="Campagne active : agents connectés + CU générés"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
       <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td class="evo-lo">${cuC.toLocaleString("fr-FR")}</td>
