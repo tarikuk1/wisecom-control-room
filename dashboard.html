@@ -5486,10 +5486,10 @@ function renderEvoInbound(d){
     if(badge)evoSetHdrPills(badge,'');
     return;
   }
-  const fastSec=ib.abandonFastSec||25;
+  const fastSec=ib.abandonFastSec||15;
   const abFast=ib.totAbandFast||0, abReal=ib.totAbandReal||0, recuUtile=ib.totRecuUtile||(totRecu-abFast);
   const qs=totRecu?Math.round(totAns/totRecu*100):null;               // QS brut ÷ tous reçus
-  const qsUtile=recuUtile>0?Math.round(totAns/recuUtile*100):null;    // QS hors abandons <25s
+  const qsUtile=recuUtile>0?Math.round(totAns/recuUtile*100):null;    // QS hors abandons rapides SVI
   const wavg=(f)=>{let sv=0,sw=0;camps.forEach(c=>{const v=f(c);if(v!=null){sv+=v*(c.ans||c.recu||1);sw+=(c.ans||c.recu||1);}});return sw?Math.round(sv/sw):null;};
   const attMoy=wavg(c=>c.att_moy), convMoy=wavg(c=>c.conv_moy);
   if(badge)evoSetHdrPills(badge,evoPill("QS utile",qsUtile==null?'–':qsUtile+'%','',qsUtile!=null&&qsUtile>=80)+evoPill("Reçus",EVO_NB(totRecu),'',false));

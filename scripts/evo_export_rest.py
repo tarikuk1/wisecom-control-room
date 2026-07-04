@@ -170,7 +170,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     # Seuil "abandon rapide" : un client qui raccroche vite (SVI) n'est pas un appel qu'on
     # aurait pu prendre. Durée retenue = TransT (temps total de la transaction) — pour un
     # abandon SVI, QueueT vaut 0 (jamais mis en file), TransT = temps réel avant raccroché.
-    ABANDON_FAST_SEC = 25
+    ABANDON_FAST_SEC = 15
     inbound_camps = []
     in_detail = []
     with ThreadPoolExecutor(max_workers=4) as pool:
