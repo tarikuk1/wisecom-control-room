@@ -5270,9 +5270,16 @@ function renderEvo(d){
 
   // Campagnes retenues selon la sélection
   const camps=(d.campagnes||[]).filter(c=>sel.has(c.nom)&&!EVO_INBOUND_IDS.has(String(c.id)));
-  // Agents retenus : campagne sélectionnée ET session chevauchant la plage horaire
+  // Agents ayant PRODUIT sur au moins une campagne sélectionnée (source SQL agent×campagne) —
+  // capte les agents ayant traité sur la sélection même s'ils sont maintenant sur une autre campagne.
+  const _selIds=new Set(camps.map(c=>String(c.id)));
+  const producedSel={};
+  (d.agentCamps||[]).forEach(ac=>{
+    if((ac.camps||[]).some(cc=>_selIds.has(String(cc.idCampanya))&&(cc.tft||0)>0)) producedSel[String(ac.idAgente)]=true;
+  });
+  // Agents retenus : (campagne en cours sélectionnée OU production sur la sélection) ET session ∩ plage.
   const ags=(d.agents||[]).filter(a=>{
-    if(!sel.has(a.campagne))return false;
+    if(!sel.has(a.campagne) && !producedSel[String(a.id)])return false;
     const loginEst=genMs-(a.sessionSec||0)*1000;
     return loginEst<winEnd && genMs>winStart;
   });
@@ -5537,7 +5544,14 @@ function renderEvo(d){
   renderEvoAgentFilter(agCamps,agNameById);
   // Filtre agents sélectionnés
   const agSel=_evoSelectedAgents||new Set(agCamps.map(a=>a.idAgente));
-  const agVisible=agCamps.filter(a=>agSel.has(a.idAgente));
+  // Restreindre aux campagnes SÉLECTIONNÉES : ne garder que les lignes campagne de la sélection
+  // et recalculer les totaux agent sur ce sous-ensemble (sinon on affiche du hors-périmètre).
+  const agVisible=agCamps.filter(a=>agSel.has(a.idAgente)).map(a=>{
+    const fc=(a.camps||[]).filter(cc=>_selIds.has(String(cc.idCampanya)));
+    if(!fc.length)return null;
+    const S=k=>fc.reduce((s,cc)=>s+(cc[k]||0),0);
+    return Object.assign({},a,{camps:fc,cuPos:S('cuPos'),cuTotal:S('cuTotal'),tft:S('tft'),nb:S('nb'),hc:S('hc'),prod_sec:S('prod_sec')});
+  }).filter(Boolean);
   const txObjG=parseFloat(evoGetObj('acch','')), cuhObjG=parseFloat(evoGetObj('cuh',''));
 
   const agCard=a=>{
