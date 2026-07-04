@@ -1596,6 +1596,21 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
     </div>
 
     <div class="panel" style="margin-top:14px">
+      <div class="panel-header" onclick="evoToggleCmpPanel()" style="cursor:pointer;display:flex;align-items:center"><span class="panel-title">📊 Comparaison de périodes <span style="font-weight:var(--fw-regular);font-size:var(--fs-sm);color:var(--t-disabled);margin-left:6px">2 dates · même sélection de campagnes — cliquer pour déplier</span></span><i id="evo-cmp-chev" class="ti ti-chevron-down" style="margin-left:auto;font-size:18px;color:var(--t-secondary)"></i></div>
+      <div id="evo-cmp-body" style="display:none;padding:12px 14px">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:3px"><label for="evo-cmp-a" style="font-size:var(--fs-sm);color:var(--t-muted)">Période A</label><input type="date" id="evo-cmp-a" style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 9px;font-size:var(--fs-sm)"></div>
+          <span style="color:var(--t-disabled);padding-bottom:7px">vs</span>
+          <div style="display:flex;flex-direction:column;gap:3px"><label for="evo-cmp-b" style="font-size:var(--fs-sm);color:var(--t-muted)">Période B</label><input type="date" id="evo-cmp-b" style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 9px;font-size:var(--fs-sm)"></div>
+          <button type="button" onclick="evoCompare()" style="background:var(--c-pink);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:var(--fs-sm);font-weight:700;cursor:pointer">Comparer</button>
+          <span style="flex:1"></span>
+          <span style="font-size:var(--fs-xs);color:var(--t-disabled)">Compare le périmètre de campagnes actuellement sélectionné entre 2 journées archivées.</span>
+        </div>
+        <div id="evo-cmp-results"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
       <div class="panel-header"><span class="panel-title">Production par campagne sortante</span><span id="evo-camp-hdr-badge" class="eca-hdr-badges"></span></div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table class="tbl evo-num evo-cardtbl" id="evo-camp-table"></table>
@@ -5953,6 +5968,105 @@ function evoToggleObjPanel(){
   const open=b.style.display!=='none';
   b.style.display=open?'none':'block';
   if(ch)ch.className='ti '+(open?'ti-chevron-down':'ti-chevron-up');
+}
+// ── Comparaison de périodes (2 dates, même sélection de campagnes) ───────────────
+function evoToggleCmpPanel(){
+  const b=document.getElementById('evo-cmp-body'),ch=document.getElementById('evo-cmp-chev');
+  if(!b)return;
+  const open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  if(ch)ch.className='ti '+(open?'ti-chevron-down':'ti-chevron-up');
+  // pré-remplir A/B au premier déploiement : A = veille des données, B = date des données
+  if(!open){
+    const a=document.getElementById('evo-cmp-a'),bi=document.getElementById('evo-cmp-b');
+    const dataDate=(_evoData&&_evoData.dataDate)||new Date().toLocaleDateString('sv');
+    if(bi&&!bi.value)bi.value=dataDate;
+    if(a&&!a.value){const p=new Date(dataDate+'T12:00:00');p.setDate(p.getDate()-1);a.value=p.toLocaleDateString('sv');}
+  }
+}
+// Agrégats d'un payload sur un ensemble de campagnes (noms). Réutilise la logique cApp/cAcc/cRef.
+function evoAggregate(d,selNames){
+  const cApp=c=>c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0));
+  const cAcc=c=>c.sql?(c.sql.cuPos||0):(c.positifs||0);
+  const cRef=c=>c.sql?(c.sql.cuNeg||0):(c.negatifs||0);
+  const camps=(d.campagnes||[]).filter(c=>!EVO_INBOUND_IDS.has(String(c.id))&&(!selNames||selNames.has(c.nom)));
+  let appels=0,acc=0,ref=0,heures=0; const perCamp={};
+  camps.forEach(c=>{
+    const ap=cApp(c),a=cAcc(c),r=cRef(c),h=(c.sql&&c.sql.total_prod_sec>0?c.sql.total_prod_sec/3600:0);
+    appels+=ap;acc+=a;ref+=r;heures+=h;
+    perCamp[c.nom]={appels:ap,cu:a+r,accords:a,refus:r,heures:h};
+  });
+  const cu=acc+ref;
+  return {appels,cu,accords:acc,refus:ref,heures,nCamps:camps.length,
+    tauxAcc:cu>0?Math.round(acc/cu*100):null,
+    cuh:heures>0?cu/heures:null, acch:heures>0?acc/heures:null, perCamp};
+}
+async function evoCompare(){
+  const aDate=(document.getElementById('evo-cmp-a')||{}).value, bDate=(document.getElementById('evo-cmp-b')||{}).value;
+  const box=document.getElementById('evo-cmp-results'); if(!box)return;
+  if(!aDate||!bDate){box.innerHTML='<div style="color:var(--c-orange);font-size:var(--fs-sm)">Choisissez deux dates.</div>';return;}
+  box.innerHTML='<div style="color:var(--t-muted);font-size:var(--fs-sm)">⏳ Chargement des deux journées…</div>';
+  try{
+    const [ra,rb]=await Promise.all([fetch('/api/evo/sortant?date='+encodeURIComponent(aDate)),fetch('/api/evo/sortant?date='+encodeURIComponent(bDate))]);
+    const [da,db]=await Promise.all([ra.json(),rb.json()]);
+    if(!da.ok||!db.ok){box.innerHTML='<div style="color:var(--c-red);font-size:var(--fs-sm)">Données indisponibles pour '+(!da.ok?aDate:bDate)+' (journée non archivée).</div>';return;}
+    const sel=_evoSelectedCamps; // même périmètre
+    const A=evoAggregate(da,sel), B=evoAggregate(db,sel);
+    evoRenderCompare(A,B,aDate,bDate);
+  }catch(e){ box.innerHTML='<div style="color:var(--c-red);font-size:var(--fs-sm)">Erreur : '+String(e.message||e)+'</div>'; }
+}
+function evoRenderCompare(A,B,aDate,bDate){
+  const box=document.getElementById('evo-cmp-results'); if(!box)return;
+  const ec=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const nb=v=>v==null?'–':(typeof v==='number'?Math.round(v).toLocaleString('fr-FR'):v);
+  const r1=v=>v==null?'–':v.toLocaleString('fr-FR',{maximumFractionDigits:1});
+  const dFmt=ds=>{try{return new Date(ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});}catch(e){return ds;}};
+  // delta chip : higherBetter → vert si B>A
+  const delta=(a,b,higher,pct)=>{
+    if(a==null||b==null)return '<span style="color:var(--t-disabled)">–</span>';
+    const d=b-a; if(d===0)return '<span style="color:var(--t-muted)">=</span>';
+    const good=higher?d>0:d<0;
+    const cls=good?'st-good':'st-bad';
+    const sign=d>0?'+':'';
+    const val=pct?(sign+Math.round(d)+' pt'):(sign+(Math.abs(d)<10?r1(d):nb(d)));
+    return '<span class="st-chip '+cls+'">'+val+'</span>';
+  };
+  const metrics=[
+    {l:'Contacts utiles (CU)',a:A.cu,b:B.cu,hi:true},
+    {l:'Accords (C+)',a:A.accords,b:B.accords,hi:true},
+    {l:'Taux d\'accord',a:A.tauxAcc,b:B.tauxAcc,hi:true,pct:true,suf:'%'},
+    {l:'CU / h',a:A.cuh,b:B.cuh,hi:true,r1:true},
+    {l:'Accords / h',a:A.acch,b:B.acch,hi:true,r1:true},
+    {l:'Appels traités',a:A.appels,b:B.appels,hi:true},
+    {l:'Heures prod.',a:A.heures,b:B.heures,hi:true,r1:true,suf:' h'}
+  ];
+  const fmtV=(m,v)=>v==null?'–':((m.r1?r1(v):nb(v))+(m.suf||''));
+  const kpiRows=metrics.map(m=>`<tr>
+    <td style="text-align:left;font-weight:600">${m.l}</td>
+    <td style="text-align:right">${fmtV(m,m.a)}</td>
+    <td style="text-align:right;font-weight:700">${fmtV(m,m.b)}</td>
+    <td style="text-align:right">${delta(m.a,m.b,m.hi,m.pct)}</td>
+  </tr>`).join('');
+  // par campagne (union des noms)
+  const names=[...new Set([...Object.keys(A.perCamp),...Object.keys(B.perCamp)])].sort((x,y)=>(B.perCamp[y]?B.perCamp[y].cu:0)-(B.perCamp[x]?B.perCamp[x].cu:0));
+  const campRows=names.map(n=>{
+    const a=A.perCamp[n]||{cu:0,accords:0}, b=B.perCamp[n]||{cu:0,accords:0};
+    const txA=a.cu>0?Math.round(a.accords/a.cu*100):null, txB=b.cu>0?Math.round(b.accords/b.cu*100):null;
+    return `<tr>
+      <td style="text-align:left">${ec(n)}</td>
+      <td style="text-align:right">${nb(a.cu)}</td><td style="text-align:right;font-weight:700">${nb(b.cu)}</td><td style="text-align:right">${delta(a.cu,b.cu,true)}</td>
+      <td style="text-align:right">${nb(a.accords)}</td><td style="text-align:right;font-weight:700">${nb(b.accords)}</td><td style="text-align:right">${delta(a.accords,b.accords,true)}</td>
+      <td style="text-align:right">${txA==null?'–':txA+'%'}</td><td style="text-align:right">${txB==null?'–':txB+'%'}</td><td style="text-align:right">${delta(txA,txB,true,true)}</td>
+    </tr>`;
+  }).join('');
+  box.innerHTML=`
+    <div style="font-size:var(--fs-sm);color:var(--t-secondary);margin-bottom:8px">Périmètre : <b>${A.nCamps||B.nCamps}</b> campagne(s) · <b>A</b> = ${dFmt(aDate)} · <b>B</b> = ${dFmt(bDate)}</div>
+    <div class="eca-tw" style="margin-bottom:14px"><table class="eca-tbl" style="max-width:520px">
+      <thead><tr><th style="text-align:left">Indicateur</th><th style="text-align:right">A · ${dFmt(aDate)}</th><th style="text-align:right">B · ${dFmt(bDate)}</th><th style="text-align:right">Δ</th></tr></thead>
+      <tbody>${kpiRows}</tbody></table></div>
+    <div class="eca-tw"><table class="eca-tbl">
+      <thead><tr><th style="text-align:left">Campagne</th><th colspan="3" style="text-align:center">CU (A · B · Δ)</th><th colspan="3" style="text-align:center">Accords (A · B · Δ)</th><th colspan="3" style="text-align:center">Taux acc. (A · B · Δ)</th></tr></thead>
+      <tbody>${campRows||'<tr><td colspan="10" style="color:var(--t-disabled);padding:10px">Aucune campagne dans le périmètre.</td></tr>'}</tbody></table></div>`;
 }
 function renderEvoObjectifs(rebuildControls){
   const ctrlBox=document.getElementById("evo-obj-controls");
