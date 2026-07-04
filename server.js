@@ -1450,6 +1450,19 @@ const server=http.createServer(async(req,res)=>{
     try{dates=fs.readdirSync(EVO_HIST_DIR).filter(f=>/^\d{4}-\d{2}-\d{2}\.json$/.test(f)).map(f=>f.slice(0,10));}catch(e){}
     res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,dates}));
   }
+  // Renvoie le body brut d'une journée archivée (format ingest) → permet au poste local de
+  // MIROITER en local toute journée présente serveur mais absente en local (anti-perte au redéploy).
+  if(url==="/api/evo/history-raw"){
+    if((req.headers["x-evo-push-secret"]||"")!==EVO_PUSH_SECRET){
+      res.writeHead(401,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Secret invalide"}));
+    }
+    const _m=(req.url.split("?")[1]||"").match(/(?:^|&)date=(\d{4}-\d{2}-\d{2})/);
+    if(!_m){res.writeHead(400,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"date requise"}));}
+    const c=evoLoadHist(_m[1]);
+    if(!c){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"absent"}));}
+    const body={campaigns:c.rawCamp,agents:c.rawAg,estado:c.rawEstado,sqlStats:c.rawSqlStats,sqlFiles:c.rawSqlFiles,sqlAgentCamps:c.rawSqlAgentCamps,sqlDiag:c.rawSqlDiag,inbound:c.inbound,dataDate:c.dataDate};
+    res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,body}));
+  }
   // Réception des données poussées par le script local (Planificateur de tâches).
   // Protégé par un secret partagé (pas par session : appel machine-à-machine).
   if(url==="/api/evo/ingest"&&req.method==="POST"){

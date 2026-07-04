@@ -26,6 +26,7 @@ import evo_export_rest as ex
 BASE = "https://control-room-production-a320.up.railway.app"
 DASH = BASE + "/api/evo/ingest"
 HIST_URL = BASE + "/api/evo/history-dates"
+RAW_URL = BASE + "/api/evo/history-raw"
 SECRET = "286828"
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOG = os.path.join(HERE, "evo_push_rest.log")
@@ -91,6 +92,24 @@ def reconcile():
         except Exception as e:
             log(f"BACKFILL {dd} ERREUR {e}")
 
+def mirror_down():
+    """Miroir descendant : archive EN LOCAL toute journée présente serveur mais absente en local.
+    Rend scripts/history/ complet et permanent → aucune journée n'est plus perdue à un redéploy."""
+    have = server_dates()
+    if have is None:
+        return
+    local = set(f[:-5] for f in os.listdir(HIST_DIR) if f.endswith(".json"))
+    for dd in sorted(have - local):
+        try:
+            req = urllib.request.Request(RAW_URL + "?date=" + dd, headers={"X-Evo-Push-Secret": SECRET})
+            r = json.load(urllib.request.urlopen(req, context=ex.CTX, timeout=20))
+            if r.get("ok") and r.get("body"):
+                with open(os.path.join(HIST_DIR, dd + ".json"), "w", encoding="utf-8") as f:
+                    json.dump(r["body"], f, ensure_ascii=False)
+                log(f"MIRROR-DOWN {dd} archivé en local")
+        except Exception as e:
+            log(f"MIRROR-DOWN {dd} ERREUR {e}")
+
 def main():
     # Mode backfill manuel : reconstruit et pousse une journée précise.
     if len(sys.argv) > 1:
@@ -122,8 +141,10 @@ def main():
         nst = len(payload['sqlStats']) if payload else "(archive)"
         log(f"OK stats={nst} date={body.get('dataDate')} resp={r.get('ok')} skipped={r.get('skipped')}")
         print("OK", r)
-    # Rattrapage : réaligne l'historique serveur sur l'archive locale (après un redéploiement).
+    # Rattrapage montant : réaligne l'historique serveur sur l'archive locale (après un redéploiement).
     reconcile()
+    # Rattrapage descendant : archive en local toute journée que seul le serveur possède encore.
+    mirror_down()
 
 if __name__ == "__main__":
     try:
