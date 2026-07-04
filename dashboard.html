@@ -681,17 +681,9 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .evo-view-ic{border:none;background:transparent;color:var(--t-disabled);font-size:11px;padding:5px 6px;cursor:pointer;border-left:1px solid var(--border);}
 .evo-view-ic:hover{color:var(--t-primary);background:rgba(232,0,110,.08);}
 .evo-view-del:hover{color:#E8006E;}
-/* Détail agents d'une campagne (clic sur le nom) — vignettes */
-.evo-cav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:12px 14px;background:var(--s-0);}
-body.light .evo-cav-grid{background:#f6f6f9;}
-.evo-cav{border:1px solid var(--border);border-radius:10px;background:var(--s-2);padding:9px 11px;}
-body.light .evo-cav{background:#fff;}
-.evo-cav-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0;}
-.evo-cav-n{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.evo-cav-k{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 4px;}
-.evo-cav-k>div{display:flex;flex-direction:column;line-height:1.15;}
-.evo-cav-k b{font-family:'IBM Plex Mono',Consolas,monospace;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
-.evo-cav-k span{font-size:9px;color:var(--t-muted);text-transform:uppercase;letter-spacing:.03em;}
+/* Détail agents d'une campagne (clic sur le nom) — liste tabulaire alignée */
+.evo-camp-detail>td{padding:0;background:var(--s-0);}
+body.light .evo-camp-detail>td{background:#f6f6f9;}
 .evo-camp-name-clk{cursor:pointer;}
 .evo-camp-name-clk:hover .evo-rc-name>span:last-child{text-decoration:underline;text-decoration-color:var(--c-pink);}
 .evo-exp-ic{font-size:13px;color:var(--t-disabled);margin-right:3px;vertical-align:-1px;transition:transform .15s;}
@@ -5276,17 +5268,40 @@ function evoToggleCampAgents(td,campId){
   if(!list.length){
     inner='<div style="padding:12px 14px;color:var(--t-disabled);font-size:var(--fs-sm)">Aucun détail agent pour cette campagne (données SQL agent×campagne indisponibles pour la journée).</div>';
   }else{
-    const cell=(v,l)=>'<div><b>'+v+'</b><span>'+l+'</span></div>';
-    inner='<div class="evo-cav-grid">'+list.map(function(x){
-      const cc=x.cc, cu=cc.cuTotal||0, acc=cc.cuPos||0, accPct=cu>0?Math.round(acc/cu*100):null;
-      return '<div class="evo-cav"><div class="evo-cav-h"><span class="evo-rc-avatar">'+evoInitials(x.nom)+'</span><span class="evo-cav-n" title="'+ec(x.nom)+'">'+ec(x.nom)+'</span></div><div class="evo-cav-k">'
-        +cell(EVO_NB(acc),'Accords')+cell(EVO_NB(cu),'CU')+cell(EVO_NB(cc.tft||0),'Traité')
-        +cell(accPct==null?'–':accPct+'%','Acc.%')+cell(EVO_R1(EVO_PH(acc,cc.prod_sec)),'C+/h')+cell(EVO_R1(EVO_PH(cu,cc.prod_sec)),'CU/h')
-        +'</div></div>';
-    }).join('')+'</div>';
+    const fmtSecL=s=>s==null||s<=0?'–':(s<60?Math.round(s)+'s':Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s');
+    const S=k=>list.reduce((s,x)=>s+(x.cc[k]||0),0);
+    const row=(nom,cc,isCum)=>{
+      const cu=cc.cuTotal||0,acc=cc.cuPos||0,ref=cu-acc-(cc.hc||0),accPct=cu>0?Math.round(acc/cu*100):null;
+      const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
+      const label=isCum?'<b>CUMUL · '+list.length+' agents</b>'
+        :'<span class="evo-rc-name"><span class="evo-rc-avatar">'+evoInitials(nom)+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="'+ec(nom)+'">'+ec(nom)+'</span></span>';
+      return '<tr class="'+(isCum?'eca-cum':'')+'">'
+        +'<td style="text-align:left">'+label+'</td>'
+        +'<td>'+EVO_NB(cc.nb||0)+'</td>'
+        +'<td>'+EVO_NB(cc.tft||0)+'</td>'
+        +'<td class="eca-key">'+EVO_NB(acc)+'</td>'
+        +'<td><b style="color:'+accCol+'">'+(accPct==null?'–':accPct+'%')+'</b><div class="evo-rc-bar"><i style="width:'+(accPct||0)+'%;background:'+accCol+'"></i></div></td>'
+        +'<td class="eca-mut">'+EVO_NB(ref)+'</td>'
+        +'<td class="eca-mut evo-lo">'+EVO_NB(cc.hc||0)+'</td>'
+        +'<td>'+EVO_NB(cu)+'</td>'
+        +'<td class="eca-key">'+EVO_R1(EVO_PH(acc,cc.prod_sec))+'</td>'
+        +'<td class="eca-key">'+EVO_R1(EVO_PH(cu,cc.prod_sec))+'</td>'
+        +'<td class="evo-lo">'+(isCum?'–':fmtSecL(cc.dmt))+'</td>'
+        +'<td class="evo-lo">'+EVO_FH(cc.prod_sec)+'</td>'
+        +'<td class="evo-lo">'+EVO_NB(cc.definitifs||0)+'</td>'
+        +'</tr>';
+    };
+    const cum={nb:S('nb'),tft:S('tft'),cuTotal:S('cuTotal'),cuPos:S('cuPos'),hc:S('hc'),prod_sec:S('prod_sec'),definitifs:S('definitifs'),dmt:null};
+    inner='<div style="padding:10px 14px">'
+      +'<div style="font-size:var(--fs-sm);color:var(--t-secondary);font-weight:700;margin-bottom:6px"><i class="ti ti-users" style="font-size:13px;vertical-align:-2px"></i> Détail par agent · '+list.length+' agent(s) — cliquez un en-tête pour trier</div>'
+      +'<div class="eca-tw"><table class="eca-tbl"><thead><tr>'
+      +'<th style="text-align:left">Agent</th><th>Reçus</th><th>Traité</th><th class="eca-key">Accords</th><th>Acc.%</th><th>Refus</th><th class="evo-lo">Hors cible</th><th>CU</th><th class="eca-key">C+/h</th><th class="eca-key">CU/h</th><th class="evo-lo">DMT</th><th class="evo-lo">H.prod</th><th class="evo-lo">Fiches déf.</th>'
+      +'</tr></thead><tbody>'+list.map(x=>row(x.nom,x.cc,false)).join('')+row('',cum,true)+'</tbody></table></div></div>';
   }
   const detail=document.createElement('tr'); detail.className='evo-camp-detail'; detail.dataset.for=String(campId);
-  detail.innerHTML='<td colspan="'+tr.cells.length+'" style="padding:0">'+inner+'</td>';
+  const cell=document.createElement('td'); cell.colSpan=tr.cells.length; cell.style.padding='0';
+  cell.innerHTML=inner; // innerHTML sur la CELLULE (contexte td) → la table imbriquée se parse correctement
+  detail.appendChild(cell);
   tr.after(detail);
   if(ic)ic.className='ti ti-chevron-down evo-exp-ic';
 }
