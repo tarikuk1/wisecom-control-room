@@ -465,8 +465,9 @@ body.light .param-input{background:var(--c-white);color:var(--c-pink);border-col
    saturer — quelques indicateurs-clés à scanner avant les autres)
    ─────────────────────────────────────────────────────── */
 .kpi-grid{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:16px;}
-.kpi-card{background:linear-gradient(165deg,#1a1a1a,#131313);border:1px solid #2c2c2c;border-radius:11px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.4);}
-.kpi-card.hero{min-width:150px;border-color:rgba(232,0,110,.25);background:linear-gradient(135deg,#1a0810,#160610);padding:16px 20px;}
+.kpi-card{background:linear-gradient(165deg,#1a1a1a,#131313);border:1px solid #2c2c2c;border-radius:12px;padding:12px 14px;flex:1;min-width:105px;transition:all var(--motion-base);cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.kpi-card.hero{min-width:150px;border-color:rgba(232,0,110,.25);background:linear-gradient(135deg,#1a0810,#160610);padding:16px 20px;box-shadow:inset 0 2px 0 var(--c-pink),0 1px 3px rgba(0,0,0,.4);}
+body.light .kpi-card.hero{box-shadow:inset 0 2px 0 var(--c-pink),0 1px 4px rgba(0,0,0,.06);}
 .kpi-card.hero .kpi-value{font-size:var(--fs-kpi-hero)!important;}
 .kpi-card.hero .kpi-label{color:var(--c-pink);font-size:var(--fs-sm);}
 .kpi-card.hero:hover{border-color:rgba(232,0,110,.45);box-shadow:var(--shadow-pink);transform:translateY(-1px);}
@@ -478,7 +479,7 @@ body.light .kpi-card{background:#fff;border-color:#e4e4ec;box-shadow:0 1px 3px r
 .kpi-card.good{border-color:var(--c-green);background:linear-gradient(135deg,#081a10,#141414);}
 .kpi-card.dim{opacity:0.45;}
 .kpi-label{font-size:var(--fs-xs);color:var(--t-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:var(--fw-medium);}
-.kpi-value{font-size:var(--fs-kpi);font-weight:var(--fw-black);color:var(--c-white);line-height:1.1;font-variant-numeric:tabular-nums;}
+.kpi-value{font-family:'IBM Plex Mono',Consolas,ui-monospace,monospace;font-size:var(--fs-kpi);font-weight:700;color:var(--c-white);line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
 body.light .kpi-value{color:var(--s-1);}
 .kpi-card.alert .kpi-value{color:var(--c-pink);}
 .kpi-card.good .kpi-value{color:var(--c-green);}
@@ -509,12 +510,13 @@ body.light .tab.active{color:var(--c-pink);}
    .modal-overlay (z:999), .criteres-page (z:600 fullscreen)
    Tokens: --s-1, --shadow-md, --r-md, --motion-base
    ─────────────────────────────────────────────────────── */
-.panel{background:var(--s-1);border:1px solid #2c2c2c;border-radius:11px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.panel{background:var(--s-1);border:1px solid #2c2c2c;border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.3);}
 body.light .panel{background:var(--c-white);border-color:#e4e4ec;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 .panel-header{padding:12px 16px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;background:#131313;flex-wrap:wrap;row-gap:8px;}
 body.light .panel-header{border-bottom-color:#ececf2;background:#fafafc;}
-.panel-title{font-size:var(--fs-body);color:#e8e8e8;font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.05em;}
-body.light .panel-title{color:#555;}
+.panel-title{font-size:var(--fs-body);color:#f2f2f4;font-weight:var(--fw-black);text-transform:uppercase;letter-spacing:.06em;display:inline-flex;align-items:center;gap:8px;}
+.panel-title::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--c-pink);flex-shrink:0;}
+body.light .panel-title{color:#2a2a33;}
 
 /* Table */
 .tbl-wrap{overflow-x:auto;}
@@ -663,6 +665,14 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .eca-tbl .eca-key{color:#E8006E;font-weight:600;background:rgba(232,0,110,.07);}
 .eca-tbl th.eca-key{background:rgba(232,0,110,.11);color:#E8006E;}
 .eca-tbl .eca-good{color:#1d9e75;font-weight:600;background:rgba(29,158,117,.10);}
+/* Chips de statut 3 niveaux (vs objectif) : vert atteint / ambre proche / rose sous cible */
+.st-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-weight:700;font-size:11px;line-height:1.5;white-space:nowrap;}
+.st-good{background:rgba(29,158,117,.18);color:#3fe0a5;}
+.st-warn{background:rgba(255,159,10,.18);color:#ffb340;}
+.st-bad{background:rgba(232,0,110,.16);color:#ff5a97;}
+body.light .st-good{background:rgba(29,158,117,.14);color:#0e7a56;}
+body.light .st-warn{background:rgba(214,138,0,.18);color:#8a5a00;}
+body.light .st-bad{background:rgba(232,0,110,.11);color:#b3004f;}
 /* Plein écran d'un module (clic sur ⛶) */
 .panel-fullscreen{position:fixed!important;inset:0;z-index:9999;margin:0!important;border-radius:0;overflow:auto;background:var(--s-1);padding:0 0 30px;}
 body.light .panel-fullscreen{background:#f4f4f6;}
@@ -673,8 +683,12 @@ body.light .panel-fullscreen .panel-header{background:#fff;}
 .panel-fullscreen .tbl.evo-num th,.panel-fullscreen .tbl.evo-num td{padding:7px 12px;}
 .panel-fullscreen .eca-grid{grid-template-columns:1fr;padding:14px;}
 .panel-fullscreen #evo-obj-body,.panel-fullscreen #evo-obj-results{display:block!important;}
-.evo-fs-btn{background:transparent;border:1px solid var(--border);color:var(--t-secondary);border-radius:6px;height:28px;padding:0 10px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;white-space:nowrap;}
-.evo-fs-btn:hover{border-color:#E8006E;color:#E8006E;}
+.evo-tools{border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+body.light .evo-tools{border-color:#dcdce4;}
+.evo-fs-btn{background:transparent;border:none;border-left:1px solid var(--border);color:var(--t-secondary);border-radius:0;height:26px;padding:0 11px;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;white-space:nowrap;transition:all .15s;}
+.evo-fs-btn:first-child{border-left:none;}
+body.light .evo-fs-btn{border-left-color:#e4e4ec;}
+.evo-fs-btn:hover{background:rgba(232,0,110,.12);color:#E8006E;}
 .eca-objp{border-bottom:0.5px solid var(--border);padding:11px 13px;background:var(--s-3);}
 body.light .eca-objp{background:#fafafb;}
 .eca-track{position:relative;height:18px;border-radius:4px;background:var(--s-2);}
@@ -5057,7 +5071,7 @@ function evoAddFsButtons(){
     var panel=el.closest('.panel'); if(!panel)return;
     var head=panel.querySelector('.panel-header'); if(!head||head.querySelector('.evo-tools'))return;
     head.style.display='flex'; head.style.alignItems='center';
-    var box=document.createElement('span'); box.className='evo-tools'; box.style.cssText='margin-left:auto;display:inline-flex;gap:6px;flex-shrink:0';
+    var box=document.createElement('span'); box.className='evo-tools'; box.style.cssText='margin-left:auto;display:inline-flex;gap:0;flex-shrink:0';
     // Libellés TEXTE (pas d'icône seule : si la police d'icônes ne charge pas, les boutons
     // devenaient des carrés vides invisibles — signalé par Tarik "aucun export visible").
     var mk=function(label,title,fn){var b=document.createElement('button');b.type='button';b.className='evo-fs-btn';b.title=title;b.textContent=label;b.onclick=function(e){e.stopPropagation();fn(b);};return b;};
@@ -5793,6 +5807,9 @@ function renderEvoObjectifs(rebuildControls){
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const nb=v=>v==null?"–":v.toLocaleString("fr-FR");
   const pcc=v=>v==null?"–":v+"%";
+  // Niveau vs objectif : atteint (≥100%) / proche (≥90%) / sous cible. hi=true → plus haut = mieux.
+  const lvl3=(v,obj,hi=true)=>{ if(v==null||obj==null||isNaN(obj)||obj<=0)return ''; const r=hi?v/obj:obj/v; return r>=1?'good':(r>=0.9?'warn':'bad'); };
+  const chip=(txt,lvl)=> lvl?`<span class="st-chip st-${lvl}">${txt}</span>`:`<span style="color:var(--t-secondary)">${txt}</span>`;
   const cs=(p.camps||[]).map(c=>{
     const tauxCU=parseFloat(evoGetObjC(c.id,'cu','25'));
     const fichier=c.fichierTotal; // donnée Evo, lecture seule — jamais un objectif
@@ -5817,10 +5834,10 @@ function renderEvoObjectifs(rebuildControls){
     const achObjRaw=evoGetObjC(c.id,'acch','');const achObj=parseFloat(achObjRaw);
     const txExplObjRaw=evoGetObjC(c.id,'txexpl','');const txExplObj=parseFloat(txExplObjRaw);
     const curObjRaw=evoGetObjC(c.id,'curest','');
-    const attCol=c.atteinte==null?'var(--t-secondary)':(c.atteinte>=100?'#E8006E':'#4C9AFF');
-    const accCol=txAcc==null?'var(--t-secondary)':(!isNaN(txAccObj)&&txAcc>=txAccObj?'#1d9e75':'#E8006E');
-    const achCol=aH==null?'var(--t-secondary)':(!isNaN(achObj)&&aH>=achObj?'#1d9e75':'#E8006E');
-    const txExplCol=txExpl==null?'var(--t-secondary)':(!isNaN(txExplObj)&&txExpl>=txExplObj?'#1d9e75':'#E8006E');
+    const attLvl=lvl3(c.atteinte,100);
+    const accLvl=isNaN(txAccObj)?'':lvl3(txAcc,txAccObj);
+    const achLvl=isNaN(achObj)?'':lvl3(aH,achObj);
+    const txExplLvl=isNaN(txExplObj)?'':lvl3(txExpl,txExplObj);
     return `<tr>
       <td style="text-align:left;font-weight:600">${ec(c.nom)}</td>
       <td title="Fichier en production — donnée Evo, non modifiable"><b>${c.fichier?nb(c.fichier):'–'}</b></td>
@@ -5828,14 +5845,14 @@ function renderEvoObjectifs(rebuildControls){
       <td><input type="number" min="0" max="100" step="0.5" value="${isNaN(c.tauxCU)?'':c.tauxCU}" onchange="evoSetObjC('${c.id}','cu',this.value)" class="eca-inp" style="width:56px"></td>
       <td><b>${c.cuObj==null?'–':nb(c.cuObj)}</b></td>
       <td class="eca-pink">${nb(c.cu)}</td>
-      <td style="color:${attCol};font-weight:600">${c.atteinte==null?'–':c.atteinte+'%'}</td>
+      <td>${c.atteinte==null?'<span style="color:var(--t-secondary)">–</span>':chip(c.atteinte+'%',attLvl)}</td>
       <td><input type="number" min="0" value="${curObjRaw}" placeholder="cible" onchange="evoSetObjC('${c.id}','curest',this.value)" class="eca-inp" style="width:60px"></td>
-      <td>${pcc(txExpl)}</td>
+      <td>${txExpl==null?'<span style="color:var(--t-secondary)">–</span>':(txExplLvl?chip(pcc(txExpl),txExplLvl):pcc(txExpl))}</td>
       <td><input type="number" min="0" max="100" step="1" value="${txExplObjRaw}" placeholder="obj" onchange="evoSetObjC('${c.id}','txexpl',this.value)" class="eca-inp" style="width:52px"></td>
-      <td style="font-weight:600;color:${accCol}">${pcc(txAcc)}</td>
+      <td>${txAcc==null?'<span style="color:var(--t-secondary)">–</span>':(accLvl?chip(pcc(txAcc),accLvl):'<b>'+pcc(txAcc)+'</b>')}</td>
       <td><input type="number" min="0" max="100" step="1" value="${txAccObjRaw}" placeholder="20" onchange="evoSetObjC('${c.id}','txacc',this.value)" class="eca-inp" style="width:50px"></td>
       <td>${pcc(txDesc)}</td>
-      <td style="font-weight:600;color:${achCol}">${aH==null?'–':aH.toLocaleString('fr-FR')}</td>
+      <td>${aH==null?'<span style="color:var(--t-secondary)">–</span>':(achLvl?chip(aH.toLocaleString('fr-FR'),achLvl):'<b>'+aH.toLocaleString('fr-FR')+'</b>')}</td>
       <td><input type="number" min="0" step="0.1" value="${achObjRaw}" placeholder="obj" onchange="evoSetObjC('${c.id}','acch',this.value)" class="eca-inp" style="width:48px"></td>
     </tr>`;
   }).join("");
@@ -5847,7 +5864,7 @@ function renderEvoObjectifs(rebuildControls){
       <th title="Accords ÷ CU (réalisé)">Tx accord</th><th title="Objectif taux d'accord">Obj. accord</th><th title="Accords ÷ fichier">Tx descente</th>
       <th title="Accords par heure de production">C+/h</th><th title="Objectif C+/h">Obj. C+/h</th>
     </tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':aggAtteinte+'%'}</td><td>–</td><td>${pcc(aggTxExpl)}</td><td>–</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>–</td><td>${pcc(aggTxDesc)}</td><td class="eca-pink">${accH==null?'–':accH.toLocaleString('fr-FR')}</td><td>–</td></tr></tfoot>
+    <tfoot><tr class="eca-cum"><td>TOTAL ${cs.length} camp.</td><td>${nb(aggFichier)}</td><td>–</td><td>–</td><td>${aggCuObj==null?'–':nb(aggCuObj)}</td><td class="eca-pink">${nb(aggCu)}</td><td>${aggAtteinte==null?'–':chip(aggAtteinte+'%',lvl3(aggAtteinte,100))}</td><td>–</td><td>${pcc(aggTxExpl)}</td><td>–</td><td class="eca-pink">${pcc(aggTxAcc)}</td><td>–</td><td>${pcc(aggTxDesc)}</td><td class="eca-pink">${accH==null?'–':accH.toLocaleString('fr-FR')}</td><td>–</td></tr></tfoot>
     </table></div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px;color:var(--t-secondary)">
       <span>CU / h (périmètre) : <b style="color:#E8006E">${cuH==null?'n.d.':cuH.toLocaleString('fr-FR')}</b></span>
