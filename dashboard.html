@@ -670,9 +670,14 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .st-good{background:rgba(29,158,117,.18);color:#3fe0a5;}
 .st-warn{background:rgba(255,159,10,.18);color:#ffb340;}
 .st-bad{background:rgba(232,0,110,.16);color:#ff5a97;}
+.st-under{background:rgba(55,138,221,.16);color:#6db3f5;}
+/* Pastille "campagne active" : agents connectés + CU générés */
+.evo-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#30d158;box-shadow:0 0 0 0 rgba(48,209,88,.5);animation:evoLivePulse 1.8s infinite;flex-shrink:0;}
+@keyframes evoLivePulse{0%{box-shadow:0 0 0 0 rgba(48,209,88,.5)}70%{box-shadow:0 0 0 5px rgba(48,209,88,0)}100%{box-shadow:0 0 0 0 rgba(48,209,88,0)}}
 body.light .st-good{background:rgba(29,158,117,.14);color:#0e7a56;}
 body.light .st-warn{background:rgba(214,138,0,.18);color:#8a5a00;}
 body.light .st-bad{background:rgba(232,0,110,.11);color:#b3004f;}
+body.light .st-under{background:rgba(55,138,221,.12);color:#185fa5;}
 /* Plein écran d'un module (clic sur ⛶) */
 .panel-fullscreen{position:fixed!important;inset:0;z-index:9999;margin:0!important;border-radius:0;overflow:auto;background:var(--s-1);padding:0 0 30px;}
 body.light .panel-fullscreen{background:#f4f4f6;}
@@ -4873,8 +4878,17 @@ function renderEvoCampFilter(d){
   const box=document.getElementById("evo-camp-filter"); if(!box)return;
   const camps=(d.campagnes||[]).map(c=>c.nom).sort((a,b)=>a.localeCompare(b,"fr"));
   if(!camps.length){box.innerHTML="";return;}
-  // Première fois : tout sélectionné par défaut.
-  if(_evoSelectedCamps===null) _evoSelectedCamps=new Set(camps);
+  // Première fois : auto-cocher UNIQUEMENT les campagnes actives (≥1 agent connecté ET des
+  // appels traités du jour) → évite la surcharge de campagnes inactives. Le manager complète
+  // manuellement ensuite. Repli : si aucune active (hors horaires), tout cocher.
+  if(_evoSelectedCamps===null){
+    const active=new Set();
+    (d.campagnes||[]).forEach(c=>{
+      const app=c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0));
+      if((c.agents||0)>0 && app>0) active.add(c.nom);
+    });
+    _evoSelectedCamps = active.size ? active : new Set(camps);
+  }
   // On retire du set les campagnes qui n'existent plus (sans refill auto : « Aucune » doit rester vide).
   _evoSelectedCamps=new Set([..._evoSelectedCamps].filter(n=>camps.includes(n)));
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
@@ -5294,6 +5308,32 @@ function renderEvo(d){
     hcByCamp[k]=(hcByCamp[k]||0)+(cc.hc||0);
   }));
 
+  // ── Staffing idéal & alerte sur-staffing ─────────────────────────────────────
+  // Payé au CU : trop d'agents sur un petit fichier restant = heures brûlées sans volume → critique.
+  // Idéal = effectif nécessaire pour épuiser le CU encore réalisable (fichier restant × taux CU visé)
+  //         d'ici la fin de plage, à la vitesse CU/heure-agent constatée du jour.
+  const _hm2m=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})/);return m?(+m[1]*60+ +m[2]):null;};
+  const _dateVal=(document.getElementById('evo-date-filter')||{}).value||'';
+  const _parisToday=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Paris'});
+  const _isToday=(!_dateVal||_dateVal===_parisToday);
+  const _debMin=_hm2m((document.getElementById('evo-heure-deb')||{}).value)||420;
+  const _finMin=_hm2m((document.getElementById('evo-heure-fin')||{}).value)||1200;
+  const _effNow=_isToday?Math.min(_finMin,Math.max(_debMin,parisNowMin())):_debMin;
+  const _hRest=Math.max(0,(_finMin-_effNow))/60; // heures restantes dans la plage
+  function evoStaffing(c,cuC,hp){
+    if(!_isToday) return {na:'hist'};
+    const dispo=c.fichier?c.fichier.disponibles:null;                 // fiches restantes en base
+    const tauxCU=(parseFloat(evoGetObjC(c.id,'cu','25'))||25)/100;    // taux CU visé (obj, défaut 25%)
+    const vitesse=hp>0?cuC/hp:null;                                   // CU par heure-agent constaté
+    if(dispo==null||vitesse==null||vitesse<=0||_hRest<=0) return {na:'nd',vitesse};
+    const cuRestant=dispo*tauxCU;                                     // CU encore réalisables
+    const ideal=cuRestant/(vitesse*_hRest);                          // agents nécessaires d'ici fin de plage
+    const staffes=c.agents||0;
+    const ratio=ideal>0?staffes/ideal:(staffes>0?Infinity:0);
+    let lvl=''; if(ratio>1.5||(ideal<0.5&&staffes>0))lvl='bad'; else if(ratio>1.2)lvl='warn'; else if(ratio<0.8&&staffes>0)lvl='under';
+    return {vitesse,cuRestant,ideal,staffes,ratio,lvl,dispo};
+  }
+  let _overCrit=0,_overWarn=0;
   document.getElementById("evo-camp-table").innerHTML=camps.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th class="evo-lo" title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels reçus par les agents, quelle que soit la résolution (réalisé du jour, source SQL)">Reçus</th>
@@ -5305,6 +5345,7 @@ function renderEvo(d){
       <th class="evo-lo" title="Durée Moy. Conv. — sur contacts utiles (source SQL)">DMC</th>
       <th class="evo-lo" title="Contacts utiles ÷ appels traités (jour)">Contact%</th><th class="evo-lo" title="Refus (CU−) ÷ contacts utiles">Refus %</th>
       <th class="evo-lo" title="Fiches encore à traiter / fichier total (cumulé)">Fichier</th>
+      <th title="Effectif idéal = agents nécessaires pour épuiser le CU du fichier restant d'ici la fin de plage, à la vitesse CU/h-agent constatée. Format : staffés / ~idéal. Sur-staffing (payé au CU) : ambre >1,2× · rouge >1,5×">Staffing</th>
     </tr></thead>
     <tbody>${camps.map(c=>{
       const hp=getHP(c);
@@ -5320,7 +5361,7 @@ function renderEvo(d){
       const hcN=hcByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       return `<tr>
-      <td style="text-align:left;max-width:190px"><span class="evo-rc-name" title="${ec(c.nom)}">${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
+      <td style="text-align:left;max-width:190px"><span class="evo-rc-name" title="${ec(c.nom)}">${(c.agents>0&&cuC>0)?'<span class="evo-live-dot" title="Campagne active : agents connectés + CU générés"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
       <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td class="evo-lo">${cuC.toLocaleString("fr-FR")}</td>
@@ -5335,14 +5376,28 @@ function renderEvo(d){
       <td class="evo-lo">${contactPct==null?"–":contactPct+"%"}</td>
       <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
       <td class="evo-lo">${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="16" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+      <td>${(function(){const st=evoStaffing(c,cuC,hp);
+        if(st.na==='hist')return '<span style="color:var(--t-disabled)" title="Staffing calculé en temps réel — aujourd\'hui uniquement">–</span>';
+        if(st.na)return '<span style="color:var(--t-disabled)" title="Données insuffisantes (fichier restant ou production manquants)">n.d.</span>';
+        const idealTxt=st.ideal<1?st.ideal.toFixed(1):Math.round(st.ideal).toString();
+        const ratioTxt=st.ratio===Infinity?'∞':st.ratio.toFixed(2);
+        const cls=st.lvl==='bad'?'st-bad':st.lvl==='warn'?'st-warn':st.lvl==='under'?'st-under':'st-good';
+        const icon=st.lvl==='bad'?'⚠ ':st.lvl==='warn'?'▲ ':st.lvl==='under'?'▽ ':'';
+        if(st.lvl==='bad')_overCrit++; else if(st.lvl==='warn')_overWarn++;
+        const t='Staffés '+st.staffes+' · idéal ~'+idealTxt+' (ratio '+ratioTxt+'×) — vitesse '+EVO_R1(st.vitesse)+' CU/h-agent · fichier restant '+st.dispo.toLocaleString('fr-FR')+' · '+_hRest.toFixed(1)+'h de plage restante';
+        return '<span class="st-chip '+cls+'" title="'+t+'">'+icon+st.staffes+' / ~'+idealTxt+'</span>';
+      })()}</td>
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
     const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);
     const gCu=gAcc+gRef;
     const gCuh=gHp>0?gCu/gHp:null, gTx=gCu>0?Math.round(gAcc/gCu*100):null;
     const cuhObj=parseFloat(evoGetObj('cuh','')), txObj=parseFloat(evoGetObj('acch',''));
-    evoSetHdrPills(badge,evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
+    const staffPill=(_overCrit||_overWarn)
+      ? `<span title="Campagnes sur-staffées vs fichier restant (payé au CU) — voir colonne Staffing" style="display:inline-flex;align-items:center;gap:4px;background:${_overCrit?'rgba(232,0,110,.16)':'rgba(255,159,10,.16)'};color:${_overCrit?'#E8006E':'#ff9f0a'};font-weight:700;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">⚠ ${_overCrit?_overCrit+' sur-staffée'+(_overCrit>1?'s':'')+' crit.':''}${_overCrit&&_overWarn?' · ':''}${_overWarn?_overWarn+' à surveiller':''}</span>`
+      : '';
+    evoSetHdrPills(badge,staffPill+evoPill("Taux acc.",gTx==null?'–':gTx+'%',isNaN(txObj)?'':txObj+'%',!isNaN(txObj)&&gTx!=null&&gTx>=txObj)
       +evoPill("CU/h",gCuh==null?'–':EVO_R1(gCuh),isNaN(cuhObj)?'':EVO_R1(cuhObj),!isNaN(cuhObj)&&gCuh!=null&&gCuh>=cuhObj));
   })();
 
