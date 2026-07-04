@@ -167,19 +167,27 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             return cid, [r for r in rows if r.get("GroupLevel") == 0]
         except Exception:
             return cid, []
+    # Seuil "abandon rapide" : un client qui raccroche vite (SVI) n'est pas un appel qu'on
+    # aurait pu prendre. Durée retenue = TransT (temps total de la transaction) — pour un
+    # abandon SVI, QueueT vaut 0 (jamais mis en file), TransT = temps réel avant raccroché.
+    ABANDON_FAST_SEC = 25
     inbound_camps = []
     in_detail = []
     with ThreadPoolExecutor(max_workers=4) as pool:
         for cid, det in pool.map(_camp_detail, sorted(INBOUND_CAMPS)):
             recu = len(det)
-            ans = aband = q_sum = q_n = c_sum = c_n = 0
+            ans = aband = aband_fast = aband_real = q_sum = q_n = c_sum = c_n = 0
             by_agent = collections.defaultdict(lambda: {"ans": 0, "c_sum": 0, "c_n": 0, "q_sum": 0, "q_n": 0})
             for tx in det:
                 agent_nom = clean_name(str(tx.get("Agent", "")))
                 is_system = (not agent_nom or agent_nom.strip().upper() == "SYSTEM")
                 res = str(tx.get("Description", "")); q = hms(tx.get("QueueT")); cv = hms(tx.get("ConvT"))
                 if q: q_sum += q; q_n += 1
-                if "abandon" in res.lower(): aband += 1
+                if "abandon" in res.lower():
+                    aband += 1
+                    dur = hms(tx.get("TransT")) or q  # temps avant raccroché
+                    if dur < ABANDON_FAST_SEC: aband_fast += 1
+                    else: aband_real += 1
                 if not is_system:
                     ans += 1
                     if cv: c_sum += cv; c_n += 1
@@ -192,10 +200,14 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                         "fiche": str(tx.get("Customer", "")), "res": res,
                         "queue_sec": q, "conv_sec": cv,
                     })
+            # reçus "utiles" = reçus − abandons rapides (appels réellement offrables)
+            recu_utile = recu - aband_fast
             inbound_camps.append({
                 "id": cid, "nom": camp_name_by_id.get(cid, cid).split(' [')[0],
                 "recu": recu, "ans": ans, "aband": aband,
-                "qs": round(ans / recu * 100) if recu else None,
+                "aband_fast": aband_fast, "aband_real": aband_real, "recu_utile": recu_utile,
+                "qs": round(ans / recu * 100) if recu else None,           # QS brut (÷ tous reçus)
+                "qs_utile": round(ans / recu_utile * 100) if recu_utile else None,  # QS hors abandons <25s
                 "att_moy": round(q_sum / q_n) if q_n else None,
                 "conv_moy": round(c_sum / c_n) if c_n else None,
                 "agents": sorted([
@@ -206,9 +218,12 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             })
     in_detail.sort(key=lambda r: r["ts"] or 0, reverse=True)
     inbound = {
-        "camps": inbound_camps, "detail": in_detail,
+        "camps": inbound_camps, "detail": in_detail, "abandonFastSec": ABANDON_FAST_SEC,
         "totRecu": sum(c["recu"] for c in inbound_camps),
         "totAns": sum(c["ans"] for c in inbound_camps),
+        "totAbandFast": sum(c["aband_fast"] for c in inbound_camps),
+        "totAbandReal": sum(c["aband_real"] for c in inbound_camps),
+        "totRecuUtile": sum(c["recu_utile"] for c in inbound_camps),
     }
 
     # Heures de connexion réelles par agent = somme des sessions DISTINCTES (déjà dédupées).

@@ -5472,22 +5472,26 @@ function renderEvoInbound(d){
     if(badge)evoSetHdrPills(badge,'');
     return;
   }
-  const qs=totRecu?Math.round(totAns/totRecu*100):null;
-  const aband=camps.reduce((s,c)=>s+(c.aband||0),0);
+  const fastSec=ib.abandonFastSec||25;
+  const abFast=ib.totAbandFast||0, abReal=ib.totAbandReal||0, recuUtile=ib.totRecuUtile||(totRecu-abFast);
+  const qs=totRecu?Math.round(totAns/totRecu*100):null;               // QS brut ÷ tous reçus
+  const qsUtile=recuUtile>0?Math.round(totAns/recuUtile*100):null;    // QS hors abandons <25s
   const wavg=(f)=>{let sv=0,sw=0;camps.forEach(c=>{const v=f(c);if(v!=null){sv+=v*(c.ans||c.recu||1);sw+=(c.ans||c.recu||1);}});return sw?Math.round(sv/sw):null;};
   const attMoy=wavg(c=>c.att_moy), convMoy=wavg(c=>c.conv_moy);
-  if(badge)evoSetHdrPills(badge,evoPill("QS",qs==null?'–':qs+'%','',qs!=null&&qs>=80)+evoPill("Reçus",EVO_NB(totRecu),'',false));
-  const kpi=[['QS',qs==null?'–':qs+'%','#E8006E',true],['Reçus',EVO_NB(totRecu),'#E8006E'],['Répondus',EVO_NB(totAns),''],['Abandonnés',EVO_NB(aband),'var(--t-secondary)'],['Attente moy.',fmtS(attMoy),''],['Conv. moy.',fmtS(convMoy),'']];
+  if(badge)evoSetHdrPills(badge,evoPill("QS utile",qsUtile==null?'–':qsUtile+'%','',qsUtile!=null&&qsUtile>=80)+evoPill("Reçus",EVO_NB(totRecu),'',false));
+  // "QS utile" = répondus ÷ (reçus − abandons <25s) : exclut les raccrochés instantanés
+  const kpi=[['QS utile',qsUtile==null?'–':qsUtile+'%','#E8006E',true],['Reçus',EVO_NB(totRecu),'#E8006E'],['Répondus',EVO_NB(totAns),''],['Aband. <'+fastSec+'s',EVO_NB(abFast),'var(--t-secondary)'],['Aband. réel',EVO_NB(abReal),'#ff9f0a'],['Attente moy.',fmtS(attMoy),''],['Conv. moy.',fmtS(convMoy),''],['QS brut',qs==null?'–':qs+'%','']];
   // Tableau par campagne entrante
   const campHtml=camps.map(c=>{
-    const qc=c.qs;
+    const qc=c.qs_utile;
     return `<tr>
       <td style="text-align:left"><span class="evo-rc-name">${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis">${ec(c.nom)}</span></span></td>
       <td style="color:#E8006E;font-weight:700">${EVO_NB(c.recu)}</td>
       <td>${EVO_NB(c.ans)}</td>
-      <td class="evo-lo">${EVO_NB(c.aband)}</td>
-      <td><b style="color:${qc!=null&&qc>=80?'#1d9e75':'#E8006E'}">${qc==null?'–':qc+'%'}</b></td>
-      <td>${fmtS(c.att_moy)}</td>
+      <td class="evo-lo" title="Client raccroché en moins de ${fastSec}s (SVI) — pas un appel réellement offrable">${EVO_NB(c.aband_fast)}</td>
+      <td title="Abandon après ${fastSec}s d'attente — appel qu'on aurait pu prendre">${EVO_NB(c.aband_real)}</td>
+      <td><b style="color:${qc!=null&&qc>=80?'#1d9e75':'#E8006E'}" title="Répondus ÷ (reçus − abandons <${fastSec}s)">${qc==null?'–':qc+'%'}</b></td>
+      <td class="evo-lo">${fmtS(c.att_moy)}</td>
       <td class="evo-lo">${fmtS(c.conv_moy)}</td>
     </tr>`;
   }).join('');
@@ -5515,7 +5519,7 @@ function renderEvoInbound(d){
   box.innerHTML=`
     <div class="eca-kpis">${evoKpiBand(kpi)}</div>
     <div class="eca-tw" style="border-bottom:1px solid var(--border)">
-      <table class="eca-tbl"><thead><tr><th style="text-align:left">Campagne entrante</th><th>Reçus</th><th>Répondus</th><th class="evo-lo">Abandon</th><th>QS</th><th>Attente moy.</th><th class="evo-lo">Conv. moy.</th></tr></thead>
+      <table class="eca-tbl"><thead><tr><th style="text-align:left">Campagne entrante</th><th>Reçus</th><th>Répondus</th><th class="evo-lo" title="Client raccroché en moins de ${fastSec}s (SVI)">Aband. &lt;${fastSec}s</th><th title="Abandon après ${fastSec}s d'attente — appel offrable">Aband. réel</th><th title="Répondus ÷ (reçus − abandons rapides)">QS utile</th><th class="evo-lo">Attente moy.</th><th class="evo-lo">Conv. moy.</th></tr></thead>
       <tbody>${campHtml}</tbody></table>
     </div>
     <div style="display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:0;align-items:start" class="evo-ra-cols">
