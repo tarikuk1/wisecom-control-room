@@ -104,18 +104,23 @@ def main():
             print("Aucune donnée pour", sys.argv[1])
         return
 
-    # Jour courant (repli jusqu'à 7 j en arrière si journée encore vide : tôt le matin / week-end).
+    # Jour courant. Si la journée est encore vide (tôt le matin / week-end), NE PAS ré-exporter
+    # un jour passé depuis Evolution : la plateforme ne renvoie que le jour courant → l'export
+    # serait CREUX et écraserait l'historique. On rejoue plutôt la dernière archive locale complète.
     today = datetime.date.today()
     body, payload = build_body(today)
     if not body:
-        for back in range(1, 8):
-            body, payload = build_body(today - datetime.timedelta(days=back))
-            if body:
-                break
+        files = sorted(f for f in os.listdir(HIST_DIR) if f.endswith(".json"))
+        if files:
+            with open(os.path.join(HIST_DIR, files[-1]), encoding="utf-8") as f:
+                body = json.load(f)
+            payload = None
+            log(f"jour courant vide → rejeu archive locale {files[-1]}")
     if body:
         archive_local(body)
         r = post(body)
-        log(f"OK stats={len(payload['sqlStats'])} agents={len(payload['sqlAgentCamps'])} date={body.get('dataDate')} resp={r.get('ok')}")
+        nst = len(payload['sqlStats']) if payload else "(archive)"
+        log(f"OK stats={nst} date={body.get('dataDate')} resp={r.get('ok')} skipped={r.get('skipped')}")
         print("OK", r)
     # Rattrapage : réaligne l'historique serveur sur l'archive locale (après un redéploiement).
     reconcile()

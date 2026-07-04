@@ -1463,6 +1463,18 @@ const server=http.createServer(async(req,res)=>{
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
         // Tous les champs sauf campaigns/agents sont optionnels — compat avec l'ancien script.
         const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,inbound:inbound||null,dataDate:dataDate||null};
+        // ── Garde anti-dégradation ─────────────────────────────────────────────────
+        // Un ré-export d'un jour qu'Evolution ne fournit plus (week-end, jour passé) renvoie
+        // un payload CREUX (sqlStats/sqlAgentCamps vides). Il ne doit JAMAIS écraser une
+        // archive/cache plus riche pour la même journée (sinon « aucune donnée » après coup).
+        const _rich=x=>!!x&&((Array.isArray(x.rawSqlStats)&&x.rawSqlStats.length>0)||(Array.isArray(x.rawSqlAgentCamps)&&x.rawSqlAgentCamps.length>0));
+        const _incomingRich=(Array.isArray(sqlStats)&&sqlStats.length>0)||(Array.isArray(sqlAgentCamps)&&sqlAgentCamps.length>0);
+        const _existing=newCache.dataDate?evoLoadHist(newCache.dataDate):null;
+        const _liveSameDate=_evoCache&&_evoCache.dataDate&&newCache.dataDate&&_evoCache.dataDate===newCache.dataDate;
+        if(!_incomingRich && (_rich(_existing) || (_liveSameDate && _rich(_evoCache)))){
+          console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] envoi creux ignoré pour "+newCache.dataDate+" (données plus riches conservées)");
+          res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,skipped:"hollow",dataDate:newCache.dataDate}));
+        }
         evoSaveHist(newCache); // archive de la journée (consultable via ?date=)
         // Ne remplacer le cache LIVE que si l'envoi est du jour courant ou plus récent —
         // un backfill d'une journée antérieure ne doit pas écraser l'affichage temps réel.
