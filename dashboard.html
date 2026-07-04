@@ -4997,7 +4997,7 @@ function evoSaveCurrentView(){
   const allAgentIds=(_evoData.agentCamps||[]).map(a=>String(a.idAgente));
   const agents=(_evoSelectedAgents && _evoSelectedAgents.size && _evoSelectedAgents.size<allAgentIds.length)?[..._evoSelectedAgents].map(String):null;
   const views=evoLoadViews();
-  const id='v'+views.length+'_'+name.replace(/[^a-z0-9]/gi,'').slice(0,8);
+  const id='v'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); // id unique (pas de collision après suppressions)
   views.push({id,name,camps,agents});
   evoStoreViews(views); _evoActiveViewId=id; evoRenderViews();
   showToast('Vue « '+name+' » enregistrée');
@@ -5231,6 +5231,10 @@ function evoParseCell(t){
 }
 function evoSortTable(th,tbl){
   const idx=th.cellIndex, tbody=tbl.tBodies[0]; if(!tbody)return;
+  // Les lignes de détail agents (clic sur une campagne) ne sont pas des données : les trier
+  // les détacherait de leur campagne parente → on les replie avant tri.
+  tbody.querySelectorAll('tr.evo-camp-detail').forEach(r=>r.remove());
+  tbl.querySelectorAll('.evo-exp-ic').forEach(i=>i.className='ti ti-chevron-right evo-exp-ic');
   const dir=th.dataset.sdir==='asc'?'desc':'asc'; // 1er clic = croissant, 2e = décroissant
   tbl.querySelectorAll('th').forEach(h=>{h.dataset.sdir='';const i=h.querySelector('.evo-sort-ind');if(i)i.remove();});
   th.dataset.sdir=dir;
