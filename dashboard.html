@@ -5242,7 +5242,9 @@ function evoSortTable(th,tbl){
   const all=[...tbody.rows];
   const fixed=all.filter(r=>r.classList.contains('eca-cum')||r.classList.contains('total-row')); // cumuls : toujours en bas
   const rows=all.filter(r=>!fixed.includes(r));
-  const key=r=>{const c=r.cells[idx];if(!c)return -Infinity;const v=evoParseCell(c.innerText);return v===null?c.innerText.toLowerCase():v;};
+  const key=r=>{const c=r.cells[idx];if(!c)return -Infinity;
+    if(c.dataset&&c.dataset.sort!=null&&c.dataset.sort!=='')return parseFloat(c.dataset.sort); // valeur de tri explicite (ex. ratio staffing)
+    const v=evoParseCell(c.innerText);return v===null?c.innerText.toLowerCase():v;};
   rows.sort((a,b)=>{const ka=key(a),kb=key(b);
     const cmp=(typeof ka==='string'||typeof kb==='string')?String(ka).localeCompare(String(kb),'fr'):(ka-kb);
     return dir==='asc'?cmp:-cmp;});
@@ -5538,6 +5540,21 @@ function renderEvo(d){
       const tft=tftByCamp[String(c.id)]||0;
       const hcN=hcByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
+      // Staffing : calculé ici pour exposer un data-sort=ratio (tri propre de la colonne).
+      const st=evoStaffing(c,cuC,hp);
+      let stHtml,stSort;
+      if(st.na==='hist'){ stHtml='<span style="color:var(--t-disabled)" title="Staffing calculé en temps réel — aujourd\'hui uniquement">–</span>'; stSort=-1; }
+      else if(st.na){ stHtml='<span style="color:var(--t-disabled)" title="Données insuffisantes (fichier restant ou production manquants)">n.d.</span>'; stSort=-1; }
+      else{
+        const idealTxt=st.ideal<1?st.ideal.toFixed(1):Math.round(st.ideal).toString();
+        const ratioTxt=st.ratio===Infinity?'∞':st.ratio.toFixed(2);
+        const cls=st.lvl==='bad'?'st-bad':st.lvl==='warn'?'st-warn':st.lvl==='under'?'st-under':'st-good';
+        const icon=st.lvl==='bad'?'⚠ ':st.lvl==='warn'?'▲ ':st.lvl==='under'?'▽ ':'';
+        if(st.lvl==='bad')_overCrit++; else if(st.lvl==='warn')_overWarn++;
+        const t='Staffés '+st.staffes+' · idéal ~'+idealTxt+' (ratio '+ratioTxt+'×) — vitesse '+EVO_R1(st.vitesse)+' CU/h-agent · fichier restant '+st.dispo.toLocaleString('fr-FR')+' · '+_hRest.toFixed(1)+'h de plage restante';
+        stHtml='<span class="st-chip '+cls+'" title="'+t+'">'+icon+st.staffes+' / ~'+idealTxt+'</span>';
+        stSort=st.ratio===Infinity?999999:st.ratio;
+      }
       return `<tr>
       <td class="evo-camp-name-clk" style="text-align:left;max-width:190px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${(c.agents>0&&cuC>0)?'<span class="evo-live-dot" title="Campagne active : agents connectés + CU générés"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
       <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
@@ -5554,17 +5571,7 @@ function renderEvo(d){
       <td class="evo-lo">${contactPct==null?"–":contactPct+"%"}</td>
       <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
       <td class="evo-lo">${fichierT>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+fichierT.toLocaleString("fr-FR"):"–"}</td>
-      <td>${(function(){const st=evoStaffing(c,cuC,hp);
-        if(st.na==='hist')return '<span style="color:var(--t-disabled)" title="Staffing calculé en temps réel — aujourd\'hui uniquement">–</span>';
-        if(st.na)return '<span style="color:var(--t-disabled)" title="Données insuffisantes (fichier restant ou production manquants)">n.d.</span>';
-        const idealTxt=st.ideal<1?st.ideal.toFixed(1):Math.round(st.ideal).toString();
-        const ratioTxt=st.ratio===Infinity?'∞':st.ratio.toFixed(2);
-        const cls=st.lvl==='bad'?'st-bad':st.lvl==='warn'?'st-warn':st.lvl==='under'?'st-under':'st-good';
-        const icon=st.lvl==='bad'?'⚠ ':st.lvl==='warn'?'▲ ':st.lvl==='under'?'▽ ':'';
-        if(st.lvl==='bad')_overCrit++; else if(st.lvl==='warn')_overWarn++;
-        const t='Staffés '+st.staffes+' · idéal ~'+idealTxt+' (ratio '+ratioTxt+'×) — vitesse '+EVO_R1(st.vitesse)+' CU/h-agent · fichier restant '+st.dispo.toLocaleString('fr-FR')+' · '+_hRest.toFixed(1)+'h de plage restante';
-        return '<span class="st-chip '+cls+'" title="'+t+'">'+icon+st.staffes+' / ~'+idealTxt+'</span>';
-      })()}</td>
+      <td data-sort="${stSort}">${stHtml}</td>
     </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
