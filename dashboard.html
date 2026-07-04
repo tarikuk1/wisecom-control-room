@@ -5094,10 +5094,24 @@ function evoCollectPanelSections(panel){
   }
   return sections;
 }
+// Contexte de sélection (pour les exports) : vue active + périmètre campagnes.
+function evoSelectionCtx(){
+  if(typeof _evoData==='undefined'||!_evoData)return '';
+  var all=(_evoData.campagnes||[]).filter(function(c){return !EVO_INBOUND_IDS.has(String(c.id));}).map(function(c){return c.nom;});
+  var sel=_evoSelectedCamps?[..._evoSelectedCamps].filter(function(n){return all.indexOf(n)>=0;}):all;
+  var view=_evoActiveViewId?((evoLoadViews().find(function(v){return v.id===_evoActiveViewId;})||{}).name||''):'';
+  var s=(view?('Vue « '+view+' » · '):'')+sel.length+'/'+all.length+' campagne'+(sel.length>1?'s':'');
+  if(sel.length && sel.length<=8) s+=' : '+sel.join(', ');
+  return s;
+}
 function evoExportPanelCsv(btn){
   var panel=btn.closest('.panel'); if(!panel)return;
   var esc=function(t){return '"'+String(t==null?'':t).replace(/\s+/g,' ').replace(/"/g,'""').trim()+'"';};
   var rows=[];
+  rows.push(esc('Wisecom · Control Room — '+evoPanelTitle(panel)));
+  var _ctxSel=evoSelectionCtx(); if(_ctxSel)rows.push(esc('Sélection : '+_ctxSel));
+  rows.push(esc('Généré le '+new Date().toLocaleString('fr-FR')));
+  rows.push('');
   evoCollectPanelSections(panel).forEach(function(sec){
     if(sec.title||sec.subtitle)rows.push(esc((sec.title||'')+(sec.subtitle?' — '+sec.subtitle:'')));
     if(sec.kpis)sec.kpis.forEach(function(k){rows.push(esc(k.lab)+';'+esc(k.val)+(k.sub?';'+esc(k.sub):''));});
@@ -5150,7 +5164,7 @@ function evoExportPanelPdf(btn){
     +'@media print{@page{size:landscape;margin:9mm}}'
     +'</style></head><body>'
     +'<div class="hdr"><b>Wisecom</b><span>Control Room — '+esc(title)+'</span></div>'
-    +'<div class="sub">Généré le '+new Date().toLocaleString('fr-FR')+(ctx?' · Filtre : '+esc(ctx):'')+'</div>'
+    +'<div class="sub">Généré le '+new Date().toLocaleString('fr-FR')+(ctx?' · Filtre : '+esc(ctx):'')+(evoSelectionCtx()?' · Sélection : '+esc(evoSelectionCtx()):'')+'</div>'
     +body
     +'<div class="ftr">Wisecom · Control Room · export automatique</div>'
     +'<script>setTimeout(function(){window.print();},400);<\/script></body></html>');
