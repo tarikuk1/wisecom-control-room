@@ -671,6 +671,16 @@ body.light .eca-tbl .eca-mut{color:#787882;}
 .st-warn{background:rgba(255,159,10,.18);color:#ffb340;}
 .st-bad{background:rgba(232,0,110,.16);color:#ff5a97;}
 .st-under{background:rgba(55,138,221,.16);color:#6db3f5;}
+/* Vues sauvegardées (groupes campagnes/agents) */
+.evo-view-chip{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--s-2);}
+.evo-view-chip.on{border-color:var(--c-pink);background:var(--c-pink-subtle);}
+.evo-view-apply{border:none;background:transparent;color:var(--t-secondary);font-size:var(--fs-sm);font-weight:600;padding:5px 9px;cursor:pointer;white-space:nowrap;}
+.evo-view-chip.on .evo-view-apply{color:var(--c-pink);}
+.evo-view-n{display:inline-block;min-width:15px;text-align:center;font-size:9px;font-weight:700;background:var(--s-4);color:var(--t-muted);border-radius:8px;padding:0 4px;margin-left:2px;}
+.evo-view-chip.on .evo-view-n{background:var(--c-pink);color:#fff;}
+.evo-view-ic{border:none;background:transparent;color:var(--t-disabled);font-size:11px;padding:5px 6px;cursor:pointer;border-left:1px solid var(--border);}
+.evo-view-ic:hover{color:var(--t-primary);background:rgba(232,0,110,.08);}
+.evo-view-del:hover{color:#E8006E;}
 /* Pastille "campagne active" : agents connectés + CU générés */
 .evo-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#30d158;box-shadow:0 0 0 0 rgba(48,209,88,.5);animation:evoLivePulse 1.8s infinite;flex-shrink:0;}
 @keyframes evoLivePulse{0%{box-shadow:0 0 0 0 rgba(48,209,88,.5)}70%{box-shadow:0 0 0 5px rgba(48,209,88,0)}100%{box-shadow:0 0 0 0 rgba(48,209,88,0)}}
@@ -1572,6 +1582,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
         </div>
         <span id="evo-filter-badge" style="display:none;font-size:var(--fs-xs);color:var(--t-muted);background:var(--s-4);padding:3px 8px;border-radius:10px;"></span>
       </div>
+      <div id="evo-views" style="padding:10px 14px 0;"></div>
       <div id="evo-camp-filter" style="padding:10px 14px 0;"></div>
       <div id="evo-kpis" class="kpi-grid" style="padding:12px 14px;"></div>
     </div>
@@ -4929,7 +4940,72 @@ function evoCampSearch(q,keepFocus){
 function evoToggleCamp(nom){
   if(!_evoSelectedCamps)return;
   if(_evoSelectedCamps.has(nom))_evoSelectedCamps.delete(nom); else _evoSelectedCamps.add(nom);
+  _evoActiveViewId=null; // sélection manuelle → plus liée à une vue enregistrée
   if(_evoData)renderEvo(_evoData);
+}
+// ── Vues sauvegardées (groupes de campagnes + d'agents) ─────────────────────────
+// Persistées en localStorage. Une vue = { id, name, camps:[noms], agents:[ids]|null }.
+// agents null = tous. Permet de basculer vite entre des périmètres de suivi récurrents.
+let _evoActiveViewId=null;
+function evoLoadViews(){ try{return JSON.parse(localStorage.getItem('evoViews')||'[]');}catch(e){return [];} }
+function evoStoreViews(v){ try{localStorage.setItem('evoViews',JSON.stringify(v));}catch(e){} }
+function evoRenderViews(){
+  const box=document.getElementById('evo-views'); if(!box)return;
+  const views=evoLoadViews();
+  const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const chips=views.map(v=>{
+    const on=v.id===_evoActiveViewId;
+    return `<span class="evo-view-chip${on?' on':''}" title="${ec(v.name)} — ${(v.camps||[]).length} camp.${v.agents?(' · '+v.agents.length+' agents'):' · tous agents'}">`
+      +`<button type="button" onclick="evoApplyView('${v.id}')" class="evo-view-apply">${on?'● ':''}${ec(v.name)} <span class="evo-view-n">${(v.camps||[]).length}</span></button>`
+      +`<button type="button" onclick="evoUpdateView('${v.id}')" title="Mettre à jour avec la sélection actuelle" class="evo-view-ic">⟲</button>`
+      +`<button type="button" onclick="evoRenameView('${v.id}')" title="Renommer" class="evo-view-ic">✎</button>`
+      +`<button type="button" onclick="evoDeleteView('${v.id}')" title="Supprimer" class="evo-view-ic evo-view-del">✕</button>`
+      +`</span>`;
+  }).join('');
+  box.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span style="font-size:var(--fs-sm);color:var(--t-secondary);font-weight:700;">👁 Vues</span>
+    ${chips||'<span style="font-size:var(--fs-xs);color:var(--t-disabled)">Aucune vue enregistrée — sélectionnez des campagnes/agents puis « Enregistrer ».</span>'}
+    <button type="button" onclick="evoSaveCurrentView()" title="Enregistrer la sélection actuelle (campagnes + agents) comme vue" style="font-size:var(--fs-xs);padding:5px 11px;border-radius:6px;border:1px solid var(--c-pink);background:var(--c-pink-subtle);color:var(--c-pink);cursor:pointer;font-weight:700;margin-left:auto;">＋ Enregistrer la sélection</button>
+  </div>`;
+}
+function evoSaveCurrentView(){
+  if(!_evoData){return;}
+  const name=(prompt('Nom de la vue (groupe de campagnes / agents) :','')||'').trim();
+  if(!name)return;
+  const camps=_evoSelectedCamps?[..._evoSelectedCamps]:[];
+  const allAgentIds=(_evoData.agentCamps||[]).map(a=>String(a.idAgente));
+  const agents=(_evoSelectedAgents && _evoSelectedAgents.size && _evoSelectedAgents.size<allAgentIds.length)?[..._evoSelectedAgents].map(String):null;
+  const views=evoLoadViews();
+  const id='v'+views.length+'_'+name.replace(/[^a-z0-9]/gi,'').slice(0,8);
+  views.push({id,name,camps,agents});
+  evoStoreViews(views); _evoActiveViewId=id; evoRenderViews();
+  showToast('Vue « '+name+' » enregistrée');
+}
+function evoApplyView(id){
+  const v=evoLoadViews().find(x=>x.id===id); if(!v||!_evoData)return;
+  const allCamps=(_evoData.campagnes||[]).map(c=>c.nom);
+  _evoSelectedCamps=new Set((v.camps||[]).filter(n=>allCamps.includes(n)));
+  if(v.agents){ _evoSelectedAgents=new Set(v.agents.map(String)); }
+  else { _evoSelectedAgents=null; } // tous
+  _evoActiveViewId=id;
+  renderEvo(_evoData); evoRenderViews();
+}
+function evoUpdateView(id){
+  const views=evoLoadViews(); const v=views.find(x=>x.id===id); if(!v||!_evoData)return;
+  v.camps=_evoSelectedCamps?[..._evoSelectedCamps]:[];
+  const allAgentIds=(_evoData.agentCamps||[]).map(a=>String(a.idAgente));
+  v.agents=(_evoSelectedAgents && _evoSelectedAgents.size && _evoSelectedAgents.size<allAgentIds.length)?[..._evoSelectedAgents].map(String):null;
+  evoStoreViews(views); _evoActiveViewId=id; evoRenderViews();
+  showToast('Vue « '+v.name+' » mise à jour');
+}
+function evoRenameView(id){
+  const views=evoLoadViews(); const v=views.find(x=>x.id===id); if(!v)return;
+  const name=(prompt('Nouveau nom :',v.name)||'').trim(); if(!name)return;
+  v.name=name; evoStoreViews(views); evoRenderViews();
+}
+function evoDeleteView(id){
+  const views=evoLoadViews().filter(x=>x.id!==id);
+  evoStoreViews(views); if(_evoActiveViewId===id)_evoActiveViewId=null; evoRenderViews();
 }
 function evoSelectAllCamps(all){
   if(!_evoData)return;
@@ -4970,6 +5046,7 @@ function renderEvoAgentFilter(agCamps,agNameById){
 function evoToggleAgent(id){
   if(!_evoSelectedAgents)return;
   if(_evoSelectedAgents.has(id))_evoSelectedAgents.delete(id); else _evoSelectedAgents.add(id);
+  _evoActiveViewId=null;
   if(_evoData)renderEvo(_evoData);
 }
 function evoSelectAllAgents(all){
@@ -5144,6 +5221,7 @@ const EVO_INBOUND_IDS=new Set(['100000189','100000191']); // GENESIS_QUALIFICATI
 function renderEvo(d){
   evoAddFsButtons();
   renderEvoCampFilter(d);
+  evoRenderViews();
   const sel=_evoSelectedCamps||new Set((d.campagnes||[]).map(c=>c.nom));
 
   // ── Filtre date : les données chargées correspondent à d.dataDate (jour du snapshot) ──
