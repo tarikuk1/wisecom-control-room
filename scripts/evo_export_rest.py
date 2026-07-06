@@ -18,7 +18,7 @@ Pour la journée D, passer fdesde=D et fhasta=D+1. Idem heures (hhasta exclusif)
 
 Sortie : evo_payload_<date>.json à côté du script.
 """
-import json, urllib.request, base64, ssl, collections, re, sys, datetime
+import json, urllib.request, base64, ssl, collections, re, sys, datetime, time
 from concurrent.futures import ThreadPoolExecutor
 
 EVO_HOST = "evo1.ekiom.net"
@@ -154,8 +154,14 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             if sid_ses in seen_sessions:
                 continue
             aid_s = str(s.get("idAgente"))
-            seen_sessions[sid_ses] = (aid_s, hms(s.get("Session_duration")))
             b = _tsms(s.get("Begin")); e = _tsms(s.get("End"))  # End vide → session en cours
+            # Durée : le champ Session_duration est VIDE pour une session en cours (agent en ligne)
+            # → hms=0, ce qui écrasait la présence et faisait exploser les CU/h. On la recalcule
+            # depuis Begin/End (End manquant = maintenant).
+            dur = hms(s.get("Session_duration"))
+            if not dur and b:
+                dur = max(0, int(((e or int(time.time() * 1000)) - b) / 1000))
+            seen_sessions[sid_ses] = (aid_s, dur)
             agent_login[aid_s].append((b, e))
 
     # ── Appels ENTRANTS (SVI) — module dédié aux 2 campagnes entrantes (canal distinct) ──
