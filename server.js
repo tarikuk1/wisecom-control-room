@@ -528,6 +528,11 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
     nonContactes:_num(c.NCDia_Campanya),// non joignables
     abandons:_num(c.AbDia),           // abandons du jour
     finalises:_num(c.F),              // fiches finalisées par un agent
+    // Fichier EN PRODUCTION (mesurables) : à appeler = planifiées système + agent + nouvelles.
+    // Exclut explicitement les BLOQUÉES (B) et les CLÔTURÉES (F) → base des estimations.
+    fichierDispo:  _num(c.NP)+_num(c.PS)+_num(c.PA),
+    fichierBloque: _num(c.B),
+    fichierClot:   _num(c.F),
     // État du fichier (rapport « Estado de listas ») — null si non disponible
     fichierRecu:   est?est.imported :null,  // fichier reçu (total importé)
     fichierVierge: est?est.neuf     :null,  // fiches jamais appelées (« New »)
