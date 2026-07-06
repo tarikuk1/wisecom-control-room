@@ -5504,7 +5504,10 @@ function renderEvo(d){
   const _hRest=Math.max(0,(_finMin-_effNow))/60; // heures restantes dans la plage
   function evoStaffing(c,cuC,hp){
     if(!_isToday) return {na:'hist'};
-    const dispo=c.fichier?c.fichier.disponibles:null;                 // fiches restantes en base
+    // Fiches DISPONIBLES EN PRODUCTION uniquement (Total_Available de l'état des listes) :
+    // exclut les fiches clôturées et les segments en pause/bloqués (anciens fichiers). Repli
+    // sur le stock brut du rapport fichier si l'état des listes n'est pas disponible.
+    const dispo=(c.restantATraiter!=null)?c.restantATraiter:(c.fichier?c.fichier.disponibles:null);
     const tauxCU=(parseFloat(evoGetObjC(c.id,'cu','25'))||25)/100;    // taux CU visé (obj, défaut 25%)
     const vitesse=hp>0?cuC/hp:null;                                   // CU par heure-agent constaté
     if(dispo==null||vitesse==null||vitesse<=0||_hRest<=0) return {na:'nd',vitesse};
@@ -5538,7 +5541,7 @@ function renderEvo(d){
       const refusPct=cuC>0?Math.round(refusN/cuC*100):null;
       const fichierT=evoFichierTotal(c);
       const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
-      const dispo=c.fichier?c.fichier.disponibles:null;
+      const dispo=(c.restantATraiter!=null)?c.restantATraiter:(c.fichier?c.fichier.disponibles:null); // dispo EN PRODUCTION
       const tft=tftByCamp[String(c.id)]||0;
       const hcN=hcByCamp[String(c.id)]||0;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');

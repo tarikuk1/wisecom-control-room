@@ -47,7 +47,7 @@ def build_body(day):
     camps = ex._get("/v1/measurable/campaigns?format=json")
     agents = ex._get("/v1/measurable/agents?format=json")
     body = {
-        "campaigns": camps, "agents": agents, "estado": None,
+        "campaigns": camps, "agents": agents, "estado": payload.get("estado"),
         "sqlStats": payload["sqlStats"], "sqlFiles": None,
         "sqlAgentCamps": payload["sqlAgentCamps"], "sqlDiag": None,
         "inbound": payload.get("inbound"),

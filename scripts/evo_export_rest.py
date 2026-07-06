@@ -48,14 +48,22 @@ def _get(path):
     req = urllib.request.Request(f"{BASE}{path}", headers={"Authorization": "Basic " + AUTH})
     return json.load(urllib.request.urlopen(req, context=CTX, timeout=30))
 
-def invoke(rid, params):
+def invoke_raw(rid, params):
+    """Réponse brute d'un rapport (ReportData complet) — pour l'état des listes que le serveur parse lui-même."""
     body = json.dumps({"Parameters": [{"Name": k, "Value": v} for k, v in params.items()]}).encode()
     req = urllib.request.Request(f"{BASE}/v1/admin/reports/{rid}/invoke?format=json", data=body,
         headers={"Authorization": "Basic " + AUTH, "Content-Type": "application/json"}, method="POST")
-    d = json.load(urllib.request.urlopen(req, context=CTX, timeout=90))
+    return json.load(urllib.request.urlopen(req, context=CTX, timeout=90))
+
+def invoke(rid, params):
+    d = invoke_raw(rid, params)
     rd = d.get("ReportData") or {}
     H = [h["Header"] for h in rd.get("Headers", [])]
     return [dict(zip(H, r["Values"])) for r in rd.get("Rows", [])]
+
+# Rapport « Estado de listas » : état des fichiers par campagne (Total_Available = fiches
+# DISPONIBLES EN PRODUCTION, hors clôturées/en pause). Snapshot temps réel (sans dates).
+R_ESTADO = "100000035"
 
 def hms(s):
     m = re.match(r'^(\d+):(\d{2}):(\d{2})$', str(s) or '')
@@ -281,9 +289,14 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         dd, mm, yy = fdesde.split("/"); data_date = f"{yy}-{mm.zfill(2)}-{dd.zfill(2)}"
     except Exception:
         data_date = None
+    # État des listes (snapshot) — fiches disponibles EN PRODUCTION par campagne.
+    try:
+        raw_estado = invoke_raw(R_ESTADO, {})
+    except Exception:
+        raw_estado = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
             "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents,
-            "sessions": sessions, "inbound": inbound}
+            "sessions": sessions, "estado": raw_estado, "inbound": inbound}
 
 if __name__ == "__main__":
     args = sys.argv[1:]
