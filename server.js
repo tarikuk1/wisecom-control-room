@@ -1432,7 +1432,7 @@ const server=http.createServer(async(req,res)=>{
       const staleSec=Math.round((Date.now()-new Date(generatedAt).getTime())/1000);
       const metaSrc=histSrc||_evoCache; // champs annexes cohérents avec la journée servie
       res.writeHead(200,{"Content-Type":"application/json"});
-      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,inbound:(metaSrc&&metaSrc.inbound)||null,dataDate:(metaSrc&&metaSrc.dataDate)||null,...payload}));
+      return res.end(JSON.stringify({ok:true,generatedAt,staleSec,agentCamps,sqlDiag:rawSqlDiag||null,inbound:(metaSrc&&metaSrc.inbound)||null,sessions:(metaSrc&&metaSrc.sessions)||null,dataDate:(metaSrc&&metaSrc.dataDate)||null,...payload}));
     }catch(e){
       console.error("[evo/sortant] Erreur:",e&&e.message||e);
       res.writeHead(200,{"Content-Type":"application/json"});
@@ -1460,7 +1460,7 @@ const server=http.createServer(async(req,res)=>{
     if(!_m){res.writeHead(400,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"date requise"}));}
     const c=evoLoadHist(_m[1]);
     if(!c){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"absent"}));}
-    const body={campaigns:c.rawCamp,agents:c.rawAg,estado:c.rawEstado,sqlStats:c.rawSqlStats,sqlFiles:c.rawSqlFiles,sqlAgentCamps:c.rawSqlAgentCamps,sqlDiag:c.rawSqlDiag,inbound:c.inbound,dataDate:c.dataDate};
+    const body={campaigns:c.rawCamp,agents:c.rawAg,estado:c.rawEstado,sqlStats:c.rawSqlStats,sqlFiles:c.rawSqlFiles,sqlAgentCamps:c.rawSqlAgentCamps,sqlDiag:c.rawSqlDiag,inbound:c.inbound,sessions:c.sessions,dataDate:c.dataDate};
     res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,body}));
   }
   // Réception des données poussées par le script local (Planificateur de tâches).
@@ -1472,10 +1472,10 @@ const server=http.createServer(async(req,res)=>{
     let body="";req.on("data",c=>body+=c);
     req.on("end",()=>{
       try{
-        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,inbound,dataDate}=JSON.parse(body);
+        const{campaigns,agents,estado,sqlStats,sqlFiles,sqlAgentCamps,sqlDiag,inbound,sessions,dataDate}=JSON.parse(body);
         if(!campaigns||!agents)throw new Error("Champs 'campaigns'/'agents' manquants");
         // Tous les champs sauf campaigns/agents sont optionnels — compat avec l'ancien script.
-        const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,inbound:inbound||null,dataDate:dataDate||null};
+        const newCache={rawCamp:campaigns,rawAg:agents,rawEstado:estado||null,rawSqlStats:sqlStats||null,rawSqlFiles:sqlFiles||null,rawSqlAgentCamps:sqlAgentCamps||null,rawSqlDiag:sqlDiag||null,inbound:inbound||null,sessions:sessions||null,dataDate:dataDate||null};
         // ── Garde anti-dégradation ─────────────────────────────────────────────────
         // Un ré-export d'un jour qu'Evolution ne fournit plus (week-end, jour passé) renvoie
         // un payload CREUX (sqlStats/sqlAgentCamps vides). Il ne doit JAMAIS écraser une

@@ -124,6 +124,10 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     sqlStats = []
     agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "hc": 0, "ra_nb": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
+    agent_login = collections.defaultdict(list)  # idAgente -> [(begin_ms, end_ms|None)] pour 1ère cnx/déco
+    _tsre = re.compile(r'/Date\((\d+)')
+    def _tsms(v):
+        m = _tsre.search(str(v) or ""); return int(m.group(1)) if m else None
     names = {}          # idAgente -> nom nettoyé (pour l'historique : agents pas connectés maintenant)
     native_camps_by_svc = collections.defaultdict(set)  # idsvc -> {idCampanya déjà vus via R_TRANS}
     for sid in services:
@@ -149,7 +153,10 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
             sid_ses = s.get("idSesionAgente")
             if sid_ses in seen_sessions:
                 continue
-            seen_sessions[sid_ses] = (str(s.get("idAgente")), hms(s.get("Session_duration")))
+            aid_s = str(s.get("idAgente"))
+            seen_sessions[sid_ses] = (aid_s, hms(s.get("Session_duration")))
+            b = _tsms(s.get("Begin")); e = _tsms(s.get("End"))  # End vide → session en cours
+            agent_login[aid_s].append((b, e))
 
     # ── Appels ENTRANTS (SVI) — module dédié aux 2 campagnes entrantes (canal distinct) ──
     # Le client APPELLE ; on mesure, PAR campagne entrante et par agent :
@@ -252,6 +259,17 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
                 "dmc_sec": round(v["comm_sum"] / v["comm_n"]) if v["comm_n"] else None,
             })
+    # Sessions par agent : 1ère connexion (min Begin), déconnexion (max End) — suivi ponctualité.
+    # online=True si au moins une session sans End (encore connecté) → pas d'heure de déco.
+    sessions = []
+    for aid, lst in agent_login.items():
+        begins = [b for b, e in lst if b]
+        ends = [e for b, e in lst if e]
+        online = any(e is None for b, e in lst)
+        sessions.append({"idAgente": aid,
+                         "firstBegin": min(begins) if begins else None,
+                         "lastEnd": None if online else (max(ends) if ends else None),
+                         "online": online})
     # date ISO du jour des données (fdesde dd/mm/yyyy -> yyyy-mm-dd) pour le filtre date du dashboard
     try:
         dd, mm, yy = fdesde.split("/"); data_date = f"{yy}-{mm.zfill(2)}-{dd.zfill(2)}"
@@ -259,7 +277,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         data_date = None
     return {"fdesde": fdesde, "fhasta": fhasta, "hdesde": hdesde, "hhasta": hhasta, "dataDate": data_date,
             "sqlStats": sqlStats, "sqlAgentCamps": sqlAgentCamps, "agents": agents,
-            "inbound": inbound}
+            "sessions": sessions, "inbound": inbound}
 
 if __name__ == "__main__":
     args = sys.argv[1:]

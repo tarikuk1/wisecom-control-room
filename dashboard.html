@@ -5267,7 +5267,7 @@ function evoToggleCampAgents(td,campId){
   document.querySelectorAll('#evo-camp-table .evo-exp-ic').forEach(i=>i.className='ti ti-chevron-right evo-exp-ic');
   const d=_evoData; if(!d)return;
   const ec=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-  const list=(d.agentCamps||[]).map(a=>{const cc=(a.camps||[]).find(x=>String(x.idCampanya)===String(campId)); return cc?{nom:a.nom||('Agent #'+a.idAgente),cc:cc}:null;})
+  const list=(d.agentCamps||[]).map(a=>{const cc=(a.camps||[]).find(x=>String(x.idCampanya)===String(campId)); return cc?{nom:a.nom||('Agent #'+a.idAgente),id:a.idAgente,cc:cc}:null;})
     .filter(Boolean).filter(x=>((x.cc.tft||0)+(x.cc.cuTotal||0))>0);
   list.sort((x,y)=>(y.cc.cuPos||0)-(x.cc.cuPos||0));
   let inner;
@@ -5276,13 +5276,15 @@ function evoToggleCampAgents(td,campId){
   }else{
     const fmtSecL=s=>s==null||s<=0?'–':(s<60?Math.round(s)+'s':Math.floor(s/60)+'m'+String(Math.round(s%60)).padStart(2,'0')+'s');
     const S=k=>list.reduce((s,x)=>s+(x.cc[k]||0),0);
-    const row=(nom,cc,isCum)=>{
+    const row=(nom,cc,isCum,id)=>{
       const cu=cc.cuTotal||0,acc=cc.cuPos||0,ref=cu-acc-(cc.hc||0),accPct=cu>0?Math.round(acc/cu*100):null;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       const label=isCum?'<b>CUMUL · '+list.length+' agents</b>'
         :'<span class="evo-rc-name"><span class="evo-rc-avatar">'+evoInitials(nom)+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="'+ec(nom)+'">'+ec(nom)+'</span></span>';
       return '<tr class="'+(isCum?'eca-cum':'')+'">'
         +'<td style="text-align:left">'+label+'</td>'
+        +'<td class="evo-lo">'+(isCum?'–':evoLoginHtml(id))+'</td>'
+        +'<td class="evo-lo">'+(isCum?'–':evoLogoutHtml(id))+'</td>'
         +'<td>'+EVO_NB(cc.nb||0)+'</td>'
         +'<td>'+EVO_NB(cc.tft||0)+'</td>'
         +'<td class="eca-key">'+EVO_NB(acc)+'</td>'
@@ -5301,8 +5303,8 @@ function evoToggleCampAgents(td,campId){
     inner='<div style="padding:10px 14px">'
       +'<div style="font-size:var(--fs-sm);color:var(--t-secondary);font-weight:700;margin-bottom:6px"><i class="ti ti-users" style="font-size:13px;vertical-align:-2px"></i> Détail par agent · '+list.length+' agent(s) — cliquez un en-tête pour trier</div>'
       +'<div class="eca-tw"><table class="eca-tbl"><thead><tr>'
-      +'<th style="text-align:left">Agent</th><th>Reçus</th><th>Traité</th><th class="eca-key">Accords</th><th>Acc.%</th><th>Refus</th><th class="evo-lo">Hors cible</th><th>CU</th><th class="eca-key">C+/h</th><th class="eca-key">CU/h</th><th class="evo-lo">DMT</th><th class="evo-lo">H.prod</th><th class="evo-lo">Fiches déf.</th>'
-      +'</tr></thead><tbody>'+list.map(x=>row(x.nom,x.cc,false)).join('')+row('',cum,true)+'</tbody></table></div></div>';
+      +'<th style="text-align:left">Agent</th><th class="evo-lo" title="1ère connexion (vert = à l\'heure)">Cnx</th><th class="evo-lo" title="Déconnexion (« en ligne » si connecté)">Déco</th><th>Reçus</th><th>Traité</th><th class="eca-key">Accords</th><th>Acc.%</th><th>Refus</th><th class="evo-lo">Hors cible</th><th>CU</th><th class="eca-key">C+/h</th><th class="eca-key">CU/h</th><th class="evo-lo">DMT</th><th class="evo-lo">H.prod</th><th class="evo-lo">Fiches déf.</th>'
+      +'</tr></thead><tbody>'+list.map(x=>row(x.nom,x.cc,false,x.id)).join('')+row('',cum,true)+'</tbody></table></div></div>';
   }
   const detail=document.createElement('tr'); detail.className='evo-camp-detail'; detail.dataset.for=String(campId);
   const cell=document.createElement('td'); cell.colSpan=tr.cells.length; cell.style.padding='0';
@@ -5592,6 +5594,8 @@ function renderEvo(d){
   document.getElementById("evo-agent-table").innerHTML=ags.length?`
     <thead><tr>
       <th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th>
+      <th class="evo-lo" title="Heure de 1ère connexion à Evolution (vert = à l'heure, rose = en retard vs début de plage)">Connexion</th>
+      <th class="evo-lo" title="Heure de déconnexion (« en ligne » si encore connecté ; ambre = parti avant la fin de plage)">Déconnexion</th>
       <th title="Appels reçus du jour (compteur live agent)">Reçus</th>
       <th title="Total appels traités = accord + refus + hors cible + refus de répondre (source SQL)">Traité</th>
       <th>CU total</th><th>Accords (CU+)</th><th title="Accords ÷ contacts utiles">Acc.%</th><th title="Temps de présence (session)">Présence</th>
@@ -5608,6 +5612,8 @@ function renderEvo(d){
       return `<tr>
       <td style="text-align:left"><span class="evo-rc-name"><span class="evo-rc-avatar">${evoInitials(a.nom)}</span><span>${ec(a.nom)}</span></span></td>
       <td style="text-align:left;color:var(--t-muted)">${ec(a.campagne)}</td>
+      <td class="evo-lo">${evoLoginHtml(a.id)}</td>
+      <td class="evo-lo">${evoLogoutHtml(a.id)}</td>
       <td><b>${a.appels.toLocaleString("fr-FR")}</b></td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td>${cuA.toLocaleString("fr-FR")}</td>
@@ -5685,7 +5691,7 @@ function renderEvo(d){
     return `<div class="eca-card">
       <div class="eca-head" style="cursor:default">
         <span class="evo-rc-avatar" style="width:34px;height:34px;font-size:13px">${evoInitials(nom)}</span>
-        <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(nom)}</div><div class="eca-sub"><i class="ti ti-phone-outgoing" style="font-size:12px;vertical-align:-1px"></i> ${camps.length} camp. · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(a.prod_sec)}</div></div>
+        <div style="min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${EVO_ECC(nom)}</div><div class="eca-sub"><i class="ti ti-phone-outgoing" style="font-size:12px;vertical-align:-1px"></i> ${camps.length} camp. · <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px"></i> ${EVO_FH(a.prod_sec)} · <i class="ti ti-plug-connected" style="font-size:12px;vertical-align:-1px"></i> ${evoLoginHtml(a.idAgente)} → ${evoLogoutHtml(a.idAgente)}</div></div>
         <span style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0">
           ${evoPill("Taux acc.",a.cuTotal>0?tx+'%':'–',isNaN(txObjG)?'':txObjG+'%',txGood)}
           ${evoPill("CU/h",cuh==null?'–':EVO_R1(cuh),isNaN(cuhObjG)?'':EVO_R1(cuhObjG),cuhGood)}
@@ -5859,6 +5865,31 @@ function evoLogo(name){
   return `<span style="width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">${b.letters}</span>`;
 }
 function evoInitials(nom){const w=String(nom||"?").trim().split(/\s+/);return((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();}
+// ── Sessions agents : 1ère connexion / déconnexion + ponctualité vs plage horaire ──
+const _evoHMfmt=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",minute:"2-digit",hour12:false});
+function evoHM(ms){ if(!ms)return null; try{return _evoHMfmt.format(new Date(ms));}catch(e){return null;} }
+function evoSess(id){ const S=_evoData&&_evoData.sessions; if(!S)return null; return S.find(s=>String(s.idAgente)===String(id))||null; }
+function _evoDebMin(){ const m=String((document.getElementById("evo-heure-deb")||{}).value||"07:00").match(/(\d{1,2}):(\d{2})/); return m?(+m[1]*60+ +m[2]):420; }
+function _evoFinMin(){ const m=String((document.getElementById("evo-heure-fin")||{}).value||"20:00").match(/(\d{1,2}):(\d{2})/); return m?(+m[1]*60+ +m[2]):1200; }
+function _hmMin(min){ return String(Math.floor(min/60)).padStart(2,"0")+":"+String(min%60).padStart(2,"0"); }
+// Cellule "1ère connexion" : vert si à l'heure (≤ début + 5 min de tolérance), rose si en retard.
+function evoLoginHtml(id){
+  const s=evoSess(id); if(!s||!s.firstBegin)return '<span style="color:var(--t-disabled)">–</span>';
+  const hm=evoHM(s.firstBegin); if(!hm)return '<span style="color:var(--t-disabled)">–</span>';
+  const p=hm.split(":"), lm=(+p[0])*60+(+p[1]), deb=_evoDebMin(), late=lm>deb+5;
+  const col=late?"#E8006E":"#1d9e75";
+  return '<span style="color:'+col+';font-weight:600" title="1ère connexion '+hm+(late?' — en retard (début '+_hmMin(deb)+')':' — à l\'heure')+'">'+hm+'</span>';
+}
+// Cellule "déconnexion" : "en ligne" si session en cours (vert), sinon heure (rose si parti avant fin de plage).
+function evoLogoutHtml(id){
+  const s=evoSess(id); if(!s)return '<span style="color:var(--t-disabled)">–</span>';
+  if(s.online)return '<span style="color:#1d9e75;font-weight:600" title="Encore connecté">● en ligne</span>';
+  if(!s.lastEnd)return '<span style="color:var(--t-disabled)">–</span>';
+  const hm=evoHM(s.lastEnd); if(!hm)return '<span style="color:var(--t-disabled)">–</span>';
+  const p=hm.split(":"), om=(+p[0])*60+(+p[1]), fin=_evoFinMin(), early=om<fin-5;
+  const col=early?"#ff9f0a":"var(--t-primary)";
+  return '<span style="color:'+col+'" title="Déconnexion '+hm+(early?' — parti avant la fin ('+_hmMin(fin)+')':'')+'">'+hm+'</span>';
+}
 function evoAgentRows(id){
   const c=window._evoCS[id]; if(!c)return"";
   const st=(window._evoSort&&window._evoSort[id])||{k:'taux',dir:-1};
@@ -5879,10 +5910,10 @@ function evoAgentRows(id){
     const isTop=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0);
     const rank=`<span style="display:inline-block;width:16px;text-align:center;color:${isTop?'#E8006E':'var(--t-disabled)'};font-weight:${isTop?'700':'400'};margin-right:4px">${i+1}</span>`+(isTop?'<i class="ti ti-trophy" style="color:#E8006E;font-size:12px;vertical-align:-1px;margin-right:3px"></i>':'');
     const tds=EVO_COLS.map(col=>`<td class="${keyClass(col,a)}${col.lo?' evo-lo':''}">${col.fmt(a)}</td>`).join('');
-    return `<tr><td>${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td>${tds}</tr>`;
+    return `<tr><td>${rank}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td><td class="evo-lo">${evoLoginHtml(a.id)}</td><td class="evo-lo">${evoLogoutHtml(a.id)}</td>${tds}</tr>`;
   }).join('');
   const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${keyClass(col,cum)}${col.lo?' evo-lo':''}">${col.fmt(cum)}</td>`).join('');
-  return rows+`<tr class="eca-cum"><td>Cumul campagne</td>${cumTds}</tr>`;
+  return rows+`<tr class="eca-cum"><td>Cumul campagne</td><td class="evo-lo">–</td><td class="evo-lo">–</td>${cumTds}</tr>`;
 }
 function evoSortCamp(id,k,th){
   window._evoSort=window._evoSort||{};
@@ -5946,7 +5977,7 @@ function evoCampBlock(id){
   const ecaPill=(lab,val,objStr,good)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:${good?'rgba(29,158,117,.16)':'rgba(232,0,110,.13)'};color:${good?'#1d9e75':'#E8006E'};font-weight:600;font-size:12px;padding:4px 9px;border-radius:6px;white-space:nowrap">${lab} ${val}${objStr?` <span style="opacity:.65;font-weight:400">obj ${objStr}</span>`:''}</span>`;
   const kpi=[['C+/h',EVO_R1(EVO_PH(cum.cuPos,cum.prod_sec)),'#E8006E',true],['CU/h',EVO_R1(EVO_PH(cum.cuTotal,cum.prod_sec)),'#E8006E',true],['Accords',EVO_NB(cum.cuPos),'#E8006E'],['CU',EVO_NB(cum.cuTotal),''],['Traité',EVO_NB(cum.tft||0),''],['Reçus',EVO_NB(cum.nb),''],['Refus',EVO_NB(cum.cuTotal-cum.cuPos),'var(--t-secondary)']];
   const kpiHtml=evoKpiBand(kpi);
-  const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}${col.lo?' evo-lo':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
+  const ths=`<th onclick="evoSortCamp('${id}','name',this)">Agent<span class="evo-sarr"></span></th><th class="evo-lo" title="1ère connexion Evolution (vert = à l'heure)">Cnx</th><th class="evo-lo" title="Déconnexion (« en ligne » si connecté)">Déco</th>`+EVO_COLS.map(col=>`<th onclick="evoSortCamp('${id}','${col.k}',this)" title="${col.t}" class="${col.cls==='key'?'eca-key':''}${col.lo?' evo-lo':''}">${col.l}<span class="evo-sarr"></span></th>`).join('');
   return `<div class="eca-card">
     <div class="eca-head" role="button" tabindex="0" onclick="evoToggleObj('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();evoToggleObj('${id}')}">
       ${evoLogo(c.nom)}

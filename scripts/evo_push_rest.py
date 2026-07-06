@@ -51,6 +51,7 @@ def build_body(day):
         "sqlStats": payload["sqlStats"], "sqlFiles": None,
         "sqlAgentCamps": payload["sqlAgentCamps"], "sqlDiag": None,
         "inbound": payload.get("inbound"),
+        "sessions": payload.get("sessions"),
         "dataDate": payload.get("dataDate"),
     }
     return body, payload
