@@ -687,6 +687,9 @@ body.light .evo-camp-detail>td{background:#f6f6f9;}
 .evo-camp-name-clk{cursor:pointer;}
 .evo-camp-name-clk:hover .evo-rc-name>span:last-child{text-decoration:underline;text-decoration-color:var(--c-pink);}
 .evo-exp-ic{font-size:13px;color:var(--t-disabled);margin-right:3px;vertical-align:-1px;transition:transform .15s;}
+/* Logo client : tuile blanche nette + marque teintée en couleur officielle (masque SVG) */
+.evo-logo{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff;border:1px solid #e6e6ec;box-shadow:0 1px 2px rgba(0,0,0,.07);font-weight:800;font-size:11.5px;letter-spacing:-.02em;overflow:hidden;vertical-align:middle;}
+.evo-logo-ic{width:21px;height:21px;display:block;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
 /* Pastille "agent en ligne" (session en cours) : suivi visuel rapide des connectés */
 .evo-ag-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#35c26a;box-shadow:0 0 8px rgba(53,194,106,.85);flex-shrink:0;animation:evoLivePulse 1.8s infinite;}
 .evo-row-off{opacity:.5;}
@@ -5903,15 +5906,20 @@ const EVO_COLS=[
 // Détection de la marque/compte client depuis le nom de campagne → logo + couleur.
 function evoBrand(name){
   const u=String(name||"").toUpperCase();
-  const map=[['HYUNDAI','hyundai','#002C5F'],['VOLKSWAGEN','volkswagen','#001E50'],['VWVU','volkswagen','#001E50'],['VW','volkswagen','#001E50'],['AUDI','audi','#BB0A30'],['NISSAN','nissan','#C3002F'],['SEAT','seat','#33302E'],['SKODA','skoda','#0E3A2F'],['KIA','kia','#05141F'],['OMODA','','#0a0a0a'],['JAECOO','','#0a0a0a'],['MERCER','','#1f3a5f'],['AFNOR','','#1f3a5f'],['COVID','','#5f5e5a'],['GS_','','#5f5e5a']];
+  const map=[['HYUNDAI','hyundai','#002C5F'],['MERCEDES','mercedes','#0a0a0a'],['VOLKSWAGEN','volkswagen','#001E50'],['VWVU','volkswagen','#001E50'],['VW','volkswagen','#001E50'],['AUDI','audi','#BB0A30'],['NISSAN','nissan','#C3002F'],['SEAT','seat','#33302E'],['SKODA','skoda','#0E3A2F'],['KIA','kia','#05141F'],['JLR','landrover','#005A2B'],['RANGEROVER','landrover','#005A2B'],['OMODA','','#0a0a0a'],['JAECOO','','#0a0a0a'],['MERCER','','#1f3a5f'],['AFNOR','','#1f3a5f'],['EVORIEL','','#993556'],['VIVEST','','#993556'],['VOLTALIS','','#1d9e75'],['COVID','','#5f5e5a'],['GS_','','#5f5e5a']];
   for(let i=0;i<map.length;i++){const m=map[i];if(u.indexOf(m[0])>=0)return{slug:m[1],col:m[2],letters:(m[0][0]+(m[0][1]||"")).toUpperCase()};}
   const letters=u.replace(/[^A-Z]/g,'').slice(0,2)||'??';
   return{slug:'',col:'#888780',letters};
 }
 function evoLogo(name){
   const b=evoBrand(name);
-  if(b.slug)return `<span style="position:relative;width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px">${b.letters}</span><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/${b.slug}.svg" alt="" style="position:relative;width:26px;height:26px;object-fit:contain;background:#fff;border-radius:5px;padding:3px;box-sizing:border-box" onerror="this.style.display='none'"></span>`;
-  return `<span style="width:34px;height:34px;border-radius:8px;background:${b.col};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">${b.letters}</span>`;
+  if(b.slug){
+    const url='https://cdn.jsdelivr.net/npm/simple-icons@13/icons/'+b.slug+'.svg';
+    // Tuile blanche + icône de marque teintée en couleur officielle (masque CSS = net, colorable).
+    return '<span class="evo-logo" title="'+b.letters+'"><i class="evo-logo-ic" style="-webkit-mask-image:url(\''+url+'\');mask-image:url(\''+url+'\');background-color:'+b.col+'"></i></span>';
+  }
+  // Pas de marque connue : monogramme en couleur de marque sur tuile blanche.
+  return '<span class="evo-logo" style="color:'+b.col+'">'+b.letters+'</span>';
 }
 function evoInitials(nom){const w=String(nom||"?").trim().split(/\s+/);return((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();}
 // ── Sessions agents : 1ère connexion / déconnexion + ponctualité vs plage horaire ──
