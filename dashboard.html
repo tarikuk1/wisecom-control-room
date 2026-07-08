@@ -1571,7 +1571,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
         <span style="font-size:var(--fs-sm);color:var(--t-secondary);font-weight:600;">Filtres</span>
         <div style="display:flex;align-items:center;gap:6px;">
           <label for="evo-date-filter" style="font-size:var(--fs-sm);color:var(--t-muted);">Journée</label>
-          <input type="date" id="evo-date-filter" onchange="evoApplyDateFilter()"
+          <input type="date" id="evo-date-filter" onchange="evoApplyDateChange()"
             style="background:var(--s-3);color:var(--t-primary);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px;font-size:var(--fs-sm);cursor:pointer;outline:none;">
           <button type="button" onclick="evoSetToday()"
             style="background:transparent;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 9px;font-size:var(--fs-sm);color:var(--t-muted);cursor:pointer;">
@@ -4888,6 +4888,13 @@ function evoSetObjC(id,key,val){ try{localStorage.setItem('evoObjC_'+id+'_'+key,
 function evoResetObj(){ try{['cu','cuh','acch','fichier'].forEach(k=>localStorage.removeItem('evoObj_'+k));Object.keys(localStorage).filter(k=>k.indexOf('evoObjC_')===0).forEach(k=>localStorage.removeItem(k));}catch(e){} renderEvoObjectifs(true); }
 let _evoPerim=null; // agrégats du périmètre sélectionné (alimentés par renderEvo, lus par renderEvoObjectifs)
 
+// Changement de JOURNÉE (≠ horaire) : on repart d'une sélection auto pour ce jour-là, sinon la
+// sélection d'aujourd'hui (souvent sans activité un jour passé) laisserait l'écran quasi vide.
+function evoApplyDateChange(){
+  _evoSelectedCamps=null;   // → ré-auto-sélection des campagnes actives du jour demandé
+  _evoActiveViewId=null;
+  evoApplyDateFilter();
+}
 function evoApplyDateFilter(){
   const dp=document.getElementById("evo-date-filter");
   const hd=document.getElementById("evo-heure-deb");
@@ -4902,6 +4909,7 @@ function evoSetToday(){
   const today=new Date().toLocaleDateString("sv");
   const dp=document.getElementById("evo-date-filter");
   if(dp){dp.value=today;}_evoDateFilter=today;_evoDateUserSet=false;
+  _evoSelectedCamps=null;_evoActiveViewId=null; // ré-auto-sélection des campagnes actives du jour
   loadEvo();
 }
 
