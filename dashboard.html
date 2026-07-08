@@ -1208,6 +1208,20 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
   }
   .ck-list{max-height:calc(72vh - 110px);}
 }
+/* ════ COUCHE REFONTE UI/UX (réversible) — tout scopé .wcr-refresh (handoff design client).
+   Retirer la classe .wcr-refresh du <body> restaure l'apparence d'origine à 100%. ════ */
+body.wcr-refresh{
+  --fs-xs:11px;--fs-sm:12px;--fs-body:13px;--fs-md:14px;--fs-md2:14px;--fs-lg:16px;--fs-kpi:28px;--fs-kpi-hero:34px;
+  --s-base:#0b0c0e;--s-1:#15171a;--s-2:#1c1f23;--t-secondary:#b4b7bf;--t-muted:#9a9da5;--border:#2a2d33;--r-md:10px;
+}
+body.wcr-refresh.light{--t-primary:#1a1a1f;--t-secondary:#55555f;--t-muted:#70707a;--t-disabled:#a6a6b0;--border:#e4e4ec;}
+body.wcr-refresh .kpi-value,body.wcr-refresh .card-value,body.wcr-refresh .eca-kpi .v{font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+body.wcr-refresh .tbl td{padding-top:6px;padding-bottom:6px;font-size:12.5px;}
+body.wcr-refresh .tbl th{font-size:11px;letter-spacing:.04em;cursor:pointer;}
+body.wcr-refresh .tbl th:hover{color:var(--c-pink);}
+body.wcr-refresh .field-lbl{font-size:10px;}
+body.wcr-refresh .btn-nav,body.wcr-refresh .btn-nav-logout{min-height:32px;}
+body.wcr-refresh .kpi-card:not(.hero):not(.alert):not(.good){background:var(--s-1);}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -1333,6 +1347,7 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
         <button class="btn btn-dark" onclick="toggleColPanel()" id="col-btn" title="Gérer les colonnes visibles" style="position:relative;z-index:300;">Colonnes <span id="col-count" style="background:var(--c-pink);color:var(--c-white);border-radius:var(--r-md);padding:1px 6px;font-size:var(--fs-xs);margin-left:2px;"></span></button>
         <button class="btn btn-dark" onclick="openCriteres()" title="Critères de performance et KPI" style="position:relative;z-index:300;">Critères</button>
         <button class="btn btn-dark" onclick="refreshSkills()" id="btn-refresh-skills" title="Recharger les compétences depuis INO">Compétences</button>
+        <button class="btn btn-dark" onclick="wcrToggleRefresh()" id="wcr-refresh-btn" title="Basculer la refonte UI/UX (design client) — réversible">✦ Refonte</button>
         <div class="btn-sep"></div>
         <button class="btn btn-dark" onclick="exportXlsx()" title="Exporter vers Excel" aria-label="Export Excel">↓ Excel</button>
         <button class="btn btn-dark" onclick="exportPDF()" title="Exporter en PDF" aria-label="Export PDF">↓ PDF</button>
@@ -8210,6 +8225,15 @@ pullStore();
   </div>
 </div>
 <script src="/theme.js" defer></script>
+<script>
+/* Bascule REFONTE UI/UX (design client) — réversible, mémorisée. Par défaut activée. */
+(function(){var K='wcr-refresh-on';
+  if(localStorage.getItem(K)!=='0')document.body.classList.add('wcr-refresh');
+  function paint(){var b=document.getElementById('wcr-refresh-btn');if(b)b.style.color=document.body.classList.contains('wcr-refresh')?'#E8006E':'';}
+  window.wcrToggleRefresh=function(){var on=document.body.classList.toggle('wcr-refresh');localStorage.setItem(K,on?'1':'0');paint();};
+  paint();
+})();
+</script>
 </body>
 </html>
 
