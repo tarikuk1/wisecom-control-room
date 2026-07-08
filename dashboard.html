@@ -1210,9 +1210,13 @@ body.light [style*="background:var(--s-3)"][style*="color:#"]{color:var(--t-prim
 }
 /* ════ COUCHE REFONTE UI/UX (réversible) — tout scopé .wcr-refresh (handoff design client).
    Retirer la classe .wcr-refresh du <body> restaure l'apparence d'origine à 100%. ════ */
+/* Typo + rayon : s'appliquent aux DEUX thèmes (neutres). */
 body.wcr-refresh{
-  --fs-xs:11px;--fs-sm:12px;--fs-body:13px;--fs-md:14px;--fs-md2:14px;--fs-lg:16px;--fs-kpi:28px;--fs-kpi-hero:34px;
-  --s-base:#0b0c0e;--s-1:#15171a;--s-2:#1c1f23;--t-secondary:#b4b7bf;--t-muted:#9a9da5;--border:#2a2d33;--r-md:10px;
+  --fs-xs:11px;--fs-sm:12px;--fs-body:13px;--fs-md:14px;--fs-md2:14px;--fs-lg:16px;--fs-kpi:28px;--fs-kpi-hero:34px;--r-md:10px;
+}
+/* Surfaces + textes SOMBRES : mode sombre UNIQUEMENT (sinon cartes noires + texte invisible en clair). */
+body.wcr-refresh:not(.light){
+  --s-base:#0b0c0e;--s-1:#15171a;--s-2:#1c1f23;--t-secondary:#b4b7bf;--t-muted:#9a9da5;--border:#2a2d33;
 }
 body.wcr-refresh.light{--t-primary:#1a1a1f;--t-secondary:#55555f;--t-muted:#70707a;--t-disabled:#a6a6b0;--border:#e4e4ec;}
 body.wcr-refresh .kpi-value,body.wcr-refresh .card-value,body.wcr-refresh .eca-kpi .v{font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
@@ -1221,7 +1225,8 @@ body.wcr-refresh .tbl th{font-size:11px;letter-spacing:.04em;cursor:pointer;}
 body.wcr-refresh .tbl th:hover{color:var(--c-pink);}
 body.wcr-refresh .field-lbl{font-size:10px;}
 body.wcr-refresh .btn-nav,body.wcr-refresh .btn-nav-logout{min-height:32px;}
-body.wcr-refresh .kpi-card:not(.hero):not(.alert):not(.good){background:var(--s-1);}
+/* Aplatir les dégradés lourds : mode SOMBRE seulement (en clair, garder les cartes blanches de base). */
+body.wcr-refresh:not(.light) .kpi-card:not(.hero):not(.alert):not(.good){background:var(--s-1);}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
