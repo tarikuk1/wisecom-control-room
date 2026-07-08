@@ -4910,19 +4910,27 @@ function renderEvoCampFilter(d){
   const box=document.getElementById("evo-camp-filter"); if(!box)return;
   const camps=(d.campagnes||[]).map(c=>c.nom).sort((a,b)=>a.localeCompare(b,"fr"));
   if(!camps.length){box.innerHTML="";return;}
-  // Première fois : auto-cocher UNIQUEMENT les campagnes actives (≥1 agent connecté ET des
-  // appels traités du jour) → évite la surcharge de campagnes inactives. Le manager complète
-  // manuellement ensuite. Repli : si aucune active (hors horaires), tout cocher.
-  if(_evoSelectedCamps===null){
+  // Auto-cocher UNIQUEMENT les campagnes actives (≥1 agent connecté ET des appels traités du
+  // jour) → évite la surcharge d'inactives. Repli : si aucune active (hors horaires / jour passé),
+  // tout cocher — sinon l'écran resterait vide.
+  const autoSel=()=>{
     const active=new Set();
     (d.campagnes||[]).forEach(c=>{
       const app=c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0));
       if((c.agents||0)>0 && app>0) active.add(c.nom);
     });
-    _evoSelectedCamps = active.size ? active : new Set(camps);
+    return active.size ? active : new Set(camps);
+  };
+  if(_evoSelectedCamps===null){
+    _evoSelectedCamps = autoSel(); // première fois
+  } else {
+    const hadNames=_evoSelectedCamps.size>0;
+    const kept=[..._evoSelectedCamps].filter(n=>camps.includes(n));
+    // Changement de date : si TOUTES les campagnes sélectionnées ont disparu (n'existent pas ce
+    // jour-là), on ré-auto-sélectionne pour ce jour au lieu de laisser l'écran vide. Un décochage
+    // manuel (set déjà vide) reste vide.
+    _evoSelectedCamps = (hadNames && kept.length===0 && camps.length>0) ? autoSel() : new Set(kept);
   }
-  // On retire du set les campagnes qui n'existent plus (sans refill auto : « Aucune » doit rester vide).
-  _evoSelectedCamps=new Set([..._evoSelectedCamps].filter(n=>camps.includes(n)));
   const ec=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
   const nSel=_evoSelectedCamps.size, nTot=camps.length;
   // Liste en colonnes alignées (tri alphabétique) : une ligne sobre par campagne au lieu
