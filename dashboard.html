@@ -3608,7 +3608,7 @@ function renderTable(sorted){
   const c=cfg[st]||{bg:"#555",fg:"#ccc",label:st};
   return `<span style="display:inline-block;background:${c.bg};color:${c.fg};border-radius:20px;padding:2px 10px;font-size:9px;font-weight:800;letter-spacing:.06em;min-width:80px;text-align:center">${c.label}</span>`;
 })()}</td>
-      <td><span class="badge badge-camp" style="font-size:10px">${a.camp}</span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:6px">${(a.camp&&a.camp!=="–")?inoLogo(a.camp,22):""}<span class="badge badge-camp" style="font-size:10px">${a.camp}</span></span></td>
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Première connexion">${fmtTime(a.premiereAction)}</td>
       <td style="color:#888;font-size:10px;white-space:nowrap" title="Dernière déconnexion">${fmtTime(a.derniereAction)}</td>
       <td style="color:#d0d0d0">${fmtH(a.hprod)}</td>
@@ -4438,7 +4438,7 @@ function renderSkills(){
     const astrBadge=_astr?'<span style="display:inline-block;background:#0d2a0d;color:#30d158;font-size:7px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:4px;letter-spacing:.04em;vertical-align:middle;border:1px solid #1a4a1a">ASTR.</span>':'';
     const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
     return '<tr style="background:'+rowBg+'">'
-      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(_mob?'#080e16':_astr?'#080e08':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+mobileBadge+astrBadge+'<br><span style="font-size:9px;color:#555;margin-left:13px">'+(a.contrat||"–")+' · <span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
+      +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(_mob?'#080e16':_astr?'#080e08':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+mobileBadge+astrBadge+'<br><span style="font-size:9px;color:#555;margin-left:13px;display:inline-flex;align-items:center;gap:4px">'+(a.contrat||"–")+' · '+((a.camp&&a.camp!=="–")?inoLogo(a.camp,16):"")+'<span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
       +'<td style="text-align:center;padding:6px 12px;font-weight:700;color:'+P+'">'+nbActives+'<span class="sk-ratio">'+(a.allSkillsData||[]).length+' config.</span></td>'
       +colSkills.map(sk=>{
         const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
@@ -5920,6 +5920,36 @@ function evoLogo(name){
   }
   // Pas de marque connue : monogramme en couleur de marque sur tuile blanche.
   return '<span class="evo-logo" style="color:'+b.col+'">'+b.letters+'</span>';
+}
+// ── Logo client INO : mêmes tuiles blanches, logos réels tirés du web par domaine ──
+// Clients INO (bailleurs, assureurs, marques…) absents de simple-icons → logo par domaine
+// (Clievant Clearbit puis favicon Google en repli), sinon monogramme.
+var INO_DOMAINS={
+  'voltalis':'voltalis.com','vivest':'vivest.fr','evoriel':'evoriel.com','afnor':'afnor.org',
+  'eiffage':'eiffage.com','antargaz':'antargaz.fr','delsey':'delsey.com','verspieren':'verspieren.com',
+  'alcéane':'alceane.fr','alceane':'alceane.fr','equisign':'equisign.com','nature':'natureetdecouvertes.com',
+  'découvertes':'natureetdecouvertes.com','lmdw':'whisky.fr','mg motor':'mgmotor.eu','omoda':'omoda.com',
+  'cnpa':'mobilians.fr','oreca':'oreca-store.com','filippi':'filippi-auto.fr','monetize':'monetize.fr'
+};
+function inoDomain(name){
+  const u=String(name||'').toLowerCase();
+  for(const k in INO_DOMAINS){ if(u.indexOf(k)>=0) return INO_DOMAINS[k]; }
+  return null;
+}
+function inoLogo(name,size){
+  size=size||24;
+  const b=evoBrand(name);
+  if(b.slug){ const url='https://cdn.jsdelivr.net/npm/simple-icons@13/icons/'+b.slug+'.svg';
+    return '<span class="evo-logo" style="width:'+size+'px;height:'+size+'px" title="'+String(name||'').replace(/"/g,'')+'"><i class="evo-logo-ic" style="-webkit-mask-image:url(\''+url+'\');mask-image:url(\''+url+'\');background-color:'+b.col+'"></i></span>'; }
+  const letters=(String(name||'??').replace(/[^A-Za-zÀ-ÿ]/g,'').slice(0,2)||'??').toUpperCase();
+  const dom=inoDomain(name);
+  if(dom){
+    // unavatar agrège les meilleurs logos du web (Clearbit/favicon HD/…) ; repli favicon Google.
+    const ua='https://unavatar.io/'+dom+'?fallback=false', fav='https://www.google.com/s2/favicons?domain='+dom+'&sz=64';
+    const oe="var s=(+this.dataset.s||0)+1;this.dataset.s=s;if(s===1){this.src='"+fav+"'}else{this.style.display='none'}";
+    return '<span class="evo-logo" style="width:'+size+'px;height:'+size+'px;position:relative;color:#888780" title="'+String(name||'').replace(/"/g,'')+'"><span style="position:absolute;font-size:9px">'+letters+'</span><img src="'+ua+'" alt="" onerror="'+oe+'" style="position:relative;max-width:82%;max-height:82%;object-fit:contain"></span>';
+  }
+  return '<span class="evo-logo" style="width:'+size+'px;height:'+size+'px;color:#888780" title="'+String(name||'').replace(/"/g,'')+'">'+letters+'</span>';
 }
 function evoInitials(nom){const w=String(nom||"?").trim().split(/\s+/);return((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();}
 // ── Sessions agents : 1ère connexion / déconnexion + ponctualité vs plage horaire ──
