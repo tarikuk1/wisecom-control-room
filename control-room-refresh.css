@@ -1,0 +1,48 @@
+/* ════ COUCHE REFONTE UI/UX (réversible) — handoff design client ════
+   Tout est scopé sous .wcr-refresh. Retirer la classe du <body> restaure
+   l'apparence d'origine à 100%. Fichier partagé par TOUTES les pages
+   (dashboard, exécutif, pilotage, couverture, astreinte, planning, notice). */
+
+/* Typo + rayon : s'appliquent aux DEUX thèmes (neutres). */
+body.wcr-refresh{
+  --fs-xs:11px;--fs-sm:12px;--fs-body:13px;--fs-md:14px;--fs-md2:14px;--fs-lg:16px;--fs-kpi:28px;--fs-kpi-hero:34px;--r-md:10px;
+}
+/* Surfaces + textes SOMBRES : mode sombre UNIQUEMENT (sinon cartes noires + texte invisible en clair). */
+body.wcr-refresh:not(.light){
+  --s-base:#0b0c0e;--s-1:#15171a;--s-2:#1c1f23;--t-secondary:#b4b7bf;--t-muted:#9a9da5;--border:#2a2d33;
+}
+body.wcr-refresh.light{--t-primary:#1a1a1f;--t-secondary:#55555f;--t-muted:#70707a;--t-disabled:#a6a6b0;--border:#e4e4ec;}
+body.wcr-refresh .kpi-value,body.wcr-refresh .card-value,body.wcr-refresh .eca-kpi .v{font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+body.wcr-refresh .tbl td{padding-top:6px;padding-bottom:6px;font-size:12.5px;}
+body.wcr-refresh .tbl th{font-size:11px;letter-spacing:.04em;cursor:pointer;}
+body.wcr-refresh .tbl th:hover{color:var(--c-pink);}
+body.wcr-refresh .field-lbl{font-size:10px;}
+body.wcr-refresh .btn-nav,body.wcr-refresh .btn-nav-logout{min-height:32px;}
+/* Aplatir les dégradés lourds : mode SOMBRE seulement (en clair, garder les cartes blanches de base). */
+body.wcr-refresh:not(.light) .kpi-card:not(.hero):not(.alert):not(.good){background:var(--s-1);}
+
+/* ─── HAUT DE PAGE (topbar · navigation · filtres) ─── */
+body.wcr-refresh .topbar{padding:10px 22px;}
+body.wcr-refresh .brand{letter-spacing:.1em;font-weight:800;}
+body.wcr-refresh .brand-sub{letter-spacing:.05em;text-transform:uppercase;font-size:9px;}
+body.wcr-refresh .brand-mark{border-radius:8px;box-shadow:0 2px 10px rgba(232,0,110,.35);}
+body.wcr-refresh .btn-refresh{border-radius:10px;padding:9px 18px;font-weight:800;box-shadow:0 2px 14px rgba(232,0,110,.32);}
+body.wcr-refresh .tool-cluster{border-radius:12px;padding:5px 7px;gap:5px;}
+body.wcr-refresh .tool-cluster .btn{border-radius:8px;font-weight:600;}
+body.wcr-refresh #wcr-refresh-btn{color:var(--c-pink);}
+/* Navigation en PILULES — active/hover rose. Cible plusieurs conventions de nav des pages. */
+body.wcr-refresh .nav-cluster{gap:6px;}
+body.wcr-refresh .nav-cluster-label{text-transform:uppercase;letter-spacing:.09em;font-size:10px;font-weight:800;color:var(--t-muted);margin-right:4px;}
+body.wcr-refresh .btn-nav,body.wcr-refresh .nav-btn,body.wcr-refresh .navlink,body.wcr-refresh .topnav a,body.wcr-refresh .nav-pill{border-radius:18px;padding:7px 15px;border:1px solid var(--border);background:transparent;color:var(--t-secondary);font-weight:600;transition:all .15s;}
+body.wcr-refresh .btn-nav:hover,body.wcr-refresh .nav-btn:hover,body.wcr-refresh .navlink:hover,body.wcr-refresh .topnav a:hover,body.wcr-refresh .nav-pill:hover{background:rgba(232,0,110,.09);color:var(--c-pink);border-color:rgba(232,0,110,.35);}
+body.wcr-refresh .btn-nav.active,body.wcr-refresh .nav-btn.active,body.wcr-refresh .navlink.active,body.wcr-refresh .topnav a.active,body.wcr-refresh .nav-pill.active{background:rgba(232,0,110,.14);color:var(--c-pink);border-color:var(--c-pink);}
+/* Handoff : navigation SANS emoji — masquer les icônes emoji des pilules */
+body.wcr-refresh .nav-pill .n-icon,body.wcr-refresh .btn-nav .n-icon{display:none;}
+body.wcr-refresh .btn-nav-logout{border-radius:18px;font-weight:600;}
+/* Filtres : libellés propres + un peu d'air */
+body.wcr-refresh .controls-bar{padding-top:4px;padding-bottom:4px;}
+body.wcr-refresh .ctrl-row-a,body.wcr-refresh .ctrl-row-b{gap:20px;padding:11px 22px;}
+body.wcr-refresh .field-lbl{text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:10px;color:var(--t-muted);}
+body.wcr-refresh .field-inputs input,body.wcr-refresh .field-inputs select,body.wcr-refresh .ck-btn,body.wcr-refresh .preset-select{border-radius:9px;}
+/* Bande KPI : accent rose en haut de la 1ère carte de chaque bande (repère « hero ») */
+body.wcr-refresh .kpi-grid>.kpi-card:first-child{box-shadow:inset 0 2px 0 var(--c-pink);}
