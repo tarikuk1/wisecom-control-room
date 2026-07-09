@@ -5452,8 +5452,8 @@ function renderEvo(d){
   // souvent à 0 en cours de journée ; le SQL est la source fiable).
   const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
   const cApp=c=>c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0)); // appels TRAITÉS (SQL→REST honnête : retire les non-joignables composeur)
-  const cAcc=c=>c.sql?(c.sql.cuPos||0):(c.positifs||0);    // accords (CU+)
-  const cRef=c=>c.sql?(c.sql.cuNeg||0):(c.negatifs||0);    // refus (CU−)
+  const cAcc=c=>(c.positifs!=null?c.positifs:(c.sql?(c.sql.cuPos||0):0));    // accords (CU+)
+  const cRef=c=>(c.negatifs!=null?c.negatifs:(c.sql?(c.sql.cuNeg||0):0));    // refus (CU−)
   const appels=camps.reduce((s,c)=>s+cApp(c),0);
   const positifs=camps.reduce((s,c)=>s+cAcc(c),0);   // contacts utiles positifs (≈ accords)
   const negatifs=camps.reduce((s,c)=>s+cRef(c),0);
@@ -6206,8 +6206,8 @@ function evoToggleCmpPanel(){
 // Agrégats d'un payload sur un ensemble de campagnes (noms). Réutilise la logique cApp/cAcc/cRef.
 function evoAggregate(d,selNames){
   const cApp=c=>c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0));
-  const cAcc=c=>c.sql?(c.sql.cuPos||0):(c.positifs||0);
-  const cRef=c=>c.sql?(c.sql.cuNeg||0):(c.negatifs||0);
+  const cAcc=c=>(c.positifs!=null?c.positifs:(c.sql?(c.sql.cuPos||0):0));
+  const cRef=c=>(c.negatifs!=null?c.negatifs:(c.sql?(c.sql.cuNeg||0):0));
   const camps=(d.campagnes||[]).filter(c=>!EVO_INBOUND_IDS.has(String(c.id))&&(!selNames||selNames.has(c.nom)));
   let appels=0,acc=0,ref=0,heures=0; const perCamp={};
   camps.forEach(c=>{
