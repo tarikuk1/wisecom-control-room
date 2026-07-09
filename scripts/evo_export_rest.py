@@ -44,16 +44,34 @@ def clean_name(s):
             out.append(w)
     return " ".join(out)
 
+import urllib.error
+
+def _open(req, timeout):
+    """urlopen robuste : réessaie sur coupure réseau transitoire (WinError 10060/10054, timeout).
+    Evolution est parfois injoignable quelques secondes depuis le poste → sans retry, le push
+    échoue et, si le cache serveur expire, le dashboard se vide. 3 tentatives, backoff court."""
+    last = None
+    for attempt in range(3):
+        try:
+            return urllib.request.urlopen(req, context=CTX, timeout=timeout)
+        except (urllib.error.URLError, OSError) as e:
+            # Ne pas réessayer une vraie erreur HTTP (401, 500…) : seulement les coupures réseau.
+            if isinstance(e, urllib.error.HTTPError):
+                raise
+            last = e
+            time.sleep(1.2 * (attempt + 1))
+    raise last
+
 def _get(path):
     req = urllib.request.Request(f"{BASE}{path}", headers={"Authorization": "Basic " + AUTH})
-    return json.load(urllib.request.urlopen(req, context=CTX, timeout=30))
+    return json.load(_open(req, 30))
 
 def invoke_raw(rid, params):
     """Réponse brute d'un rapport (ReportData complet) — pour l'état des listes que le serveur parse lui-même."""
     body = json.dumps({"Parameters": [{"Name": k, "Value": v} for k, v in params.items()]}).encode()
     req = urllib.request.Request(f"{BASE}/v1/admin/reports/{rid}/invoke?format=json", data=body,
         headers={"Authorization": "Basic " + AUTH, "Content-Type": "application/json"}, method="POST")
-    return json.load(urllib.request.urlopen(req, context=CTX, timeout=90))
+    return json.load(_open(req, 90))
 
 def invoke(rid, params):
     d = invoke_raw(rid, params)

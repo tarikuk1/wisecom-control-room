@@ -1410,9 +1410,14 @@ const server=http.createServer(async(req,res)=>{
         histSrc=evoLoadHist(wantDate);
       }
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
+      // Cache "riche" = contient du SQL (stats/agent×campagne). Un fetch direct des mesurables ne
+      // ramène PAS le SQL → dashboard vide (0 CU, 0 session). Mieux vaut servir un cache complet
+      // même périmé (staleSec le signale) que des données fraîches mais creuses lors d'une
+      // coupure réseau PC↔Evolution. On ne fetch en direct que si aucun cache exploitable.
+      const cacheRich=_evoCache&&((Array.isArray(_evoCache.rawSqlStats)&&_evoCache.rawSqlStats.length>0)||(Array.isArray(_evoCache.rawSqlAgentCamps)&&_evoCache.rawSqlAgentCamps.length>0));
       if(histSrc){
         ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=histSrc);generatedAt=new Date(histSrc._at||Date.now()).toISOString();
-      }else if(cacheFresh){
+      }else if(cacheFresh||cacheRich){
         ({rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,rawSqlAgentCamps,rawSqlDiag}=_evoCache);generatedAt=new Date(_evoCacheAt).toISOString();
       }else{
         try{
