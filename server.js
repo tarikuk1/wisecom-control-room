@@ -480,6 +480,7 @@ function evoProcessAgentCamps(rows){
       nb,cuPos:_num(r.cuPos),cuTotal:_num(r.cuTotal),definitifs:_num(r.definitifs),
       tft:_num(r.tft),hc:_num(r.hc),ra_nb:_num(r.ra_nb),talk_sec:_num(r.talk_sec),comm_sec:_num(r.comm_sec),comm_n:_num(r.comm_n),
       prod_sec:ps,
+      cnx_ms:(r.cnx_ms!=null?r.cnx_ms:null),deco_ms:(r.deco_ms!=null?r.deco_ms:null),online:!!r.online,
       dmt:r.dmc_sec!=null?Math.round(_num(r.dmc_sec)):(r.dmt_sec!=null?Math.round(_num(r.dmt_sec)):null)
     });
     a.nb+=nb; a.cuPos+=_num(r.cuPos); a.cuTotal+=_num(r.cuTotal);

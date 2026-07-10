@@ -5348,11 +5348,11 @@ function evoToggleCampAgents(td,campId){
       const cu=cc.cuTotal||0,acc=cc.cuPos||0,ref=cu-acc-(cc.hc||0),accPct=cu>0?Math.round(acc/cu*100):null;
       const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
       const label=isCum?'<b>CUMUL · '+list.length+' agents</b>'
-        :'<span class="evo-rc-name">'+(isCum?'':evoAgOnline(id))+'<span class="evo-rc-avatar">'+evoInitials(nom)+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="'+ec(nom)+'">'+ec(nom)+'</span></span>';
+        :'<span class="evo-rc-name">'+(isCum?'':evoAgOnlineC(cc))+'<span class="evo-rc-avatar">'+evoInitials(nom)+'</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0" title="'+ec(nom)+'">'+ec(nom)+'</span></span>';
       return '<tr class="'+(isCum?'eca-cum':(evoAgOffCls(id).trim()))+'">'
         +'<td style="text-align:left">'+label+'</td>'
-        +'<td class="evo-lo">'+(isCum?'–':evoLoginHtml(id))+'</td>'
-        +'<td class="evo-lo">'+(isCum?'–':evoLogoutHtml(id))+'</td>'
+        +'<td class="evo-lo">'+(isCum?'–':evoCnxCellC(cc))+'</td>'
+        +'<td class="evo-lo">'+(isCum?'–':evoDecoCellC(cc))+'</td>'
         +'<td>'+EVO_NB(cc.nb||0)+'</td>'
         +'<td>'+EVO_NB(cc.tft||0)+'</td>'
         +'<td class="eca-key">'+EVO_NB(acc)+'</td>'
@@ -6008,6 +6008,26 @@ function evoLogoutHtml(id){
   const col=early?"#ff9f0a":"var(--t-primary)";
   return '<span style="color:'+col+'" title="Déconnexion '+hm+(early?' — parti avant la fin ('+_hmMin(fin)+')':'')+'">'+hm+'</span>';
 }
+// ── Cnx / Déco PAR CAMPAGNE ── o = ligne agent×campagne {cnx_ms,deco_ms,online}. Contrairement
+// aux versions par-agent ci-dessus (session globale), celles-ci reflètent la 1ère/dernière activité
+// de l'agent SUR CETTE campagne (source : sessions du service qui porte la campagne).
+function evoCnxCellC(o){
+  const ms=o&&o.cnx_ms; if(!ms)return '<span style="color:var(--t-disabled)">–</span>';
+  const hm=evoHM(ms); if(!hm)return '<span style="color:var(--t-disabled)">–</span>';
+  const p=hm.split(":"), lm=(+p[0])*60+(+p[1]), deb=_evoDebMin(), late=lm>deb+5;
+  const col=late?"#E8006E":"#1d9e75";
+  return '<span style="color:'+col+';font-weight:600" title="1ère connexion sur la campagne '+hm+(late?' — en retard (début '+_hmMin(deb)+')':' — à l\'heure')+'">'+hm+'</span>';
+}
+function evoDecoCellC(o){
+  if(!o)return '<span style="color:var(--t-disabled)">–</span>';
+  if(o.online)return '<span style="color:#1d9e75;font-weight:600" title="Encore connecté sur la campagne">● en ligne</span>';
+  const ms=o.deco_ms; if(!ms)return '<span style="color:var(--t-disabled)">–</span>';
+  const hm=evoHM(ms); if(!hm)return '<span style="color:var(--t-disabled)">–</span>';
+  const p=hm.split(":"), om=(+p[0])*60+(+p[1]), fin=_evoFinMin(), early=om<fin-5;
+  const col=early?"#ff9f0a":"var(--t-primary)";
+  return '<span style="color:'+col+'" title="Déconnexion de la campagne '+hm+(early?' — parti avant la fin ('+_hmMin(fin)+')':'')+'">'+hm+'</span>';
+}
+function evoAgOnlineC(o){ return (o&&o.online)?'<span class="evo-ag-dot" title="En ligne · session en cours sur la campagne"></span>':''; }
 function evoAgentRows(id){
   const c=window._evoCS[id]; if(!c)return"";
   const st=(window._evoSort&&window._evoSort[id])||{k:'taux',dir:-1};
@@ -6028,7 +6048,7 @@ function evoAgentRows(id){
     const isTop=(st.k==='taux'&&st.dir===-1&&a.cuTotal>0&&i===0);
     const rank=`<span style="display:inline-block;width:16px;text-align:center;color:${isTop?'#E8006E':'var(--t-disabled)'};font-weight:${isTop?'700':'400'};margin-right:4px">${i+1}</span>`+(isTop?'<i class="ti ti-trophy" style="color:#E8006E;font-size:12px;vertical-align:-1px;margin-right:3px"></i>':'');
     const tds=EVO_COLS.map(col=>`<td class="${keyClass(col,a)}${col.lo?' evo-lo':''}">${col.fmt(a)}</td>`).join('');
-    return `<tr class="${evoAgOffCls(a.id).trim()}"><td>${rank}${evoAgOnline(a.id)}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td><td class="evo-lo">${evoLoginHtml(a.id)}</td><td class="evo-lo">${evoLogoutHtml(a.id)}</td>${tds}</tr>`;
+    return `<tr class="${evoAgOffCls(a.id).trim()}"><td>${rank}${evoAgOnlineC(a)}<b style="font-weight:600">${EVO_ECC(a.nom)}</b></td><td class="evo-lo">${evoCnxCellC(a)}</td><td class="evo-lo">${evoDecoCellC(a)}</td>${tds}</tr>`;
   }).join('');
   const cum=c.cum;const cumTds=EVO_COLS.map(col=>`<td class="${keyClass(col,cum)}${col.lo?' evo-lo':''}">${col.fmt(cum)}</td>`).join('');
   return rows+`<tr class="eca-cum"><td>Cumul campagne</td><td class="evo-lo">–</td><td class="evo-lo">–</td>${cumTds}</tr>`;
@@ -6126,7 +6146,7 @@ function renderEvoCampAgents(d,selCamps){
       if(EVO_INBOUND_IDS.has(id))return; // campagnes entrantes : hors module sortant
       if(!byCamp[id])byCamp[id]={id,nom:cc.campNom||("Camp "+id),agents:[]};
       const nom=a.nom||agName[a.idAgente]||("Agent #"+a.idAgente);
-      byCamp[id].agents.push({id:a.idAgente,nom,nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0,tft:cc.tft||0,hc:cc.hc||0,talk_sec:cc.talk_sec||0,comm_sec:cc.comm_sec||0,comm_n:cc.comm_n||0});
+      byCamp[id].agents.push({id:a.idAgente,nom,nb:cc.nb||0,cuPos:cc.cuPos||0,cuTotal:cc.cuTotal||0,prod_sec:cc.prod_sec||0,tft:cc.tft||0,hc:cc.hc||0,talk_sec:cc.talk_sec||0,comm_sec:cc.comm_sec||0,comm_n:cc.comm_n||0,cnx_ms:cc.cnx_ms||null,deco_ms:cc.deco_ms||null,online:!!cc.online});
     });
   });
   const selIds=selCamps&&selCamps.length?new Set(selCamps.map(c=>String(c.id))):null;

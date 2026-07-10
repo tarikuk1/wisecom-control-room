@@ -151,6 +151,8 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     agByKey = collections.defaultdict(lambda: {"nb": 0, "cuPos": 0, "cuTotal": 0, "def": 0, "tft": 0, "hc": 0, "ra_nb": 0, "dmt_sum": 0, "dmt_n": 0, "comm_sum": 0, "comm_n": 0, "camp": ""})
     seen_sessions = {}  # idSesionAgente -> (idAgente, durée) ; dédup cross-service + GroupLevel
     agent_login = collections.defaultdict(list)  # idAgente -> [(begin_ms, end_ms|None)] pour 1ère cnx/déco
+    session_rows = {}   # idSesionAgente -> (aid, idServicio, begin_ms, end_ms|None, dur_sec, online)
+                        # → cnx/déco/heures PAR CAMPAGNE (une session est liée à un service)
     _tsre = re.compile(r'/Date\((\d+)')
     def _tsms(v):
         m = _tsre.search(str(v) or ""); return int(m.group(1)) if m else None
@@ -181,6 +183,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 continue
             aid_s = str(s.get("idAgente"))
             b = _tsms(s.get("Begin")); e = _tsms(s.get("End"))  # End vide → session en cours
+            online = (e is None)
             # Durée : le champ Session_duration est VIDE pour une session en cours (agent en ligne)
             # → hms=0, ce qui écrasait la présence et faisait exploser les CU/h. On la recalcule
             # depuis Begin/End (End manquant = maintenant).
@@ -189,6 +192,8 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 dur = max(0, int(((e or int(time.time() * 1000)) - b) / 1000))
             seen_sessions[sid_ses] = (aid_s, dur)
             agent_login[aid_s].append((b, e))
+            # Le service de la session (idServicio) sert à rattacher cnx/déco/heures à SA campagne.
+            session_rows[sid_ses] = (aid_s, str(s.get("idServicio") or sid), b, e, dur, online)
 
     # ── Appels ENTRANTS (SVI) — module dédié aux 2 campagnes entrantes (canal distinct) ──
     # Le client APPELLE ; on mesure, PAR campagne entrante et par agent :
@@ -274,6 +279,19 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
     camps_by_agent = collections.defaultdict(list)
     for (aid, cid), v in agByKey.items():
         camps_by_agent[aid].append((cid, v))
+    # Sessions PAR CAMPAGNE : une session est rattachée à un SERVICE (idServicio). On l'affecte aux
+    # campagnes de ce service SUR LESQUELLES l'agent a réellement produit → 1ère connexion (min Begin),
+    # déconnexion (max End, None si encore en ligne) et heures RÉELLES par campagne (somme durées).
+    acs = collections.defaultdict(lambda: {"b": [], "e": [], "dur": 0, "online": False})
+    for _ss, (aid_s, tsvc, b, e, dur, online) in session_rows.items():
+        for cid in native_camps_by_svc.get(tsvc, ()):
+            if (aid_s, cid) not in agByKey:
+                continue
+            r = acs[(aid_s, cid)]
+            if b is not None: r["b"].append(b)
+            if e is not None: r["e"].append(e)
+            if online: r["online"] = True
+            r["dur"] += dur
     sqlAgentCamps = []  # lignes PLATES — le serveur (evoProcessAgentCamps) les regroupe par agent
     agents = []
     for aid, lst in camps_by_agent.items():
@@ -282,12 +300,19 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         nom = names.get(aid, "Agent #" + aid)
         agents.append({"id": aid, "nom": nom})
         for cid, v in lst:
+            cs = acs.get((aid, cid))
+            # Heures RÉELLES sur la campagne = somme des sessions du service. Repli sur le prorata
+            # (temps agent × part de fiches) seulement si aucune session n'est rattachable.
+            real_span = cs["dur"] if (cs and cs["dur"]) else round(agent_sess * v["nb"] / tot)
+            cnx_ms = min(cs["b"]) if (cs and cs["b"]) else None
+            deco_ms = None if (cs and cs["online"]) else (max(cs["e"]) if (cs and cs["e"]) else None)
             sqlAgentCamps.append({
                 "idAgente": aid, "idCampanya": cid, "campNom": v["camp"], "agentNom": nom,
                 "nb": v["nb"], "cuPos": v["cuPos"], "cuTotal": v["cuTotal"], "definitifs": v["def"],
                 "tft": v["tft"], "hc": v["hc"], "ra_nb": v["ra_nb"], "talk_sec": v["dmt_sum"],
                 "comm_sec": v["comm_sum"], "comm_n": v["comm_n"],
-                "session_span_sec": round(agent_sess * v["nb"] / tot),
+                "session_span_sec": real_span,
+                "cnx_ms": cnx_ms, "deco_ms": deco_ms, "online": bool(cs["online"]) if cs else False,
                 "dmt_sec": round(v["dmt_sum"] / v["dmt_n"]) if v["dmt_n"] else None,
                 "dmc_sec": round(v["comm_sum"] / v["comm_n"]) if v["comm_n"] else None,
             })
