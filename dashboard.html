@@ -4976,7 +4976,8 @@ function renderEvoCampFilter(d){
     const active=new Set();
     (d.campagnes||[]).forEach(c=>{
       const app=c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0));
-      if((c.agents||0)>0 && app>0) active.add(c.nom);
+      // « En production » = agents connectés ET (appels EN COURS maintenant OU activité du jour).
+      if((c.agents||0)>0 && ((c.enCours||0)>0 || app>0 || (c.appelsHeure||0)>0)) active.add(c.nom);
     });
     return active.size ? active : new Set(camps);
   };
@@ -5635,7 +5636,7 @@ function renderEvo(d){
         stSort=st.ratio===Infinity?999999:st.ratio;
       }
       return `<tr>
-      <td class="evo-camp-name-clk" style="text-align:left;max-width:190px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${(c.agents>0&&cuC>0)?'<span class="evo-live-dot" title="Campagne active : agents connectés + CU générés"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
+      <td class="evo-camp-name-clk" style="text-align:left;max-width:190px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${((c.enCours||0)>0)?'<span class="evo-live-dot" title="Appels EN COURS ('+c.enCours+') — campagne en production live"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
       <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
       <td>${tft.toLocaleString("fr-FR")}</td>
       <td class="evo-lo">${cuC.toLocaleString("fr-FR")}</td>

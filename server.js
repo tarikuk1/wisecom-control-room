@@ -522,6 +522,7 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
     agents:_num(c.T),                 // agents connectés à la campagne
     appels:_num(c.TrDia),             // transactions (appels) du jour
     appelsHeure:_num(c.TrHora),       // appels de la dernière heure
+    enCours:_num(c.Mr)+_num(c.CA)+_num(c.CM), // appels EN COURS (numérotation Mr + connectés CA/CM) → vignette live
     positifs:_num(c.CUPosDia_Campanya), // contacts utiles positifs (résultats)
     negatifs:_num(c.CUNegDia_Campanya), // contacts utiles négatifs
     nonUtiles:_num(c.CNUDia_Campanya),  // contacts non utiles
