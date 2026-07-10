@@ -47,19 +47,21 @@ def clean_name(s):
 import urllib.error
 
 def _open(req, timeout):
-    """urlopen robuste : réessaie sur coupure réseau transitoire (WinError 10060/10054, timeout).
-    Evolution est parfois injoignable quelques secondes depuis le poste → sans retry, le push
-    échoue et, si le cache serveur expire, le dashboard se vide. 3 tentatives, backoff court."""
+    """urlopen robuste : réessaie sur coupure réseau (10060/10054/10053) ET sur 429 (rate limit
+    Evolution — l'export fait beaucoup d'appels ; sans backoff, le push échoue et le dashboard se
+    vide après un redéploiement). Respecte Retry-After sur 429."""
     last = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             return urllib.request.urlopen(req, context=CTX, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code == 429:  # rate limit → attendre puis réessayer
+                ra = e.headers.get("Retry-After") if e.headers else None
+                wait = float(ra) if (ra and str(ra).replace('.', '', 1).isdigit()) else 3 * (attempt + 1)
+                last = e; time.sleep(min(wait, 20)); continue
+            raise  # 401/500/… : pas de retry
         except (urllib.error.URLError, OSError) as e:
-            # Ne pas réessayer une vraie erreur HTTP (401, 500…) : seulement les coupures réseau.
-            if isinstance(e, urllib.error.HTTPError):
-                raise
-            last = e
-            time.sleep(1.2 * (attempt + 1))
+            last = e; time.sleep(1.5 * (attempt + 1))
     raise last
 
 def _get(path):
@@ -141,8 +143,23 @@ def _ingest_row(r, sqlStats, agByKey, names, ra=False):
 
 def export(fdesde, fhasta, hdesde=None, hhasta=None):
     svc_rows = _get("/v1/measurable/services?format=json").get("DataSet", [])
-    services = [str(r["EntityId"]) for r in svc_rows]
+    all_services = [str(r["EntityId"]) for r in svc_rows]
     svc_names = {str(r["EntityId"]): str(r.get("EntityName", "")) for r in svc_rows}
+    # OPTIM anti-429 : ne scanner que les services ACTIFS récemment (cache local). Full scan tous
+    # les 12 runs (~36 min à 3 min de cadence) pour découvrir les nouveaux. Réduit ~121 → ~30 appels
+    # R_TRANS par run → Evolution ne rate-limite plus, le push aboutit, le dashboard ne se vide plus.
+    import os
+    _SVC_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "svc_active.json")
+    _sc = {}
+    try:
+        with open(_SVC_CACHE, encoding="utf-8") as _f: _sc = json.load(_f)
+    except Exception:
+        _sc = {}
+    _run = int(_sc.get("run", 0)) + 1
+    _cached = [s for s in (_sc.get("active") or []) if s in all_services]
+    _full = (not _cached) or (_run % 3 == 0)  # full scan périodique pour découvrir les nouveaux services actifs
+    services = all_services if _full else _cached
+    _active_found = set()
     base_p = {"fdesde": fdesde, "fhasta": fhasta}
     if hdesde: base_p["hdesde"] = hdesde
     if hhasta: base_p["hhasta"] = hhasta
@@ -164,6 +181,7 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
         rows = [r for r in tr if r.get("GroupLevel") == 0 and (r.get("Transactions") or 0)]
         if not rows:
             continue
+        _active_found.add(sid)
         try:
             se = invoke(R_SESS, {**base_p, "idsvc": sid})
         except Exception:
@@ -189,6 +207,14 @@ def export(fdesde, fhasta, hdesde=None, hhasta=None):
                 dur = max(0, int(((e or int(time.time() * 1000)) - b) / 1000))
             seen_sessions[sid_ses] = (aid_s, dur)
             agent_login[aid_s].append((b, e))
+
+    # Sauver le cache des services actifs (full scan = remplace ; scan partiel = fusionne).
+    try:
+        _new_active = sorted(_active_found) if _full else sorted(set(_cached) | _active_found)
+        with open(_SVC_CACHE, "w", encoding="utf-8") as _f:
+            json.dump({"active": _new_active, "run": _run}, _f)
+    except Exception:
+        pass
 
     # ── Appels ENTRANTS (SVI) — module dédié aux 2 campagnes entrantes (canal distinct) ──
     # Le client APPELLE ; on mesure, PAR campagne entrante et par agent :
