@@ -34,7 +34,9 @@ R_DETAIL = "100000077"   # Listado de transacciones — détail par transaction 
 # Campagnes ENTRANTES (appels reçus via SVI) — canal DISTINCT du sortant. Confirmé par Tarik
 # dans Evolution (Supervision > Campagnes). Ces 2 campagnes sont EXCLUES des stats sortantes
 # et alimentent un module entrant dédié (reçus / répondus / QS / abandon / attente).
-INBOUND_CAMPS = {"100000189", "100000191"}  # GENESIS_QUALIFICATION_ENTRANT_C_703 · RA_HYUNDAI_LEADGEN_WISECOM_C_143
+INBOUND_CAMPS = {"100000189"}  # GENESIS_QUALIFICATION_ENTRANT_C_703 (seule vraie entrante / SVI).
+# 100000191 (RA_HYUNDAI_LEADGEN_C_143) = Relance Automatique = production SORTANTE (le système
+# rappelle les leads), confirmé par Tarik → comptée en sortant, plus exclue du dashboard.
 
 def clean_name(s):
     """Evolution renvoie souvent 'Prenom Prenom Nom' — on retire les mots consécutifs dupliqués."""

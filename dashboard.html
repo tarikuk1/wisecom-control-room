@@ -5382,7 +5382,7 @@ function evoToggleCampAgents(td,campId){
   if(ic)ic.className='ti ti-chevron-down evo-exp-ic';
 }
 // Campagnes ENTRANTES (SVI) — exclues des tableaux sortants, affichées dans le module entrant.
-const EVO_INBOUND_IDS=new Set(['100000189','100000191']); // GENESIS_QUALIFICATION_ENTRANT · RA_HYUNDAI_LEADGEN
+const EVO_INBOUND_IDS=new Set(['100000189']); // GENESIS_QUALIFICATION_ENTRANT (seule vraie entrante). RA_HYUNDAI_LEADGEN_C_143 (100000191) = Relance Auto = SORTANT
 function renderEvo(d){
   evoAddFsButtons();
   renderEvoCampFilter(d);
