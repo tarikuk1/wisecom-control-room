@@ -614,6 +614,41 @@ async function getToken(force){
   return bToken;
 }
 
+// ── Flux voix par agent (état du canal de réception) ─────────────────────────────
+// GET /cc/agent/:id → {agent:{flowVoice:true|false,...}}. flowVoice=false = l'agent ne reçoit
+// PAS les appels voix (flux « gris » de la Supervision INO) même connecté. Réactivation via
+// PUT /cc/agent/:id/flow/voice/activate/true (route /api/ino/flux/reactivate). Droits /cc/* requis.
+// Cache 45 s : ~55 agents = coûteux à recharger à chaque refresh, mais l'état bouge lentement.
+let fluxCache={data:{},at:0};
+async function fetchAgentFlux(force){
+  if(!force && Date.now()-fluxCache.at<45000 && Object.keys(fluxCache.data).length) return fluxCache.data;
+  const token=await getToken(); if(!token) return fluxCache.data||{};
+  try{
+    const groups=await apiReq("POST","/cc/agentgroups/list",{start:0,limit:100},token);
+    const gl=(groups&&groups.agentGroups)||[];
+    let ags=[];
+    for(const g of gl){
+      const al=await apiReq("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},token);
+      ((al&&al.agents)||[]).forEach(a=>ags.push({id:a.id,groupName:g.name}));
+    }
+    const map={};
+    // GET détail par agent, en parallèle par lots de 10, pour lire flowVoice.
+    for(let i=0;i<ags.length;i+=10){
+      const chunk=ags.slice(i,i+10);
+      const dets=await Promise.all(chunk.map(a=>apiReq("GET","/cc/agent/"+a.id,null,token).then(d=>({a,d})).catch(()=>({a,d:null}))));
+      dets.forEach(({a,d})=>{
+        const fa=d&&d.agent; if(!fa)return;
+        const rec={id:fa.id,flowVoice:!!fa.flowVoice,username:fa.username||null,nom:((fa.firstname||"")+" "+(fa.lastname||"")).trim(),group:a.groupName};
+        map[String(fa.id)]=rec;
+        if(fa.username)map["u:"+String(fa.username).toLowerCase()]=rec;
+        if(rec.nom)map["n:"+rec.nom.toLowerCase()]=rec;
+      });
+    }
+    if(Object.keys(map).length) fluxCache={data:map,at:Date.now()};
+  }catch(e){ console.error("[flux] "+e.message); }
+  return fluxCache.data;
+}
+
 // Récupère les compétences actives par agent depuis INO /agent/list
 let skillsCache={};let skillsCacheDate='';
 async function fetchAgentSkills(){
@@ -1270,6 +1305,31 @@ const server=http.createServer(async(req,res)=>{
       }
     });return;
   }
+  // === RÉACTIVATION DU FLUX VOIX D'UN AGENT (action réelle INO) ===
+  // PUT /cc/agent/:id/flow/voice/activate/true → l'agent redevient joignable en réception voix.
+  if(url==="/api/ino/flux/reactivate"&&req.method==="POST"){
+    const _sf=cookies.session?sessions[cookies.session]:null;
+    if(!_sf){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
+    let body="";req.on("data",c=>body+=c);
+    req.on("end",async()=>{
+      try{
+        const {agentId,flowKind,active}=JSON.parse(body||"{}");
+        if(!agentId) return (res.writeHead(400),res.end(JSON.stringify({ok:false,error:"agentId requis"})));
+        const fk=flowKind||"voice"; const act=(active===false)?"0":"1"; // INO attend 1/0, PAS true/false
+        const token=await getToken();
+        if(!token) return (res.writeHead(200),res.end(JSON.stringify({ok:false,error:"Token INO indisponible"})));
+        const r=await apiReq("PUT","/cc/agent/"+agentId+"/flow/"+fk+"/activate/"+act,null,token);
+        fluxCache.at=0; // invalider le cache pour refléter le nouvel état au prochain refresh
+        console.log("[FLUX] agent="+agentId+" "+fk+" activate="+act);
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,agentId,flowKind:fk,active:act==="true",resp:r||null}));
+      }catch(e){
+        console.error("[FLUX] Erreur:",e.message);
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:false,error:e.message}));
+      }
+    });return;
+  }
   // === LISTE DES SKILLS DISPONIBLES PAR AGENT ===
   // === RAFRAÎCHISSEMENT COMPÉTENCES (route dédiée, déclenchée manuellement) ===
   if(url==="/api/refresh-skills"&&req.method==="POST"){
@@ -1603,9 +1663,15 @@ const server=http.createServer(async(req,res)=>{
     const hDeb=u.searchParams.get("hDeb")||"08:00";
     const hFin=u.searchParams.get("hFin")||"20:00";
     // Renouveler le token avant toute requête sur date passée (le token peut avoir expiré entre refreshes)
-    getToken().then(()=>fetchAgentsDay(date,hDeb,hFin,dateFin)).then(d=>{
+    getToken().then(()=>Promise.all([fetchAgentsDay(date,hDeb,hFin,dateFin),fetchAgentFlux().catch(()=>({}))])).then(([d,flux])=>{
+      // Rattacher l'état du flux voix (flowVoice) à chaque agent : par id, sinon par username/nom.
+      const fk=flux||{};
+      (d.agents||[]).forEach(a=>{
+        const f=fk[String(a.id)]||fk["u:"+String(a.username||a.login||"").toLowerCase()]||fk["n:"+String(a.nom||"").toLowerCase()];
+        a.flowVoice=f?f.flowVoice:null;
+      });
       res.writeHead(200,{"Content-Type":"application/json"});
-      res.end(JSON.stringify({...d,count:d.agents.length}));
+      res.end(JSON.stringify({...d,fluxLoaded:Object.keys(fk).length>0,count:d.agents.length}));
     }).catch(e=>{
       // Retourner un JSON d'erreur exploitable (pas juste 500 vide)
       // Le client peut afficher le message d'erreur à l'utilisateur

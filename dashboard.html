@@ -1812,6 +1812,27 @@ function nd(v,suffix){
 
 
 function ndStatus(s){return s?s:'<span style="color:#888;font-style:italic;font-size:10px" title="Statut temps réel non exposé par /call/in/histories">n.d.</span>';}
+// Cellule Flux voix : ● Actif (vert) / ● Coupé (rouge) + bouton Réactiver / n.d.
+function fluxCell(a){
+  if(a.flowVoice===true) return '<span style="color:#30d158;font-weight:600;font-size:11px" title="Flux voix ACTIF — l\'agent reçoit les appels">● Actif</span>';
+  if(a.flowVoice===false) return '<span style="color:#ff3b30;font-weight:700;font-size:11px" title="Flux voix COUPÉ — l\'agent ne reçoit PAS les appels malgré sa connexion">● Coupé</span> <button onclick="reactivateFlux('+a.id+',this)" style="margin-left:5px;font-size:9px;padding:2px 7px;border-radius:6px;border:1px solid #ff3b30;background:transparent;color:#ff3b30;cursor:pointer;font-weight:700" title="Réactiver le flux voix de cet agent dans INO (action réelle)">↻ Réactiver</button>';
+  return '<span style="color:#888;font-size:10px;font-style:italic" title="État du flux non disponible (agent non apparié à INO ou droits manquants)">n.d.</span>';
+}
+// Réactivation réelle du flux voix via le serveur → PUT /cc/agent/:id/flow/voice/activate/true
+function reactivateFlux(agentId,btn){
+  if(btn){btn.disabled=true;btn.dataset.old=btn.textContent;btn.textContent='…';}
+  fetch('/api/ino/flux/reactivate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agentId:agentId,flowKind:'voice',active:true})})
+    .then(function(r){return r.json();}).then(function(j){
+      if(j&&j.ok){
+        if(window._fluxCutSince)delete window._fluxCutSince[agentId];
+        if(btn){btn.textContent='✓ Réactivé';btn.style.color='#30d158';btn.style.borderColor='#30d158';}
+        setTimeout(function(){ if(typeof refreshFromINO==='function')refreshFromINO(); },1400);
+      } else {
+        if(btn){btn.disabled=false;btn.textContent=btn.dataset.old||'↻ Réactiver';}
+        alert('Échec de la réactivation du flux : '+((j&&j.error)||'réponse INO inattendue'));
+      }
+    }).catch(function(e){ if(btn){btn.disabled=false;btn.textContent=btn.dataset.old||'↻ Réactiver';} alert('Erreur réseau : '+e.message); });
+}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
 let astreintesTracked=new Set(),astreintesEntries={};   // registre d'astreinte partagé (lecture seule ici) — pour le badge 🌙 KPI par campagne
@@ -1834,7 +1855,8 @@ const COL_DEFS=[
   {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% Réalisé",on:true},
   {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
   {k:"skills",l:"Compétences",on:true},
-  {k:"alerte",l:"Alerte",on:true}
+  {k:"alerte",l:"Alerte",on:true},
+  {k:"flux",l:"Flux",on:true}
 ];
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
@@ -2452,6 +2474,7 @@ async function loadAgentsFromAPI(){
           allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:_pAllSkills,
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
+          flowVoice:(a.flowVoice===true||a.flowVoice===false)?a.flowVoice:null,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
           presentes:a.appelsPresentes||a.appelsIn,decroches:a.appelsIn,refuses:a.nonDecroches||((a.appelsPresentes||a.appelsIn)-a.appelsIn),sortants:a.appelsOut,
           mails_auto:m,hprod,
@@ -3564,7 +3587,8 @@ function renderTable(sorted){
     {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire — sparkline",def:"Courbe d'activité horaire de l'agent (sparkline).\n\nDéfinition : représentation graphique mini du rythme de production de l'agent heure par heure sur la journée sélectionnée.\n\nFormule de calcul :\n• Source : timestamps callDate / acdDate des historiques INO\n• Conversion en heure France (UTC+2 en été, UTC+1 en hiver)\n• Découpage en buckets de 1h de 08h à 19h (12 points)\n• Chaque point = entrants décrochés + sortants dans ce créneau\n• Valeur normalisée visuellement (hauteur relative au pic de la journée)\n\nLecture :\n• Pic haut = forte densité d'appels sur ce créneau\n• Creux = pause, déjeuner, ou faible volume distribué\n• Courbe qui commence tard = arrivée tardive ou appels débutant après 08h\n• Courbe qui s'arrête tôt = départ anticipé ou fin de planification\n• N.d. = aucun timestamp exploitable dans les historiques INO pour cet agent"},
     {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
     {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."},
-    {k:"alerte",l:"Alerte",title:"Alerte agent (live)",def:"Alerte agent, en vue du jour uniquement.\n\n« ⏸ Inactif N min » (rouge) = aucune activité voix depuis plus de 5 minutes → l'agent est potentiellement déconnecté du flux et ne reçoit peut-être plus d'appels, alors qu'il devrait être en réception. C'est ce que compte le badge « Alertes N » de l'onglet.\n« ✓ OK » (vert) = activité voix récente.\n« – » = vue d'un jour passé (l'alerte live n'a pas de sens).\n\n⚠ LIMITE — L'état FLUX temps réel exact (vert/gris comme dans la Supervision INO) et sa RÉACTIVATION ne sont PAS disponibles : le compte API INO « dasboard_INO » n'a pas les droits /cc/* (Centre de Contacts). Cette alerte est déduite du dernier appel horodaté (historiques). Pour le flux temps réel + réactivation, l'admin INO doit activer les droits Centre de Contacts / supervision sur le compte API."}
+    {k:"alerte",l:"Alerte",title:"Alerte agent (live)",def:"Alerte agent, en vue du jour uniquement.\n\n« ⏸ Inactif N min » (rouge) = aucune activité voix depuis plus de 5 minutes → l'agent est potentiellement déconnecté du flux et ne reçoit peut-être plus d'appels, alors qu'il devrait être en réception. C'est ce que compte le badge « Alertes N » de l'onglet.\n« ✓ OK » (vert) = activité voix récente.\n« – » = vue d'un jour passé (l'alerte live n'a pas de sens).\n\n⚠ LIMITE — L'état FLUX temps réel exact (vert/gris comme dans la Supervision INO) et sa RÉACTIVATION ne sont PAS disponibles : le compte API INO « dasboard_INO » n'a pas les droits /cc/* (Centre de Contacts). Cette alerte est déduite du dernier appel horodaté (historiques). Pour le flux temps réel + réactivation, l'admin INO doit activer les droits Centre de Contacts / supervision sur le compte API."},
+    {k:"flux",l:"Flux",title:"Flux voix — réception des appels (INO)",def:"État du FLUX VOIX de l'agent, lu en direct depuis INO (GET /cc/agent/:id → flowVoice).\n\n● Actif (vert) = le canal voix est ouvert, l'agent reçoit les appels.\n● Coupé (rouge) = le flux voix est fermé : l'agent NE reçoit PAS les appels même s'il est connecté/actif. Un bouton « ↻ Réactiver » réouvre le flux (PUT /cc/agent/:id/flow/voice/activate/true — action réelle sur l'agent INO).\nn.d. = agent non apparié à INO ou flux non chargé.\n\nAlerte : si le flux reste Coupé plus de 20 s alors que le statut d'activité est Actif, l'agent est signalé dans la colonne Alerte (il occupe un poste sans pouvoir prendre d'appel)."}
   ];
   // Appliquer la sélection utilisateur (toujours garder expand + nom)
   // Rendre TOUTES les colonnes ; masquer les non sélectionnées via display:none (alignement strict avec le corps et la total-row)
@@ -3603,6 +3627,13 @@ function renderTable(sorted){
     const inactifMs=now-(a.lastVoixActivity||now);
     const isRedFlag=inactifMs>5*60000;
     const rfMins=Math.floor(inactifMs/60000);
+    // Flux voix coupé alors que l'agent est en poste (actif) : alerte après 20 s de persistance.
+    const _fxOnPost=(a.status==='Actif'||a.status==='Traitement'||a.status==='Post-appel');
+    window._fluxCutSince=window._fluxCutSince||{};
+    if(a.flowVoice===false&&_fxOnPost&&_liveDay){ if(!window._fluxCutSince[a.id])window._fluxCutSince[a.id]=now; }
+    else { delete window._fluxCutSince[a.id]; }
+    const fluxCut=(a.flowVoice===false)&&_fxOnPost&&_liveDay&&((now-(window._fluxCutSince[a.id]||now))>=20000);
+    if(_liveDay&&fluxCut)tAlerte++;
     tApp+=a.appels; tM+=m; tKo+=a.ko||0; tRef+=a.refus||0; tTrans+=a.transferts||0;
     tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
     tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0); tRefuses+=(a.refuses||0); tAcwW+=(a.acw||0)*(a.decroches||0);
@@ -3676,7 +3707,8 @@ function renderTable(sorted){
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center;${visibleCols.has('files')?'':' display:none'}">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
       <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;vertical-align:middle;" title="${(function(){var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];return all.length?all.map(function(s){return s.name+(s.active?' ON':' OFF')+(s.score?' ('+s.score+')':'');}).join(' | '):'n.d.';})()}">${(function(){var sk=Array.isArray(a.skills)?a.skills:[];var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];var inactive=all.filter(function(s){return !s.active;}).length;if(sk.length===0&&all.length===0)return'<span style="color:#888;font-style:italic;font-size:10px">n.d.</span>';return'<span style="font-size:11px;font-weight:700;color:#E8006E">'+sk.length+'</span><span style="font-size:8px;color:#888;margin-left:3px">act'+(inactive>0?' / <span style="color:#aaa">'+inactive+' OFF</span>':'')+'</span>';})()}</td>
-      <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;white-space:nowrap" title="Alerte agent (live) — voir la définition ⓘ dans l'en-tête">${_liveDay?(isRedFlag?`<span style="color:#ff3b30;font-weight:700;font-size:11px" title="Aucune activité voix depuis ${rfMins} min — agent potentiellement déconnecté du flux (ne reçoit peut-être plus d'appels). À vérifier dans INO.">⏸ Inactif ${rfMins} min</span>`:`<span style="color:#30d158;font-size:11px" title="Activité voix récente — OK">✓ OK</span>`):`<span style="color:#555;font-size:11px" title="Alerte live disponible uniquement en vue du jour">–</span>`}</td>
+      <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;white-space:nowrap" title="Alerte agent (live) — voir la définition ⓘ dans l'en-tête">${_liveDay?(fluxCut?`<span style="color:#ff3b30;font-weight:700;font-size:11px" title="FLUX VOIX COUPÉ depuis plus de 20 s alors que l'agent est en poste (${a.status}) — il occupe une position mais ne peut PAS recevoir d'appels. Réactivez son flux (colonne Flux).">⚠ Flux coupé</span>`:(isRedFlag?`<span style="color:#ff9f43;font-weight:700;font-size:11px" title="Aucune activité voix depuis ${rfMins} min — agent potentiellement déconnecté du flux. À vérifier dans INO.">⏸ Inactif ${rfMins} min</span>`:`<span style="color:#30d158;font-size:11px" title="Activité voix récente + flux OK">✓ OK</span>`)):`<span style="color:#555;font-size:11px" title="Alerte live disponible uniquement en vue du jour">–</span>`}</td>
+      <td style="${visibleCols.has('flux')?'':' display:none'};padding:9px 10px;white-space:nowrap">${fluxCell(a)}</td>
     </tr>
     ${detailRowHTML(a)}`;
   }).join("")+`<tr class="total-row">
@@ -3711,7 +3743,8 @@ function renderTable(sorted){
     <td style="${visibleCols.has('spark')?'':' display:none'}"></td>
     <td style="${visibleCols.has('files')?'':' display:none'}"></td>
     <td style="${visibleCols.has('skills')?'':' display:none'}"></td>
-    <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;font-weight:700" title="Nombre d'agents en alerte (inactivité voix > 5 min)">${_liveDay?(tAlerte>0?`<span style="color:#ff3b30">⏸ ${tAlerte}</span>`:'<span style="color:#30d158">0</span>'):'<span style="color:#555">–</span>'}</td>
+    <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;font-weight:700" title="Nombre d'agents en alerte (flux coupé >20s ou inactivité voix >5 min)">${_liveDay?(tAlerte>0?`<span style="color:#ff3b30">⚠ ${tAlerte}</span>`:'<span style="color:#30d158">0</span>'):'<span style="color:#555">–</span>'}</td>
+    <td style="${visibleCols.has('flux')?'':' display:none'};padding:9px 10px;font-weight:700" title="Agents dont le flux voix est coupé">${_liveDay?(sorted.filter(function(x){return x.flowVoice===false;}).length>0?`<span style="color:#ff3b30">● ${sorted.filter(function(x){return x.flowVoice===false;}).length}</span>`:'<span style="color:#30d158">0</span>'):'<span style="color:#555">–</span>'}</td>
   </tr>`;
 }
 
