@@ -1833,6 +1833,26 @@ function reactivateFlux(agentId,btn){
       }
     }).catch(function(e){ if(btn){btn.disabled=false;btn.textContent=btn.dataset.old||'↻ Réactiver';} alert('Erreur réseau : '+e.message); });
 }
+// Charge l'état du flux voix SÉPARÉMENT (léger) pour les seuls agents affichés, puis met à jour la
+// colonne Flux. Découplé de /agents-day pour ne jamais bloquer le chargement des agents (limite INO).
+let _fluxLoading=false;
+function loadFlux(){
+  if(_fluxLoading)return;
+  const ids=(typeof agents!=='undefined'&&Array.isArray(agents))?agents.map(function(a){return a.id;}).filter(Boolean):[];
+  if(!ids.length)return;
+  const today=isoLocal(new Date());
+  const sel=((document.getElementById("f-date-deb")||{}).value)||today;
+  if(sel!==today)return; // le flux est un état live → uniquement en vue du jour
+  _fluxLoading=true;
+  fetch('/api/ino/flux?ids='+encodeURIComponent(ids.join(',')))
+    .then(function(r){return r.json();}).then(function(j){
+      _fluxLoading=false;
+      if(!j||!j.ok||!j.flux)return;
+      let changed=false;
+      agents.forEach(function(a){ if(Object.prototype.hasOwnProperty.call(j.flux,String(a.id))){ a.flowVoice=j.flux[String(a.id)]; changed=true; } });
+      if(changed&&typeof render==='function')render();
+    }).catch(function(){ _fluxLoading=false; });
+}
 
 let darkMode=false,agents=[],mailsEdit={},sortCol="appels",sortDir=-1,currentTab="tableau",filterOpen=true,inoLive=false,hideDeconnecte=false;
 let astreintesTracked=new Set(),astreintesEntries={};   // registre d'astreinte partagé (lecture seule ici) — pour le badge 🌙 KPI par campagne
@@ -2536,6 +2556,7 @@ async function loadAgentsFromAPI(){
       document.getElementById("last-update").textContent=`MAJ ${new Date().toLocaleTimeString("fr-FR")} · ${agents.length} agents`;
       buildAllDropdowns();
       render();
+      loadFlux(); // état du flux voix chargé à part (léger), met à jour la colonne Flux sans bloquer
     } else {
       // Jour sans données INO (week-end, fermeture…) : on vide proprement, ce n'est pas une erreur
       agents=[];

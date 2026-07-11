@@ -1305,6 +1305,30 @@ const server=http.createServer(async(req,res)=>{
       }
     });return;
   }
+  // === ÉTAT DU FLUX VOIX (léger, à la demande) — seulement les agents affichés ===
+  // GET /api/ino/flux?ids=258403,257287 → {ok,flux:{258403:true,257287:false}}. ~N appels /cc/agent/:id
+  // (N = agents visibles, ~5-15), JAMAIS les 55 → ne concurrence pas /agents-day sur la limite INO.
+  if(url==="/api/ino/flux"&&req.method==="GET"){
+    const _sfg=cookies.session?sessions[cookies.session]:null;
+    if(!_sfg){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
+    const uu=new URL(req.url,"http://localhost");
+    const ids=(uu.searchParams.get("ids")||"").split(",").map(s=>s.trim()).filter(Boolean).slice(0,60);
+    (async()=>{
+      try{
+        const token=await getToken();
+        if(!token){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Token INO indisponible"}));}
+        const out={};
+        for(let i=0;i<ids.length;i+=8){
+          const chunk=ids.slice(i,i+8);
+          const dets=await Promise.all(chunk.map(id=>apiReq("GET","/cc/agent/"+id,null,token).then(d=>({id,d})).catch(()=>({id,d:null}))));
+          dets.forEach(({id,d})=>{ const fa=d&&d.agent; out[id]=(fa&&(fa.flowVoice===true||fa.flowVoice===false))?fa.flowVoice:null; });
+        }
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,flux:out}));
+      }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
+    })();
+    return;
+  }
   // === RÉACTIVATION DU FLUX VOIX D'UN AGENT (action réelle INO) ===
   // PUT /cc/agent/:id/flow/voice/activate/true → l'agent redevient joignable en réception voix.
   if(url==="/api/ino/flux/reactivate"&&req.method==="POST"){
@@ -1663,15 +1687,13 @@ const server=http.createServer(async(req,res)=>{
     const hDeb=u.searchParams.get("hDeb")||"08:00";
     const hFin=u.searchParams.get("hFin")||"20:00";
     // Renouveler le token avant toute requête sur date passée (le token peut avoir expiré entre refreshes)
-    getToken().then(()=>Promise.all([fetchAgentsDay(date,hDeb,hFin,dateFin),fetchAgentFlux().catch(()=>({}))])).then(([d,flux])=>{
-      // Rattacher l'état du flux voix (flowVoice) à chaque agent : par id, sinon par username/nom.
-      const fk=flux||{};
-      (d.agents||[]).forEach(a=>{
-        const f=fk[String(a.id)]||fk["u:"+String(a.username||a.login||"").toLowerCase()]||fk["n:"+String(a.nom||"").toLowerCase()];
-        a.flowVoice=f?f.flowVoice:null;
-      });
+    // IMPORTANT : le flux voix N'EST PLUS récupéré ici. Il l'était via fetchAgentFlux (~58 appels
+    // INO/refresh) en parallèle → épuisait la limite horaire INO et faisait échouer les historiques
+    // (0 agent, transitoire). Le flux est désormais chargé à part, à la demande, seulement pour les
+    // agents affichés (route GET /api/ino/flux?ids=...). /agents-day redevient rapide et fiable.
+    getToken().then(()=>fetchAgentsDay(date,hDeb,hFin,dateFin)).then(d=>{
       res.writeHead(200,{"Content-Type":"application/json"});
-      res.end(JSON.stringify({...d,fluxLoaded:Object.keys(fk).length>0,count:d.agents.length}));
+      res.end(JSON.stringify({...d,count:d.agents.length}));
     }).catch(e=>{
       // Retourner un JSON d'erreur exploitable (pas juste 500 vide)
       // Le client peut afficher le message d'erreur à l'utilisateur
