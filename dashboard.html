@@ -1833,7 +1833,8 @@ const COL_DEFS=[
   {k:"ko",l:"100 % KO",on:true},{k:"refus",l:"Refus qualification",on:true},
   {k:"inactifs",l:"Inactifs",on:false},{k:"realise",l:"% Réalisé",on:true},
   {k:"spark",l:"Activité du jour",on:true},{k:"files",l:"Files",on:false},
-  {k:"skills",l:"Compétences",on:true}
+  {k:"skills",l:"Compétences",on:true},
+  {k:"alerte",l:"Alerte",on:true}
 ];
 let visibleCols=new Set(COL_DEFS.filter(c=>c.on).map(c=>c.k));
 let colPanelOpen=false;
@@ -3562,7 +3563,8 @@ function renderTable(sorted){
     {k:"realise",l:"% Réalisé",def:"Taux de réalisation de l'objectif journalier. Formule : (Actes total / Objectif campagne) × 100. L'objectif est configurable dans ⚙ Critères KPI par campagne (défaut : 50 actes/jour)."},
     {k:"spark",l:"Activité du jour",title:"Courbe d'activité horaire — sparkline",def:"Courbe d'activité horaire de l'agent (sparkline).\n\nDéfinition : représentation graphique mini du rythme de production de l'agent heure par heure sur la journée sélectionnée.\n\nFormule de calcul :\n• Source : timestamps callDate / acdDate des historiques INO\n• Conversion en heure France (UTC+2 en été, UTC+1 en hiver)\n• Découpage en buckets de 1h de 08h à 19h (12 points)\n• Chaque point = entrants décrochés + sortants dans ce créneau\n• Valeur normalisée visuellement (hauteur relative au pic de la journée)\n\nLecture :\n• Pic haut = forte densité d'appels sur ce créneau\n• Creux = pause, déjeuner, ou faible volume distribué\n• Courbe qui commence tard = arrivée tardive ou appels débutant après 08h\n• Courbe qui s'arrête tôt = départ anticipé ou fin de planification\n• N.d. = aucun timestamp exploitable dans les historiques INO pour cet agent"},
     {k:"files",l:"Files",def:"Vérification de la couverture des files d'attente actives pour l'agent."},
-    {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."}
+    {k:"skills",l:"Compétences",title:"Compétences actives (nombre + détail)",def:"Nombre de compétences actives de l'agent, déduites des queues INO actives dans les historiques du jour. Le détail complet est visible au survol (tooltip)."},
+    {k:"alerte",l:"Alerte",title:"Alerte agent (live)",def:"Alerte agent, en vue du jour uniquement.\n\n« ⏸ Inactif N min » (rouge) = aucune activité voix depuis plus de 5 minutes → l'agent est potentiellement déconnecté du flux et ne reçoit peut-être plus d'appels, alors qu'il devrait être en réception. C'est ce que compte le badge « Alertes N » de l'onglet.\n« ✓ OK » (vert) = activité voix récente.\n« – » = vue d'un jour passé (l'alerte live n'a pas de sens).\n\n⚠ LIMITE — L'état FLUX temps réel exact (vert/gris comme dans la Supervision INO) et sa RÉACTIVATION ne sont PAS disponibles : le compte API INO « dasboard_INO » n'a pas les droits /cc/* (Centre de Contacts). Cette alerte est déduite du dernier appel horodaté (historiques). Pour le flux temps réel + réactivation, l'admin INO doit activer les droits Centre de Contacts / supervision sur le compte API."}
   ];
   // Appliquer la sélection utilisateur (toujours garder expand + nom)
   // Rendre TOUTES les colonnes ; masquer les non sélectionnées via display:none (alignement strict avec le corps et la total-row)
@@ -3587,6 +3589,9 @@ function renderTable(sorted){
   let tApp=0,tM=0,tKo=0,tRef=0,tTrans=0,tIn=0,tOut=0,tPres=0,tDecr=0,tHP=0,tDmcW=0,tRefuses=0,tAcwW=0;
   let tInactifs=0,tOccupW=0,tOccupHP=0,tRealiseS=0,tRealiseN=0,tTransfoN=0,tTransfoD=0,tAdhW=0,tAdhN=0;
   const now=Date.now();
+  // Colonne Alerte : l'inactivité (dernier appel > 5 min) n'a de sens qu'en vue du JOUR (live).
+  const _liveDay=((document.getElementById("f-date-deb")||{}).value||isoLocal(new Date()))===isoLocal(new Date());
+  let tAlerte=0;
 
   document.getElementById("tbody-agents").innerHTML=sorted.map((a,i)=>{
     const m=mailsEdit[a.id]!=null?mailsEdit[a.id]:(a.mails_auto||0);
@@ -3602,6 +3607,7 @@ function renderTable(sorted){
     tIn+=a.appelsIn||0; tOut+=a.appelsOut||0;
     tPres+=(a.presentes||0); tDecr+=(a.decroches||0); tHP+=(a.hprod||0); tDmcW+=(a.dmc||0)*(a.decroches||0); tRefuses+=(a.refuses||0); tAcwW+=(a.acw||0)*(a.decroches||0);
     tInactifs+=(a.inactifs||0);
+    if(_liveDay&&isRedFlag)tAlerte++;
     if(a.occupation!=null){tOccupW+=a.occupation*(a.hprod||1);tOccupHP+=(a.hprod||1);}
     if(a.realise!=null){tRealiseS+=a.realise;tRealiseN++;}
     if(a.transfo!=null){tTransfoN+=a.transfo*(a.appels||0)/100;tTransfoD+=(a.appels||0);}
@@ -3670,6 +3676,7 @@ function renderTable(sorted){
       <td>${sparkSVG(a.spark)}</td>
       <td style="text-align:center;${visibleCols.has('files')?'':' display:none'}">${a.files_ok?'<span class="badge-ok" style="font-size:11px">✓</span>':'<span class="badge-anom" style="font-size:11px">⚠</span>'}</td>
       <td style="${visibleCols.has('skills')?'':' display:none'};max-width:180px;vertical-align:middle;" title="${(function(){var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];return all.length?all.map(function(s){return s.name+(s.active?' ON':' OFF')+(s.score?' ('+s.score+')':'');}).join(' | '):'n.d.';})()}">${(function(){var sk=Array.isArray(a.skills)?a.skills:[];var all=Array.isArray(a.allSkillsData)?a.allSkillsData:[];var inactive=all.filter(function(s){return !s.active;}).length;if(sk.length===0&&all.length===0)return'<span style="color:#888;font-style:italic;font-size:10px">n.d.</span>';return'<span style="font-size:11px;font-weight:700;color:#E8006E">'+sk.length+'</span><span style="font-size:8px;color:#888;margin-left:3px">act'+(inactive>0?' / <span style="color:#aaa">'+inactive+' OFF</span>':'')+'</span>';})()}</td>
+      <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;white-space:nowrap" title="Alerte agent (live) — voir la définition ⓘ dans l'en-tête">${_liveDay?(isRedFlag?`<span style="color:#ff3b30;font-weight:700;font-size:11px" title="Aucune activité voix depuis ${rfMins} min — agent potentiellement déconnecté du flux (ne reçoit peut-être plus d'appels). À vérifier dans INO.">⏸ Inactif ${rfMins} min</span>`:`<span style="color:#30d158;font-size:11px" title="Activité voix récente — OK">✓ OK</span>`):`<span style="color:#555;font-size:11px" title="Alerte live disponible uniquement en vue du jour">–</span>`}</td>
     </tr>
     ${detailRowHTML(a)}`;
   }).join("")+`<tr class="total-row">
@@ -3704,6 +3711,7 @@ function renderTable(sorted){
     <td style="${visibleCols.has('spark')?'':' display:none'}"></td>
     <td style="${visibleCols.has('files')?'':' display:none'}"></td>
     <td style="${visibleCols.has('skills')?'':' display:none'}"></td>
+    <td style="${visibleCols.has('alerte')?'':' display:none'};padding:9px 10px;font-weight:700" title="Nombre d'agents en alerte (inactivité voix > 5 min)">${_liveDay?(tAlerte>0?`<span style="color:#ff3b30">⏸ ${tAlerte}</span>`:'<span style="color:#30d158">0</span>'):'<span style="color:#555">–</span>'}</td>
   </tr>`;
 }
 
