@@ -687,6 +687,14 @@ body.light .evo-camp-detail>td{background:#f6f6f9;}
 .evo-camp-name-clk{cursor:pointer;}
 .evo-camp-name-clk:hover .evo-rc-name>span:last-child{text-decoration:underline;text-decoration-color:var(--c-pink);}
 .evo-exp-ic{font-size:13px;color:var(--t-disabled);margin-right:3px;vertical-align:-1px;transition:transform .15s;}
+/* Vue groupée par client : en-tête repliable */
+.evo-cli-hdr{cursor:pointer;background:linear-gradient(90deg,rgba(232,0,110,.06),transparent);transition:background .15s;}
+.evo-cli-hdr:hover{background:rgba(232,0,110,.12);}
+.evo-cli-hdr>td{border-top:1px solid var(--border);font-size:13px;padding-top:9px;padding-bottom:9px;}
+.evo-cli-hdr>td:first-child{border-left:3px solid var(--c-pink);}
+.evo-cli-ic{font-size:14px;color:var(--c-pink);margin-right:5px;vertical-align:-2px;}
+.evo-sub>td:first-child{font-size:12px;}
+body.light .evo-cli-hdr{background:linear-gradient(90deg,rgba(232,0,110,.05),transparent);}
 /* Logo client : tuile blanche nette + marque teintée en couleur officielle (masque SVG) */
 .evo-logo{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff;border:1px solid #e6e6ec;box-shadow:0 1px 2px rgba(0,0,0,.07);font-weight:800;font-size:11.5px;letter-spacing:-.02em;overflow:hidden;vertical-align:middle;}
 .evo-logo-ic{width:21px;height:21px;display:block;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
@@ -5388,6 +5396,20 @@ document.addEventListener('click',function(e){
   evoSortTable(th,tbl);
 });
 // Clic sur le nom d'une campagne → déplie en vignettes le détail par agent ayant produit dessus.
+// Replier/déplier un CLIENT (groupe de sous-campagnes) dans la vue « Production par campagne ».
+function evoToggleClient(ck){
+  window._evoGrpOpen=window._evoGrpOpen||{};
+  const hdr=document.querySelector('#evo-camp-table tr.evo-cli-hdr[data-cli="'+ck+'"]');
+  const open=!(hdr&&hdr.getAttribute('data-open')==='1');
+  window._evoGrpOpen[ck]=open; // mémorisé pour survivre aux re-rendus (rafraîchissements)
+  document.querySelectorAll('#evo-camp-table tr.evo-cli-'+ck).forEach(function(r){ if(open){r.style.display='';} else {
+    r.style.display='none';
+    const ic=r.querySelector('.evo-exp-ic'); if(ic)ic.className='ti ti-chevron-right evo-exp-ic';
+  }});
+  // en repliant, refermer tout détail agents ouvert (un seul l'est à la fois)
+  if(!open){ document.querySelectorAll('#evo-camp-table tr.evo-camp-detail').forEach(function(d){d.remove();}); }
+  if(hdr){ hdr.setAttribute('data-open',open?'1':'0'); const ic=hdr.querySelector('.evo-cli-ic'); if(ic)ic.className='ti ti-chevron-'+(open?'down':'right')+' evo-cli-ic'; hdr.setAttribute('title',(hdr.textContent.match(/\d+/)||[''])[0]+' sous-campagne(s) — cliquer pour '+(open?'replier':'déplier')); }
+}
 function evoToggleCampAgents(td,campId){
   const tr=td.closest('tr'); if(!tr)return;
   const ic=td.querySelector('.evo-exp-ic');
@@ -5664,57 +5686,100 @@ function renderEvo(d){
       <th class="evo-lo" title="Fiches encore à traiter / fichier total (cumulé)">Fichier</th>
       <th title="Effectif idéal = agents nécessaires pour épuiser le CU du fichier restant d'ici la fin de plage, à la vitesse CU/h-agent constatée. Format : staffés / ~idéal. Sur-staffing (payé au CU) : ambre >1,2× · rouge >1,5×">Staffing</th>
     </tr></thead>
-    <tbody>${camps.map(c=>{
-      const hp=getHP(c);
-      const accords=cAcc(c), refusN=cRef(c), appelsC=cApp(c);
-      const cuC=accords+refusN;
-      const hpSrc=heuresParCamp[c.nom]>0?"":"*"; // * = source SQL (pas session REST)
-      const accPct=cuC>0?Math.round(accords/cuC*100):null;
-      const refusPct=cuC>0?Math.round(refusN/cuC*100):null;
-      const fichierT=evoFichierTotal(c);
-      const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null; // jour : CU ÷ appels traités
-      // Fichier EN PRODUCTION : à appeler (exclut bloquées + clôturées). 0/absence → pas de fichier géré.
-      let dispo=null;
-      if(c.fichierDispo>0)dispo=c.fichierDispo;
-      else if(c.restantATraiter>0)dispo=c.restantATraiter;
-      else if(c.fichier&&c.fichier.disponibles>0)dispo=c.fichier.disponibles;
-      const fichierProdTot=c.fichierDispo>0?(c.fichierDispo+(c.fichierBloque||0)+(c.fichierClot||0)):null;
-      const tft=tftByCamp[String(c.id)]||0;
-      const hcN=hcByCamp[String(c.id)]||0;
-      const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
-      // Staffing : calculé ici pour exposer un data-sort=ratio (tri propre de la colonne).
-      const st=evoStaffing(c,cuC,hp);
-      let stHtml,stSort;
-      if(st.na==='hist'){ stHtml='<span style="color:var(--t-disabled)" title="Staffing calculé en temps réel — aujourd\'hui uniquement">–</span>'; stSort=-1; }
-      else if(st.na){ stHtml='<span style="color:var(--t-disabled)" title="Données insuffisantes (fichier restant ou production manquants)">n.d.</span>'; stSort=-1; }
-      else{
-        const idealTxt=st.ideal<1?st.ideal.toFixed(1):Math.round(st.ideal).toString();
-        const ratioTxt=st.ratio===Infinity?'∞':st.ratio.toFixed(2);
-        const cls=st.lvl==='bad'?'st-bad':st.lvl==='warn'?'st-warn':st.lvl==='under'?'st-under':'st-good';
-        const icon=st.lvl==='bad'?'⚠ ':st.lvl==='warn'?'▲ ':st.lvl==='under'?'▽ ':'';
-        if(st.lvl==='bad')_overCrit++; else if(st.lvl==='warn')_overWarn++;
-        const t='Staffés '+st.staffes+' · idéal ~'+idealTxt+' (ratio '+ratioTxt+'×) — vitesse '+EVO_R1(st.vitesse)+' CU/h-agent · fichier restant '+st.dispo.toLocaleString('fr-FR')+' · '+_hRest.toFixed(1)+'h de plage restante';
-        stHtml='<span class="st-chip '+cls+'" title="'+t+'">'+icon+st.staffes+' / ~'+idealTxt+'</span>';
-        stSort=st.ratio===Infinity?999999:st.ratio;
-      }
-      return `<tr>
-      <td class="evo-camp-name-clk" style="text-align:left;max-width:190px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${((c.enCours||0)>0)?'<span class="evo-live-dot" title="Appels EN COURS ('+c.enCours+') — campagne en production live"></span>':''}${evoLogo(c.nom)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ec(c.nom)}</span></span></td>
-      <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
-      <td>${tft.toLocaleString("fr-FR")}</td>
-      <td class="evo-lo">${cuC.toLocaleString("fr-FR")}</td>
-      <td style="color:#E8006E;font-weight:700">${accords.toLocaleString("fr-FR")}</td>
-      <td><b style="color:${accCol}">${accPct==null?"–":accPct+"%"}</b><div class="evo-rc-bar"><i style="width:${accPct||0}%;background:${accCol}"></i></div></td>
-      <td class="evo-lo" title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
-      <td style="font-weight:700">${fmtR(evoParH(cuC,hp))}</td>
-      <td class="evo-lo" style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
-      <td class="evo-lo">${c.finalises.toLocaleString("fr-FR")}</td>
-      <td class="evo-lo">${hcN.toLocaleString("fr-FR")}</td>
-      <td class="evo-lo">${c.sql?fmtSec(c.sql.dmc):"–"}</td>
-      <td class="evo-lo">${contactPct==null?"–":contactPct+"%"}</td>
-      <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
-      <td class="evo-lo" title="Disponible en production / total (exclut ${c.fichierBloque||0} bloquées, ${c.fichierClot||0} clôturées)">${(fichierProdTot||fichierT)>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+(fichierProdTot||fichierT).toLocaleString("fr-FR"):"–"}</td>
-      <td data-sort="${stSort}">${stHtml}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    <tbody>${(function(){
+      // ── VUE GROUPÉE PAR CLIENT (marque) ──────────────────────────────────────
+      // En-tête client repliable (logo + agrégats + agents live) ; clic → sous-campagnes.
+      // Objectif : lisibilité « en 1 coup d'œil » — les clients d'abord, le détail au clic.
+      const _cliOf=nm=>{const u=String(nm||'').toUpperCase();
+        const m=[['HYUNDAI','Hyundai'],['MERCEDES','Mercedes'],['VWVU','Volkswagen'],['VOLKSWAGEN','Volkswagen'],['VW','Volkswagen'],['AUDI','Audi'],['NISSAN','Nissan'],['SEAT','Seat'],['SKODA','Skoda'],['KIA','Kia'],['OMODA','Omoda'],['JAECOO','Jaecoo'],['MERCER','Mercer'],['AFNOR','Afnor'],['EVORIEL','Evoriel'],['VIVEST','Vivest'],['VOLTALIS','Voltalis'],['MONETIZE','Monetize'],['COVID','Covid'],['GS_','GS']];
+        for(let i=0;i<m.length;i++){if(u.indexOf(m[i][0])>=0)return m[i][1];}
+        const t=String(nm||'').split(/[_\s]/)[0]||'Autre'; return t?t.charAt(0).toUpperCase()+t.slice(1).toLowerCase():'Autre';};
+      // Rendu d'UNE sous-campagne (identique à l'ancienne ligne, + classe client pour le repli)
+      const _subRow=(c,_ck)=>{
+        const hp=getHP(c);
+        const accords=cAcc(c), refusN=cRef(c), appelsC=cApp(c);
+        const cuC=accords+refusN;
+        const hpSrc=heuresParCamp[c.nom]>0?"":"*";
+        const accPct=cuC>0?Math.round(accords/cuC*100):null;
+        const refusPct=cuC>0?Math.round(refusN/cuC*100):null;
+        const fichierT=evoFichierTotal(c);
+        const contactPct=appelsC>0?Math.round(cuC/appelsC*100):null;
+        let dispo=null;
+        if(c.fichierDispo>0)dispo=c.fichierDispo;
+        else if(c.restantATraiter>0)dispo=c.restantATraiter;
+        else if(c.fichier&&c.fichier.disponibles>0)dispo=c.fichier.disponibles;
+        const fichierProdTot=c.fichierDispo>0?(c.fichierDispo+(c.fichierBloque||0)+(c.fichierClot||0)):null;
+        const tft=tftByCamp[String(c.id)]||0;
+        const hcN=hcByCamp[String(c.id)]||0;
+        const accCol=accPct==null?'var(--t-secondary)':(accPct>=50?'#1d9e75':'#E8006E');
+        const st=evoStaffing(c,cuC,hp);
+        let stHtml,stSort;
+        if(st.na==='hist'){ stHtml='<span style="color:var(--t-disabled)" title="Staffing calculé en temps réel — aujourd\'hui uniquement">–</span>'; stSort=-1; }
+        else if(st.na){ stHtml='<span style="color:var(--t-disabled)" title="Données insuffisantes (fichier restant ou production manquants)">n.d.</span>'; stSort=-1; }
+        else{
+          const idealTxt=st.ideal<1?st.ideal.toFixed(1):Math.round(st.ideal).toString();
+          const ratioTxt=st.ratio===Infinity?'∞':st.ratio.toFixed(2);
+          const cls=st.lvl==='bad'?'st-bad':st.lvl==='warn'?'st-warn':st.lvl==='under'?'st-under':'st-good';
+          const icon=st.lvl==='bad'?'⚠ ':st.lvl==='warn'?'▲ ':st.lvl==='under'?'▽ ':'';
+          if(st.lvl==='bad')_overCrit++; else if(st.lvl==='warn')_overWarn++;
+          const t='Staffés '+st.staffes+' · idéal ~'+idealTxt+' (ratio '+ratioTxt+'×) — vitesse '+EVO_R1(st.vitesse)+' CU/h-agent · fichier restant '+st.dispo.toLocaleString('fr-FR')+' · '+_hRest.toFixed(1)+'h de plage restante';
+          stHtml='<span class="st-chip '+cls+'" title="'+t+'">'+icon+st.staffes+' / ~'+idealTxt+'</span>';
+          stSort=st.ratio===Infinity?999999:st.ratio;
+        }
+        return `<tr class="evo-sub evo-cli-${_ck}" style="display:none">
+        <td class="evo-camp-name-clk" style="text-align:left;max-width:210px;padding-left:26px" onclick="evoToggleCampAgents(this,'${c.id}')" title="Cliquer pour voir le détail par agent"><span class="evo-rc-name"><i class="ti ti-chevron-right evo-exp-ic"></i>${((c.enCours||0)>0)?'<span class="evo-live-dot" title="Appels EN COURS ('+c.enCours+') — campagne en production live"></span>':''}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:var(--t-secondary)">${ec(c.nom)}</span></span></td>
+        <td class="evo-lo">${c.agents}</td><td><b>${appelsC.toLocaleString("fr-FR")}</b></td>
+        <td>${tft.toLocaleString("fr-FR")}</td>
+        <td class="evo-lo">${cuC.toLocaleString("fr-FR")}</td>
+        <td style="color:#E8006E;font-weight:700">${accords.toLocaleString("fr-FR")}</td>
+        <td><b style="color:${accCol}">${accPct==null?"–":accPct+"%"}</b><div class="evo-rc-bar"><i style="width:${accPct||0}%;background:${accCol}"></i></div></td>
+        <td class="evo-lo" title="${hpSrc?"Calculé depuis SQL (cumul appels+wrapup) — valeur indicative":"Basé sur la session des agents REST"}">${fmtH(hp)}${hpSrc?'<span style="color:#ff9f0a;font-size:9px;margin-left:2px" title="Source SQL">⁕</span>':""}</td>
+        <td style="font-weight:700">${fmtR(evoParH(cuC,hp))}</td>
+        <td class="evo-lo" style="color:#E8006E;font-weight:700">${fmtR(evoParH(accords,hp))}</td>
+        <td class="evo-lo">${c.finalises.toLocaleString("fr-FR")}</td>
+        <td class="evo-lo">${hcN.toLocaleString("fr-FR")}</td>
+        <td class="evo-lo">${c.sql?fmtSec(c.sql.dmc):"–"}</td>
+        <td class="evo-lo">${contactPct==null?"–":contactPct+"%"}</td>
+        <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
+        <td class="evo-lo" title="Disponible en production / total (exclut ${c.fichierBloque||0} bloquées, ${c.fichierClot||0} clôturées)">${(fichierProdTot||fichierT)>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+(fichierProdTot||fichierT).toLocaleString("fr-FR"):"–"}</td>
+        <td data-sort="${stSort}">${stHtml}</td>
+      </tr>`;};
+      // Grouper + trier les clients par CU total décroissant
+      const _grp={}; camps.forEach(c=>{const k=_cliOf(c.nom);(_grp[k]=_grp[k]||[]).push(c);});
+      const _keys=Object.keys(_grp).sort((a,b)=>_grp[b].reduce((s,c)=>s+cAcc(c)+cRef(c),0)-_grp[a].reduce((s,c)=>s+cAcc(c)+cRef(c),0));
+      window._evoGrpOpen=window._evoGrpOpen||{};
+      let out='';
+      _keys.forEach(k=>{
+        const list=_grp[k]; const _ck=k.replace(/[^A-Za-z0-9]/g,'')||'x';
+        const gAgents=list.reduce((s,c)=>s+(c.agents||0),0);
+        const gEnCours=list.reduce((s,c)=>s+(c.enCours||0),0);
+        const gAcc=list.reduce((s,c)=>s+cAcc(c),0), gRef=list.reduce((s,c)=>s+cRef(c),0), gCu=gAcc+gRef;
+        const gAppels=list.reduce((s,c)=>s+cApp(c),0);
+        const gTft=list.reduce((s,c)=>s+(tftByCamp[String(c.id)]||0),0);
+        const gHp=list.reduce((s,c)=>s+getHP(c),0);
+        const gTx=gCu>0?Math.round(gAcc/gCu*100):null;
+        const gCuh=gHp>0?gCu/gHp:null;
+        const gAccCol=gTx==null?'var(--t-secondary)':(gTx>=50?'#1d9e75':'#E8006E');
+        const isOpen=!!window._evoGrpOpen[_ck];
+        out+=`<tr class="evo-cli-hdr" data-cli="${_ck}" data-open="${isOpen?'1':'0'}" onclick="evoToggleClient('${_ck}')" title="${list.length} sous-campagne(s) — cliquer pour ${isOpen?'replier':'déplier'}">
+          <td style="text-align:left"><span class="evo-rc-name"><i class="ti ti-chevron-${isOpen?'down':'right'} evo-cli-ic"></i>${gEnCours>0?'<span class="evo-live-dot" title="'+gEnCours+' appel(s) en cours (live)"></span>':''}${evoLogo(k)}<b style="font-weight:800;letter-spacing:.01em">${ec(k)}</b><span style="color:var(--t-muted);font-weight:400;font-size:11px;margin-left:7px">${list.length} camp.</span></span></td>
+          <td class="evo-lo"><b title="Agents connectés live sur ${ec(k)}">${gAgents>0?'<span style="color:#30d158">● </span>':''}${gAgents}</b></td>
+          <td><b>${gAppels.toLocaleString("fr-FR")}</b></td>
+          <td>${gTft.toLocaleString("fr-FR")}</td>
+          <td class="evo-lo">${gCu.toLocaleString("fr-FR")}</td>
+          <td style="color:#E8006E;font-weight:800">${gAcc.toLocaleString("fr-FR")}</td>
+          <td><b style="color:${gAccCol}">${gTx==null?'–':gTx+'%'}</b></td>
+          <td class="evo-lo">${fmtH(gHp)}</td>
+          <td style="font-weight:800">${fmtR(gCuh)}</td>
+          <td class="evo-lo" style="color:#E8006E;font-weight:700">${fmtR(evoParH(gAcc,gHp))}</td>
+          <td class="evo-lo"></td><td class="evo-lo"></td><td class="evo-lo"></td><td class="evo-lo"></td><td class="evo-lo"></td><td class="evo-lo"></td><td></td>
+        </tr>`;
+        out+=list.map(c=>_subRow(c,_ck)).join('');
+      });
+      // Réappliquer l'état ouvert/fermé après insertion (les sous-lignes sont display:none par défaut)
+      setTimeout(function(){Object.keys(window._evoGrpOpen).forEach(function(kk){if(window._evoGrpOpen[kk]){var ck=kk.replace(/[^A-Za-z0-9]/g,'')||'x';document.querySelectorAll('#evo-camp-table tr.evo-cli-'+ck).forEach(function(r){r.style.display='';});}});},0);
+      return out;
+    })()}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
     const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);
