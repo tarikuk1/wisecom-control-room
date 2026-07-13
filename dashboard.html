@@ -1733,7 +1733,7 @@ const P="#E8006E";
 // queues_config.js côté serveur, chargée au démarrage via /api/config (voir boot()).
 // Déclarés en 'let' pour être écrasés par la config serveur à l'init.
 let CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
-let SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","MNZ","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
+let SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","Monetize","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
 // CONTRATS supprimé — non disponible INO
 const STATUSES=["Actif","Traitement","Post-appel","Déconnecté","Inconnu","En pause","Déjeuner","Formation","Réunion","Back-office","Absent","n.d."];
 const QUALIFS=["100 % KO","RDV pris","Intéressé","Sans suite","Rappel","Transfert","Réitérant","Hors SVI"];
@@ -7063,20 +7063,21 @@ var WA_GROUP_COLORS_DARK={
 };
 
 // ── Colonnes compétences (fidèles à l'image de référence) ─────
-// MNZ et Monetize sont DEUX campagnes distinctes dans queues_config.js
-// (MNZ → queues "MNZ"/"MNZ_FR" ; Monetize → queue "Monetize FR") : deux colonnes.
-var WA_SKILLS_CALLS=["Filippi","MNZ","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+// Monetize : la SEULE compétence INO réelle est « Monetize FR » (id 253829) → colonne "Monetize"
+// (normalizeSkillToWaCol("Monetize FR") = "Monetize"). « MNZ » était une colonne FANTÔME : aucune
+// compétence INO ne s'y rattache → toujours 0, alors que la Matrice affiche « Monetize FR » = 3.
+// Retirée pour cohérence Matrice ↔ Export WhatsApp : une seule colonne "Monetize".
+var WA_SKILLS_CALLS=["Filippi","Monetize","Eiffage","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 var WA_SKILLS_MAILS=["AE1","AE2","AE3"];
-var WA_SKILLS_COMP =["Filippi","MNZ","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
+var WA_SKILLS_COMP =["Filippi","Monetize","Eiffage","ORECA","CNPA","HMF","LMDW","Equisign","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS"];
 // Alias WA colonne → clé CAMPS/QUEUES_MAP (pour les cas où le nom court diffère du nom de camp)
 var WA_CAMP_ALIAS={"ND":"Nature & Découvertes"};
 (function(){try{var _s=JSON.parse(localStorage.getItem('wisecom_wa_cols')||'null');
 waActiveCalls=Array.isArray(_s&&_s.calls)&&_s.calls.length?_s.calls.slice():WA_SKILLS_CALLS.slice();
-// Colonnes sauvegardées avant l'ajout de Monetize : l'injecter pour ne pas la perdre
-if(waActiveCalls.indexOf('Monetize')<0&&WA_SKILLS_CALLS.indexOf('Monetize')>=0){
-  var _mzPos=waActiveCalls.indexOf('MNZ');
-  waActiveCalls.splice(_mzPos>=0?_mzPos+1:1,0,'Monetize');
-}
+// Nettoyage config sauvegardée : « MNZ » (colonne fantôme) → « Monetize » (compétence INO réelle).
+var _mzPos=waActiveCalls.indexOf('MNZ');
+if(_mzPos>=0){ if(waActiveCalls.indexOf('Monetize')<0)waActiveCalls.splice(_mzPos,1,'Monetize'); else waActiveCalls.splice(_mzPos,1); }
+if(waActiveCalls.indexOf('Monetize')<0&&WA_SKILLS_CALLS.indexOf('Monetize')>=0)waActiveCalls.splice(1,0,'Monetize');
 waActiveMails=Array.isArray(_s&&_s.mails)&&_s.mails.length?_s.mails:WA_SKILLS_MAILS.slice();
 if(_s&&typeof _s.time==='object')waTimeEdits=_s.time||{};
 if(_s&&typeof _s.email==='object')waEmailEdits=_s.email||{};
