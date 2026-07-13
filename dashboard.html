@@ -894,6 +894,24 @@ body.light .backlog-camp{color:var(--s-4);}
 .qs-footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:7px;border-top:1px solid #22223a;}
 .qs-foot-val{font-size:11px;font-weight:700;color:#c0c0e0;}
 .qs-foot-lbl{font-size:7px;color:#77779a;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+/* Statut des files — vue COMPACTE (lignes alignées, remplace les grosses cartes) */
+.qs-compact{width:100%;border-collapse:collapse;margin-top:4px;}
+.qs-compact td{padding:6px 10px;border-bottom:1px solid #1e1e33;vertical-align:middle;}
+.qs-compact tr:last-child td{border-bottom:none;}
+.qs-crow{cursor:pointer;transition:background .12s;}
+.qs-crow:hover{background:rgba(232,0,110,.08);}
+.qs-c-name{text-align:left;font-size:12px;font-weight:700;color:#d4d4f0;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;}
+.qs-c-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+.qs-crow-live{margin-left:9px;font-size:10px;font-weight:800;color:#30d158;}
+.qs-c-num{text-align:center;white-space:nowrap;}
+.qs-c-num b{font-size:14px;font-weight:800;display:block;line-height:1.05;}
+.qs-c-lbl{font-size:7.5px;color:#8888aa;text-transform:uppercase;letter-spacing:.05em;}
+.qs-c-obj{text-align:center;white-space:nowrap;}
+.qs-c-obj b{font-size:12px;font-weight:800;display:block;line-height:1.05;}
+.qs-live-badge{font-size:10px;font-weight:800;color:#30d158;background:rgba(48,209,88,.14);border-radius:10px;padding:2px 9px;margin-left:6px;}
+.qs-camp-header-row1{width:100%;}
+body.light .qs-compact td{border-bottom-color:#ececf4;}
+body.light .qs-c-name{color:#1a1a2e;}
 body.light .qs-camp-header{background:#f0f0fa;border-bottom-color:var(--c-pink);}
 body.light .qs-camp-header:hover{background:#e8e8f8;}
 body.light .qs-camp-header:hover .qs-camp-header-hint{color:#9090bb;}
@@ -2045,6 +2063,16 @@ function shortQName(name,camp){
   return s.replace(/_/g,' ').trim()||name;
 }
 // Rendu groupé par campagne — appelé au rafraîchissement ET à chaque changement de filtres.
+// Nb d'agents connectés EN LIVE sur un ensemble de files : rattaché à l'une des files ET actif
+// (flux voix ouvert, sinon statut d'activité non déconnecté).
+function _agentsLiveOnQueues(nameSet){
+  if(typeof agents==='undefined'||!Array.isArray(agents)||!nameSet||!nameSet.size)return 0;
+  return agents.filter(function(a){
+    var onQ=(a.queues||'').split(', ').filter(Boolean).some(function(q){return nameSet.has(q);});
+    if(!onQ)return false;
+    return (a.flowVoice===true)||(['Actif','Traitement','Post-appel','Conversation','Disponible','Connecté'].indexOf(a.status)>=0);
+  }).length;
+}
 function renderQueueStatus(){
   const grid=document.getElementById("queue-status-grid");
   const upd=document.getElementById("queue-last-update");
@@ -2072,46 +2100,46 @@ function renderQueueStatus(){
     const totD=ql.reduce((s,q)=>s+(q.decroches||0),0);
     const avgQS=totR>0?Math.round(totD/totR*10000)/100:0;
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
+    const _qSet=new Set(ql.map(q=>q.name));
+    const liveAg=_agentsLiveOnQueues(_qSet);
     html+=`<div class="qs-camp-section">
 <div class="qs-camp-header" data-camp="${camp.replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité de tous les agents de la campagne">
   <span class="qs-camp-header-hint">↗ productivité agents</span>
   <div class="qs-camp-header-row1">
+    ${inoLogo(camp,22)}
     <span class="qs-camp-name">${camp}</span>
     <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
+    ${liveAg>0?`<span class="qs-live-badge" title="${liveAg} agent(s) connecté(s) en live sur ${camp}">● ${liveAg} live</span>`:''}
+    <div class="qs-camp-agg" style="margin-left:auto">
+      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-lbl">Reçus</span></div>
+      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-lbl">Décr.</span></div>
+      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
+    </div>
   </div>
-  <div class="qs-camp-agg">
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">Reçus</span></div>
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">Décrochés</span></div>
-    <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-sep">·</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
-  </div>
-</div><div class="qs-grid">`;
+</div>
+<table class="qs-compact"><tbody>`;
     ql.forEach(q=>{
       const qs=q.qs||0,ta=q.tauxAbandon||0;
       const ecart=Math.round((qs-objQS)*10)/10,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
       const qsC=atteint?'#30d158':warn?'#ff9f0a':'#ff3b30';
       const taC=ta<=5?'#30d158':ta<=15?'#E8006E':'#ff3b30';
-      const cls=atteint?'qs-card--ok':warn?'qs-card--warn':'qs-card--err';
-      const eT=(atteint?'+':'−')+Math.abs(ecart)+' pts';
       const sn=shortQName(q.name,camp);
-      html+=`<div class="qs-card ${cls}" data-qname="${(q.name||'').replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité des agents sur cette file">
-  <div class="qs-name" title="${(q.name||'').replace(/"/g,'&quot;')}">${sn}</div>
-  <div class="qs-obj" style="color:${qsC}">Obj ${objQS}% · <b>${eT}</b></div>
-  <div class="qs-kpis">
-    <div><div class="qs-kpi-val" style="color:#E8006E">${q.recus}</div><div class="qs-kpi-lbl">Reçus</div></div>
-    <div><div class="qs-kpi-val" style="color:#30d158">${q.decroches}</div><div class="qs-kpi-lbl">Décrochés</div></div>
-    <div><div class="qs-kpi-val" style="color:${qsC}">${qs}%</div><div class="qs-kpi-lbl">Qlt. service</div></div>
-    <div><div class="qs-kpi-val" style="color:${taC}">${ta}%</div><div class="qs-kpi-lbl">Abandons</div></div>
-  </div>
-  <div class="qs-footer">
-    <div><div class="qs-foot-val">${q.sortants||0}</div><div class="qs-foot-lbl">Sortants</div></div>
-    <div style="text-align:right"><div class="qs-foot-val">${q.dmc>0?mmss(q.dmc):"\u2013"}</div><div class="qs-foot-lbl">DMC</div></div>
-  </div>
-</div>`;
+      const qLive=_agentsLiveOnQueues(new Set([q.name]));
+      html+=`<tr class="qs-crow" data-qname="${(q.name||'').replace(/"/g,'&quot;')}" title="Cliquer pour la productivité des agents sur cette file">
+    <td class="qs-c-name"><span class="qs-c-dot" style="background:${qsC}"></span>${sn}${qLive>0?`<span class="qs-crow-live" title="${qLive} agent(s) connecté(s) live">● ${qLive}</span>`:''}</td>
+    <td class="qs-c-num"><b style="color:#E8006E">${q.recus||0}</b><span class="qs-c-lbl">reçus</span></td>
+    <td class="qs-c-num"><b style="color:#30d158">${q.decroches||0}</b><span class="qs-c-lbl">décr.</span></td>
+    <td class="qs-c-num"><b style="color:${qsC}">${qs}%</b><span class="qs-c-lbl">QS</span></td>
+    <td class="qs-c-num evo-lo"><b style="color:${taC}">${ta}%</b><span class="qs-c-lbl">aband.</span></td>
+    <td class="qs-c-num evo-lo"><b>${q.sortants||0}</b><span class="qs-c-lbl">sort.</span></td>
+    <td class="qs-c-num evo-lo"><b>${q.dmc>0?mmss(q.dmc):'–'}</b><span class="qs-c-lbl">DMC</span></td>
+    <td class="qs-c-obj" style="color:${qsC}"><b>${(atteint?'+':'−')+Math.abs(ecart)} pts</b><span class="qs-c-lbl">obj ${objQS}%</span></td>
+  </tr>`;
     });
-    html+=`</div></div>`;
+    html+=`</tbody></table></div>`;
   });
   grid.innerHTML=html;
-  grid.querySelectorAll('.qs-card[data-qname]').forEach(card=>{
+  grid.querySelectorAll('.qs-crow[data-qname]').forEach(card=>{
     card.addEventListener('click',()=>showQueueAgents([card.dataset.qname],null));
   });
   grid.querySelectorAll('.qs-camp-header[data-camp]').forEach(hdr=>{
