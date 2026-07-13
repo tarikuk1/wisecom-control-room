@@ -37,9 +37,34 @@ const sessions={},pending={},loginAttempts={};
 const TTL=10*60*1000,PTTL=5*60*1000,RATE_W=15*60*1000,RATE_MAX=5; // TTL=10min d\u0027inactivité (glissant)
 
 const tok=()=>crypto.randomBytes(32).toString("hex");
-function createSession(login){const t=tok();sessions[t]={login,expires:Date.now()+TTL,createdAt:new Date().toISOString()};return t;}
+// ── Sessions AUTOPORTANTES (cookie signé) — survivent aux redéploiements Railway ──
+// Le token de session = "<payload>.<hmac>", signé avec SESSION_SECRET (env var stable, sinon dérivé
+// de secrets déjà stables). Après un redéploiement, la map mémoire `sessions` est vide MAIS le cookie
+// (cookie de session navigateur, age=null) est toujours là : getSession revalide la signature et
+// RÉHYDRATE la session → plus de déconnexion à chaque déploiement. Validité absolue 8h.
+const SESSION_SECRET=process.env.SESSION_SECRET||crypto.createHash("sha256").update("wcr-sess-v1|"+INO_PWD+"|"+SECURITY_CODE).digest("hex");
+const SESSION_MAX_MS=8*60*60*1000;
+const _b64u=b=>Buffer.from(b).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const _sigOf=p=>crypto.createHmac("sha256",SESSION_SECRET).update(p).digest("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+function signSession(login){const payload=_b64u(JSON.stringify({l:login,e:Date.now()+SESSION_MAX_MS}));return payload+"."+_sigOf(payload);}
+function verifySession(t){
+  if(!t||typeof t!=="string"||t.indexOf(".")<1)return null;
+  const i=t.lastIndexOf("."),payload=t.slice(0,i),sig=t.slice(i+1),exp=_sigOf(payload);
+  if(sig.length!==exp.length)return null;
+  try{ if(!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(exp)))return null; }catch(e){return null;}
+  let p; try{p=JSON.parse(Buffer.from(payload.replace(/-/g,"+").replace(/_/g,"/"),"base64").toString());}catch(e){return null;}
+  if(!p||!p.l||!p.e||Date.now()>p.e)return null;
+  return {login:p.l,absExp:p.e};
+}
+function createSession(login){const t=signSession(login);const v=verifySession(t);sessions[t]={login,expires:Date.now()+TTL,createdAt:new Date().toISOString(),absExp:v&&v.absExp};return t;}
 function createPending(login){const t=tok();pending[t]={login,expires:Date.now()+PTTL};return t;}
-function getSession(t){if(!t||!sessions[t])return null;const s=sessions[t];if(Date.now()>s.expires){delete sessions[t];return null;}s.expires=Date.now()+TTL;return s;}
+function getSession(t){
+  if(t&&sessions[t]){const s=sessions[t];if(Date.now()>s.expires||(s.absExp&&Date.now()>s.absExp)){delete sessions[t];return null;}s.expires=Date.now()+TTL;return s;}
+  // Absente de la mémoire (ex. après un redéploiement) : revalider le cookie signé et réhydrater.
+  const v=verifySession(t); if(!v)return null;
+  sessions[t]={login:v.login,expires:Date.now()+TTL,createdAt:new Date().toISOString(),absExp:v.absExp};
+  return sessions[t];
+}
 function getPending(t){if(!t||!pending[t])return null;const s=pending[t];if(Date.now()>s.expires){delete pending[t];return null;}return s;}
 function parseCookies(req){return Object.fromEntries((req.headers.cookie||"").split(";").map(c=>{const[k,...v]=c.trim().split("=");return[k,v.join("=")];}));}
 function setCookie(res,n,v,age=TTL/1000){
