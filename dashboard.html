@@ -888,8 +888,13 @@ body.light .backlog-camp{color:var(--s-4);}
 .qs-foot-lbl{font-size:7px;color:#77779a;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
 /* Statut des files — vue COMPACTE (lignes alignées, remplace les grosses cartes) */
 .qs-compact{width:100%;border-collapse:collapse;margin-top:4px;}
-.qs-compact td{padding:6px 10px;border-bottom:1px solid #1e1e33;vertical-align:middle;}
+.qs-compact td{padding:7px 10px;border-bottom:1px solid #1e1e33;vertical-align:middle;}
 .qs-compact tr:last-child td{border-bottom:none;}
+/* Lignes de fond alternées (zebra) — distinguer chaque file, surtout sur fond blanc */
+.qs-compact tbody tr.qs-crow:nth-child(odd){background:rgba(255,255,255,.025);}
+body.light .qs-compact tbody tr.qs-crow:nth-child(odd){background:#f4f4fb;}
+body.light .qs-compact tbody tr.qs-crow:nth-child(even){background:#fff;}
+.qs-compact tbody tr.qs-crow:hover{background:rgba(232,0,110,.10)!important;}
 .qs-crow{cursor:pointer;transition:background .12s;}
 .qs-crow:hover{background:rgba(232,0,110,.08);}
 .qs-c-name{text-align:left;font-size:12px;font-weight:700;color:#d4d4f0;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;}
