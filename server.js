@@ -726,6 +726,25 @@ async function fetchDayStats(){
   }catch(e){console.error("Stats:",e.message);}
 }
 
+// ── Annuaire agents (léger) : 3 listes de groupe → id, nom, username, lastLogin ──
+// Sert à afficher les agents CONNECTÉS aujourd'hui même sans activité d'appel (supervision).
+// N'utilise PAS le GET détail par agent (coûteux) : la liste de groupe suffit (lastLogin inclus).
+let _dirCache={data:{},at:0};
+async function fetchAgentDirectory(force){
+  if(!force && Date.now()-_dirCache.at<60000 && Object.keys(_dirCache.data).length) return _dirCache.data;
+  const token=await getToken(); if(!token) return _dirCache.data||{};
+  try{
+    const groups=await apiReq("POST","/cc/agentgroups/list",{start:0,limit:100},token);
+    const gl=(groups&&groups.agentGroups)||[];
+    const map={};
+    for(const g of gl){
+      const al=await apiReq("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},token);
+      ((al&&al.agents)||[]).forEach(a=>{ map[String(a.id)]={id:String(a.id),username:a.username,nom:((a.firstname||"")+" "+(a.lastname||"")).trim(),lastLogin:a.lastLogin||null,group:g.name}; });
+    }
+    if(Object.keys(map).length) _dirCache={data:map,at:Date.now()};
+  }catch(e){ console.error("[dir] "+e.message); }
+  return _dirCache.data;
+}
 async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Bornes en minutes (précision réelle de la sélection : "08:30" ne doit pas devenir "08:00")
   const _hm=s=>{const p=String(s||'').split(':');return (parseInt(p[0])||0)*60+(parseInt(p[1])||0);};
@@ -959,11 +978,31 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Utiliser le cache compétences s'il existe — sans déclencher d'appel réseau bloquant
   // Le rechargement des compétences se fait via le bouton dédié (↺ Compétences)
   const agentSkillsMap=Object.keys(skillsCache).length>0?skillsCache:{};
+  // ── Agents CONNECTÉS aujourd'hui mais SANS activité d'appel (invisibles autrement) ──
+  // Un agent en poste qui n'a encore passé/reçu aucun appel n'est pas dans les historiques.
+  // Pour la supervision (suivre qui est connecté), on l'injecte depuis l'annuaire (lastLogin=today).
+  // Uniquement en vue du JOUR courant (le « connecté » n'a pas de sens sur une date passée).
+  try{
+    const _todayStr=parisDateStr();
+    if(date===_todayStr && (!dateFin||dateFin===date)){
+      const dir=await fetchAgentDirectory();
+      Object.keys(dir).forEach(function(id){
+        const ag=dir[id];
+        if(!ag||agents[id]||!ag.lastLogin)return;
+        if(parisDateStr(new Date(ag.lastLogin))!==_todayStr)return; // connecté aujourd'hui uniquement
+        agents[id]={id:String(id),nom:ag.nom,username:ag.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,
+          premiereAction:ag.lastLogin,derniereAction:null,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,
+          transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0),sparkH:Array(24).fill(0),
+          daySpan:{},_connecteSansActivite:true};
+      });
+    }
+  }catch(e){ console.error("[connectés] "+e.message); }
   const now=Date.now();
   const list=Object.values(agents).map(a=>{
     // Statut estimé depuis la dernière activité
     let statutEstime="Inconnu";
-    if(a.derniereAction){
+    if(a._connecteSansActivite){statutEstime="Connecté";} // en poste, pas encore d'appel
+    else if(a.derniereAction){
       const lastMs=new Date(a.derniereAction).getTime();
       const elapsedMin=(now-lastMs)/60000;
       if(elapsedMin<5)statutEstime="Traitement";
@@ -991,7 +1030,8 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       // via /cc/agent/:id/flow/voice/skills/list quand le compte de service y a accès.
       skills:Array.isArray(sk.skills)?sk.skills.slice():[],
       allSkills:Array.isArray(sk.skills)?sk.skills.map(n=>({id:null,name:n,score:100,active:true})):[],
-      acwMoyen:a.acwMoyen||null
+      acwMoyen:a.acwMoyen||null,
+      connecteSansActivite:a._connecteSansActivite||false
     };
   }).sort((a,b)=>b.total-a.total);
 

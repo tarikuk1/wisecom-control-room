@@ -2523,6 +2523,7 @@ async function loadAgentsFromAPI(){
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           flowVoice:(a.flowVoice===true||a.flowVoice===false)?a.flowVoice:null,
+          connecteSansActivite:!!a.connecteSansActivite,
           appels:total,appelsIn:a.appelsPresentes||a.appelsIn,appelsDecrIn:a.appelsIn,appelsOut:a.appelsOut,
           presentes:a.appelsPresentes||a.appelsIn,decroches:a.appelsIn,refuses:a.nonDecroches||((a.appelsPresentes||a.appelsIn)-a.appelsIn),sortants:a.appelsOut,
           mails_auto:m,hprod,
@@ -3714,7 +3715,7 @@ function renderTable(sorted){
     "Post-appel":{bg:"#ff9f43",fg:"#fff",label:"ACW"},
     "Actif":{bg:"#26de81",fg:"#fff",label:"ACTIF"},
     "Déconnecté":{bg:"#a0a0a0",fg:"#fff",label:"DÉCONNECTÉ"},
-    "Connecté":{bg:"#26de81",fg:"#fff",label:"ACTIF"},
+    "Connecté":{bg:"#0aa2c0",fg:"#fff",label:"CONNECTÉ"},
   };
   const c=cfg[st]||{bg:"#555",fg:"#ccc",label:st};
   return `<span style="display:inline-block;background:${c.bg};color:${c.fg};border-radius:20px;padding:2px 10px;font-size:9px;font-weight:800;letter-spacing:.06em;min-width:80px;text-align:center">${c.label}</span>`;
