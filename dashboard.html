@@ -895,6 +895,14 @@ body.light .backlog-camp{color:var(--s-4);}
 body.light .qs-compact tbody tr.qs-crow:nth-child(odd){background:#f4f4fb;}
 body.light .qs-compact tbody tr.qs-crow:nth-child(even){background:#fff;}
 .qs-compact tbody tr.qs-crow:hover{background:rgba(232,0,110,.10)!important;}
+/* Poupée russe : compte repliable → agents connectés + détail files */
+.qs-cli-toggle{cursor:pointer;}
+.qs-cli-chev{font-size:15px;color:var(--c-pink);margin-right:6px;vertical-align:-2px;}
+.qs-client-body{padding:2px 4px 6px;}
+.qs-agents-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 6px 10px;border-bottom:1px dashed var(--border);margin-bottom:2px;}
+.qs-strip-lbl{font-size:10px;font-weight:800;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
+.qs-strip-ag{font-size:11px;font-weight:600;background:rgba(48,209,88,.14);color:#1d9e75;border:1px solid rgba(48,209,88,.3);border-radius:12px;padding:2px 9px;white-space:nowrap;}
+body.light .qs-strip-ag{background:#eafaf0;color:#12805a;}
 .qs-crow{cursor:pointer;transition:background .12s;}
 .qs-crow:hover{background:rgba(232,0,110,.08);}
 .qs-c-name{text-align:left;font-size:12px;font-weight:700;color:#d4d4f0;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;}
@@ -2062,14 +2070,15 @@ function shortQName(name,camp){
 // Rendu groupé par campagne — appelé au rafraîchissement ET à chaque changement de filtres.
 // Nb d'agents connectés EN LIVE sur un ensemble de files : rattaché à l'une des files ET actif
 // (flux voix ouvert, sinon statut d'activité non déconnecté).
-function _agentsLiveOnQueues(nameSet){
-  if(typeof agents==='undefined'||!Array.isArray(agents)||!nameSet||!nameSet.size)return 0;
+function _liveAgentObjsOnQueues(nameSet){
+  if(typeof agents==='undefined'||!Array.isArray(agents)||!nameSet||!nameSet.size)return [];
   return agents.filter(function(a){
     var onQ=(a.queues||'').split(', ').filter(Boolean).some(function(q){return nameSet.has(q);});
     if(!onQ)return false;
     return (a.flowVoice===true)||(['Actif','Traitement','Post-appel','Conversation','Disponible','Connecté'].indexOf(a.status)>=0);
-  }).length;
+  });
 }
+function _agentsLiveOnQueues(nameSet){ return _liveAgentObjsOnQueues(nameSet).length; }
 function renderQueueStatus(){
   const grid=document.getElementById("queue-status-grid");
   const upd=document.getElementById("queue-last-update");
@@ -2099,10 +2108,12 @@ function renderQueueStatus(){
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
     const _qSet=new Set(ql.map(q=>q.name));
     const liveAg=_agentsLiveOnQueues(_qSet);
+    const _ck=(camp.replace(/[^A-Za-z0-9]/g,'')||'c')+ql.length;
+    const _liveObjs=_liveAgentObjsOnQueues(_qSet);
     html+=`<div class="qs-camp-section">
-<div class="qs-camp-header" data-camp="${camp.replace(/"/g,'&quot;')}" title="Cliquer pour voir la productivité de tous les agents de la campagne">
-  <span class="qs-camp-header-hint">↗ productivité agents</span>
+<div class="qs-camp-header qs-cli-toggle" data-cli="${_ck}" title="Cliquer pour déplier : agents connectés + détail par file">
   <div class="qs-camp-header-row1">
+    <i class="ti ti-chevron-right qs-cli-chev"></i>
     ${inoLogo(camp,22)}
     <span class="qs-camp-name">${camp}</span>
     <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
@@ -2114,7 +2125,9 @@ function renderQueueStatus(){
     </div>
   </div>
 </div>
-<table class="qs-compact"><tbody>`;
+<div class="qs-client-body" data-cli="${_ck}" style="display:none">
+  <div class="qs-agents-strip">${_liveObjs.length?('<span class="qs-strip-lbl">'+_liveObjs.length+' agent(s) connecté(s) :</span> '+_liveObjs.map(function(a){return '<span class="qs-strip-ag" title="'+String(a.status||'').replace(/"/g,'')+'">'+(a.flowVoice===true?'● ':'')+String(a.nom||'').replace(/</g,'')+'</span>';}).join('')):'<span class="qs-strip-lbl" style="color:var(--t-disabled)">Agents connectés : n.d. (lance un rafraîchissement pour l état live)</span>'}</div>
+  <table class="qs-compact"><tbody>`;
     ql.forEach(q=>{
       const qs=q.qs||0,ta=q.tauxAbandon||0;
       const ecart=Math.round((qs-objQS)*10)/10,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
@@ -2133,20 +2146,31 @@ function renderQueueStatus(){
     <td class="qs-c-obj" style="color:${qsC}"><b>${(atteint?'+':'−')+Math.abs(ecart)} pts</b><span class="qs-c-lbl">obj ${objQS}%</span></td>
   </tr>`;
     });
-    html+=`</tbody></table></div>`;
+    html+=`</tbody></table></div></div>`;
   });
   grid.innerHTML=html;
   grid.querySelectorAll('.qs-crow[data-qname]').forEach(card=>{
     card.addEventListener('click',()=>showQueueAgents([card.dataset.qname],null));
   });
-  grid.querySelectorAll('.qs-camp-header[data-camp]').forEach(hdr=>{
+  // Poupée russe : en-tête client (compte) → déplie/replie agents connectés + détail par file.
+  grid.querySelectorAll('.qs-cli-toggle[data-cli]').forEach(hdr=>{
     hdr.addEventListener('click',e=>{
-      // Ne pas déclencher si le clic vient d'un élément enfant interactif
       if(e.target.closest('button,a,input'))return;
-      const camp=hdr.dataset.camp;
-      const campQueues=(window._lastQueuesData||[]).filter(q=>campOfQueue(q.name)===camp).map(q=>q.name);
-      showQueueAgents(campQueues,camp+' — toutes files');
+      const ck=hdr.dataset.cli;
+      const body=grid.querySelector('.qs-client-body[data-cli="'+ck+'"]');
+      const chev=hdr.querySelector('.qs-cli-chev');
+      if(!body)return;
+      const open=body.style.display==='none';
+      body.style.display=open?'':'none';
+      if(chev)chev.className='ti ti-chevron-'+(open?'down':'right')+' qs-cli-chev';
+      window._qsOpen=window._qsOpen||{}; window._qsOpen[ck]=open;
     });
+  });
+  // Ré-appliquer l'état déplié après un re-render (rafraîchissement)
+  if(window._qsOpen)Object.keys(window._qsOpen).forEach(function(ck){
+    if(!window._qsOpen[ck])return;
+    const b=grid.querySelector('.qs-client-body[data-cli="'+ck+'"]'); if(b)b.style.display='';
+    const h=grid.querySelector('.qs-cli-toggle[data-cli="'+ck+'"] .qs-cli-chev'); if(h)h.className='ti ti-chevron-down qs-cli-chev';
   });
   if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
 }
