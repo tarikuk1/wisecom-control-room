@@ -4977,6 +4977,10 @@ function switchTab(id,btn){
 let _evoLoading=false;
 let _evoData=null;            // dernier payload reçu de /api/evo/sortant
 let _evoSelectedCamps=null;   // Set des campagnes sélectionnées (null = pas encore initialisé)
+// Campagnes COCHÉES MANUELLEMENT par le superviseur : elles restent affichées même sans activité.
+// Les campagnes seulement AUTO-sélectionnées et sans activité (0 appel présenté ET 0 CU) sont
+// masquées du tableau → visuel allégé au maximum (demande Tarik).
+let _evoForcedCamps=new Set();
 let _evoSelectedAgents=null;  // Set des agents sélectionnés par idAgente (null = tous)
 let _evoDateFilter=null;      // date sélectionnée (YYYY-MM-DD) ; null = aujourd'hui
 let _evoDateUserSet=false;    // true dès que l'utilisateur choisit une date (sinon on cale sur la date des données)
@@ -5063,7 +5067,7 @@ let _evoPerim=null; // agrégats du périmètre sélectionné (alimentés par re
 // Changement de JOURNÉE (≠ horaire) : on repart d'une sélection auto pour ce jour-là, sinon la
 // sélection d'aujourd'hui (souvent sans activité un jour passé) laisserait l'écran quasi vide.
 function evoApplyDateChange(){
-  _evoSelectedCamps=null;   // → ré-auto-sélection des campagnes actives du jour demandé
+  _evoSelectedCamps=null;_evoForcedCamps=new Set();   // → ré-auto-sélection des campagnes actives du jour demandé
   _evoActiveViewId=null;
   evoApplyDateFilter();
 }
@@ -5081,7 +5085,7 @@ function evoSetToday(){
   const today=new Date().toLocaleDateString("sv");
   const dp=document.getElementById("evo-date-filter");
   if(dp){dp.value=today;}_evoDateFilter=today;_evoDateUserSet=false;
-  _evoSelectedCamps=null;_evoActiveViewId=null; // ré-auto-sélection des campagnes actives du jour
+  _evoSelectedCamps=null;_evoForcedCamps=new Set();_evoActiveViewId=null; // ré-auto-sélection des campagnes actives du jour
   loadEvo();
 }
 
@@ -5149,7 +5153,9 @@ function evoCampSearch(q,keepFocus){
 }
 function evoToggleCamp(nom){
   if(!_evoSelectedCamps)return;
-  if(_evoSelectedCamps.has(nom))_evoSelectedCamps.delete(nom); else _evoSelectedCamps.add(nom);
+  // Coche MANUELLE → la campagne reste affichée même vide (0 appel / 0 CU). Décoche → on la relâche.
+  if(_evoSelectedCamps.has(nom)){_evoSelectedCamps.delete(nom);_evoForcedCamps.delete(nom);}
+  else {_evoSelectedCamps.add(nom);_evoForcedCamps.add(nom);}
   _evoActiveViewId=null; // sélection manuelle → plus liée à une vue enregistrée
   if(_evoData)renderEvo(_evoData);
 }
@@ -5195,6 +5201,7 @@ function evoApplyView(id){
   const v=evoLoadViews().find(x=>x.id===id); if(!v||!_evoData)return;
   const allCamps=(_evoData.campagnes||[]).map(c=>c.nom);
   _evoSelectedCamps=new Set((v.camps||[]).filter(n=>allCamps.includes(n)));
+  _evoForcedCamps=new Set(_evoSelectedCamps); // vue = choix explicite → affichée même sans activité
   if(v.agents){ _evoSelectedAgents=new Set(v.agents.map(String)); }
   else { _evoSelectedAgents=null; } // tous
   _evoActiveViewId=id;
@@ -5222,10 +5229,14 @@ function evoSelectAllCamps(all){
   const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const nq=norm((_evoCampQuery||'').trim());
   const allNames=(_evoData.campagnes||[]).map(c=>c.nom);
-  if(!nq){ _evoSelectedCamps = all ? new Set(allNames) : new Set(); }
+  // Cocher/décocher est une action MANUELLE → on force l'affichage (même campagnes vides).
+  if(!nq){ _evoSelectedCamps = all ? new Set(allNames) : new Set(); _evoForcedCamps = all ? new Set(allNames) : new Set(); }
   else{ // une recherche est active : n'agir que sur les campagnes affichées
     if(!_evoSelectedCamps)_evoSelectedCamps=new Set(allNames);
-    allNames.filter(n=>norm(n).includes(nq)).forEach(n=>{all?_evoSelectedCamps.add(n):_evoSelectedCamps.delete(n);});
+    allNames.filter(n=>norm(n).includes(nq)).forEach(n=>{
+      if(all){_evoSelectedCamps.add(n);_evoForcedCamps.add(n);}
+      else{_evoSelectedCamps.delete(n);_evoForcedCamps.delete(n);}
+    });
   }
   renderEvo(_evoData);
 }
@@ -5576,6 +5587,10 @@ function renderEvo(d){
   const cApp=c=>c.sql?(c.sql.nbTrans||0):Math.max(0,(c.appels||0)-(c.nonContactes||0)); // appels TRAITÉS (SQL→REST honnête : retire les non-joignables composeur)
   const cAcc=c=>(c.positifs!=null?c.positifs:(c.sql?(c.sql.cuPos||0):0));    // accords (CU+)
   const cRef=c=>(c.negatifs!=null?c.negatifs:(c.sql?(c.sql.cuNeg||0):0));    // refus (CU−)
+  // AFFICHAGE du tableau : masquer les campagnes SANS AUCUNE activité (0 appel présenté ET 0 CU)
+  // → visuel allégé. Exception : une campagne cochée MANUELLEMENT reste affichée même vide.
+  // (Les totaux/KPI restent calculés sur `camps` : une campagne vide apporte 0, aucun impact.)
+  const campsAff=camps.filter(c=>_evoForcedCamps.has(c.nom)||cApp(c)>0||(cAcc(c)+cRef(c))>0);
   const appels=camps.reduce((s,c)=>s+cApp(c),0);
   const positifs=camps.reduce((s,c)=>s+cAcc(c),0);   // contacts utiles positifs (≈ accords)
   const negatifs=camps.reduce((s,c)=>s+cRef(c),0);
@@ -5710,7 +5725,7 @@ function renderEvo(d){
     return {vitesse,cuRestant,ideal,staffes,ratio,lvl,dispo};
   }
   let _overCrit=0,_overWarn=0;
-  document.getElementById("evo-camp-table").innerHTML=camps.length?`
+  document.getElementById("evo-camp-table").innerHTML=campsAff.length?`
     <thead><tr>
       <th style="text-align:left">Campagne</th><th class="evo-lo" title="Agents connectés sur la campagne (maintenant)">Agents</th><th title="Appels reçus par les agents, quelle que soit la résolution (réalisé du jour, source SQL)">Reçus</th>
       <th title="Total appels traités = accord + refus + hors cible + refus de répondre">Traité</th>
@@ -5723,7 +5738,7 @@ function renderEvo(d){
       <th class="evo-lo" title="Fiches encore à traiter / fichier total (cumulé)">Fichier</th>
       <th title="Effectif idéal = agents nécessaires pour épuiser le CU du fichier restant d'ici la fin de plage, à la vitesse CU/h-agent constatée. Format : staffés / ~idéal. Sur-staffing (payé au CU) : ambre >1,2× · rouge >1,5×">Staffing</th>
     </tr></thead>
-    <tbody>${camps.map(c=>{
+    <tbody>${campsAff.map(c=>{
       const hp=getHP(c);
       const accords=cAcc(c), refusN=cRef(c), appelsC=cApp(c);
       const cuC=accords+refusN;
@@ -5773,7 +5788,7 @@ function renderEvo(d){
       <td class="evo-lo">${refusPct==null?"–":refusPct+"%"}</td>
       <td class="evo-lo" title="Disponible en production / total (exclut ${c.fichierBloque||0} bloquées, ${c.fichierClot||0} clôturées)">${(fichierProdTot||fichierT)>0?(dispo!=null?dispo.toLocaleString("fr-FR"):"?")+" / "+(fichierProdTot||fichierT).toLocaleString("fr-FR"):"–"}</td>
       <td data-sort="${stSort}">${stHtml}</td>
-    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">Aucune campagne sélectionnée (ou aucune campagne sortante active).</td></tr></tbody>`;
+    </tr>`;}).join("")}</tbody>`:`<tbody><tr><td colspan="17" style="padding:14px;color:var(--t-disabled)">${camps.length?"Aucune campagne avec activité (0 appel présenté et 0 CU) — les campagnes vides sont masquées. Cochez-en une dans le filtre Campagnes pour l'afficher quand même.":"Aucune campagne sélectionnée (ou aucune campagne sortante active)."}</td></tr></tbody>`;
   (function(){ // badge en-tête : CU/h + Taux d'accord (périmètre) vs objectif KPI global
     const badge=document.getElementById("evo-camp-hdr-badge"); if(!badge)return;
     const gAcc=camps.reduce((s,c)=>s+cAcc(c),0), gRef=camps.reduce((s,c)=>s+cRef(c),0), gHp=camps.reduce((s,c)=>s+getHP(c),0);
