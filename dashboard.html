@@ -5650,7 +5650,13 @@ function renderEvo(d){
   // Fichier (cumulé) + agents (instantané)
   const fichierTotalAgg=camps.reduce((s,c)=>s+evoFichierTotal(c),0);
   const clotureesAgg=camps.reduce((s,c)=>s+evoCloturees(c),0);
-  const totalAgentsAgg=camps.reduce((s,c)=>s+(c.agents||0),0);
+  // Agents connectés = agents DISTINCTS du périmètre — exactement ceux listés dans « Production
+  // par agent ». Avant : somme des compteurs par campagne (c.agents) → un agent connecté sur
+  // plusieurs campagnes était compté plusieurs fois (KPI « 9 » alors que 6 agents listés), et
+  // certains agents comptés n'étaient pas listés. Le KPI et la liste partagent désormais la
+  // même source → plus d'incohérence. (La colonne « Agents » par campagne reste, elle, le
+  // compteur Evolution de cette campagne : un agent peut y apparaître sur 2 campagnes.)
+  const totalAgentsAgg=ags.length;
   const tauxAccord=cu>0?Math.round(positifs/cu*100):null;            // accords ÷ CU (jour)
   const tauxRefus=cu>0?Math.round(negatifs/cu*100):null;            // refus ÷ CU (jour)
   // Taux de contact DU JOUR = CU ÷ appels traités du jour (même période, même source).
