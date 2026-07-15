@@ -898,22 +898,19 @@ body.light .qs-compact tbody tr.qs-crow:nth-child(even){background:#fff;}
 /* Carte KPI cliquable (ex. Agents connectés → audit du comptage) */
 .kpi-clickable{cursor:pointer;transition:border-color .15s,box-shadow .15s;}
 .kpi-clickable:hover{border-color:var(--c-pink)!important;box-shadow:0 2px 14px rgba(232,0,110,.18);}
-/* Poupée russe : GRILLE de cartes « compte » → clic → agents connectés + détail files */
+/* Statut des files — TABLEAU (style « Production par campagne ») : compte repliable → agents + files */
 .qs-cli-toggle{cursor:pointer;}
-.qs-grid-clients{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;align-items:start;}
-.qs-cli-card{background:var(--s-2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;transition:border-color .15s,box-shadow .15s;}
-.qs-cli-card:hover{border-color:var(--c-pink);box-shadow:0 2px 12px rgba(232,0,110,.12);}
-.qs-card-hd{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
-.qs-card-name{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
-.qs-card-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 4px;}
-.qs-card-kpis>div{text-align:center;}
-.qs-card-kpis b{display:block;font-size:15px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
-.qs-card-kpis span{font-size:7.5px;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;}
-.qs-card-obj{margin-top:9px;padding-top:7px;border-top:1px solid var(--border);font-size:9px;font-weight:600;text-align:center;}
-.qs-cli-chev{font-size:14px;color:var(--c-pink);margin-left:auto;flex-shrink:0;}
-.qs-client-body{grid-column:1/-1;background:var(--s-1);border:1px solid var(--border);border-radius:12px;padding:2px 10px 6px;}
-body.light .qs-cli-card{background:#fff;}
-body.light .qs-client-body{background:#fafafe;}
+.qs-table{width:100%;}
+.qs-cli-row{cursor:pointer;background:linear-gradient(90deg,rgba(232,0,110,.06),transparent);transition:background .15s;}
+.qs-cli-row:hover{background:rgba(232,0,110,.12);}
+.qs-cli-row>td{border-top:1px solid var(--border);padding-top:9px;padding-bottom:9px;font-size:12.5px;}
+.qs-cli-row>td:first-child{border-left:3px solid var(--c-pink);}
+.qs-cli-chev{font-size:14px;color:var(--c-pink);margin-right:5px;vertical-align:-2px;}
+.qs-file-row{cursor:pointer;transition:background .12s;}
+.qs-file-row>td{font-size:12px;}
+.qs-file-row:hover{background:rgba(232,0,110,.10)!important;}
+.qs-agents-row>td{padding-top:4px!important;padding-bottom:4px!important;}
+body.light .qs-cli-row{background:linear-gradient(90deg,rgba(232,0,110,.05),transparent);}
 .qs-agents-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 6px 10px;border-bottom:1px dashed var(--border);margin-bottom:2px;}
 .qs-strip-lbl{font-size:10px;font-weight:800;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
 .qs-strip-ag{font-size:11px;font-weight:600;background:rgba(48,209,88,.14);color:#1d9e75;border:1px solid rgba(48,209,88,.3);border-radius:12px;padding:2px 9px;white-space:nowrap;}
@@ -1564,22 +1561,7 @@ body.wcr-refresh .kpi-grid>.kpi-card:first-child{box-shadow:inset 0 2px 0 var(--
   </div>
 
   <div id="tab-graphiques" style="display:none;">
-    <div class="two-col">
-      <div class="panel" style="flex:2;min-width:300px;">
-        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span class="panel-title">Volumes par tranche horaire <span id="chart-period" style="font-weight:var(--fw-medium);font-size:var(--fs-body);color:var(--t-muted);margin-left:6px"></span></span>
-          <button class="btn-zoom" onclick="openChartZoom()" title="Ouvrir le graphique en grand pour une meilleure lecture">🔍 Agrandir</button>
-        </div>
-        <div style="padding:14px;">
-          <div id="chart-host"></div>
-        </div>
-      </div>
-      <div class="panel" style="flex:1;min-width:240px;">
-        <div class="panel-header"><span class="panel-title">Répartition Qualifications</span></div>
-        <div style="padding:14px;" id="qualif-chart"></div>
-      </div>
-    </div>
-    <div class="panel" style="margin-top:14px">
+    <div class="panel">
       <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="panel-title">Statut des Files d'attente <span id="queue-last-update" style="font-size:var(--fs-sm);color:var(--t-disabled);font-weight:var(--fw-regular);margin-left:8px"></span></span>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1598,6 +1580,21 @@ body.wcr-refresh .kpi-grid>.kpi-card:first-child{box-shadow:inset 0 2px 0 var(--
         <span style="font-size:var(--fs-sm);color:var(--t-disabled)">Valeurs persistées localement, alimentent le KPI <b style="color:var(--c-pink)">Backlog Mails</b> global</span>
       </div>
       <div id="backlog-grid" class="backlog-grid"></div>
+    </div>
+    <div class="two-col" style="margin-top:14px">
+      <div class="panel" style="flex:2;min-width:300px;">
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <span class="panel-title">Volumes par tranche horaire <span id="chart-period" style="font-weight:var(--fw-medium);font-size:var(--fs-body);color:var(--t-muted);margin-left:6px"></span></span>
+          <button class="btn-zoom" onclick="openChartZoom()" title="Ouvrir le graphique en grand pour une meilleure lecture">🔍 Agrandir</button>
+        </div>
+        <div style="padding:14px;">
+          <div id="chart-host"></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-width:240px;">
+        <div class="panel-header"><span class="panel-title">Répartition Qualifications</span></div>
+        <div style="padding:14px;" id="qualif-chart"></div>
+      </div>
     </div>
   </div>
 
@@ -2112,21 +2109,25 @@ function renderQueueStatus(){
   const byCamp={},campOrder=[];
   queues.forEach(q=>{const c=q.camp||'Autres';if(!byCamp[c]){byCamp[c]=[];campOrder.push(c);}byCamp[c].push(q);});
   campOrder.sort((a,b)=>{const ia=CAMPS.indexOf(a),ib=CAMPS.indexOf(b);if(ia<0&&ib<0)return a.localeCompare(b,'fr');return ia<0?1:ib<0?-1:ia-ib;});
-  let html='<div class="qs-grid-clients">';
+  let html='<table class="tbl evo-num qs-table"><thead><tr>'
+    +'<th style="text-align:left">Compte / File</th><th title="Agents connectés en live">Agents</th>'
+    +'<th title="Appels présentés">Reçus</th><th title="Appels décrochés">Décrochés</th>'
+    +'<th title="Qualité de service = décrochés ÷ reçus">QS</th><th title="Taux d abandon">Abandons</th>'
+    +'<th>Sortants</th><th title="Durée moyenne de communication">DMC</th>'
+    +'<th title="Écart vs objectif QS">Obj</th></tr></thead><tbody>';
   campOrder.forEach(camp=>{
     const ql=byCamp[camp];
     const cc=(crit[camp])||{};
     const objQS=(cc.qs_min!=null&&cc.qs_min!=="")?+cc.qs_min:80;
-    const totR=ql.reduce((s,q)=>s+(q.recus||0),0);
-    const totD=ql.reduce((s,q)=>s+(q.decroches||0),0);
+    const totR=ql.reduce((s2,q)=>s2+(q.recus||0),0);
+    const totD=ql.reduce((s2,q)=>s2+(q.decroches||0),0);
     const avgQS=totR>0?Math.round(totD/totR*10000)/100:0;
     const avgC=avgQS>=objQS?'#30d158':avgQS>=objQS-10?'#ff9f0a':'#ff3b30';
     const _qSet=new Set(ql.map(q=>q.name));
     const liveAg=_agentsLiveOnQueues(_qSet);
     const _ck=(camp.replace(/[^A-Za-z0-9]/g,'')||'c')+ql.length;
     const _liveObjs=_liveAgentObjsOnQueues(_qSet);
-    // KPI stratégiques agrégés du compte
-    const totAb=Math.max(0,totR-totD);                       // abandons ≈ présentés − décrochés
+    const totAb=Math.max(0,totR-totD);
     const abPct=totR>0?Math.round(totAb/totR*100):0;
     const abC=abPct<=5?'#30d158':abPct<=15?'#ff9f0a':'#ff3b30';
     const totSort=ql.reduce((s2,q)=>s2+(q.sortants||0),0);
@@ -2134,27 +2135,16 @@ function renderQueueStatus(){
     const _dW=_dF.reduce((s2,q)=>s2+(q.decroches||1),0);
     const dmcAvg=_dF.length?Math.round(_dF.reduce((s2,q)=>s2+q.dmc*(q.decroches||1),0)/Math.max(1,_dW)):0;
     const ecartC=Math.round((avgQS-objQS)*10)/10;
-    html+=`<div class="qs-cli-card qs-cli-toggle" data-cli="${_ck}" title="Cliquer : agents connectés + détail par file">
-  <div class="qs-card-hd">
-    ${inoLogo(camp,24)}
-    <span class="qs-card-name">${camp}</span>
-    <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
-    ${liveAg>0?`<span class="qs-live-badge" title="${liveAg} agent(s) connecté(s) en live">● ${liveAg}</span>`:''}
-    <i class="ti ti-chevron-right qs-cli-chev"></i>
-  </div>
-  <div class="qs-card-kpis">
-    <div title="Appels présentés"><b style="color:#E8006E">${totR}</b><span>Reçus</span></div>
-    <div title="Appels décrochés"><b style="color:#30d158">${totD}</b><span>Décrochés</span></div>
-    <div title="Qualité de service = décrochés ÷ reçus"><b style="color:${avgC}">${avgQS}%</b><span>QS</span></div>
-    <div title="Taux d abandon (${totAb} appels abandonnés)"><b style="color:${abC}">${abPct}%</b><span>Abandons</span></div>
-    <div title="Durée moyenne de communication (pondérée)"><b>${dmcAvg>0?mmss(dmcAvg):'–'}</b><span>DMC</span></div>
-    <div title="Appels sortants"><b>${totSort}</b><span>Sortants</span></div>
-  </div>
-  <div class="qs-card-obj" style="color:${avgC}">obj ${objQS}% · <b>${(ecartC>=0?'+':'−')+Math.abs(ecartC)} pts</b></div>
-</div>
-<div class="qs-client-body" data-cli="${_ck}" style="display:none">
-  <div class="qs-agents-strip">${_liveObjs.length?('<span class="qs-strip-lbl">'+_liveObjs.length+' agent(s) connecté(s) :</span> '+_liveObjs.map(function(a){return '<span class="qs-strip-ag" title="'+String(a.status||'').replace(/"/g,'')+'">'+(a.flowVoice===true?'● ':'')+String(a.nom||'').replace(/</g,'')+'</span>';}).join('')):'<span class="qs-strip-lbl" style="color:var(--t-disabled)">Agents connectés : n.d.</span>'}</div>
-  <table class="qs-compact"><tbody>`;
+    // Ligne COMPTE (client) — cliquable : déplie agents connectés + détail par file
+    html+=`<tr class="qs-cli-row qs-cli-toggle" data-cli="${_ck}" title="Cliquer : agents connectés + détail par file">
+      <td style="text-align:left"><span class="evo-rc-name"><i class="ti ti-chevron-right qs-cli-chev"></i>${inoLogo(camp,22)}<b style="font-weight:800">${camp}</b><span class="qs-camp-count">${ql.length}</span>${liveAg>0?`<span class="qs-live-badge">● ${liveAg}</span>`:''}</span></td>
+      <td><b>${liveAg}</b></td><td><b>${totR}</b></td><td><b style="color:#30d158">${totD}</b></td>
+      <td><b style="color:${avgC}">${avgQS}%</b></td><td><b style="color:${abC}">${abPct}%</b></td>
+      <td>${totSort}</td><td>${dmcAvg>0?mmss(dmcAvg):'–'}</td>
+      <td style="color:${avgC};font-weight:700">${(ecartC>=0?'+':'−')+Math.abs(ecartC)}</td></tr>`;
+    // Ligne AGENTS connectés (dépliée au clic)
+    html+=`<tr class="qs-agents-row qs-cli-${_ck}" style="display:none"><td colspan="9" style="text-align:left"><div class="qs-agents-strip">${_liveObjs.length?('<span class="qs-strip-lbl">'+_liveObjs.length+' agent(s) connecté(s) :</span> '+_liveObjs.map(function(a){return '<span class="qs-strip-ag" title="'+String(a.status||'').replace(/"/g,'')+'">'+(a.flowVoice===true?'● ':'')+String(a.nom||'').replace(/</g,'')+'</span>';}).join('')):'<span class="qs-strip-lbl" style="color:var(--t-disabled)">Agents connectés : n.d.</span>'}</div></td></tr>`;
+    // Lignes FILES (dépliées au clic) — clic sur une file = productivité des agents
     ql.forEach(q=>{
       const qs=q.qs||0,ta=q.tauxAbandon||0;
       const ecart=Math.round((qs-objQS)*10)/10,atteint=ecart>=0,warn=!atteint&&ecart>=-10;
@@ -2162,34 +2152,30 @@ function renderQueueStatus(){
       const taC=ta<=5?'#30d158':ta<=15?'#E8006E':'#ff3b30';
       const sn=shortQName(q.name,camp);
       const qLive=_agentsLiveOnQueues(new Set([q.name]));
-      html+=`<tr class="qs-crow" data-qname="${(q.name||'').replace(/"/g,'&quot;')}" title="Cliquer pour la productivité des agents sur cette file">
-    <td class="qs-c-name"><span class="qs-c-dot" style="background:${qsC}"></span>${sn}${qLive>0?`<span class="qs-crow-live" title="${qLive} agent(s) connecté(s) live">● ${qLive}</span>`:''}</td>
-    <td class="qs-c-num"><b style="color:#E8006E">${q.recus||0}</b><span class="qs-c-lbl">reçus</span></td>
-    <td class="qs-c-num"><b style="color:#30d158">${q.decroches||0}</b><span class="qs-c-lbl">décr.</span></td>
-    <td class="qs-c-num"><b style="color:${qsC}">${qs}%</b><span class="qs-c-lbl">QS</span></td>
-    <td class="qs-c-num evo-lo"><b style="color:${taC}">${ta}%</b><span class="qs-c-lbl">aband.</span></td>
-    <td class="qs-c-num evo-lo"><b>${q.sortants||0}</b><span class="qs-c-lbl">sort.</span></td>
-    <td class="qs-c-num evo-lo"><b>${q.dmc>0?mmss(q.dmc):'–'}</b><span class="qs-c-lbl">DMC</span></td>
-    <td class="qs-c-obj" style="color:${qsC}"><b>${(atteint?'+':'−')+Math.abs(ecart)} pts</b><span class="qs-c-lbl">obj ${objQS}%</span></td>
-  </tr>`;
+      html+=`<tr class="qs-file-row qs-cli-${_ck}" data-qname="${(q.name||'').replace(/"/g,'&quot;')}" style="display:none" title="Cliquer : productivité des agents sur cette file">
+        <td style="text-align:left;padding-left:32px"><span class="qs-c-dot" style="background:${qsC}"></span>${sn}${qLive>0?`<span class="qs-crow-live">● ${qLive}</span>`:''}</td>
+        <td>${qLive||'–'}</td><td>${q.recus||0}</td><td style="color:#30d158">${q.decroches||0}</td>
+        <td style="color:${qsC}">${qs}%</td><td style="color:${taC}">${ta}%</td>
+        <td>${q.sortants||0}</td><td>${q.dmc>0?mmss(q.dmc):'–'}</td>
+        <td style="color:${qsC}">${(atteint?'+':'−')+Math.abs(ecart)}</td></tr>`;
     });
-    html+=`</tbody></table></div>`;
   });
-  html+='</div>';
+  html+='</tbody></table>';
   grid.innerHTML=html;
-  grid.querySelectorAll('.qs-crow[data-qname]').forEach(card=>{
-    card.addEventListener('click',()=>showQueueAgents([card.dataset.qname],null));
+  // Clic sur une FILE → productivité des agents de cette file
+  grid.querySelectorAll('.qs-file-row[data-qname]').forEach(r=>{
+    r.addEventListener('click',()=>showQueueAgents([r.dataset.qname],null));
   });
-  // Poupée russe : en-tête client (compte) → déplie/replie agents connectés + détail par file.
+  // Poupée russe : ligne COMPTE → déplie/replie agents connectés + lignes files.
   grid.querySelectorAll('.qs-cli-toggle[data-cli]').forEach(hdr=>{
     hdr.addEventListener('click',e=>{
       if(e.target.closest('button,a,input'))return;
       const ck=hdr.dataset.cli;
-      const body=grid.querySelector('.qs-client-body[data-cli="'+ck+'"]');
+      const rows=grid.querySelectorAll('tr.qs-cli-'+ck);
       const chev=hdr.querySelector('.qs-cli-chev');
-      if(!body)return;
-      const open=body.style.display==='none';
-      body.style.display=open?'':'none';
+      if(!rows.length)return;
+      const open=rows[0].style.display==='none';
+      rows.forEach(r=>{r.style.display=open?'':'none';});
       if(chev)chev.className='ti ti-chevron-'+(open?'down':'right')+' qs-cli-chev';
       window._qsOpen=window._qsOpen||{}; window._qsOpen[ck]=open;
     });
@@ -2197,7 +2183,7 @@ function renderQueueStatus(){
   // Ré-appliquer l'état déplié après un re-render (rafraîchissement)
   if(window._qsOpen)Object.keys(window._qsOpen).forEach(function(ck){
     if(!window._qsOpen[ck])return;
-    const b=grid.querySelector('.qs-client-body[data-cli="'+ck+'"]'); if(b)b.style.display='';
+    grid.querySelectorAll('tr.qs-cli-'+ck).forEach(function(r){r.style.display='';});
     const h=grid.querySelector('.qs-cli-toggle[data-cli="'+ck+'"] .qs-cli-chev'); if(h)h.className='ti ti-chevron-down qs-cli-chev';
   });
   if(upd)upd.textContent="MAJ "+new Date().toLocaleTimeString("fr-FR")+" · "+queues.length+" file(s)"+(_filtreActif?" · campagnes filtrées ("+selCamps.length+")":"");
