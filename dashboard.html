@@ -895,10 +895,22 @@ body.light .backlog-camp{color:var(--s-4);}
 body.light .qs-compact tbody tr.qs-crow:nth-child(odd){background:#f4f4fb;}
 body.light .qs-compact tbody tr.qs-crow:nth-child(even){background:#fff;}
 .qs-compact tbody tr.qs-crow:hover{background:rgba(232,0,110,.10)!important;}
-/* Poupée russe : compte repliable → agents connectés + détail files */
+/* Poupée russe : GRILLE de cartes « compte » → clic → agents connectés + détail files */
 .qs-cli-toggle{cursor:pointer;}
-.qs-cli-chev{font-size:15px;color:var(--c-pink);margin-right:6px;vertical-align:-2px;}
-.qs-client-body{padding:2px 4px 6px;}
+.qs-grid-clients{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;align-items:start;}
+.qs-cli-card{background:var(--s-2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;transition:border-color .15s,box-shadow .15s;}
+.qs-cli-card:hover{border-color:var(--c-pink);box-shadow:0 2px 12px rgba(232,0,110,.12);}
+.qs-card-hd{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+.qs-card-name{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--t-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+.qs-card-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px 4px;}
+.qs-card-kpis>div{text-align:center;}
+.qs-card-kpis b{display:block;font-size:15px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+.qs-card-kpis span{font-size:7.5px;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;}
+.qs-card-obj{margin-top:9px;padding-top:7px;border-top:1px solid var(--border);font-size:9px;font-weight:600;text-align:center;}
+.qs-cli-chev{font-size:14px;color:var(--c-pink);margin-left:auto;flex-shrink:0;}
+.qs-client-body{grid-column:1/-1;background:var(--s-1);border:1px solid var(--border);border-radius:12px;padding:2px 10px 6px;}
+body.light .qs-cli-card{background:#fff;}
+body.light .qs-client-body{background:#fafafe;}
 .qs-agents-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 6px 10px;border-bottom:1px dashed var(--border);margin-bottom:2px;}
 .qs-strip-lbl{font-size:10px;font-weight:800;color:var(--t-muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
 .qs-strip-ag{font-size:11px;font-weight:600;background:rgba(48,209,88,.14);color:#1d9e75;border:1px solid rgba(48,209,88,.3);border-radius:12px;padding:2px 9px;white-space:nowrap;}
@@ -2097,7 +2109,7 @@ function renderQueueStatus(){
   const byCamp={},campOrder=[];
   queues.forEach(q=>{const c=q.camp||'Autres';if(!byCamp[c]){byCamp[c]=[];campOrder.push(c);}byCamp[c].push(q);});
   campOrder.sort((a,b)=>{const ia=CAMPS.indexOf(a),ib=CAMPS.indexOf(b);if(ia<0&&ib<0)return a.localeCompare(b,'fr');return ia<0?1:ib<0?-1:ia-ib;});
-  let html='';
+  let html='<div class="qs-grid-clients">';
   campOrder.forEach(camp=>{
     const ql=byCamp[camp];
     const cc=(crit[camp])||{};
@@ -2110,23 +2122,35 @@ function renderQueueStatus(){
     const liveAg=_agentsLiveOnQueues(_qSet);
     const _ck=(camp.replace(/[^A-Za-z0-9]/g,'')||'c')+ql.length;
     const _liveObjs=_liveAgentObjsOnQueues(_qSet);
-    html+=`<div class="qs-camp-section">
-<div class="qs-camp-header qs-cli-toggle" data-cli="${_ck}" title="Cliquer pour déplier : agents connectés + détail par file">
-  <div class="qs-camp-header-row1">
-    <i class="ti ti-chevron-right qs-cli-chev"></i>
-    ${inoLogo(camp,22)}
-    <span class="qs-camp-name">${camp}</span>
+    // KPI stratégiques agrégés du compte
+    const totAb=Math.max(0,totR-totD);                       // abandons ≈ présentés − décrochés
+    const abPct=totR>0?Math.round(totAb/totR*100):0;
+    const abC=abPct<=5?'#30d158':abPct<=15?'#ff9f0a':'#ff3b30';
+    const totSort=ql.reduce((s2,q)=>s2+(q.sortants||0),0);
+    const _dF=ql.filter(q=>q.dmc>0);
+    const _dW=_dF.reduce((s2,q)=>s2+(q.decroches||1),0);
+    const dmcAvg=_dF.length?Math.round(_dF.reduce((s2,q)=>s2+q.dmc*(q.decroches||1),0)/Math.max(1,_dW)):0;
+    const ecartC=Math.round((avgQS-objQS)*10)/10;
+    html+=`<div class="qs-cli-card qs-cli-toggle" data-cli="${_ck}" title="Cliquer : agents connectés + détail par file">
+  <div class="qs-card-hd">
+    ${inoLogo(camp,24)}
+    <span class="qs-card-name">${camp}</span>
     <span class="qs-camp-count">${ql.length} file${ql.length>1?"s":""}</span>
-    ${liveAg>0?`<span class="qs-live-badge" title="${liveAg} agent(s) connecté(s) en live sur ${camp}">● ${liveAg} live</span>`:''}
-    <div class="qs-camp-agg" style="margin-left:auto">
-      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#E8006E">${totR}</span><span class="qs-camp-agg-lbl">Reçus</span></div>
-      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:#30d158">${totD}</span><span class="qs-camp-agg-lbl">Décr.</span></div>
-      <div class="qs-camp-agg-item"><span class="qs-camp-agg-val" style="color:${avgC}">${avgQS}%</span><span class="qs-camp-agg-lbl">QS moy.</span></div>
-    </div>
+    ${liveAg>0?`<span class="qs-live-badge" title="${liveAg} agent(s) connecté(s) en live">● ${liveAg}</span>`:''}
+    <i class="ti ti-chevron-right qs-cli-chev"></i>
   </div>
+  <div class="qs-card-kpis">
+    <div title="Appels présentés"><b style="color:#E8006E">${totR}</b><span>Reçus</span></div>
+    <div title="Appels décrochés"><b style="color:#30d158">${totD}</b><span>Décrochés</span></div>
+    <div title="Qualité de service = décrochés ÷ reçus"><b style="color:${avgC}">${avgQS}%</b><span>QS</span></div>
+    <div title="Taux d abandon (${totAb} appels abandonnés)"><b style="color:${abC}">${abPct}%</b><span>Abandons</span></div>
+    <div title="Durée moyenne de communication (pondérée)"><b>${dmcAvg>0?mmss(dmcAvg):'–'}</b><span>DMC</span></div>
+    <div title="Appels sortants"><b>${totSort}</b><span>Sortants</span></div>
+  </div>
+  <div class="qs-card-obj" style="color:${avgC}">obj ${objQS}% · <b>${(ecartC>=0?'+':'−')+Math.abs(ecartC)} pts</b></div>
 </div>
 <div class="qs-client-body" data-cli="${_ck}" style="display:none">
-  <div class="qs-agents-strip">${_liveObjs.length?('<span class="qs-strip-lbl">'+_liveObjs.length+' agent(s) connecté(s) :</span> '+_liveObjs.map(function(a){return '<span class="qs-strip-ag" title="'+String(a.status||'').replace(/"/g,'')+'">'+(a.flowVoice===true?'● ':'')+String(a.nom||'').replace(/</g,'')+'</span>';}).join('')):'<span class="qs-strip-lbl" style="color:var(--t-disabled)">Agents connectés : n.d. (lance un rafraîchissement pour l état live)</span>'}</div>
+  <div class="qs-agents-strip">${_liveObjs.length?('<span class="qs-strip-lbl">'+_liveObjs.length+' agent(s) connecté(s) :</span> '+_liveObjs.map(function(a){return '<span class="qs-strip-ag" title="'+String(a.status||'').replace(/"/g,'')+'">'+(a.flowVoice===true?'● ':'')+String(a.nom||'').replace(/</g,'')+'</span>';}).join('')):'<span class="qs-strip-lbl" style="color:var(--t-disabled)">Agents connectés : n.d.</span>'}</div>
   <table class="qs-compact"><tbody>`;
     ql.forEach(q=>{
       const qs=q.qs||0,ta=q.tauxAbandon||0;
@@ -2146,8 +2170,9 @@ function renderQueueStatus(){
     <td class="qs-c-obj" style="color:${qsC}"><b>${(atteint?'+':'−')+Math.abs(ecart)} pts</b><span class="qs-c-lbl">obj ${objQS}%</span></td>
   </tr>`;
     });
-    html+=`</tbody></table></div></div>`;
+    html+=`</tbody></table></div>`;
   });
+  html+='</div>';
   grid.innerHTML=html;
   grid.querySelectorAll('.qs-crow[data-qname]').forEach(card=>{
     card.addEventListener('click',()=>showQueueAgents([card.dataset.qname],null));
