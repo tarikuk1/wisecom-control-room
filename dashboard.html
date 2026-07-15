@@ -895,6 +895,9 @@ body.light .backlog-camp{color:var(--s-4);}
 body.light .qs-compact tbody tr.qs-crow:nth-child(odd){background:#f4f4fb;}
 body.light .qs-compact tbody tr.qs-crow:nth-child(even){background:#fff;}
 .qs-compact tbody tr.qs-crow:hover{background:rgba(232,0,110,.10)!important;}
+/* Carte KPI cliquable (ex. Agents connectés → audit du comptage) */
+.kpi-clickable{cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+.kpi-clickable:hover{border-color:var(--c-pink)!important;box-shadow:0 2px 14px rgba(232,0,110,.18);}
 /* Poupée russe : GRILLE de cartes « compte » → clic → agents connectés + détail files */
 .qs-cli-toggle{cursor:pointer;}
 .qs-grid-clients{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;align-items:start;}
@@ -5483,6 +5486,58 @@ document.addEventListener('click',function(e){
   evoSortTable(th,tbl);
 });
 // Clic sur le nom d'une campagne → déplie en vignettes le détail par agent ayant produit dessus.
+// Modale générique Evo (réutilisable).
+function evoModal(title,html){
+  let ov=document.getElementById('evo-generic-modal');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='evo-generic-modal'; ov.className='modal-overlay'; ov.style.display='none';
+    ov.innerHTML='<div style="max-width:1180px;width:95vw;background:var(--s-2);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.5)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 15px;border-bottom:1px solid var(--border)">'
+      +'<b id="evo-modal-title" style="font-size:13px;color:var(--t-primary)"></b>'
+      +'<button type="button" id="evo-modal-x" style="background:transparent;border:1px solid var(--border);color:var(--t-secondary);border-radius:8px;padding:3px 11px;cursor:pointer;font-weight:800">✕</button></div>'
+      +'<div id="evo-modal-body"></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',e=>{if(e.target===ov)ov.style.display='none';});
+    ov.querySelector('#evo-modal-x').addEventListener('click',()=>{ov.style.display='none';});
+  }
+  ov.querySelector('#evo-modal-title').textContent=title;
+  ov.querySelector('#evo-modal-body').innerHTML=html;
+  ov.style.display='flex';
+}
+// Audit du comptage « Agents connectés » : détail des connexions par agent.
+// Objectif : distinguer un DOUBLON (agent présent sur plusieurs campagnes → compté N fois dans la
+// somme des compteurs par campagne) d'une CONNEXION/DÉCONNEXION RAPIDE (session très courte).
+function evoShowAgentConnections(){
+  const d=_evoData; if(!d){evoModal('Agents connectés','<div style="padding:16px;color:var(--t-disabled)">Données Evo non chargées.</div>');return;}
+  const ags=window._evoAgsLive||[], acs=d.agentCamps||[], sess=d.sessions||[];
+  const sumCamp=window._evoCampAgentsSum||0;
+  const ec=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const rows=ags.map(a=>{
+    const ac=acs.find(x=>String(x.idAgente)===String(a.id));
+    const cps=((ac&&ac.camps)||[]).filter(c=>!EVO_INBOUND_IDS.has(String(c.idCampanya)));
+    const s=sess.find(x=>String(x.idAgente)===String(a.id));
+    const sessSec=a.sessionSec||0;
+    const multi=cps.length>1, court=sessSec>0&&sessSec<300;
+    const diag=multi?`<span style="color:#ff9f0a;font-weight:700">Sur ${cps.length} campagnes → compté ${cps.length}× dans la somme par campagne</span>`
+      :court?'<span style="color:#ff3b30;font-weight:700">Connexion très courte (&lt; 5 min)</span>'
+      :'<span style="color:#30d158">OK</span>';
+    const cnxG=(s&&s.firstBegin)?evoHM(s.firstBegin):'–';
+    const decoG=s?(s.online?'<span style="color:#30d158">● en ligne</span>':(s.lastEnd?evoHM(s.lastEnd):'–')):'–';
+    const det=cps.length?cps.map(c=>`<div style="font-size:11px;color:var(--t-secondary);white-space:nowrap">${ec(c.campNom||('Camp '+c.idCampanya))} : <b>${c.cnx_ms?evoHM(c.cnx_ms):'–'}</b> → <b>${c.online?'en ligne':(c.deco_ms?evoHM(c.deco_ms):'–')}</b> <span style="color:var(--t-muted)">(${EVO_FH(c.prod_sec)})</span></div>`).join('')
+      :'<span style="color:var(--t-disabled);font-size:11px">aucune production sur une campagne</span>';
+    return `<tr><td style="text-align:left;font-weight:600">${ec(a.nom)}</td><td style="text-align:left;color:var(--t-muted)">${ec(a.campagne||'–')}</td><td>${cnxG}</td><td>${decoG}</td><td>${EVO_FH(sessSec)}</td><td style="text-align:left">${det}</td><td style="text-align:left">${diag}</td></tr>`;
+  }).join('');
+  const gap=sumCamp-ags.length;
+  evoModal('Agents connectés — audit du comptage',`<div style="padding:13px 15px">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px;color:var(--t-secondary)">
+      <span><b style="color:#E8006E;font-size:15px">${ags.length}</b> agent(s) DISTINCT(s) connecté(s) — c'est le KPI affiché</span>
+      <span>· somme des compteurs par campagne : <b>${sumCamp}</b>${gap>0?` <span style="color:#ff9f0a;font-weight:700">(+${gap} → doublons multi-campagnes)</span>`:(gap<0?` <span style="color:#ff3b30">(${gap})</span>`:' <span style="color:#30d158">(identique)</span>')}</span>
+    </div>
+    <div style="overflow:auto;max-height:62vh"><table class="tbl evo-num" style="width:100%">
+      <thead><tr><th style="text-align:left">Agent</th><th style="text-align:left">Campagne en cours</th><th title="1ère connexion à Evolution (session globale)">1ʳᵉ connexion</th><th>Déconnexion</th><th title="Durée de session live">Session</th><th style="text-align:left" title="Connexion → déconnexion sur CHAQUE campagne">Connexions par campagne</th><th style="text-align:left">Diagnostic</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="7" style="padding:12px;color:var(--t-disabled)">Aucun agent connecté sur le périmètre.</td></tr>'}</tbody>
+    </table></div></div>`);
+}
 function evoToggleCampAgents(td,campId){
   const tr=td.closest('tr'); if(!tr)return;
   const ic=td.querySelector('.evo-exp-ic');
@@ -5657,6 +5712,9 @@ function renderEvo(d){
   // même source → plus d'incohérence. (La colonne « Agents » par campagne reste, elle, le
   // compteur Evolution de cette campagne : un agent peut y apparaître sur 2 campagnes.)
   const totalAgentsAgg=ags.length;
+  // Exposé pour l'audit du comptage au clic sur le KPI (doublons vs connexion/déco rapide).
+  window._evoAgsLive=ags;
+  window._evoCampAgentsSum=camps.reduce((s,c)=>s+(c.agents||0),0);
   const tauxAccord=cu>0?Math.round(positifs/cu*100):null;            // accords ÷ CU (jour)
   const tauxRefus=cu>0?Math.round(negatifs/cu*100):null;            // refus ÷ CU (jour)
   // Taux de contact DU JOUR = CU ÷ appels traités du jour (même période, même source).
@@ -5682,10 +5740,11 @@ function renderEvo(d){
   // AXE B — Présence agents (source REST live). Données composeur (non-joignables,
   // joignabilité) retirées : non exploitables pour le pilotage (décision Tarik).
   const cardsLive=[
-    {l:"Agents connectés",v:totalAgentsAgg.toLocaleString("fr-FR"),sub:"en ce moment"},
+    {l:"Agents connectés",v:totalAgentsAgg.toLocaleString("fr-FR"),sub:"en ce moment · cliquer pour le détail",
+     click:"evoShowAgentConnections()",title:"Cliquer : détail des connexions (repérer doublons multi-campagnes et connexions/déconnexions rapides)"},
     {l:"Temps de présence",v:fmtH(heuresProd),sub:presenceSrc==="presence"?"session agents (live)":"temps de communication (SQL)"},
   ];
-  const cardHtml=k=>`<div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}"${k.title?` title="${k.title}"`:''}>
+  const cardHtml=k=>`<div class="kpi-card${k.alert?' alert':k.good?' good':''}${k.hero?' hero':''}${k.sql?' dim':''}${k.click?' kpi-clickable':''}"${k.click?` onclick="${k.click}"`:''}${k.title?` title="${k.title}"`:''}>
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-value">${k.v}</div>
       ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}
