@@ -1560,6 +1560,17 @@ const server=http.createServer(async(req,res)=>{
       if(wantDate&&!(_evoCache&&_evoCache.dataDate===wantDate)){
         histSrc=evoLoadHist(wantDate);
       }
+      // Cache live CREUX (sans sessions) alors qu'une archive du jour les contient : servir l'archive.
+      // Cas vécu : un backfill/envoi ancien avait écrasé le cache → Cnx/Déco/H.conn vides côté agent
+      // alors que la donnée poussée du jour était complète. On repart de la source la plus riche.
+      if(!histSrc){
+        const _cacheSess=_evoCache&&Array.isArray(_evoCache.sessions)&&_evoCache.sessions.length>0;
+        if(!_cacheSess){
+          const _d=(_evoCache&&_evoCache.dataDate)||parisDateStr();
+          const _a=evoLoadHist(_d);
+          if(_a&&Array.isArray(_a.sessions)&&_a.sessions.length>0)histSrc=_a;
+        }
+      }
       const cacheFresh=_evoCache&&(Date.now()-_evoCacheAt)<EVO_STALE_MS;
       // Cache "riche" = contient du SQL (stats/agent×campagne). Un fetch direct des mesurables ne
       // ramène PAS le SQL → dashboard vide (0 CU, 0 session). Mieux vaut servir un cache complet
@@ -1650,9 +1661,15 @@ const server=http.createServer(async(req,res)=>{
           res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:true,skipped:"hollow",dataDate:newCache.dataDate}));
         }
         evoSaveHist(newCache); // archive de la journée (consultable via ?date=)
-        // Ne remplacer le cache LIVE que si l'envoi est du jour courant ou plus récent —
-        // un backfill d'une journée antérieure ne doit pas écraser l'affichage temps réel.
-        if(!_evoCache||!newCache.dataDate||!_evoCache.dataDate||newCache.dataDate>=_evoCache.dataDate){
+        // Ne remplacer le cache LIVE que si l'envoi est du jour courant ou plus récent.
+        // ⚠ L'ancienne condition (`!newCache.dataDate||!_evoCache.dataDate`) laissait un envoi SANS
+        // dataDate — ou un backfill arrivant sur un cache sans date — ÉCRASER le cache live avec des
+        // données anciennes/creuses (sessions & cnx_ms perdus → colonnes Cnx/Déco/H.conn vides).
+        // Désormais : un envoi non daté ne remplit QUE si le cache est vide ; sinon il faut une date
+        // >= à celle du cache.
+        const _canReplace = !_evoCache
+          || (!!newCache.dataDate && (!_evoCache.dataDate || newCache.dataDate>=_evoCache.dataDate));
+        if(_canReplace){
           _evoCache=newCache;_evoCacheAt=Date.now();evoSaveCache();
         }
         console.log("["+new Date().toLocaleTimeString("fr-FR")+"] [evo/ingest] Données reçues du poste local");
