@@ -647,20 +647,20 @@ async function getToken(force){
 let fluxCache={data:{},at:0};
 async function fetchAgentFlux(force){
   if(!force && Date.now()-fluxCache.at<45000 && Object.keys(fluxCache.data).length) return fluxCache.data;
-  const token=await getToken(); if(!token) return fluxCache.data||{};
+  const tokenRef={t:await getToken(true)}; const token=tokenRef.t; if(!token) return fluxCache.data||{};
   try{
-    const groups=await apiReq("POST","/cc/agentgroups/list",{start:0,limit:100},token);
+    const groups=await _ccCall("POST","/cc/agentgroups/list",{start:0,limit:100},tokenRef);
     const gl=(groups&&groups.agentGroups)||[];
     let ags=[];
     for(const g of gl){
-      const al=await apiReq("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},token);
+      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},tokenRef);
       ((al&&al.agents)||[]).forEach(a=>ags.push({id:a.id,groupName:g.name}));
     }
     const map={};
     // GET détail par agent, en parallèle par lots de 10, pour lire flowVoice.
     for(let i=0;i<ags.length;i+=10){
       const chunk=ags.slice(i,i+10);
-      const dets=await Promise.all(chunk.map(a=>apiReq("GET","/cc/agent/"+a.id,null,token).then(d=>({a,d})).catch(()=>({a,d:null}))));
+      const dets=await Promise.all(chunk.map(a=>apiReq("GET","/cc/agent/"+a.id,null,tokenRef.t).then(d=>({a,d})).catch(()=>({a,d:null}))));
       dets.forEach(({a,d})=>{
         const fa=d&&d.agent; if(!fa)return;
         const rec={id:fa.id,flowVoice:!!fa.flowVoice,username:fa.username||null,nom:((fa.firstname||"")+" "+(fa.lastname||"")).trim(),group:a.groupName};
@@ -730,18 +730,32 @@ async function fetchDayStats(){
 // Sert à afficher les agents CONNECTÉS aujourd'hui même sans activité d'appel (supervision).
 // N'utilise PAS le GET détail par agent (coûteux) : la liste de groupe suffit (lastLogin inclus).
 let _dirCache={data:{},at:0};
+// Appel /cc/* robuste : le token INO expire vite (300s). apiReq renvoie le CORPS même sur 401
+// ({error:invalid_token}) → sans détection, on lisait « agents:[] » (annuaire vide → agents
+// connectés non injectés, ex. Crystelle absente). Ici on détecte le 401 et on rejoue avec un
+// token FORCÉ neuf.
+async function _ccCall(method,path,body,tokenRef){
+  let r=await apiReq(method,path,body,tokenRef.t);
+  const bad=r&&typeof r==='object'&&(r.error==='invalid_token'||/bad credentials|invalid_token|expired/i.test(String(r.error_description||r.message||'')));
+  if(bad){ tokenRef.t=await getToken(true); r=await apiReq(method,path,body,tokenRef.t); }
+  return r;
+}
 async function fetchAgentDirectory(force){
   if(!force && Date.now()-_dirCache.at<60000 && Object.keys(_dirCache.data).length) return _dirCache.data;
-  const token=await getToken(); if(!token) return _dirCache.data||{};
+  // Token FORCÉ neuf : l'annuaire tourne au début de /agents-day, un token à 5s de la fin de vie
+  // expirerait en cours de boucle → 401 silencieux. On repart d'un jeton frais.
+  const tokenRef={t:await getToken(true)}; if(!tokenRef.t) return _dirCache.data||{};
   try{
-    const groups=await apiReq("POST","/cc/agentgroups/list",{start:0,limit:100},token);
+    const groups=await _ccCall("POST","/cc/agentgroups/list",{start:0,limit:100},tokenRef);
     const gl=(groups&&groups.agentGroups)||[];
     const map={};
     for(const g of gl){
-      const al=await apiReq("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},token);
+      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},tokenRef);
       ((al&&al.agents)||[]).forEach(a=>{ map[String(a.id)]={id:String(a.id),username:a.username,nom:((a.firstname||"")+" "+(a.lastname||"")).trim(),lastLogin:a.lastLogin||null,group:g.name}; });
     }
-    if(Object.keys(map).length) _dirCache={data:map,at:Date.now()};
+    // Ne remplacer le cache que si non vide (un fetch raté ne doit pas effacer un annuaire valide).
+    if(Object.keys(map).length){ _dirCache={data:map,at:Date.now()}; }
+    else { console.error("[dir] annuaire VIDE (401/param ?) — cache précédent conservé"); }
   }catch(e){ console.error("[dir] "+e.message); }
   return _dirCache.data;
 }
