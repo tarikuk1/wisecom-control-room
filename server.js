@@ -1000,14 +1000,22 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     const _todayStr=parisDateStr();
     if(date===_todayStr && (!dateFin||dateFin===date)){
       const dir=await fetchAgentDirectory();
+      // Fenêtre « connecté RÉCEMMENT » : lastLogin dans les 48h. L'API INO ne donne que la dernière
+      // connexion (pas la présence temps réel) ; un agent à session persistante garde un lastLogin
+      // de la veille → « aujourd'hui » strict le ratait. 48h capte hier soir sans afficher les
+      // logins de plusieurs jours (choix Tarik : élargir « connecté récemment »).
+      const _RECENT_MS=48*3600*1000;
+      const _nowMs=Date.now();
       Object.keys(dir).forEach(function(id){
         const ag=dir[id];
         if(!ag||agents[id]||!ag.lastLogin)return;
-        if(parisDateStr(new Date(ag.lastLogin))!==_todayStr)return; // connecté aujourd'hui uniquement
+        const _llMs=new Date(ag.lastLogin).getTime();
+        if(!(_llMs>0) || (_nowMs-_llMs)>_RECENT_MS)return; // connexion de plus de 48h → ignoré
+        const _sameDay=parisDateStr(new Date(ag.lastLogin))===_todayStr;
         agents[id]={id:String(id),nom:ag.nom,username:ag.username,appelsIn:0,appelsOut:0,duree:0,dureeIn:0,
           premiereAction:ag.lastLogin,derniereAction:null,queues:new Set(),ko:0,refus:0,reiterants:0,transferts:0,
           transfo_yes:0,qualifs_total:0,nonDecroches:0,presentes:0,spark:Array(12).fill(0),sparkH:Array(24).fill(0),
-          daySpan:{},_connecteSansActivite:true};
+          daySpan:{},_connecteSansActivite:true,_loginRecent:!_sameDay};
       });
     }
   }catch(e){ console.error("[connectés] "+e.message); }
