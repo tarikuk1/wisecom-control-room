@@ -653,7 +653,7 @@ async function fetchAgentFlux(force){
     const gl=(groups&&groups.agentGroups)||[];
     let ags=[];
     for(const g of gl){
-      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},tokenRef);
+      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:250},tokenRef);
       ((al&&al.agents)||[]).forEach(a=>ags.push({id:a.id,groupName:g.name}));
     }
     const map={};
@@ -750,7 +750,7 @@ async function fetchAgentDirectory(force){
     const gl=(groups&&groups.agentGroups)||[];
     const map={};
     for(const g of gl){
-      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:300},tokenRef);
+      const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:250},tokenRef);
       ((al&&al.agents)||[]).forEach(a=>{ map[String(a.id)]={id:String(a.id),username:a.username,nom:((a.firstname||"")+" "+(a.lastname||"")).trim(),lastLogin:a.lastLogin||null,group:g.name}; });
     }
     // Ne remplacer le cache que si non vide (un fetch raté ne doit pas effacer un annuaire valide).
