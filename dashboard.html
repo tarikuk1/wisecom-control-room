@@ -1059,6 +1059,15 @@ body.light .wsp-kpi-val{color:#333;}
 .sk-inactive{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:transparent;border:2px solid #bbb;color:#aaa;font-size:14px;cursor:pointer;transition:all .15s;line-height:1;}
 .sk-inactive:hover{border-color:#E8006E;color:#E8006E;background:rgba(232,0,110,.06);}
 .sk-none{color:#ccc;font-size:13px;font-weight:300;}
+/* Matrice par COMPTE (style Excel) : chip du compte, clic = détail des files */
+.sk-cli-chip{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.02em;border-radius:5px;padding:3px 8px;white-space:nowrap;line-height:1.3;}
+.sk-cli-chip.on{background:rgba(232,0,110,.16);color:#E8006E;border:1px solid rgba(232,0,110,.45);}
+.sk-cli-chip.on b{font-weight:800;opacity:.75;margin-left:2px;}
+.sk-cli-chip.off{background:transparent;color:#9a9a9a;border:1px dashed #9a9a9a;}
+.sk-cli-cell:hover .sk-cli-chip{filter:brightness(1.25);}
+.sk-cli-cell:hover{background:rgba(232,0,110,.07);}
+body.light .sk-cli-chip.on{background:#fde8f1;color:#c1005c;border-color:#f4a8c8;}
+body.light .sk-cli-chip.off{color:#888;border-color:#bbb;}
 .sk-ratio{font-size:9px;color:#b0b0b0;display:block;margin-top:1px;line-height:1;}
 #wa-config-panel{background:var(--s-3);border:1px solid var(--s-4);border-radius:8px;padding:10px 14px;margin-bottom:12px;}
 body.light #wa-config-panel{background:#f8f8f8;border-color:#e0e0e0;}
@@ -4539,12 +4548,30 @@ function renderSkills(){
   }
 
   // Construire la liste des colonnes = union de toutes les compétences réelles (actives + inactives)
-  const seen=new Map();
-  realAgents.forEach(a=>(a.allSkillsData||[]).forEach(s=>{if(s&&s.name&&!seen.has(s.name))seen.set(s.name,s.id);}));
-  let colSkills=[...seen.keys()].sort((a,b)=>a.localeCompare(b));
+  // ── Colonnes = COMPTES (clients), pas les files une par une ──────────────────
+  // Les compétences INO brutes (Afnor_Formation, LGR Boutique, Monetize FR…) sont regroupées
+  // par COMPTE via normalizeSkillToWaCol() → ~20 colonnes lisibles (style Excel Tarik) au lieu
+  // de 60+. Le détail des files reste accessible au clic sur la cellule.
+  const _ORDER=[].concat(WA_SKILLS_COMP,WA_SKILLS_MAILS);
+  const byAgent={}, present=new Set(), coveredActive=new Set();
+  realAgents.forEach(a=>{
+    const m={};
+    (a.allSkillsData||[]).forEach(sk=>{
+      if(!sk||!sk.name)return;
+      const cli=normalizeSkillToWaCol(sk.name)||'DIVERS';
+      if(!m[cli])m[cli]={act:[],inact:[]};
+      (sk.active?m[cli].act:m[cli].inact).push(sk);
+      present.add(cli);
+      if(sk.active)coveredActive.add(cli);
+    });
+    byAgent[a.id]=m;
+  });
+  // Ordre : les comptes connus d'abord (ordre métier), puis les éventuels autres
+  let colClients=_ORDER.filter(c=>present.has(c));
+  [...present].filter(c=>_ORDER.indexOf(c)<0).sort().forEach(c=>colClients.push(c));
+  window._skDetail={}; // pour le clic détail
 
-  // Tri des lignes (agents) selon skillSort
-  // --- Détection astreinte aujourd'hui (pour tri prioritaire) ---
+  // Astreinte du jour + transfert mobile (priorité d'affichage des lignes)
   const _skTodayStr=isoLocal(new Date());
   const _skTodayAstr=new Set();
   Object.entries(astreintesEntries).forEach(function(entry){
@@ -4556,6 +4583,8 @@ function renderSkills(){
   });
   const _hasMobile=function(a){return (a.allSkillsData||[]).some(function(s){return s.active&&/transfert.?mobile/i.test(s.name||"");});};
   const _isOnAstr=function(a){return _skTodayAstr.has((a.nom||"").trim().toLowerCase());};
+  // Tri des lignes — les colonnes sont désormais des COMPTES : trier sur l'état du compte
+  // (2 = actif, 1 = configuré mais inactif, 0 = non configuré).
   let sorted=realAgents.slice();
   if(skillSort.col==='__agent'){
     sorted.sort((a,b)=>a.nom.localeCompare(b.nom));
@@ -4565,11 +4594,9 @@ function renderSkills(){
     const cnt=a=>(a.allSkillsData||[]).filter(s=>s.active).length;
     sorted.sort((a,b)=>cnt(a)-cnt(b));
   }else if(skillSort.col){
-    // Tri par état actif/inactif de la compétence (colonne)
-    const val=a=>{const e=(a.allSkillsData||[]).find(s=>s.name===skillSort.col);return e?(e.active?2:1):0;};
+    const val=a=>{const e=(byAgent[a.id]||{})[skillSort.col];return e?(e.act.length?2:1):0;};
     sorted.sort((a,b)=>val(a)-val(b));
   }else{
-    // Transfert Mobile actif en premier, puis agents en astreinte, puis ordre camp+nom
     sorted.sort(function(a,b){
       const pa=_hasMobile(a)?0:_isOnAstr(a)?1:2;
       const pb=_hasMobile(b)?0:_isOnAstr(b)?1:2;
@@ -4580,56 +4607,76 @@ function renderSkills(){
   if(skillSort.dir==='desc')sorted.reverse();
 
   const arrow=c=>skillSort.col===c?(skillSort.dir==='asc'?' ▲':' ▼'):'';
-  const thStyle='text-align:center;min-width:85px;padding:8px 12px;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none';
+  const thStyle='text-align:center;min-width:76px;padding:8px 10px;font-size:10px;white-space:nowrap;cursor:pointer;user-select:none';
   const thead='<thead><tr>'
     +'<th onclick="sortSkills(\'__agent\')" style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2;cursor:pointer;user-select:none">Agent'+arrow('__agent')+'</th>'
     +'<th onclick="sortSkills(\'__count\')" style="'+thStyle+'" title="Actives / Total configurées">Actif<br><span style="font-size:9px;font-weight:400;opacity:.7">/ Total</span>'+arrow('__count')+'</th>'
-    +colSkills.map(sk=>'<th onclick="sortSkills(\''+sk.replace(/'/g,"\\'")+'\')" style="'+thStyle+'">'+sk+arrow(sk)+'</th>').join('')
+    +colClients.map(cli=>{
+        // EN-TÊTE ROUGE = compte NON COUVERT (aucun agent n'a cette compétence active)
+        const uncovered=!coveredActive.has(cli);
+        const st=thStyle+(uncovered?';background:#7a0b23;color:#fff;font-weight:800;border-bottom:2px solid #ff3b30':'');
+        const t=uncovered?'⚠ AUCUN agent actif sur ce compte — compétence manquante':'Compte '+cli+' — cliquer une cellule pour le détail des files';
+        return '<th onclick="sortSkills(\''+cli.replace(/'/g,"")+'\')" style="'+st+'" title="'+t+'">'+(uncovered?'⚠ ':'')+cli+arrow(cli)+'</th>';
+      }).join('')
     +'<th onclick="sortSkills(\'__files\')" style="'+thStyle+'">Files'+arrow('__files')+'</th>'
     +'</tr></thead>';
   const tbody='<tbody>'+sorted.map(a=>{
     const campColor=a.camp&&a.camp!=="–"?P:"#555";
     const isCo=a.status==="Actif"||a.status==="Traitement"||a.status==="Post-appel";
     const _mob=_hasMobile(a),_astr=_isOnAstr(a);
-    // Priorité visuelle : mobile (bleu), astreinte (vert), normal
     const rowBg=_mob?"rgba(74,195,255,.08)":_astr?"rgba(48,209,88,.08)":(isCo?"rgba(48,209,88,.04)":"rgba(120,120,120,.03)");
     const dot=isCo?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#30d158;margin-right:6px;vertical-align:middle" title="Connecté"></span>':'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#555;margin-right:6px;vertical-align:middle" title="Déconnecté"></span>';
     const mobileBadge=_mob?'<span style="display:inline-block;background:#0a2a40;color:#4ac3ff;font-size:7px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:6px;letter-spacing:.04em;vertical-align:middle;border:1px solid #1a4a70">MOBILE</span>':'';
     const astrBadge=_astr?'<span style="display:inline-block;background:#0d2a0d;color:#30d158;font-size:7px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:4px;letter-spacing:.04em;vertical-align:middle;border:1px solid #1a4a1a">ASTR.</span>':'';
     const nbActives=(a.allSkillsData||[]).filter(s=>s.active).length;
+    const m=byAgent[a.id]||{};
     return '<tr style="background:'+rowBg+'">'
       +'<td style="font-weight:600;padding:8px 12px;position:sticky;left:0;background:'+(document.body.classList.contains('light')?(isCo?'#f0fdf4':'#f5f5f5'):(_mob?'#080e16':_astr?'#080e08':'#111'))+';color:'+(document.body.classList.contains('light')?'#1a1a1a':'inherit')+';white-space:nowrap">'+dot+a.nom+mobileBadge+astrBadge+'<br><span style="font-size:9px;color:#555;margin-left:13px;display:inline-flex;align-items:center;gap:4px">'+(a.contrat||"–")+' · '+((a.camp&&a.camp!=="–")?inoLogo(a.camp,16):"")+'<span style="color:'+campColor+'">'+(a.camp||"–")+'</span></span></td>'
       +'<td style="text-align:center;padding:6px 12px;font-weight:700;color:'+P+'">'+nbActives+'<span class="sk-ratio">'+(a.allSkillsData||[]).length+' config.</span></td>'
-      +colSkills.map(sk=>{
-        const skillEntry=Array.isArray(a.allSkillsData)?a.allSkillsData.find(s=>s.name===sk):null;
-        const has=skillEntry?skillEntry.active:false;
-        const skillId=skillEntry?skillEntry.id:null;
-        const skillScore=skillEntry?skillEntry.score:100;
-        const sid=skillId||'';
-        const eid=a.id+','+encodeURIComponent(a.nom)+','+encodeURIComponent(sk)+','+sid+','+skillScore;
-        if(has){
-          // ACTIVE : cercle rose plein + score
-          return '<td style="text-align:center;padding:6px 12px;background:rgba(232,0,110,.05)">'
-            +'<span class="sk-active" title="Actif · Score: '+skillScore+'">✓</span>'
-            +(skillScore!==100&&skillScore!=null?'<span class="sk-ratio">'+skillScore+'%</span>':'')
-            +'</td>';
-        } else if(skillEntry){
-          // INACTIVE : cercle gris creux + bouton activation discret
-          return '<td style="text-align:center;padding:6px 12px;background:rgba(150,150,150,.04)">'
-            +'<button class="sk-inactive skill-act-btn" data-eid="'+eid+'" title="Configurée mais INACTIVE — cliquer pour activer" aria-label="Compétence configurée mais inactive — activer">○</button>'
-            +(skillScore!==100&&skillScore!=null?'<span class="sk-ratio" style="color:#aaa">'+skillScore+'%</span>':'')
-            +'</td>';
-        } else {
-          // NON CONFIGURÉE
-          return '<td style="text-align:center;padding:6px 12px"><span class="sk-none" title="Non configurée pour cet agent">–</span></td>';
+      +colClients.map(cli=>{
+        const e=m[cli];
+        if(!e) return '<td style="text-align:center;padding:6px 10px"><span class="sk-none" title="Non configuré sur ce compte">–</span></td>';
+        const key=a.id+'|'+cli;
+        window._skDetail[key]={agent:a.nom,agentId:a.id,cli:cli,act:e.act.map(x=>({name:x.name,id:x.id,score:x.score})),inact:e.inact.map(x=>({name:x.name,id:x.id,score:x.score}))};
+        const nA=e.act.length, nI=e.inact.length;
+        if(nA>0){
+          // ACTIF : chip du compte (style Excel) + nb de files si >1 ; clic = détail
+          return '<td class="sk-cli-cell" data-k="'+key+'" style="text-align:center;padding:5px 8px;cursor:pointer" title="'+nA+' file(s) active(s)'+(nI?' · '+nI+' inactive(s)':'')+' — cliquer pour le détail">'
+            +'<span class="sk-cli-chip on">'+cli+(nA>1?' <b>'+nA+'</b>':'')+'</span></td>';
         }
+        // CONFIGURÉ mais tout INACTIF
+        return '<td class="sk-cli-cell" data-k="'+key+'" style="text-align:center;padding:5px 8px;cursor:pointer" title="'+nI+' file(s) configurée(s) mais INACTIVE(s) — cliquer pour activer">'
+          +'<span class="sk-cli-chip off">'+cli+'</span></td>';
       }).join('')
       +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
       +'</tr>';
   }).join('')+'</tbody>';
   host.innerHTML=thead+tbody;
+  host.querySelectorAll('.sk-cli-cell[data-k]').forEach(td=>{
+    td.addEventListener('click',()=>skShowDetail(td.dataset.k));
+  });
 }
 
+// Détail d'une cellule COMPTE : liste les files (compétences INO brutes) derrière le compte,
+// actives et inactives, avec activation directe des inactives (route INO existante).
+function skShowDetail(key){
+  const d=(window._skDetail||{})[key]; if(!d)return;
+  const ec=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  const row=(s,on)=>'<tr>'
+    +'<td style="text-align:left;font-weight:600">'+ec(s.name)+'</td>'
+    +'<td style="text-align:center">'+(s.score!=null?s.score+'%':'–')+'</td>'
+    +'<td style="text-align:center">'+(on?'<span class="sk-cli-chip on">ACTIVE</span>'
+        :'<button class="skill-act-btn" style="background:transparent;border:1px solid #E8006E;color:#E8006E;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:800;cursor:pointer" data-eid="'+d.agentId+','+encodeURIComponent(d.agent)+','+encodeURIComponent(s.name)+','+(s.id||'')+','+(s.score||100)+'">○ Activer</button>')
+    +'</td></tr>';
+  const rows=[...d.act.map(s=>row(s,true)),...d.inact.map(s=>row(s,false))].join('');
+  evoModal('Compte '+d.cli+' — '+d.agent,`<div style="padding:13px 15px">
+    <div style="font-size:12px;color:var(--t-secondary);margin-bottom:9px">
+      <b style="color:#30d158">${d.act.length}</b> file(s) active(s) · <b style="color:var(--t-muted)">${d.inact.length}</b> inactive(s) — détail des compétences INO derrière le compte <b>${ec(d.cli)}</b>.
+    </div>
+    <table class="tbl" style="width:100%"><thead><tr>
+      <th style="text-align:left">File / compétence INO</th><th style="text-align:center">Score</th><th style="text-align:center">État</th>
+    </tr></thead><tbody>${rows||'<tr><td colspan="3" style="padding:10px;color:var(--t-disabled)">Aucune compétence.</td></tr>'}</tbody></table></div>`);
+}
 function sortSkills(col){
   if(skillSort.col===col){skillSort.dir=skillSort.dir==='asc'?'desc':'asc';}
   else{skillSort.col=col;skillSort.dir='asc';}
