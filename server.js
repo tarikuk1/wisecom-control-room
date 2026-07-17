@@ -750,10 +750,22 @@ async function fetchAgentDirectory(force){
     const groups=await _ccCall("POST","/cc/agentgroups/list",{start:0,limit:100},tokenRef);
     const gl=(groups&&groups.agentGroups)||[];
     const map={};
+    const _put=(x,gname,role)=>{ if(!x||x.id==null)return; map[String(x.id)]={id:String(x.id),username:x.username,nom:((x.firstname||"")+" "+(x.lastname||"")).trim(),lastLogin:x.lastLogin||null,group:gname,role:role}; };
     for(const g of gl){
       const al=await _ccCall("POST","/cc/agents/"+g.id+"/list",{start:0,limit:250},tokenRef);
-      ((al&&al.agents)||[]).forEach(a=>{ map[String(a.id)]={id:String(a.id),username:a.username,nom:((a.firstname||"")+" "+(a.lastname||"")).trim(),lastLogin:a.lastLogin||null,group:g.name}; });
+      ((al&&al.agents)||[]).forEach(a=>_put(a,g.name,"agent"));
     }
+    // ── SUPERVISEURS : ils apparaissent dans la Surveillance INO (profil Superviseur-RA) et
+    // prennent des appels/mails. Sans eux le compte d'agents connectés était sous-évalué
+    // (ex. BELAIDI Djaffar, DAHMANI Narimane manquants vs les 22 conseillers de la supervision).
+    try{
+      const sgs=await _ccCall("POST","/cc/supgroups/list",{start:0,limit:100},tokenRef);
+      const sgl=(sgs&&(sgs.supGroups||sgs.supgroups))||[];
+      for(const g of sgl){
+        const sl=await _ccCall("POST","/cc/supervisors/"+g.id+"/list",{start:0,limit:250},tokenRef);
+        ((sl&&(sl.supervisors||sl.agents))||[]).forEach(s=>_put(s,g.name,"superviseur"));
+      }
+    }catch(e){ console.error("[dir] superviseurs: "+e.message); }
     // Ne remplacer le cache que si non vide (un fetch raté ne doit pas effacer un annuaire valide).
     if(Object.keys(map).length){ _dirCache={data:map,at:Date.now()}; }
     else { console.error("[dir] annuaire VIDE (401/param ?) — cache précédent conservé"); }
