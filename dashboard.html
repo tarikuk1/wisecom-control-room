@@ -1791,7 +1791,7 @@ const P="#E8006E";
 // CAMPS / QUEUES_MAP / SKILLS : valeurs de repli. La source unique de vérité est
 // queues_config.js côté serveur, chargée au démarrage via /api/config (voir boot()).
 // Déclarés en 'let' pour être écrasés par la config serveur à l'init.
-let CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize"];
+let CAMPS=["Voltalis","ELECTROSUR","Vivest","Evoriel","Antargaz","Omoda","Elvetis","Alcéane","MG Motor","Filippi","Nature & Découvertes","Delsey","LMB","Afnor","SOS","LGR","LMDW","LBE","M123","Equisign","Eiffage","Apex","Monetize","CNPA","HMF"];
 let SKILLS=["LMDW","Equisign","Visio","Bilingue","Rappel Auto","Rétention","Filippi","Monetize","Eiffage","CNPA","HMF","ND","Delsey","M123","LGR","LMB","Apex","Alcéane","Vivest","LBE","DIVERS","ORECA","AE1","AE2","AE3"];
 // CONTRATS supprimé — non disponible INO
 const STATUSES=["Actif","Traitement","Post-appel","Déconnecté","Inconnu","En pause","Déjeuner","Formation","Réunion","Back-office","Absent","n.d."];
@@ -1801,7 +1801,13 @@ let QUEUES_MAP={
   Voltalis:["Voltalis_Assistance_Autres","Voltalis_Assistance_Autres_Réitération","Voltalis_My Voltalis","Voltalis NPV OPB","Voltalis NPV Leads digitaux","Voltalis NPV_Leroy Merlin","Voltalis_Acquisition_Prospect","Voltalis_Acquisition_A déjà RDV","Voltalis_RDV","Voltalis_RDV_Réitération","Voltalis_Contrôle_Reinter","Voltalis_Prospect","Sortant Voltalis","Sortant Voltalis Leroy Merlin"],
   ELECTROSUR:["ELECTROSUR_Sinistre","ELECTROSUR_Autres","ELECTROSUR_Information","ELECTROSUR_Sinistre_Réitération","ELECTROSUR_Autres_Réitération","ELECTROSUR_Information_Réitération","ELECTROSUR_MOBILE_Sinistre","ELECTROSUR_MOBILE_Autres","ELECTROSUR_MOBILE_Information","ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération","ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"],
   Vivest:["Vivest_Client","Vivest_Client_Réitération","Vivest_Standard","Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération","Vivest_Interne","Sortant Vivest","Sortant Verspieren"],
-  Evoriel:["Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"],
+  // Evoriel = marques Lamy + Oralia côté INO. Les files "Evoriel_*" n'existent plus dans les
+  // historiques (calibrage 17/07/2026 vs Écran RA) : sans les Lamy_*/Oralia_* tout le trafic
+  // Evoriel tombait dans « Autres ». Anciennes files conservées pour les dates passées.
+  Evoriel:["Lamy_Copro_Espace_Client","Lamy_Copro_Réclamation","Lamy_Copro_Renseignements","Lamy_Locataire_Espace_Client","Lamy_Locataire_Réclamation","Lamy_Locataire_Renseignements","Lamy_Bailleur_Espace_Client","Lamy_Bailleur_Réclamation","Lamy_Bailleur_Renseignements","Oralia_Copro_Espace_Client","Oralia_Copro_Réclamation","Oralia_Copro_Renseignements","Oralia_Locataire_Espace_Client","Oralia_Locataire_Réclamation","Oralia_Locataire_Renseignements","Oralia_Bailleur_Espace_Client","Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération","Evoriel_Locataire","Evoriel_Locataire_Réitération","Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"],
+  // CNPA / HMF : présents sur l'Écran RA mais absents de CAMPS → files non rattachées (« Autres »).
+  CNPA:["CNPA","CNPA_Réitération","Sortant CNPA"],
+  HMF:["HMF-BOURGOIN JALLIEU-DERUAZ AUTO","HMF-Réitération","Sortant HMF"],
   Antargaz:["Antargaz","Antargaz_Client","Antargaz_Sortant"],
   Omoda:["Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
   Elvetis:["Elvetis_RQ","Elvetis_SAV"],
