@@ -647,7 +647,10 @@ async function getToken(force){
 let fluxCache={data:{},at:0};
 async function fetchAgentFlux(force){
   if(!force && Date.now()-fluxCache.at<45000 && Object.keys(fluxCache.data).length) return fluxCache.data;
-  const tokenRef={t:await getToken(true)}; const token=tokenRef.t; if(!token) return fluxCache.data||{};
+  // Token PARTAGÉ (jamais forcé) : l'API INO limite les jetons valides SIMULTANÉS — forcer un
+  // nouveau jeton ici invalidait celui des autres appels en cours (401 en cascade, compétences
+  // partiellement chargées). _ccCall ne ré-authentifie QUE sur un vrai 401.
+  const tokenRef={t:await getToken()}; const token=tokenRef.t; if(!token) return fluxCache.data||{};
   try{
     const groups=await _ccCall("POST","/cc/agentgroups/list",{start:0,limit:100},tokenRef);
     const gl=(groups&&groups.agentGroups)||[];
@@ -742,9 +745,7 @@ async function _ccCall(method,path,body,tokenRef){
 }
 async function fetchAgentDirectory(force){
   if(!force && Date.now()-_dirCache.at<60000 && Object.keys(_dirCache.data).length) return _dirCache.data;
-  // Token FORCÉ neuf : l'annuaire tourne au début de /agents-day, un token à 5s de la fin de vie
-  // expirerait en cours de boucle → 401 silencieux. On repart d'un jeton frais.
-  const tokenRef={t:await getToken(true)}; if(!tokenRef.t) return _dirCache.data||{};
+  const tokenRef={t:await getToken()}; if(!tokenRef.t) return _dirCache.data||{};
   try{
     const groups=await _ccCall("POST","/cc/agentgroups/list",{start:0,limit:100},tokenRef);
     const gl=(groups&&groups.agentGroups)||[];
