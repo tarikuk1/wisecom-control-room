@@ -1009,10 +1009,13 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Un agent en poste qui n'a encore passé/reçu aucun appel n'est pas dans les historiques.
   // Pour la supervision (suivre qui est connecté), on l'injecte depuis l'annuaire (lastLogin=today).
   // Uniquement en vue du JOUR courant (le « connecté » n'a pas de sens sur une date passée).
+  // Annuaire chargé dans tous les cas : sert aussi à écarter les managers des stats (voir filtre plus bas).
+  let _dir=null;
+  try{ _dir=await fetchAgentDirectory(); }catch(e){ console.error("[dir] "+e.message); }
   try{
     const _todayStr=parisDateStr();
     if(date===_todayStr && (!dateFin||dateFin===date)){
-      const dir=await fetchAgentDirectory();
+      const dir=_dir||{};
       // Fenêtre « connecté RÉCEMMENT » : lastLogin dans les 48h. L'API INO ne donne que la dernière
       // connexion (pas la présence temps réel) ; un agent à session persistante garde un lastLogin
       // de la veille → « aujourd'hui » strict le ratait. 48h capte hier soir sans afficher les
@@ -1022,6 +1025,7 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       Object.keys(dir).forEach(function(id){
         const ag=dir[id];
         if(!ag||agents[id]||!ag.lastLogin)return;
+        if(ag.role==="superviseur")return; // managers hors données (choix Tarik : stats = agents seuls)
         const _llMs=new Date(ag.lastLogin).getTime();
         if(!(_llMs>0) || (_nowMs-_llMs)>_RECENT_MS)return; // connexion de plus de 48h → ignoré
         const _sameDay=parisDateStr(new Date(ag.lastLogin))===_todayStr;
@@ -1033,7 +1037,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     }
   }catch(e){ console.error("[connectés] "+e.message); }
   const now=Date.now();
-  const list=Object.values(agents).map(a=>{
+  // MANAGERS EXCLUS des données : la Surveillance INO compte des « conseillers », pas les profils
+  // Superviseur-RA (BELAIDI, DAHMANI...). Ils restent dans l'annuaire (résolution des noms) mais
+  // ne sont ni injectés comme connectés, ni comptés dans les stats/KPI agents.
+  const _isManager=id=>!!(_dir&&_dir[String(id)]&&_dir[String(id)].role==="superviseur");
+  const list=Object.values(agents).filter(a=>!_isManager(a.id)).map(a=>{
     // Statut estimé depuis la dernière activité
     let statutEstime="Inconnu";
     if(a._connecteSansActivite){statutEstime="Connecté";} // en poste, pas encore d'appel
