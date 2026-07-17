@@ -23,7 +23,9 @@ const CAMPS = [
   "CNPA","Verspieren","Groupama","GS1","MNZ",
   // Clients confirmés dans les Smart Routings INO (relevé 10/06/2026, 83 routings)
   // NB : « Grande récré » = LGR (déjà présent), « maison du Wiskey » = LMDW, « La maison bleue » = LMB
-  "Amazon","Evaneos","Kaufman","Médiatel","FairMoove","Hyundai"
+  "Amazon","Evaneos","Kaufman","Médiatel","FairMoove","Hyundai",
+  // Présent sur l'Écran RA et dans les historiques, mais jamais déclaré ici (audit 17/07/2026)
+  "Velux"
 ];
 
 const QUEUES_MAP = {
@@ -49,10 +51,26 @@ const QUEUES_MAP = {
     "Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération",
     "Vivest_Interne","Sortant Vivest","Sortant Verspieren"
   ],
+  // Evoriel = marques Lamy / Oralia / Richardière côté INO. Les files "Evoriel_Copropriétaire"
+  // & co. n'existent PLUS dans les historiques : sans les Lamy_*/Oralia_*/Richardière_*, tout le
+  // flux Evoriel tombait en « Autre » (~1 030 appels sur 14 j, audit du 17/07/2026) et chaque file
+  // non rattachée réapparaissait en fausse campagne (fallback nom-de-file, dashboard.html).
+  // ⚠️ Variantes "Reclamation" SANS accent : elles existent telles quelles côté INO.
   Evoriel: [
+    "Lamy_Copro_Espace_Client","Lamy_Copro_Renseignements","Lamy_Copro_Réclamation",
+    "Lamy_Locataire_Espace_Client","Lamy_Locataire_Renseignements","Lamy_Locataire_Reclamation",
+    "Lamy_Bailleur_Espace_Client","Lamy_Bailleur_Renseignements","Lamy_Bailleur_Reclamation",
+    "Oralia_Copro_Espace_Client","Oralia_Copro_Renseignements","Oralia_Copro_Réclamation",
+    "Oralia_Locataire_Espace_Client","Oralia_Locataire_Renseignements","Oralia_Locataire_Reclamation",
+    "Oralia_Bailleur_Espace_Client","Oralia_Bailleur_Renseignements","Oralia_Bailleur_Reclamation",
+    "Richardière_Copro_Espace_Client","Richardière_Copro_Renseignements","Richardière_Copro_Réclamation",
+    "Richardière_Locataire_Espace_Client","Richardière_Locataire_Renseignements","Richardière_Locataire_Reclamation",
+    "Richardière_Bailleur_Espace_Client","Richardière_Bailleur_Renseignements",
+    "Evoriel_EPC","Evoriel_N1","Sortant Evoriel",
+    // Anciennes files (conservées pour les dates passées)
     "Evoriel_Copropriétaire","Evoriel_Copropriétaire_Réitération",
     "Evoriel_Locataire","Evoriel_Locataire_Réitération",
-    "Evoriel_Bailleur","Evoriel_Bailleur_Réitération","Sortant Evoriel"
+    "Evoriel_Bailleur","Evoriel_Bailleur_Réitération"
   ],
   Antargaz: ["Antargaz","Antargaz_Client","Antargaz_Sortant"],
   Omoda:    ["Omoda-Jaecoo","Omoda_Entrant","Omoda_WCB","Omoda_SAV"],
@@ -83,10 +101,10 @@ const QUEUES_MAP = {
     "Afnor_Web Call Back Home Page","Afnor Web Call Back FORMATION","AFNOR Sortant"
   ],
   SOS:      ["SOS _ MA","SOS _ MA _ Réitération"],
-  LGR:      ["LGR-SC","LGR-Réitération","LGR Boutique","Grande récré","Grande récré Boutique"],
+  LGR:      ["LGR-SC","LGR-Réitération","LGR Boutique","Grande récré","Grande récré Boutique","Sortant Grande Récrée"],
   LMDW:     ["LMDW_FR","Sortant LMDW","maison du Wiskey FR"],
   LBE:      ["1_LBE_Offre et souscription","2_LBE_Facture et règlement","3_LBE_Autres (vie du contrat)","LBE _ Offre et souscription","LBE _ Facture et règlement","LBE _ Autres"],
-  M123:     ["M123_FR","M123_EN","M123_Boutique","Sortant Maison 123 VIP","Maison 123","Maison 123 Boutiques"],
+  M123:     ["M123_FR","M123_FR Réitération","M123_EN","M123_Boutique","Sortant Maison 123","Sortant Maison 123 VIP","Maison 123","Maison 123 Boutiques"],
   Equisign: ["Equisign","Equisign _ Réitération"],
   Eiffage:  ["Eiffage","Eiffage Réitération","Sortant Eiffage"],
   Apex:     ["Apex _ La route des langues","Apex _ Séjours Home Abroad"],
@@ -106,6 +124,7 @@ const QUEUES_MAP = {
   "Médiatel":    ["Médiatel"],
   FairMoove:     ["FairMoove invest","FairMoove"],
   Hyundai:       ["STANDARD HYUNDAI FRANCE","Hyundai"],
+  Velux:         ["Velux","Velux ND"],
 };
 
 const SKILLS = [
