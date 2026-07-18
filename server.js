@@ -294,6 +294,19 @@ function evoSaveHist(c){try{if(c&&c.dataDate&&/^\d{4}-\d{2}-\d{2}$/.test(c.dataD
 function evoLoadHist(d){try{const p=path.join(EVO_HIST_DIR,d+".json");if(fs.existsSync(p)){const j=JSON.parse(fs.readFileSync(p,"utf8"));if(j&&j.c){j.c._at=j.at;return j.c;}}}catch(e){}return null;}
 (function evoLoadCache(){try{if(fs.existsSync(EVO_CACHE_FILE)){const j=JSON.parse(fs.readFileSync(EVO_CACHE_FILE,"utf8"));if(j&&j.c){_evoCache=j.c;_evoCacheAt=j.at||Date.now();console.log("[evo] cache rechargé depuis le disque ("+new Date(_evoCacheAt).toISOString()+")");}}}catch(e){}})();
 
+// ── Cache COMPÉTENCES INO par agent (persistant) ─────────────────────────────
+// Problème résolu : la Matrice des compétences dépendait d'un bouton manuel « ↺ Compétences »
+// qui interrogeait /cc/agent/:id/flow/voice/skills/list pour ~55 agents par lots de 3 (budget 50s,
+// sensible à la contention de jetons) → matrice souvent VIDE (« 0 agent » sur des comptes couverts,
+// ex. M123 alors que Stéphanie KRAEMER l'a configuré en status 0). Désormais : un job de fond charge
+// TOUTES les compétences (configurées + actives) une fois, les persiste sur disque (survit aux
+// redéploiements Railway), rafraîchit toutes les 6 h, et les injecte directement dans /agents-day.
+// La matrice est ainsi toujours peuplée, sans appel bloquant au chargement.
+const CC_SKILLS_FILE=path.join(__dirname,"cc_skills_cache.json");
+let _ccSkills={data:{},at:0,running:false};
+function ccSkillsSave(){try{fs.writeFileSync(CC_SKILLS_FILE,JSON.stringify({at:_ccSkills.at,data:_ccSkills.data}));}catch(e){}}
+(function ccSkillsLoad(){try{if(fs.existsSync(CC_SKILLS_FILE)){const j=JSON.parse(fs.readFileSync(CC_SKILLS_FILE,"utf8"));if(j&&j.data){_ccSkills.data=j.data;_ccSkills.at=j.at||0;console.log("[cc-skills] cache rechargé ("+Object.keys(j.data).length+" agents, "+new Date(_ccSkills.at).toISOString()+")");}}}catch(e){}})();
+
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
 function apiReq(method,p,body,token,timeoutMs){
@@ -772,6 +785,48 @@ async function fetchAgentDirectory(force){
   }catch(e){ console.error("[dir] "+e.message); }
   return _dirCache.data;
 }
+
+// Charge les compétences /cc/* de TOUS les agents de l'annuaire et remplit le cache persistant.
+// Job de fond : jamais dans le chemin de /agents-day (pas de latence ni de contention de jetons
+// avec le rafraîchissement principal). Batches de 3, token partagé, ré-auth sur 401.
+async function fetchAllCcSkills(force){
+  if(_ccSkills.running)return _ccSkills.data;
+  if(!force && _ccSkills.at && (Date.now()-_ccSkills.at)<6*3600*1000 && Object.keys(_ccSkills.data).length)return _ccSkills.data;
+  _ccSkills.running=true;
+  try{
+    const dir=await fetchAgentDirectory();
+    const ids=Object.keys(dir||{});
+    if(!ids.length){ _ccSkills.running=false; return _ccSkills.data; }
+    const tokenRef={t:await getToken()};
+    if(!tokenRef.t){ _ccSkills.running=false; return _ccSkills.data; }
+    const out={};
+    const isOn=s=>{ if(s==null)return false; if(typeof s.status!=='undefined')return s.status===1||s.status===true||s.status==='1'; if(typeof s.active!=='undefined')return !!s.active; return true; };
+    const nameOf=s=>(s&&(s.name||s.skill||s.code||s.label))||'';
+    for(let i=0;i<ids.length;i+=3){
+      const batch=ids.slice(i,i+3);
+      await Promise.all(batch.map(async id=>{
+        const r=await _ccCall("POST","/cc/agent/"+id+"/flow/voice/skills/list",{},tokenRef);
+        let flow=null;
+        if(Array.isArray(r))flow=r;
+        else if(r&&typeof r==='object')flow=r.flowSkills||r.profileSkills||r.skills||r.data||r.flow||null;
+        if(!Array.isArray(flow))return; // 401/erreur → on garde l'ancienne valeur pour cet agent
+        const norm=flow.map(s=>({id:(s&&s.id)||null,name:nameOf(s),score:(s&&s.score)!=null?s.score:100,active:isOn(s)})).filter(s=>s.name);
+        out[id]={all:norm, at:Date.now()};
+      }));
+      await new Promise(r=>setTimeout(r,250)); // respiration rate-limit
+    }
+    // Fusion : ne pas effacer un agent déjà connu si son fetch a échoué ce tour-ci.
+    const merged=Object.assign({},_ccSkills.data);
+    Object.keys(out).forEach(id=>{ merged[id]=out[id]; });
+    if(Object.keys(out).length){ _ccSkills.data=merged; _ccSkills.at=Date.now(); ccSkillsSave(); console.log("[cc-skills] "+Object.keys(out).length+"/"+ids.length+" agents rafraîchis"); }
+  }catch(e){ console.error("[cc-skills] "+e.message); }
+  _ccSkills.running=false;
+  return _ccSkills.data;
+}
+// Préchauffage au démarrage + rafraîchissement toutes les 6 h (best-effort, non bloquant).
+setTimeout(()=>fetchAllCcSkills(true).catch(()=>{}),20000);
+setInterval(()=>fetchAllCcSkills(false).catch(()=>{}),6*3600*1000);
+
 async function fetchAgentsDay(date,hDeb,hFin,dateFin){
   // Bornes en minutes (précision réelle de la sélection : "08:30" ne doit pas devenir "08:00")
   const _hm=s=>{const p=String(s||'').split(':');return (parseInt(p[0])||0)*60+(parseInt(p[1])||0);};
@@ -1054,6 +1109,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       else statutEstime="Déconnecté";
     }
     const sk=agentSkillsMap[a.id]||{};
+    // Compétences /cc/* pré-chargées par le job de fond (cache persistant) → matrice toujours peuplée.
+    // On y trouve l'état configuré + actif (status) de chaque compétence. Repli sur les compétences
+    // déclarées (/agent/list) si le cache /cc n'a pas encore cet agent.
+    const _cc=_ccSkills.data[String(a.id)];
+    const _ccAll=(_cc&&Array.isArray(_cc.all))?_cc.all:null;
     return {
       id:a.id,nom:a.nom,username:a.username,statutEstime,lastCallDate:a.derniereAction,
       appelsIn:a.appelsIn,appelsPresentes:a.presentes||(a.appelsIn+(a.nonDecroches||0)),nonDecroches:a.nonDecroches||0,appelsOut:a.appelsOut,total:a.appelsIn+a.appelsOut,
@@ -1068,11 +1128,11 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
       ko:a.nonDecroches,koQualif:a.ko,refus:a.refus,reiterants:a.reiterants,transferts:a.transferts,
       transfo:a.qualifs_total>0?Math.round((a.transfo_yes/a.qualifs_total)*100):null,
       spark:a.spark,sparkH:a.sparkH,
-      // Compétences déclarées dans /agent/list (competences/skills/queues). Disponibles sans
-      // les droits /cc/*. Le bouton ↺ Compétences peut ensuite enrichir avec l'état actif/inactif
-      // via /cc/agent/:id/flow/voice/skills/list quand le compte de service y a accès.
-      skills:Array.isArray(sk.skills)?sk.skills.slice():[],
-      allSkills:Array.isArray(sk.skills)?sk.skills.map(n=>({id:null,name:n,score:100,active:true})):[],
+      // Compétences : cache /cc/* (configuré + actif) en priorité — chargé en fond, matrice jamais
+      // vide. Repli sur les compétences déclarées /agent/list (toutes marquées actives faute d'état).
+      skills:_ccAll?_ccAll.filter(s=>s.active).map(s=>s.name):(Array.isArray(sk.skills)?sk.skills.slice():[]),
+      allSkills:_ccAll?_ccAll.slice():(Array.isArray(sk.skills)?sk.skills.map(n=>({id:null,name:n,score:100,active:true})):[]),
+      skillsFromCc:!!_ccAll,
       acwMoyen:a.acwMoyen||null,
       connecteSansActivite:a._connecteSansActivite||false
     };

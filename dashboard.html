@@ -4587,11 +4587,17 @@ function renderSkills(){
     const _f=colClients.filter(c=>_selCli.has(c));
     if(_f.length)colClients=_f; // garde-fou : si le filtre ne matche rien, on garde tout
   }
-  // ── Couverture par compte = nb d'agents ayant le compte ACTIF ──
-  const coverN={};
-  colClients.forEach(c=>{ coverN[c]=realAgents.filter(a=>{const e=(byAgent[a.id]||{})[c];return !!(e&&e.act.length);}).length; });
-  // Tri des COLONNES : du compte le plus couvert au moins couvert (les non couverts finissent
-  // à droite, en rouge) — demande Tarik : « du plus de compétences au plus faible ».
+  // ── Couverture par compte ──
+  // coverN = nb d'agents FORMÉS (compétence configurée, active OU inactive). C'est la vraie
+  // couverture managériale : « qui peut prendre ce compte ». Un compte où des agents sont formés
+  // mais flux coupé n'est PAS « compétence manquante » (≠ 0 formé). coverAct = nb actuellement actifs.
+  // Corrige le bug signalé : Stéphanie KRAEMER a M123 configuré (status 0) → comptait 0, montrait « – ».
+  const coverN={}, coverAct={};
+  colClients.forEach(c=>{
+    coverN[c]=realAgents.filter(a=>{const e=(byAgent[a.id]||{})[c];return !!(e&&(e.act.length||e.inact.length));}).length;
+    coverAct[c]=realAgents.filter(a=>{const e=(byAgent[a.id]||{})[c];return !!(e&&e.act.length);}).length;
+  });
+  // Tri des COLONNES : du plus formé au moins formé (les non couverts finissent à droite, en rouge).
   colClients.sort((a,b)=>(coverN[b]-coverN[a])||a.localeCompare(b));
   window._skDetail={}; // pour le clic détail
 
@@ -4636,14 +4642,19 @@ function renderSkills(){
     +'<th onclick="sortSkills(\'__agent\')" style="min-width:170px;padding:8px 12px;position:sticky;left:0;background:#0f0f0f;z-index:2;cursor:pointer;user-select:none">Agent'+arrow('__agent')+'</th>'
     +'<th onclick="sortSkills(\'__count\')" style="'+thStyle+'" title="Actives / Total configurées">Actif<br><span style="font-size:9px;font-weight:400;opacity:.7">/ Total</span>'+arrow('__count')+'</th>'
     +colClients.map(cli=>{
-        // EN-TÊTE ROUGE = compte NON COUVERT (aucun agent n'a cette compétence active)
-        const n=coverN[cli]||0;
+        // EN-TÊTE ROUGE = compte NON COUVERT = AUCUN agent formé (ni actif ni inactif).
+        // Orange = des agents sont formés mais AUCUN actif actuellement (flux coupé = risque, pas trou).
+        const n=coverN[cli]||0, nAct=coverAct[cli]||0;
         const uncovered=n===0;
-        const st=thStyle+(uncovered?';background:#7a0b23;color:#fff;font-weight:800;border-bottom:2px solid #ff3b30':'');
-        const t=uncovered?'⚠ AUCUN agent actif sur ce compte — compétence manquante':n+' agent(s) actif(s) sur '+cli+' — cliquer une cellule pour le détail des files';
-        const sub=uncovered?'<span style="font-size:8px;font-weight:800;display:block;opacity:.95">0 agent</span>'
-                           :'<span style="font-size:8px;font-weight:600;display:block;color:var(--t-muted)">'+n+' ag.</span>';
-        return '<th onclick="sortSkills(\''+cli.replace(/'/g,"")+'\')" style="'+st+'" title="'+t+'">'+(uncovered?'⚠ ':'')+cli+arrow(cli)+sub+'</th>';
+        const dormant=n>0&&nAct===0;
+        const st=thStyle+(uncovered?';background:#7a0b23;color:#fff;font-weight:800;border-bottom:2px solid #ff3b30'
+                        :dormant?';background:#5a3d00;color:#fff;font-weight:700;border-bottom:2px solid #ff9f0a':'');
+        const t=uncovered?'⚠ AUCUN agent formé sur ce compte — compétence manquante'
+               :dormant?'⚠ '+n+' agent(s) formé(s) mais AUCUN actif (flux coupé)'
+               :n+' formé(s) · '+nAct+' actif(s) sur '+cli+' — cliquer une cellule pour le détail';
+        const sub=uncovered?'<span style="font-size:8px;font-weight:800;display:block;opacity:.95">0 formé</span>'
+               :'<span style="font-size:8px;font-weight:600;display:block;color:'+(dormant?'#ffcc66':'var(--t-muted)')+'">'+n+' formé'+(nAct<n?' · '+nAct+' act.':'')+'</span>';
+        return '<th onclick="sortSkills(\''+cli.replace(/'/g,"")+'\')" style="'+st+'" title="'+t+'">'+(uncovered?'⚠ ':dormant?'◑ ':'')+cli+arrow(cli)+sub+'</th>';
       }).join('')
     +'<th onclick="sortSkills(\'__files\')" style="'+thStyle+'">Files'+arrow('__files')+'</th>'
     +'</tr></thead>';
