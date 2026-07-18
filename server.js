@@ -1179,11 +1179,16 @@ function evoHoursByName(d){
   return out;
 }
 // Calcule (ou recharge du cache) le relevé d'heures d'une journée : {date, at, agents:{id:{...}}}.
+const HOURS_TODAY_TTL_MS=10*60*1000; // le jour courant n'est refetché qu'au-delà de 10 min (quota INO)
 async function computeHoursDay(d,force){
   const today=parisDateStr();
   const cached=hoursLoadDay(d);
-  // Jours passés = immuables une fois en cache ; jour courant = toujours recalculé.
-  if(cached && d!==today && !force)return cached;
+  // Jours passés = immuables une fois en cache. Jour courant = servi du cache s'il a < 10 min
+  // (évite de refetcher INO à chaque chargement/bascule de vue — protège le quota).
+  if(cached && !force){
+    if(d!==today)return cached;
+    if(cached.at && (Date.now()-cached.at)<HOURS_TODAY_TTL_MS)return cached;
+  }
   const token=await getToken(); if(!token)return cached||{date:d,at:Date.now(),agents:{},noToken:true};
   const tranches=[["00:00:00","07:59:59"],["08:00:00","11:59:59"],["12:00:00","15:59:59"],["16:00:00","23:59:59"]];
   let inH=[],outH=[],echec=false;
@@ -1632,11 +1637,15 @@ const server=http.createServer(async(req,res)=>{
     const _sh=cookies.session?getSession(cookies.session):null;
     if(!_sh){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
     const uu=new URL(req.url,"http://localhost");
-    const d1=uu.searchParams.get("date")||parisDateStr();
+    let d1=uu.searchParams.get("date")||parisDateStr();
     const d2=uu.searchParams.get("dateFin")||d1;
     (async()=>{
       try{
-        const jours=_daysRange(d1,d2);
+        // Plafond QUOTA INO : 31 jours max par requête (choix Tarik — ne pas épuiser le quota
+        // en remontant sur 5 mois). Si la plage dépasse, on ramène d1 à d2−30 j.
+        let jours=_daysRange(d1,d2);
+        let capped=false;
+        if(jours.length>31){ jours=jours.slice(jours.length-31); d1=jours[0]; capped=true; }
         const payroll=(sharedStore.payroll)||{};
         const byAgent={}; // id → {id,nom,byDay:{},tot:{}}
         const echJours=[];
@@ -1664,7 +1673,7 @@ const server=http.createServer(async(req,res)=>{
         }
         const agents=Object.values(byAgent).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
         res.writeHead(200,{"Content-Type":"application/json"});
-        res.end(JSON.stringify({ok:true,d1,d2,jours,agents,joursEchec:echJours,hasPayroll:Object.keys(payroll).length>0,updatedAt:new Date().toISOString()}));
+        res.end(JSON.stringify({ok:true,d1,d2,jours,agents,joursEchec:echJours,capped,hasPayroll:Object.keys(payroll).length>0,updatedAt:new Date().toISOString()}));
       }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
     })();
     return;
