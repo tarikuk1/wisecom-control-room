@@ -2,62 +2,100 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Check des heures — Wisecom Control Room</title>
 <style>
-:root{--bg:#0d0d0d;--s1:#151515;--s2:#1c1c1c;--s3:#2a2a2a;--bd:#333;--tx:#e8e8e8;--mut:#9a9a9a;--dis:#666;--pink:#E8006E;--green:#30d158;--orange:#ff9f0a;--red:#ff3b30;--blue:#4ac3ff;}
+/* Thème CLAIR par défaut (demande Tarik) ; bascule sombre via body.dark, persistée. */
+:root{
+  --bg:#eef0f3;--s1:#ffffff;--s2:#f4f6f8;--s3:#e9ecef;--bd:#d5d9df;--bd2:#e6e9ee;
+  --tx:#161a1f;--mut:#5c6570;--dis:#98a0aa;--zeb:#f7f8fa;--hov:#eef4ff;
+  --pink:#E8006E;--green:#188a3a;--orange:#b9700a;--red:#d32d22;--blue:#1f6fb8;
+  --topbg:linear-gradient(180deg,#ffffff,#f3f5f8);--thbg:#f0f2f5;--agentbg:#ffffff;--agentbgz:#f7f8fa;
+  --shadow:0 1px 3px rgba(20,25,35,.06);
+}
+body.dark{
+  --bg:#0d0d0d;--s1:#151515;--s2:#1c1c1c;--s3:#2a2a2a;--bd:#333;--bd2:#242424;
+  --tx:#e8e8e8;--mut:#9a9a9a;--dis:#666;--zeb:#131313;--hov:#161d29;
+  --pink:#E8006E;--green:#30d158;--orange:#ff9f0a;--red:#ff5b52;--blue:#4ac3ff;
+  --topbg:linear-gradient(180deg,#141414,#101010);--thbg:#191919;--agentbg:#121212;--agentbgz:#161616;
+  --shadow:none;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px;padding:0 0 60px}
 a{color:inherit}
-.top{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#141414,#101010);border-bottom:1px solid var(--bd);padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.top h1{font-size:16px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
-.top h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--pink);box-shadow:0 0 10px var(--pink)}
+.top{position:sticky;top:0;z-index:20;background:var(--topbg);border-bottom:1px solid var(--bd);padding:11px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:var(--shadow)}
+.top h1{font-size:15px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;white-space:nowrap}
+.top h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink)66}
 .sp{flex:1}
-.ctl{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 label.f{font-size:11px;color:var(--mut)}
-input[type=date],select{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:6px 9px;font-size:12px}
-button{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s}
-button:hover{background:var(--s3);border-color:#444}
+input[type=date],select{background:var(--s1);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:6px 9px;font-size:12px}
+button{background:var(--s1);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s}
+button:hover{background:var(--s3);border-color:var(--mut)}
 button.pk{background:var(--pink);border-color:var(--pink);color:#fff}
-button.pk:hover{filter:brightness(1.1)}
-button.on{background:var(--pink)22;border-color:var(--pink);color:var(--pink)}
-.preset{padding:5px 10px;font-size:11px}
-.seg{display:inline-flex;background:var(--s1);border:1px solid var(--bd);border-radius:9px;overflow:hidden}
+button.pk:hover{filter:brightness(1.08)}
+.preset{padding:6px 10px;font-size:11px}
+.seg{display:inline-flex;background:var(--s2);border:1px solid var(--bd);border-radius:9px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:transparent}
 .seg button.on{background:var(--pink);color:#fff}
-.wrap{padding:16px 20px}
+.icon-btn{padding:7px 10px}
+.wrap{padding:16px 20px;max-width:1600px}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;font-size:12px;color:var(--mut)}
-.note{background:#2a1a00;border:1px solid #5a3d00;color:#ffcc66;border-radius:8px;padding:8px 12px;font-size:11.5px;line-height:1.5}
-.tblwrap{overflow-x:auto;border:1px solid var(--bd);border-radius:10px}
-table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
-th,td{padding:7px 10px;text-align:right;border-bottom:1px solid #242424}
-th{background:#191919;position:sticky;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;cursor:pointer;user-select:none}
+.note{background:#fff6e6;border:1px solid #f0d49a;color:#7a5600;border-radius:8px;padding:9px 13px;font-size:11.5px;line-height:1.55}
+body.dark .note{background:#2a1a00;border-color:#5a3d00;color:#ffcc66}
+/* Tableaux */
+.tblwrap{overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--s1);box-shadow:var(--shadow)}
+.tblwrap.fit{display:inline-block;max-width:100%}
+table{border-collapse:separate;border-spacing:0;font-size:12.5px;white-space:nowrap}
+table.full{width:100%}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--bd2)}
+tbody tr:last-child td{border-bottom:0}
+th{background:var(--thbg);position:sticky;top:0;z-index:2;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;cursor:pointer;user-select:none;border-bottom:2px solid var(--bd)}
 th.l,td.l{text-align:left}
-tr:hover td{background:#161616}
-td.agent{font-weight:600;position:sticky;left:0;background:#121212;z-index:1}
-tr:hover td.agent{background:#191919}
+td.num{font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--hov)}
+td.agent{font-weight:600;position:sticky;left:0;background:var(--agentbg);z-index:1;border-right:1px solid var(--bd)}
+.zebra:nth-child(even) td{background:var(--zeb)}
+.zebra:nth-child(even) td.agent{background:var(--agentbgz)}
+tr:hover td.agent{background:var(--hov)}
 .day-h{color:var(--tx);font-weight:700}
-.sub{font-size:10px;color:var(--dis)}
-.zebra:nth-child(even) td{background:#111}
-.zebra:nth-child(even):hover td{background:#161616}
-.wknd td.agent,.wknd td{color:var(--dis)}
+.sub{font-size:11px;color:var(--dis);margin-top:7px}
+.wknd td{color:var(--dis)}
 .chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700}
-.ec-ok{color:var(--green)} .ec-mid{color:var(--orange)} .ec-bad{color:var(--red);font-weight:800}
-.ec-cell{font-weight:700}
-.cal td{text-align:center;padding:4px 6px;font-variant-numeric:tabular-nums}
-.cal .c{border-radius:5px;font-weight:700;font-size:11px;display:inline-block;min-width:34px;padding:2px 4px}
-.muted{color:var(--dis)}
-.miss{color:#555}
+/* Écart = pastille colorée lisible dans les deux thèmes */
+.ec{display:inline-block;min-width:52px;text-align:center;padding:2px 8px;border-radius:6px;font-weight:800;font-variant-numeric:tabular-nums;font-size:11.5px}
+.ec.ok{background:#e3f5e9;color:var(--green);border:1px solid #b7e3c6}
+.ec.mid{background:#fdf0dc;color:var(--orange);border:1px solid #f2d29a}
+.ec.bad{background:#fbe2e0;color:var(--red);border:1px solid #f2b8b3}
+.ec.na{background:transparent;color:var(--dis);border:0}
+body.dark .ec.ok{background:#0e2a16;border-color:#1c5230}
+body.dark .ec.mid{background:#2e2200;border-color:#5a4600}
+body.dark .ec.bad{background:#2e1210;border-color:#5a2420}
+/* Grille calendrier — colonnes jours étroites, largeur au contenu (pas d'étalement) */
+.cal th,.cal td{padding:5px 7px;text-align:center}
+.cal td.agent{text-align:left}
+.cal .c{border-radius:6px;font-weight:700;font-size:11px;display:inline-block;min-width:38px;padding:3px 6px;font-variant-numeric:tabular-nums}
+.cal .c.g-ok{background:#e3f5e9;color:var(--green)}
+.cal .c.g-mid{background:#fdf0dc;color:var(--orange)}
+.cal .c.g-bad{background:#fbe2e0;color:var(--red)}
+.cal .c.g-pres{background:#e6effb;color:var(--blue)}
+.cal .c.g-none{background:transparent;color:var(--dis);font-weight:400}
+body.dark .cal .c.g-ok{background:#0e2a16}
+body.dark .cal .c.g-mid{background:#2e2200}
+body.dark .cal .c.g-bad{background:#2e1210}
+body.dark .cal .c.g-pres{background:#132339}
+.tot-col{font-weight:800;border-left:1px solid var(--bd)}
+.muted{color:var(--dis);padding:30px;text-align:center}
+.miss{color:var(--dis)}
 .grp{margin:22px 0 6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--pink)}
-.kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px}
-.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;min-width:120px}
-.kpi .v{font-size:19px;font-weight:800}
-.kpi .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
-#status{font-size:11px;color:var(--dis)}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:11px 16px;min-width:118px;box-shadow:var(--shadow)}
+.kpi .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.kpi .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+#status{font-size:11.5px;color:var(--mut)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--s3);border-top-color:var(--pink);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.hidden{display:none}
 input[type=file]{display:none}
-.legend{display:flex;gap:14px;font-size:10.5px;color:var(--mut);flex-wrap:wrap;margin-top:8px}
-.legend span b{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px}
-</style></head><body>
+.legend{display:flex;gap:16px;font-size:11px;color:var(--mut);flex-wrap:wrap;margin-top:10px;align-items:center}
+.legend span b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.12)}
+</style></head><body class="light">
 <div class="top">
   <h1><span class="dot"></span>Check des heures</h1>
   <div class="seg" id="view-seg">
@@ -83,6 +121,7 @@ input[type=file]{display:none}
     <button id="upload-btn" title="Importer un export paie (.xlsx ou .csv) pour calculer les écarts">↥ Import paie</button>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
     <button id="export">↓ Excel</button>
+    <button id="theme" class="icon-btn" title="Basculer clair / sombre">🌙</button>
   </div>
 </div>
 <div class="wrap">
@@ -118,12 +157,12 @@ function isWknd(iso){ const g=new Date(iso+"T12:00:00").getDay(); return g===0||
 // présence réelle = max(amplitude INO, session Evo) en sec
 function presentSec(day){ return Math.max(day.ampliSec||0, day.evoConnSec||0); }
 function ecartClass(paieH, presSec){
-  if(paieH==null)return {cls:"miss",txt:"–"};
+  if(paieH==null)return {cls:"ec na",txt:"–"};
   const ecH=paieH-(presSec/3600);
   const a=Math.abs(ecH);
-  let cls="ec-ok"; if(paieH>0 && presSec===0)cls="ec-bad"; else if(a>2)cls="ec-bad"; else if(a>1)cls="ec-mid";
+  let cls="ok"; if(paieH>0 && presSec===0)cls="bad"; else if(a>2)cls="bad"; else if(a>1)cls="mid";
   const sign=ecH>=0?"+":"−";
-  return {cls:"ec-cell "+cls, txt:sign+hDec(a).replace("h","")+"h", raw:ecH};
+  return {cls:"ec "+cls, txt:sign+hDec(a).replace("h","")+"h", raw:ecH};
 }
 // ── presets ──
 function setRange(d1,d2){ $("#d1").value=d1; $("#d2").value=d2; }
@@ -142,6 +181,10 @@ $("#load").onclick=load;
 $("#upload-btn").onclick=()=>$("#file").click();
 $("#file").onchange=uploadPayroll;
 $("#export").onclick=exportCsv;
+// ── Thème : clair par défaut, persistant ──
+function applyTheme(t){ const dark=t==="dark"; document.body.classList.toggle("dark",dark); document.body.classList.toggle("light",!dark); const b=$("#theme"); if(b)b.textContent=dark?"☀️":"🌙"; }
+(function(){ let t="light"; try{t=localStorage.getItem("heures_theme")||"light";}catch(e){} applyTheme(t); })();
+$("#theme").onclick=()=>{ const dark=!document.body.classList.contains("dark"); applyTheme(dark?"dark":"light"); try{localStorage.setItem("heures_theme",dark?"dark":"light");}catch(e){} };
 
 async function load(){
   const d1=$("#d1").value, d2=$("#d2").value; if(!d1||!d2)return;
@@ -187,8 +230,8 @@ function renderRegistre(){
       rows.push({a,d,day,pres});
     });
   });
-  let h='<div class="tblwrap"><table><thead><tr>'
-    +'<th class="l">Agent</th><th class="l">Jour</th><th>1ʳᵉ cnx</th><th>Dern. act.</th><th>Présence</th><th>Comm.</th><th>Appels INO</th><th>Evo (CU)</th><th>Total appels</th>'
+  let h='<div class="tblwrap"><table class="full"><thead><tr>'
+    +'<th class="l">Agent</th><th class="l">Jour</th><th>1ʳᵉ cnx</th><th>Dern. act.</th><th>Présence</th><th>Comm.</th><th>Appels INO</th><th>Evo (CU)</th><th>Total</th>'
     +(DATA.hasPayroll?'<th>H prod paie</th><th>Écart</th>':'')+'</tr></thead><tbody>';
   rows.forEach(r=>{
     const day=r.day, ec=ecartClass(day.paieH, r.pres);
@@ -196,35 +239,38 @@ function renderRegistre(){
     h+='<tr class="zebra'+(isWknd(r.d)?' wknd':'')+'">'
       +'<td class="agent l">'+esc(r.a.nom)+'</td>'
       +'<td class="l day-h">'+jourLabel(r.d)+'</td>'
-      +'<td>'+parisHM(day.firstMs)+'</td><td>'+parisHM(day.lastMs)+'</td>'
-      +'<td>'+hms(r.pres)+'</td><td>'+hms(day.commSec)+'</td>'
-      +'<td>'+(day.nIn||day.nOut?((day.nIn||0)+" / "+(day.nOut||0)):'<span class=miss>–</span>')+'</td>'
-      +'<td>'+(day.evoCu?day.evoCu:'<span class=miss>–</span>')+'</td>'
-      +'<td>'+(tot||'<span class=miss>–</span>')+'</td>'
-      +(DATA.hasPayroll?('<td>'+(day.paieH!=null?hDec(day.paieH):'<span class=miss>–</span>')+(day.paieAbs?' <span class="chip" style="background:#3a1508;color:#ff8866">'+(day.paieMotif||"ABS")+'</span>':'')+'</td><td class="'+ec.cls+'">'+ec.txt+'</td>'):'')
+      +'<td class="num">'+parisHM(day.firstMs)+'</td><td class="num">'+parisHM(day.lastMs)+'</td>'
+      +'<td class="num">'+hms(r.pres)+'</td><td class="num">'+hms(day.commSec)+'</td>'
+      +'<td class="num">'+(day.nIn||day.nOut?((day.nIn||0)+" / "+(day.nOut||0)):'<span class=miss>–</span>')+'</td>'
+      +'<td class="num">'+(day.evoCu?day.evoCu:'<span class=miss>–</span>')+'</td>'
+      +'<td class="num">'+(tot||'<span class=miss>–</span>')+'</td>'
+      +(DATA.hasPayroll?('<td class="num">'+(day.paieH!=null?hDec(day.paieH):'<span class=miss>–</span>')+(day.paieAbs?' <span class="chip" style="background:var(--s3);color:var(--red);border:1px solid var(--bd)">'+(day.paieMotif||"ABS")+'</span>':'')+'</td><td class="num"><span class="'+ec.cls+'">'+ec.txt+'</span></td>'):'')
       +'</tr>';
   });
   h+='</tbody></table></div>';
-  if(!rows.length)h='<div class="muted" style="padding:30px;text-align:center">Aucune activité sur la période.</div>';
+  if(!rows.length)h='<div class="muted">Aucune activité sur la période.</div>';
   $("#content").innerHTML=h;
 }
 
 function renderSynthese(){
   const ags=DATA.agents.slice();
   if(SORT.k){ ags.sort((x,y)=>{ const va=synVal(x,SORT.k),vb=synVal(y,SORT.k); return (va<vb?-1:va>vb?1:0)*SORT.dir; }); }
-  let h='<div class="tblwrap"><table><thead><tr>'
+  let h='<div class="tblwrap"><table class="full"><thead><tr>'
     +thS("Agent","nom","l")+thS("Jours actifs","jours")+thS("Présence","pres")+thS("Communication","comm")+thS("Evo (CU)","evocu")+thS("Appels","appels")
     +(DATA.hasPayroll?thS("H prod paie","paie")+thS("Écart total","ecart"):'')+'</tr></thead><tbody>';
   ags.forEach(a=>{
     const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec);
-    const ec=ecartClass(DATA.hasPayroll?a.tot.paieH:null, pres);
+    // Écart uniquement si l'agent a AU MOINS une saisie paie sur la période (sinon "–" :
+    // un agent sans saisie ne doit pas afficher un faux écart = −présence).
+    const hasPaie=DATA.hasPayroll && a.tot.joursPaie>0;
+    const ec=ecartClass(hasPaie?a.tot.paieH:null, pres);
     const appels=a.tot.nIn+a.tot.nOut+a.tot.evoCu;
     h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'
-      +'<td>'+(a.tot.joursActifs||'<span class=miss>0</span>')+'</td>'
-      +'<td>'+hms(pres)+'</td><td>'+hms(a.tot.commSec)+'</td>'
-      +'<td>'+(a.tot.evoCu||'<span class=miss>–</span>')+'</td>'
-      +'<td>'+(appels?appels.toLocaleString("fr-FR"):'<span class=miss>–</span>')+'</td>'
-      +(DATA.hasPayroll?('<td>'+(a.tot.paieH?hDec(a.tot.paieH):'<span class=miss>–</span>')+'</td><td class="'+ec.cls+'">'+ec.txt+'</td>'):'')
+      +'<td class="num">'+(a.tot.joursActifs||'<span class=miss>0</span>')+'</td>'
+      +'<td class="num">'+hms(pres)+'</td><td class="num">'+hms(a.tot.commSec)+'</td>'
+      +'<td class="num">'+(a.tot.evoCu||'<span class=miss>–</span>')+'</td>'
+      +'<td class="num">'+(appels?appels.toLocaleString("fr-FR"):'<span class=miss>–</span>')+'</td>'
+      +(DATA.hasPayroll?('<td class="num">'+(hasPaie?hDec(a.tot.paieH):'<span class=miss>–</span>')+'</td><td class="num"><span class="'+ec.cls+'">'+ec.txt+'</span></td>'):'')
       +'</tr>';
   });
   h+='</tbody></table></div>';
@@ -235,32 +281,38 @@ function thS(lbl,k,cls){ const ar=SORT.k===k?(SORT.dir>0?" ▲":" ▼"):""; retu
 function sortSyn(k){ if(SORT.k===k)SORT.dir*=-1; else {SORT.k=k;SORT.dir=1;} render(); }
 
 function renderGrille(){
-  // cellule = présence (h) colorée selon l'écart vs paie si dispo, sinon selon présence
-  let h='<div class="tblwrap"><table class="cal"><thead><tr><th class="l">Agent</th>';
-  DATA.jours.forEach(d=>{ h+='<th'+(isWknd(d)?' style="color:#555"':'')+'>'+jourLabel(d).replace(" ","<br>")+'</th>'; });
-  h+='<th>Total</th></tr></thead><tbody>';
+  // cellule = heures de présence, colorée selon l'écart vs paie si dispo, sinon présence seule.
+  // Largeur au contenu (.fit) pour ne pas étaler sur toute la page quand il y a peu de jours.
+  if(DATA.jours.length===1){
+    $("#content").innerHTML='<div class="note" style="margin-bottom:12px">La grille calendrier prend son sens sur plusieurs jours. Choisissez une période (7 j, 30 j…) ou utilisez le <b>Registre quotidien</b> pour le détail d\'une journée.</div>'+_grilleTable();
+    return;
+  }
+  $("#content").innerHTML=_grilleTable();
+}
+function _grilleTable(){
+  let h='<div class="tblwrap fit"><table class="cal"><thead><tr><th class="l">Agent</th>';
+  DATA.jours.forEach(d=>{ h+='<th'+(isWknd(d)?' style="color:var(--dis)"':'')+'>'+jourLabel(d).replace(" ","<br>")+'</th>'; });
+  h+='<th class="tot-col">Total</th></tr></thead><tbody>';
   DATA.agents.forEach(a=>{
-    let totPres=0;
-    let cells="";
+    let totPres=0, cells="";
     DATA.jours.forEach(d=>{
       const day=a.byDay[d];
-      if(!day){ cells+='<td><span class="miss">·</span></td>'; return; }
+      if(!day){ cells+='<td><span class="c g-none">·</span></td>'; return; }
       const pres=presentSec(day); totPres+=pres;
-      if(!pres && day.paieH==null){ cells+='<td><span class="miss">·</span></td>'; return; }
-      let bg="#222",col="var(--tx)";
+      if(!pres && day.paieH==null){ cells+='<td><span class="c g-none">·</span></td>'; return; }
+      let cls="g-pres";
       if(DATA.hasPayroll && day.paieH!=null){
         const ec=Math.abs(day.paieH-(pres/3600));
-        if(day.paieH>0&&pres===0){bg="#3a1010";col="#ff6b6b";}
-        else if(ec>2){bg="#3a1010";col="#ff8866";}
-        else if(ec>1){bg="#3a2a00";col="#ffcc66";}
-        else {bg="#0d2a0d";col="#7fe08a";}
-      } else if(pres>0){ bg="#14233a";col="#8fc7ff"; }
-      cells+='<td><span class="c" style="background:'+bg+';color:'+col+'" title="'+jourLabel(d)+' — présence '+hms(pres)+(day.paieH!=null?' · paie '+hDec(day.paieH):'')+'">'+(pres?(Math.round(pres/360)/10).toString().replace(".",","):"–")+'</span></td>';
+        if(day.paieH>0&&pres===0)cls="g-bad";
+        else if(ec>2)cls="g-bad"; else if(ec>1)cls="g-mid"; else cls="g-ok";
+      }
+      const val=pres?(Math.round(pres/360)/10).toString().replace(".",","):"–";
+      cells+='<td><span class="c '+cls+'" title="'+jourLabel(d)+' — présence '+hms(pres)+(day.paieH!=null?' · paie '+hDec(day.paieH):'')+'">'+val+'</span></td>';
     });
-    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'+cells+'<td style="font-weight:700">'+hDec(totPres/3600)+'</td></tr>';
+    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'+cells+'<td class="num tot-col">'+hDec(totPres/3600)+'</td></tr>';
   });
-  h+='</tbody></table></div><div class="sub" style="margin-top:6px">Chaque case = heures de présence (INO/Evo). Couleur = écart vs saisie paie (vert &lt;1h, orange 1–2h, rouge &gt;2h ou saisie sans activité). Bleu = présence sans saisie paie importée.</div>';
-  $("#content").innerHTML=h;
+  h+='</tbody></table></div><div class="sub">Chaque case = heures de présence (INO/Evo). Couleur = écart vs saisie paie : <b style="color:var(--green)">vert &lt;1h</b>, <b style="color:var(--orange)">orange 1–2h</b>, <b style="color:var(--red)">rouge &gt;2h ou saisie sans activité</b>, <b style="color:var(--blue)">bleu = présence sans saisie importée</b>.</div>';
+  return h;
 }
 
 async function uploadPayroll(e){
@@ -283,7 +335,7 @@ function exportCsv(){
   let rows=[];
   if(VIEW==="synthese"){
     rows.push(["Agent","Jours actifs","Présence (h)","Communication (h)","Evo CU","Appels","H prod paie","Écart (h)"]);
-    DATA.agents.forEach(a=>{ const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec); rows.push([a.nom,a.tot.joursActifs,r2(pres/3600),r2(a.tot.commSec/3600),a.tot.evoCu,a.tot.nIn+a.tot.nOut+a.tot.evoCu, DATA.hasPayroll?r2(a.tot.paieH):"", DATA.hasPayroll?r2(a.tot.paieH-pres/3600):""]); });
+    DATA.agents.forEach(a=>{ const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec); const hasPaie=DATA.hasPayroll&&a.tot.joursPaie>0; rows.push([a.nom,a.tot.joursActifs,r2(pres/3600),r2(a.tot.commSec/3600),a.tot.evoCu,a.tot.nIn+a.tot.nOut+a.tot.evoCu, hasPaie?r2(a.tot.paieH):"", hasPaie?r2(a.tot.paieH-pres/3600):""]); });
   } else {
     rows.push(["Agent","Jour","Date","1ère cnx","Dernière act.","Présence (h)","Communication (h)","Appels INO in","Appels INO out","Evo CU","Total appels","H prod paie","Écart (h)","Absence"]);
     DATA.agents.forEach(a=>DATA.jours.forEach(d=>{ const day=a.byDay[d]; if(!day)return; const pres=presentSec(day); if(!pres&&!day.nIn&&!day.nOut&&!day.evoCu&&day.paieH==null)return;

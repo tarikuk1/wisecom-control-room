@@ -1696,7 +1696,7 @@ const server=http.createServer(async(req,res)=>{
         const pr=sharedStore.payroll||(sharedStore.payroll={});
         let n=0,dates={};
         rows.forEach(r=>{ if(!r.date||!r.nom)return; if(!pr[r.date])pr[r.date]={}; pr[r.date][_normName(r.nom)]={nom:r.nom,totalProd:r.totalProd||0,plage:r.plage||null,absence:r.absence||null,motif:r.motif||null}; n++; dates[r.date]=1; });
-        saveStore();
+        persistStore();
         res.writeHead(200,{"Content-Type":"application/json"});
         res.end(JSON.stringify({ok:true,lignes:n,dates:Object.keys(dates).sort()}));
       }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
