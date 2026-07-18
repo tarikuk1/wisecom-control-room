@@ -1476,6 +1476,19 @@ const server=http.createServer(async(req,res)=>{
   // === ÉTAT DU FLUX VOIX (léger, à la demande) — seulement les agents affichés ===
   // GET /api/ino/flux?ids=258403,257287 → {ok,flux:{258403:true,257287:false}}. ~N appels /cc/agent/:id
   // (N = agents visibles, ~5-15), JAMAIS les 55 → ne concurrence pas /agents-day sur la limite INO.
+  // Statut du cache compétences /cc/* (public, léger) — fraîcheur + couverture. Sert au monitoring
+  // et à forcer un rafraîchissement (?refresh=1) sans passer par le bouton par-agent.
+  if(url.startsWith("/api/ino/skills-status")){
+    const uu=new URL(req.url,"http://localhost");
+    if(uu.searchParams.get("refresh")==="1"){ fetchAllCcSkills(true).catch(()=>{}); }
+    const data=_ccSkills.data||{};
+    const ids=Object.keys(data);
+    let totConf=0,totAct=0;
+    ids.forEach(id=>{ const all=(data[id]&&data[id].all)||[]; totConf+=all.length; totAct+=all.filter(s=>s.active).length; });
+    res.writeHead(200,{"Content-Type":"application/json"});
+    res.end(JSON.stringify({ok:true,agents:ids.length,at:_ccSkills.at,ageMin:_ccSkills.at?Math.round((Date.now()-_ccSkills.at)/60000):null,running:_ccSkills.running,totalConfig:totConf,totalActif:totAct}));
+    return;
+  }
   if(url==="/api/ino/flux"&&req.method==="GET"){
     const _sfg=cookies.session?sessions[cookies.session]:null;
     if(!_sfg){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
