@@ -4571,7 +4571,7 @@ function renderSkills(){
     const m={};
     (a.allSkillsData||[]).forEach(sk=>{
       if(!sk||!sk.name)return;
-      const cli=normalizeSkillToWaCol(sk.name)||'DIVERS';
+      const cli=skillToAccount(sk.name)||'DIVERS';
       if(!m[cli])m[cli]={act:[],inact:[]};
       (sk.active?m[cli].act:m[cli].inact).push(sk);
       present.add(cli);
@@ -4583,7 +4583,7 @@ function renderSkills(){
   [...present].filter(c=>_ORDER.indexOf(c)<0).sort().forEach(c=>colClients.push(c));
   // ── Filtre FILES du haut (critères) : ne garder que les comptes des files sélectionnées ──
   if(Array.isArray(selQueues)&&Array.isArray(allQueues)&&allQueues.length>0&&selQueues.length>0&&selQueues.length<allQueues.length){
-    const _selCli=new Set(selQueues.map(q=>normalizeSkillToWaCol(q)||'DIVERS'));
+    const _selCli=new Set(selQueues.map(q=>skillToAccount(q)||'DIVERS'));
     const _f=colClients.filter(c=>_selCli.has(c));
     if(_f.length)colClients=_f; // garde-fou : si le filtre ne matche rien, on garde tout
   }
@@ -7390,6 +7390,22 @@ function normalizeSkillToWaCol(inoName){
     return nn.includes(' '+nw)||nn.includes(nw+' ')||nn.includes('_'+nw);
   });
   if(token)return token;
+  return null;
+}
+// Alias compétence INO → compte, pour les cas que campOfQueue ne rattrape pas.
+var SKILL_ACCOUNT_ALIAS={"la bellenergie":"LBE","labellenergie":"LBE"};
+// Compte d'une compétence, TOUS comptes confondus (matrice complète — choix Tarik 18/07/2026 :
+// « ajouter tous les comptes »). 1) colonne WA courte si elle matche (RA/B2B), 2) sinon détection
+// campagne (Voltalis, Afnor, Evoriel, Electrosur, MG Motor, Velux, Antargaz, Omoda, Amazon…),
+// 3) alias explicites, 4) null → DIVERS côté appelant.
+var _CAMP_TO_WA={}; try{Object.keys(WA_CAMP_ALIAS||{}).forEach(function(k){_CAMP_TO_WA[WA_CAMP_ALIAS[k]]=k;});}catch(e){}
+function skillToAccount(inoName){
+  var wa=normalizeSkillToWaCol(inoName);
+  if(wa)return wa;
+  var al=SKILL_ACCOUNT_ALIAS[String(inoName||'').toLowerCase().replace(/\s+/g,' ').trim()];
+  if(al)return al;
+  var camp=(typeof campOfQueue==='function')?campOfQueue(inoName):null;
+  if(camp)return _CAMP_TO_WA[camp]||camp;
   return null;
 }
 
