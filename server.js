@@ -250,7 +250,7 @@ function isCampOpenAt(camp,d){
 // redémarrages normaux mais est réinitialisé à chaque nouveau déploiement.
 const DATA_DIR=process.env.DATA_DIR||path.join(__dirname,"data");
 const STORE_FILE=path.join(DATA_DIR,"shared_store.json");
-const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides","pilotageTpl","radarTpl","planningHist"];
+const STORE_KEYS=["criteres","backlog","mailsEdit","waCols","presets","astreintes","planning","poles","mailOverrides","pilotageTpl","radarTpl","planningHist","payroll"];
 let sharedStore={};
 try{
   fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -1143,6 +1143,144 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
     fluxCampagnes:fluxCamps};
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  MODULE CHECK DES HEURES — contrôle des heures réelles (INO + Evo) vs saisie paie
+//  Par agent PAR JOUR : 1ère connexion, dernière déco, amplitude (≈ présence),
+//  temps de communication (prod), nb d'appels INO + Evo. Écart vs Total H prod paie.
+//  ⚠️ INO n'a AUCUN historique de session (19 endpoints sondés → 404) : les heures INO
+//  sont APPROCHÉES par l'amplitude 1er→dernier appel. Evo a les vraies sessions (R_SESS).
+// ════════════════════════════════════════════════════════════════════════════
+const HOURS_DIR=path.join(__dirname,"hours_history");
+try{fs.mkdirSync(HOURS_DIR,{recursive:true});}catch(e){}
+function hoursSaveDay(d,rec){try{if(/^\d{4}-\d{2}-\d{2}$/.test(d))fs.writeFileSync(path.join(HOURS_DIR,d+".json"),JSON.stringify(rec));}catch(e){}}
+function hoursLoadDay(d){try{const p=path.join(HOURS_DIR,d+".json");if(fs.existsSync(p))return JSON.parse(fs.readFileSync(p,"utf8"));}catch(e){}return null;}
+// Nom normalisé pour rapprocher paie ↔ INO ↔ Evo (ordre & accents ignorés) : set de tokens triés.
+function _normName(s){return String(s||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1).sort().join(" ");}
+// Heures Evo d'un agent (nom→{connSec,cu}) pour une journée, depuis l'historique Evo (R_SESS).
+function evoHoursByName(d){
+  const out={};
+  let src=(_evoCache&&_evoCache.dataDate===d)?_evoCache:evoLoadHist(d);
+  if(!src||!Array.isArray(src.sessions))return out;
+  // sessions Evo : {idAgente/agentId, agentNom, ini/fin (ms), online} — cnx/déco par session.
+  src.sessions.forEach(s=>{
+    const nom=s.agentNom||s.nom||s.name||"";
+    const key=_normName(nom); if(!key)return;
+    const b=s.ini||s.begin||s.b||null, e=s.fin||s.end||s.e||null;
+    if(!out[key])out[key]={nom,connSec:0,cu:0};
+    if(b&&e&&e>b)out[key].connSec+=Math.round((e-b)/1000);
+  });
+  // CU par agent : depuis les stats agents Evo si dispo
+  const ags=src.rawAg||src.agents||[];
+  (Array.isArray(ags)?ags:[]).forEach(a=>{
+    const nom=a.nom||a.agentNom||a.name||""; const key=_normName(nom); if(!key)return;
+    if(!out[key])out[key]={nom,connSec:0,cu:0};
+    const cu=Number(a.cu||a.CU||a.acc||a.accords||0)||0; if(cu)out[key].cu+=cu;
+  });
+  return out;
+}
+// Calcule (ou recharge du cache) le relevé d'heures d'une journée : {date, at, agents:{id:{...}}}.
+async function computeHoursDay(d,force){
+  const today=parisDateStr();
+  const cached=hoursLoadDay(d);
+  // Jours passés = immuables une fois en cache ; jour courant = toujours recalculé.
+  if(cached && d!==today && !force)return cached;
+  const token=await getToken(); if(!token)return cached||{date:d,at:Date.now(),agents:{},noToken:true};
+  const tranches=[["00:00:00","07:59:59"],["08:00:00","11:59:59"],["12:00:00","15:59:59"],["16:00:00","23:59:59"]];
+  let inH=[],outH=[],echec=false;
+  for(const[s,e]of tranches){
+    const [ri,ro]=await Promise.all([
+      apiReq("POST","/call/in/histories",{startDate:d+" "+s,endDate:d+" "+e,limit:2000},token).catch(()=>null),
+      apiReq("POST","/call/out/histories",{startDate:d+" "+s,endDate:d+" "+e,limit:2000},token).catch(()=>null)
+    ]);
+    if(ri&&ri.histories)inH=inH.concat(ri.histories); else if(!ri)echec=true;
+    if(ro&&ro.histories)outH=outH.concat(ro.histories); else if(!ro)echec=true;
+  }
+  const ags={};
+  const add=(h,dir)=>{
+    const a=h.agent; if(!a||a.id==null)return;
+    const id=String(a.id);
+    const t=Date.parse(h.acdDate||h.callDate||0)||0;
+    const dur=(h.call&&h.call.agentDuration)||0;
+    if(!ags[id])ags[id]={id,nom:((a.firstname||"")+" "+(a.lastname||"")).trim(),firstMs:0,lastMs:0,commSec:0,nIn:0,nOut:0};
+    const A=ags[id];
+    if(t){A.firstMs=A.firstMs?Math.min(A.firstMs,t):t;A.lastMs=Math.max(A.lastMs,t+dur*1000);}
+    A.commSec+=dur; if(dir==="in")A.nIn++; else A.nOut++;
+  };
+  inH.forEach(h=>add(h,"in")); outH.forEach(h=>add(h,"out"));
+  // Evo par nom
+  const evo=evoHoursByName(d);
+  // Annuaire : inclure 100% des agents (hors managers), même sans activité INO ce jour-là.
+  let dir={}; try{dir=await fetchAgentDirectory();}catch(e){}
+  Object.keys(dir).forEach(id=>{
+    const dd=dir[id]; if(!dd||dd.role==="superviseur")return;
+    if(!ags[id])ags[id]={id,nom:dd.nom,firstMs:0,lastMs:0,commSec:0,nIn:0,nOut:0,noActivite:true};
+    else if(dd.nom)ags[id].nom=dd.nom;
+  });
+  // Attacher Evo (par nom normalisé) à chaque agent
+  Object.values(ags).forEach(A=>{
+    const ev=evo[_normName(A.nom)];
+    A.evoConnSec=ev?ev.connSec:0; A.evoCu=ev?ev.cu:0;
+    A.ampliSec=(A.firstMs&&A.lastMs&&A.lastMs>A.firstMs)?Math.round((A.lastMs-A.firstMs)/1000):0;
+  });
+  const rec={date:d,at:Date.now(),echec,agents:ags};
+  if(!echec)hoursSaveDay(d,rec); // ne pas cacher un jour dont le fetch a échoué
+  return rec;
+}
+// Liste des jours [d1..d2] inclus (borne 200 j = ~6,5 mois). Reste en composantes LOCALES
+// (jamais toISOString, qui décale d'un jour selon le fuseau du serveur : Railway=UTC vs poste=CEST).
+function _daysRange(d1,d2){
+  const out=[]; const p=s=>String(s).split("-").map(Number);
+  const [y1,m1,dd1]=p(d1),[y2,m2,dd2]=p(d2);
+  const b=new Date(y2,m2-1,dd2);
+  for(let d=new Date(y1,m1-1,dd1); d<=b; d.setDate(d.getDate()+1)){
+    out.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"));
+    if(out.length>200)break;
+  }
+  return out;
+}
+// ── Parsing export paie ──
+function _pnorm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();}
+function _fmtLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function _toISODate(v){
+  if(v==null||v==="")return null;
+  // Numéro de série Excel (raw:true) — SANS ambiguïté, converti sans fuseau (époque 1899-12-30).
+  if(typeof v==="number"&&v>10000&&v<100000){const d=new Date(Math.round((v-25569)*86400000));return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");}
+  if(v instanceof Date&&!isNaN(v))return _fmtLocal(v);
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m)return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+  m=s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/); if(m)return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0"); // DD/MM/YYYY
+  const t=Date.parse(s); if(!isNaN(t))return _fmtLocal(new Date(t));
+  return null;
+}
+function _hnum(v){ if(v==null||v==="")return 0; const n=parseFloat(String(v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isNaN(n)?0:n; }
+// Depuis des objets {header:valeur} (sheet_to_json). Repère les colonnes par nom (accents/casse ignorés).
+function _parsePayrollRows(objs){
+  if(!Array.isArray(objs)||!objs.length)return [];
+  const keys=Object.keys(objs[0]);
+  const find=(...cands)=>{ for(const k of keys){ const kn=_pnorm(k); for(const c of cands){ if(kn===_pnorm(c))return k; } } for(const k of keys){ const kn=_pnorm(k); for(const c of cands){ if(kn.includes(_pnorm(c)))return k; } } return null; };
+  const kNom=find("nom prenom","nom","agent"), kDate=find("date"),
+        kTot=find("total general prod","total prod","total h prod","total prod h"),
+        kPlage=find("duree plage","plage"), kAbs=find("absence"), kMotif=find("motif absence","motif");
+  return objs.map(o=>({
+    nom:kNom?o[kNom]:null,
+    date:_toISODate(kDate?o[kDate]:null),
+    totalProd:_hnum(kTot?o[kTot]:0),
+    plage:kPlage?(_hnum(o[kPlage])||o[kPlage]||null):null,
+    absence:(kAbs&&_hnum(o[kAbs])>0)?true:null,
+    motif:kMotif?(o[kMotif]||null):null
+  })).filter(r=>r.nom&&r.date);
+}
+// CSV (séparateur ; ou ,) → mêmes objets.
+function _parsePayrollCsv(text){
+  const lines=String(text||"").split(/\r?\n/).filter(l=>l.trim().length);
+  if(lines.length<2)return [];
+  const sep=(lines[0].split(";").length>=lines[0].split(",").length)?";":",";
+  const split=l=>{const out=[];let cur="",q=false;for(let i=0;i<l.length;i++){const c=l[i];if(c==='"'){if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===sep&&!q){out.push(cur);cur="";}else cur+=c;}out.push(cur);return out;};
+  const hdr=split(lines[0]);
+  const objs=lines.slice(1).map(l=>{const c=split(l);const o={};hdr.forEach((h,i)=>o[h]=c[i]);return o;});
+  return _parsePayrollRows(objs);
+}
+
 function makeAdmin(login){
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Administration — Wisecom Control Room</title>
@@ -1487,6 +1625,82 @@ const server=http.createServer(async(req,res)=>{
     ids.forEach(id=>{ const all=(data[id]&&data[id].all)||[]; totConf+=all.length; totAct+=all.filter(s=>s.active).length; });
     res.writeHead(200,{"Content-Type":"application/json"});
     res.end(JSON.stringify({ok:true,agents:ids.length,at:_ccSkills.at,ageMin:_ccSkills.at?Math.round((Date.now()-_ccSkills.at)/60000):null,running:_ccSkills.running,totalConfig:totConf,totalActif:totAct}));
+    return;
+  }
+  // ── MODULE CHECK DES HEURES : relevé par agent/jour (INO + Evo) + écart vs saisie paie ──
+  if(url.startsWith("/api/hours")&&!url.startsWith("/api/hours/payroll")&&req.method==="GET"){
+    const _sh=cookies.session?getSession(cookies.session):null;
+    if(!_sh){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
+    const uu=new URL(req.url,"http://localhost");
+    const d1=uu.searchParams.get("date")||parisDateStr();
+    const d2=uu.searchParams.get("dateFin")||d1;
+    (async()=>{
+      try{
+        const jours=_daysRange(d1,d2);
+        const payroll=(sharedStore.payroll)||{};
+        const byAgent={}; // id → {id,nom,byDay:{},tot:{}}
+        const echJours=[];
+        for(const d of jours){
+          const rec=await computeHoursDay(d);
+          if(rec&&rec.echec)echJours.push(d);
+          const ags=(rec&&rec.agents)||{};
+          const pDay=payroll[d]||{};
+          Object.values(ags).forEach(a=>{
+            if(!byAgent[a.id])byAgent[a.id]={id:a.id,nom:a.nom,byDay:{},tot:{ampliSec:0,commSec:0,evoConnSec:0,nIn:0,nOut:0,evoCu:0,paieH:0,joursActifs:0,joursPaie:0}};
+            const B=byAgent[a.id]; if(a.nom)B.nom=a.nom;
+            const pr=pDay[_normName(a.nom)]||null;
+            const actif=(a.nIn||a.nOut||a.evoCu||a.ampliSec)?1:0;
+            const day={
+              firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec:a.ampliSec||0,commSec:a.commSec||0,
+              nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec:a.evoConnSec||0,evoCu:a.evoCu||0,
+              paieH:pr?(pr.totalProd||0):null,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
+            };
+            B.byDay[d]=day;
+            B.tot.ampliSec+=day.ampliSec;B.tot.commSec+=day.commSec;B.tot.evoConnSec+=day.evoConnSec;
+            B.tot.nIn+=day.nIn;B.tot.nOut+=day.nOut;B.tot.evoCu+=day.evoCu;
+            if(day.paieH!=null){B.tot.paieH+=day.paieH;B.tot.joursPaie++;}
+            if(actif)B.tot.joursActifs++;
+          });
+        }
+        const agents=Object.values(byAgent).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,d1,d2,jours,agents,joursEchec:echJours,hasPayroll:Object.keys(payroll).length>0,updatedAt:new Date().toISOString()}));
+      }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
+    })();
+    return;
+  }
+  // Upload d'un export paie (xlsx via SheetJS lazy, ou CSV natif) → écarts. {filename, dataB64}
+  if(url==="/api/hours/payroll"&&req.method==="POST"){
+    const _sh=cookies.session?getSession(cookies.session):null;
+    if(!_sh){res.writeHead(401);res.end(JSON.stringify({ok:false,error:"Non authentifié"}));return;}
+    let body="";req.on("data",c=>{body+=c;if(body.length>25e6)req.destroy();});
+    req.on("end",()=>{
+      try{
+        const {filename,dataB64,csv}=JSON.parse(body||"{}");
+        let rows=null;
+        if(csv&&typeof csv==="string"){ rows=_parsePayrollCsv(csv); }
+        else if(dataB64){
+          const buf=Buffer.from(dataB64,"base64");
+          if(/\.csv$/i.test(filename||"")){ rows=_parsePayrollCsv(buf.toString("utf8")); }
+          else{
+            let XLSX=null; try{XLSX=require("xlsx");}catch(e){}
+            if(!XLSX){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Lecture .xlsx indisponible (module xlsx non installé). Ré-enregistrez l'export en CSV et réessayez."}));}
+            const wb=XLSX.read(buf,{type:"buffer"});
+            const ws=wb.Sheets[wb.SheetNames[0]];
+            // raw:true → les dates sortent en numéro de série Excel (non ambigu), converti par _toISODate.
+            rows=_parsePayrollRows(XLSX.utils.sheet_to_json(ws,{defval:null,raw:true}));
+          }
+        }
+        if(!rows){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Aucune donnée exploitable dans le fichier."}));}
+        // Fusion dans le store paie : payroll[date][normNom] = {nom,totalProd,plage,absence,motif}
+        const pr=sharedStore.payroll||(sharedStore.payroll={});
+        let n=0,dates={};
+        rows.forEach(r=>{ if(!r.date||!r.nom)return; if(!pr[r.date])pr[r.date]={}; pr[r.date][_normName(r.nom)]={nom:r.nom,totalProd:r.totalProd||0,plage:r.plage||null,absence:r.absence||null,motif:r.motif||null}; n++; dates[r.date]=1; });
+        saveStore();
+        res.writeHead(200,{"Content-Type":"application/json"});
+        res.end(JSON.stringify({ok:true,lignes:n,dates:Object.keys(dates).sort()}));
+      }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
+    });
     return;
   }
   if(url==="/api/ino/flux"&&req.method==="GET"){
@@ -2197,6 +2411,7 @@ const server=http.createServer(async(req,res)=>{
   if(url==="/notice"){const p=path.join(__dirname,"notice.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/planning"){const p=path.join(__dirname,"planning.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/pilotage"){const p=path.join(__dirname,"pilotage.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
+  if(url==="/heures"){const p=path.join(__dirname,"heures.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   if(url==="/design-test"){const p=path.join(__dirname,"design-test.html");if(fs.existsSync(p)){res.writeHead(200,_HTML_HDRS);return fs.createReadStream(p).pipe(res);}}
   res.writeHead(404,{"Content-Type":"text/html"});res.end(make404());
 });

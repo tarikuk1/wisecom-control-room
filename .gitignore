@@ -3,3 +3,7 @@ data/
 .claude/
 
 evo_payload_*.json
+evo_cache.json
+evo_history/
+hours_history/
+cc_skills_cache.json
