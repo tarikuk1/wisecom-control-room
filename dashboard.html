@@ -2586,6 +2586,7 @@ async function loadAgentsFromAPI(){
         return{id:a.id,nom:a.nom,login:a.username,camp,
           skills:(_oldSk[a.id]?.sk?.length>0)?_oldSk[a.id].sk:_pSkillNames,
           allSkillsData:(_oldSk[a.id]?.a?.length>0)?_oldSk[a.id].a:_pAllSkills,
+          skillsFromCc:a.skillsFromCc===true,
           contrat:a.contrat||null,obj,
           status:a.statutEstime||a.status||null,
           flowVoice:(a.flowVoice===true||a.flowVoice===false)?a.flowVoice:null,
@@ -4580,8 +4581,15 @@ function renderSkills(){
     });
     byAgent[a.id]=m;
   });
-  let colClients=_ORDER.filter(c=>present.has(c));
-  [...present].filter(c=>_ORDER.indexOf(c)<0).sort().forEach(c=>colClients.push(c));
+  // Univers des colonnes = RÉFÉRENTIEL FIXE (comptes suivis) ∪ comptes réellement portés par
+  // les agents. Sans le référentiel, une colonne n'existait que si au moins un agent l'avait
+  // → « en-tête rouge = 0 formé » était du code mort (audit) : un compte SANS AUCUN formé
+  // n'apparaissait simplement pas, exactement le trou qu'on veut voir.
+  const _REF=new Set(_ORDER);
+  (typeof CAMPS!=='undefined'?CAMPS:[]).forEach(c=>{const acc=skillToAccount(c)||c;_REF.add(acc);});
+  let colClients=_ORDER.filter(c=>_REF.has(c)||present.has(c));
+  [..._REF].filter(c=>_ORDER.indexOf(c)<0).sort().forEach(c=>colClients.push(c));
+  [...present].filter(c=>!_REF.has(c)&&_ORDER.indexOf(c)<0).sort().forEach(c=>colClients.push(c));
   // ── Filtre FILES du haut (critères) : ne garder que les comptes des files sélectionnées ──
   if(Array.isArray(selQueues)&&Array.isArray(allQueues)&&allQueues.length>0&&selQueues.length>0&&selQueues.length<allQueues.length){
     const _selCli=new Set(selQueues.map(q=>skillToAccount(q)||'DIVERS'));
@@ -4655,7 +4663,9 @@ function renderSkills(){
                :n+' formé(s) · '+nAct+' actif(s) sur '+cli+' — cliquer une cellule pour le détail';
         const sub=uncovered?'<span style="font-size:8px;font-weight:800;display:block;opacity:.95">0 formé</span>'
                :'<span style="font-size:8px;font-weight:600;display:block;color:'+(dormant?'#ffcc66':'var(--t-muted)')+'">'+n+' formé'+(nAct<n?' · '+nAct+' act.':'')+'</span>';
-        return '<th onclick="sortSkills(\''+cli.replace(/'/g,"")+'\')" style="'+st+'" title="'+t+'">'+(uncovered?'⚠ ':dormant?'◑ ':'')+cli+arrow(cli)+sub+'</th>';
+        // Clé portée en data-attribute (encodée) : l'ancien onclick supprimait les apostrophes
+        // de la clé → tri cassé pour tout compte contenant ' (audit).
+        return '<th data-skcol="'+encodeURIComponent(cli)+'" style="'+st+';cursor:pointer" title="'+t+'">'+(uncovered?'⚠ ':dormant?'◑ ':'')+cli+arrow(cli)+sub+'</th>';
       }).join('')
     +'<th onclick="sortSkills(\'__files\')" style="'+thStyle+'">Files'+arrow('__files')+'</th>'
     +'</tr></thead>';
@@ -4690,7 +4700,15 @@ function renderSkills(){
       +'<td style="text-align:center;padding:8px 12px">'+(a.files_ok?'<span style="color:#30d158;font-weight:700;font-size:11px">✓</span>':'<span style="color:#E8006E;font-weight:700;font-size:11px">⚠</span>')+'</td>'
       +'</tr>';
   }).join('')+'</tbody>';
-  host.innerHTML=thead+tbody;
+  // Transparence : agents servis en mode DÉGRADÉ (compétences déclarées /agent/list, état
+  // actif/inactif FABRIQUÉ à true faute de données /cc) — signaler plutôt que laisser croire.
+  const _nbDegr=realAgents.filter(a=>(a.allSkillsData||[]).length>0&&a.skillsFromCc===false).length;
+  // <caption> = seul conteneur de texte valide DANS un <table> (un div serait hissé hors de la table)
+  const _degrNote=_nbDegr>0?'<caption style="caption-side:top;text-align:left;padding:7px 11px;background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.4);border-radius:8px;color:#c07a00;font-size:11px;margin-bottom:8px"><b>⚠ '+_nbDegr+' agent(s) en source dégradée</b> — états actif/inactif indisponibles (cache /cc incomplet), compétences affichées comme actives par défaut. Utilisez ↺ Compétences ou attendez le job serveur.</caption>':'';
+  host.innerHTML=_degrNote+thead+tbody;
+  host.querySelectorAll('th[data-skcol]').forEach(th=>{
+    th.addEventListener('click',()=>sortSkills(decodeURIComponent(th.dataset.skcol)));
+  });
   host.querySelectorAll('.sk-cli-cell[data-k]').forEach(td=>{
     td.addEventListener('click',()=>skShowDetail(td.dataset.k));
   });
@@ -7393,8 +7411,9 @@ function normalizeSkillToWaCol(inoName){
   if(token)return token;
   return null;
 }
-// Alias compétence INO → compte, pour les cas que campOfQueue ne rattrape pas.
-var SKILL_ACCOUNT_ALIAS={"la bellenergie":"LBE","labellenergie":"LBE"};
+// Alias compétence INO → compte, pour les cas que campOfQueue ne rattrape pas ou rattrape mal
+// (MNZ est une campagne déclarée MAIS le compte s'appelle Monetize → sans alias, 2 colonnes).
+var SKILL_ACCOUNT_ALIAS={"la bellenergie":"LBE","labellenergie":"LBE","mnz":"Monetize","mnz_fr":"Monetize","monetize fr":"Monetize"};
 // Compte d'une compétence, TOUS comptes confondus (matrice complète — choix Tarik 18/07/2026 :
 // « ajouter tous les comptes »). 1) colonne WA courte si elle matche (RA/B2B), 2) sinon détection
 // campagne (Voltalis, Afnor, Evoriel, Electrosur, MG Motor, Velux, Antargaz, Omoda, Amazon…),

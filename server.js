@@ -302,10 +302,15 @@ function evoLoadHist(d){try{const p=path.join(EVO_HIST_DIR,d+".json");if(fs.exis
 // TOUTES les compétences (configurées + actives) une fois, les persiste sur disque (survit aux
 // redéploiements Railway), rafraîchit toutes les 6 h, et les injecte directement dans /agents-day.
 // La matrice est ainsi toujours peuplée, sans appel bloquant au chargement.
-const CC_SKILLS_FILE=path.join(__dirname,"cc_skills_cache.json");
+// DATA_DIR (volume persistant si monté) et non __dirname (effacé à chaque redéploiement).
+const CC_SKILLS_FILE=path.join(DATA_DIR,"cc_skills_cache.json");
+const _CC_SKILLS_OLD=path.join(__dirname,"cc_skills_cache.json");
 let _ccSkills={data:{},at:0,running:false};
 function ccSkillsSave(){try{fs.writeFileSync(CC_SKILLS_FILE,JSON.stringify({at:_ccSkills.at,data:_ccSkills.data}));}catch(e){}}
-(function ccSkillsLoad(){try{if(fs.existsSync(CC_SKILLS_FILE)){const j=JSON.parse(fs.readFileSync(CC_SKILLS_FILE,"utf8"));if(j&&j.data){_ccSkills.data=j.data;_ccSkills.at=j.at||0;console.log("[cc-skills] cache rechargé ("+Object.keys(j.data).length+" agents, "+new Date(_ccSkills.at).toISOString()+")");}}}catch(e){}})();
+(function ccSkillsLoad(){try{
+  const p=fs.existsSync(CC_SKILLS_FILE)?CC_SKILLS_FILE:(fs.existsSync(_CC_SKILLS_OLD)?_CC_SKILLS_OLD:null);
+  if(p){const j=JSON.parse(fs.readFileSync(p,"utf8"));if(j&&j.data){_ccSkills.data=j.data;_ccSkills.at=j.at||0;console.log("[cc-skills] cache rechargé ("+Object.keys(j.data).length+" agents, "+new Date(_ccSkills.at).toISOString()+")");}}
+}catch(e){}})();
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
@@ -795,23 +800,28 @@ async function fetchAllCcSkills(force){
   _ccSkills.running=true;
   try{
     const dir=await fetchAgentDirectory();
-    const ids=Object.keys(dir||{});
+    // Managers/superviseurs exclus des données → inutile de dépenser du quota pour leurs compétences.
+    const ids=Object.keys(dir||{}).filter(id=>dir[id]&&dir[id].role!=="superviseur");
     if(!ids.length){ _ccSkills.running=false; return _ccSkills.data; }
     const tokenRef={t:await getToken()};
     if(!tokenRef.t){ _ccSkills.running=false; return _ccSkills.data; }
     const out={};
-    const isOn=s=>{ if(s==null)return false; if(typeof s.status!=='undefined')return s.status===1||s.status===true||s.status==='1'; if(typeof s.active!=='undefined')return !!s.active; return true; };
+    const isOn=s=>{ if(s==null)return false; if(typeof s.status!=='undefined')return s.status===1||s.status===true||s.status==='1'; if(typeof s.active!=='undefined')return !!s.active; if(typeof s.enabled!=='undefined')return !!s.enabled; return true; };
     const nameOf=s=>(s&&(s.name||s.skill||s.code||s.label))||'';
     for(let i=0;i<ids.length;i+=3){
       const batch=ids.slice(i,i+3);
       await Promise.all(batch.map(async id=>{
-        const r=await _ccCall("POST","/cc/agent/"+id+"/flow/voice/skills/list",{},tokenRef);
-        let flow=null;
-        if(Array.isArray(r))flow=r;
-        else if(r&&typeof r==='object')flow=r.flowSkills||r.profileSkills||r.skills||r.data||r.flow||null;
-        if(!Array.isArray(flow))return; // 401/erreur → on garde l'ancienne valeur pour cet agent
-        const norm=flow.map(s=>({id:(s&&s.id)||null,name:nameOf(s),score:(s&&s.score)!=null?s.score:100,active:isOn(s)})).filter(s=>s.name);
-        out[id]={all:norm, at:Date.now()};
+        // try/catch PAR AGENT : apiReq rejette sur erreur socket — sans ceci, une seule coupure
+        // réseau faisait rejeter tout le Promise.all et perdait le cycle complet.
+        try{
+          const r=await _ccCall("POST","/cc/agent/"+id+"/flow/voice/skills/list",{},tokenRef);
+          let flow=null;
+          if(Array.isArray(r))flow=r;
+          else if(r&&typeof r==='object')flow=r.flowSkills||r.profileSkills||r.skills||r.data||r.flow||null;
+          if(!Array.isArray(flow))return; // 401/erreur → on garde l'ancienne valeur pour cet agent
+          const norm=flow.map(s=>({id:(s&&s.id)||null,name:nameOf(s),score:(s&&s.score)!=null?s.score:100,active:isOn(s)})).filter(s=>s.name);
+          out[id]={all:norm, at:Date.now()};
+        }catch(e){ /* agent en échec = ignoré ce tour-ci, ancien cache conservé */ }
       }));
       await new Promise(r=>setTimeout(r,250)); // respiration rate-limit
     }
@@ -1150,46 +1160,96 @@ async function fetchAgentsDay(date,hDeb,hFin,dateFin){
 //  ⚠️ INO n'a AUCUN historique de session (19 endpoints sondés → 404) : les heures INO
 //  sont APPROCHÉES par l'amplitude 1er→dernier appel. Evo a les vraies sessions (R_SESS).
 // ════════════════════════════════════════════════════════════════════════════
-const HOURS_DIR=path.join(__dirname,"hours_history");
-try{fs.mkdirSync(HOURS_DIR,{recursive:true});}catch(e){}
+// Cache heures dans DATA_DIR (volume persistant si monté) — __dirname est effacé à chaque
+// redéploiement Railway. Migration : on relit l'ancien emplacement si le nouveau est vide.
+const HOURS_DIR=path.join(DATA_DIR,"hours_history");
+const _HOURS_DIR_OLD=path.join(__dirname,"hours_history");
+try{
+  fs.mkdirSync(HOURS_DIR,{recursive:true});
+  if(fs.existsSync(_HOURS_DIR_OLD)){
+    for(const f of fs.readdirSync(_HOURS_DIR_OLD)){
+      const dst=path.join(HOURS_DIR,f);
+      if(!fs.existsSync(dst))fs.copyFileSync(path.join(_HOURS_DIR_OLD,f),dst);
+    }
+  }
+}catch(e){}
 function hoursSaveDay(d,rec){try{if(/^\d{4}-\d{2}-\d{2}$/.test(d))fs.writeFileSync(path.join(HOURS_DIR,d+".json"),JSON.stringify(rec));}catch(e){}}
 function hoursLoadDay(d){try{const p=path.join(HOURS_DIR,d+".json");if(fs.existsSync(p))return JSON.parse(fs.readFileSync(p,"utf8"));}catch(e){}return null;}
 // Nom normalisé pour rapprocher paie ↔ INO ↔ Evo (ordre & accents ignorés) : set de tokens triés.
 function _normName(s){return String(s||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1).sort().join(" ");}
-// Heures Evo d'un agent (nom→{connSec,cu}) pour une journée, depuis l'historique Evo (R_SESS).
+// Tokens utiles d'un nom : retire le bruit des logins Evo (« Fazna Wisecom_Leadgen » → FAZNA).
+function _nameToks(norm){return new Set(String(norm).split(" ").filter(t=>t&&!/^(WISECOM|LEADGEN|AGENT\d*|TT)$/.test(t)));}
+// Résolveur paie TOLÉRANT : égalité exacte, sinon INCLUSION de tokens (l'un contient l'autre),
+// à condition d'être NON AMBIGU (2 candidats → aucun match, sécurité homonymes).
+// Corrige : « Amy Diop » (INO) vs « DIOP Amy Kolle » (paie), « Naelle Dias » vs « DIAS MACHADO Naëlle »,
+// « Theo » (login Evo) vs « BOUDET Théo » — l'égalité stricte ratait tout ça (48 fausses orphelines).
+function _paieResolver(pDay){
+  const entries=Object.keys(pDay).map(k=>({k,set:_nameToks(k)}));
+  return function(agNorm){
+    if(pDay[agNorm])return {key:agNorm,rec:pDay[agNorm]};
+    const ag=_nameToks(agNorm); if(!ag.size)return null;
+    const cands=entries.filter(t=>{
+      if(!t.set.size)return false;
+      let agInT=true; ag.forEach(x=>{if(!t.set.has(x))agInT=false;});
+      if(agInT)return true;
+      let tInAg=true; t.set.forEach(x=>{if(!ag.has(x))tInAg=false;});
+      return tInAg;
+    });
+    return cands.length===1?{key:cands[0].k,rec:pDay[cands[0].k]}:null;
+  };
+}
+// Heures Evo d'un agent (nomNormalisé→{nom,connSec,cu}) pour une journée, depuis l'historique Evo.
+// ⚠️ Structure RÉELLE (vérifiée evo_history/2026-07-08.json) : sessions = {idAgente, firstBegin,
+// lastEnd (ms), online} SANS nom — la jointure se fait par idAgente via rawSqlAgentCamps
+// (agentNom + cuPos). L'ancienne version cherchait s.agentNom/ini/fin → Evo toujours à 0.
 function evoHoursByName(d){
   const out={};
   let src=(_evoCache&&_evoCache.dataDate===d)?_evoCache:evoLoadHist(d);
-  if(!src||!Array.isArray(src.sessions))return out;
-  // sessions Evo : {idAgente/agentId, agentNom, ini/fin (ms), online} — cnx/déco par session.
-  src.sessions.forEach(s=>{
-    const nom=s.agentNom||s.nom||s.name||"";
-    const key=_normName(nom); if(!key)return;
-    const b=s.ini||s.begin||s.b||null, e=s.fin||s.end||s.e||null;
-    if(!out[key])out[key]={nom,connSec:0,cu:0};
-    if(b&&e&&e>b)out[key].connSec+=Math.round((e-b)/1000);
+  if(!src)return out;
+  // idAgente → nom + CU (cuPos = mesurable, cf. mémoire "source CU") depuis les stats par campagne
+  const nameById={}, cuById={};
+  (Array.isArray(src.rawSqlAgentCamps)?src.rawSqlAgentCamps:[]).forEach(r=>{
+    const id=String(r.idAgente||""); if(!id)return;
+    if(r.agentNom&&!nameById[id])nameById[id]=r.agentNom;
+    cuById[id]=(cuById[id]||0)+(Number(r.cuPos)||0);
   });
-  // CU par agent : depuis les stats agents Evo si dispo
-  const ags=src.rawAg||src.agents||[];
-  (Array.isArray(ags)?ags:[]).forEach(a=>{
-    const nom=a.nom||a.agentNom||a.name||""; const key=_normName(nom); if(!key)return;
+  (Array.isArray(src.sessions)?src.sessions:[]).forEach(s=>{
+    const id=String(s.idAgente||""); const nom=nameById[id]||"";
+    const key=_normName(nom); if(!key)return;
+    const b=Number(s.firstBegin)||0;
+    let e=Number(s.lastEnd)||0;
+    // Session encore ouverte (jour courant) : borner à maintenant, jamais dans le futur.
+    if(s.online&&(!e||e<b))e=Date.now();
     if(!out[key])out[key]={nom,connSec:0,cu:0};
-    const cu=Number(a.cu||a.CU||a.acc||a.accords||0)||0; if(cu)out[key].cu+=cu;
+    if(b&&e>b)out[key].connSec+=Math.round((e-b)/1000);
+  });
+  Object.entries(cuById).forEach(([id,cu])=>{
+    const key=_normName(nameById[id]||""); if(!key||!cu)return;
+    if(!out[key])out[key]={nom:nameById[id],connSec:0,cu:0};
+    out[key].cu+=cu;
   });
   return out;
 }
 // Calcule (ou recharge du cache) le relevé d'heures d'une journée : {date, at, agents:{id:{...}}}.
 const HOURS_TODAY_TTL_MS=10*60*1000; // le jour courant n'est refetché qu'au-delà de 10 min (quota INO)
+const _hoursInflight={}; // date → Promise (verrou anti-double-fetch : 2 requêtes simultanées = 1 seul fetch INO)
 async function computeHoursDay(d,force){
   const today=parisDateStr();
   const cached=hoursLoadDay(d);
-  // Jours passés = immuables une fois en cache. Jour courant = servi du cache s'il a < 10 min
-  // (évite de refetcher INO à chaque chargement/bascule de vue — protège le quota).
   if(cached && !force){
-    if(d!==today)return cached;
-    if(cached.at && (Date.now()-cached.at)<HOURS_TODAY_TTL_MS)return cached;
+    if(d!==today){
+      // Jour passé : immuable SEULEMENT si le relevé a été pris APRÈS la fin de la journée
+      // (finalized). Un jour consulté à 15h puis plus jamais resterait sinon figé à 15h.
+      const _snapDay=cached.at?parisDateStr(new Date(cached.at)):null;
+      if(cached.finalized||( _snapDay&&_snapDay>d))return Object.assign({},cached,{finalized:true});
+      // sinon : snapshot intrajournalier d'un jour révolu → un recalcul unique le finalise.
+    }else if(cached.at && (Date.now()-cached.at)<HOURS_TODAY_TTL_MS)return cached;
   }
-  const token=await getToken(); if(!token)return cached||{date:d,at:Date.now(),agents:{},noToken:true};
+  if(_hoursInflight[d])return _hoursInflight[d]; // fetch déjà en cours pour cette date
+  const _p=(async()=>{
+  const token=await getToken();
+  // Pas de token = journée INCONNUE, pas une journée à zéro : echec:true, jamais mise en cache.
+  if(!token)return cached||{date:d,at:Date.now(),agents:{},echec:true,noToken:true};
   const tranches=[["00:00:00","07:59:59"],["08:00:00","11:59:59"],["12:00:00","15:59:59"],["16:00:00","23:59:59"]];
   let inH=[],outH=[],echec=false;
   for(const[s,e]of tranches){
@@ -1197,8 +1257,10 @@ async function computeHoursDay(d,force){
       apiReq("POST","/call/in/histories",{startDate:d+" "+s,endDate:d+" "+e,limit:2000},token).catch(()=>null),
       apiReq("POST","/call/out/histories",{startDate:d+" "+s,endDate:d+" "+e,limit:2000},token).catch(()=>null)
     ]);
-    if(ri&&ri.histories)inH=inH.concat(ri.histories); else if(!ri)echec=true;
-    if(ro&&ro.histories)outH=outH.concat(ro.histories); else if(!ro)echec=true;
+    // Un timeout ({_timeout:true}), une réponse non-JSON ou une tranche saturée (2000 = il y en a
+    // sûrement plus) = journée PARTIELLE → echec, jamais cachée comme un vrai zéro.
+    if(ri&&Array.isArray(ri.histories)&&!ri._timeout){ inH=inH.concat(ri.histories); if(ri.histories.length>=2000)echec=true; } else echec=true;
+    if(ro&&Array.isArray(ro.histories)&&!ro._timeout){ outH=outH.concat(ro.histories); if(ro.histories.length>=2000)echec=true; } else echec=true;
   }
   const ags={};
   const add=(h,dir)=>{
@@ -1212,24 +1274,27 @@ async function computeHoursDay(d,force){
     A.commSec+=dur; if(dir==="in")A.nIn++; else A.nOut++;
   };
   inH.forEach(h=>add(h,"in")); outH.forEach(h=>add(h,"out"));
-  // Evo par nom
-  const evo=evoHoursByName(d);
   // Annuaire : inclure 100% des agents (hors managers), même sans activité INO ce jour-là.
+  // Le groupe (Agents RA / B2B / Voltalis) est propagé pour permettre un filtre par pôle.
   let dir={}; try{dir=await fetchAgentDirectory();}catch(e){}
   Object.keys(dir).forEach(id=>{
     const dd=dir[id]; if(!dd||dd.role==="superviseur")return;
     if(!ags[id])ags[id]={id,nom:dd.nom,firstMs:0,lastMs:0,commSec:0,nIn:0,nOut:0,noActivite:true};
     else if(dd.nom)ags[id].nom=dd.nom;
+    ags[id].grp=dd.group||null;
   });
-  // Attacher Evo (par nom normalisé) à chaque agent
   Object.values(ags).forEach(A=>{
-    const ev=evo[_normName(A.nom)];
-    A.evoConnSec=ev?ev.connSec:0; A.evoCu=ev?ev.cu:0;
     A.ampliSec=(A.firstMs&&A.lastMs&&A.lastMs>A.firstMs)?Math.round((A.lastMs-A.firstMs)/1000):0;
   });
-  const rec={date:d,at:Date.now(),echec,agents:ags};
-  if(!echec)hoursSaveDay(d,rec); // ne pas cacher un jour dont le fetch a échoué
+  // NB : la partie Evo (connSec/CU) n'est PAS figée ici — elle est ré-attachée à chaque
+  // agrégation /api/hours depuis l'historique Evo local (0 quota INO, re-backfillable).
+  const _finalized=(d!==today)&&!echec;
+  const rec={date:d,at:Date.now(),echec,finalized:_finalized,agents:ags};
+  if(!echec)hoursSaveDay(d,rec); // ne jamais cacher une journée partielle/en échec
   return rec;
+  })();
+  _hoursInflight[d]=_p;
+  try{ return await _p; } finally { delete _hoursInflight[d]; }
 }
 // Liste des jours [d1..d2] inclus (borne 200 j = ~6,5 mois). Reste en composantes LOCALES
 // (jamais toISOString, qui décale d'un jour selon le fuseau du serveur : Railway=UTC vs poste=CEST).
@@ -1258,6 +1323,18 @@ function _toISODate(v){
   return null;
 }
 function _hnum(v){ if(v==null||v==="")return 0; const n=parseFloat(String(v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isNaN(n)?0:n; }
+// Valeur HEURES d'une cellule paie — gère les 3 formats rencontrés :
+//   décimal ("7", "7,5"), horaire ("7h30" / "07:30" → 7,5 — _hnum seul donnerait 730 !),
+//   fraction de jour Excel (cellule formatée heure lue en raw:true : 7:30 → 0.3125 → ×24).
+function _hnumHours(v){
+  if(v==null||v==="")return 0;
+  if(typeof v==="number"){ if(v>0&&v<1)return Math.round(v*24*100)/100; return v; }
+  const s=String(v).trim();
+  const m=s.match(/^(\d{1,2})\s*[h:]\s*(\d{1,2})\s*$/i);
+  if(m)return (parseInt(m[1],10)||0)+((parseInt(m[2],10)||0)/60);
+  const n=_hnum(s);
+  return (n>0&&n<1)?Math.round(n*24*100)/100:n;
+}
 // Depuis des objets {header:valeur} (sheet_to_json). Repère les colonnes par nom (accents/casse ignorés).
 function _parsePayrollRows(objs){
   if(!Array.isArray(objs)||!objs.length)return [];
@@ -1269,8 +1346,10 @@ function _parsePayrollRows(objs){
   return objs.map(o=>({
     nom:kNom?o[kNom]:null,
     date:_toISODate(kDate?o[kDate]:null),
-    totalProd:_hnum(kTot?o[kTot]:0),
-    plage:kPlage?(_hnum(o[kPlage])||o[kPlage]||null):null,
+    // _hnumHours : décimal, "7h30"/"07:30" et fraction-de-jour Excel. Garde-fou >24h/jour → 0
+    // (ligne aberrante plutôt qu'un écart délirant).
+    totalProd:(v=>v>24?0:v)(_hnumHours(kTot?o[kTot]:0)),
+    plage:kPlage?(_hnumHours(o[kPlage])||o[kPlage]||null):null,
     absence:(kAbs&&_hnum(o[kAbs])>0)?true:null,
     motif:kMotif?(o[kMotif]||null):null
   })).filter(r=>r.nom&&r.date);
@@ -1647,33 +1726,91 @@ const server=http.createServer(async(req,res)=>{
         let capped=false;
         if(jours.length>31){ jours=jours.slice(jours.length-31); d1=jours[0]; capped=true; }
         const payroll=(sharedStore.payroll)||{};
-        const byAgent={}; // id → {id,nom,byDay:{},tot:{}}
+        const byAgent={}; // id → {id,nom,grp,byDay:{},tot:{}}
         const echJours=[];
+        const paieOrphelines={}; // date → [noms paie sans agent rapproché]
         for(const d of jours){
           const rec=await computeHoursDay(d);
-          if(rec&&rec.echec)echJours.push(d);
+          const dayEchec=!!(rec&&rec.echec);
+          if(dayEchec)echJours.push(d);
           const ags=(rec&&rec.agents)||{};
           const pDay=payroll[d]||{};
+          // Evo ré-attaché FRAIS à chaque agrégation (historique local re-backfillable, 0 quota INO)
+          // — le cache jour ne fige que la partie INO.
+          const evo=evoHoursByName(d);
+          const _resolve=_paieResolver(pDay);
+          const _paieConsommee=new Set();
+          const _evoConsomme=new Set();
           Object.values(ags).forEach(a=>{
-            if(!byAgent[a.id])byAgent[a.id]={id:a.id,nom:a.nom,byDay:{},tot:{ampliSec:0,commSec:0,evoConnSec:0,nIn:0,nOut:0,evoCu:0,paieH:0,joursActifs:0,joursPaie:0}};
-            const B=byAgent[a.id]; if(a.nom)B.nom=a.nom;
-            const pr=pDay[_normName(a.nom)]||null;
-            const actif=(a.nIn||a.nOut||a.evoCu||a.ampliSec)?1:0;
+            if(!byAgent[a.id])byAgent[a.id]={id:a.id,nom:a.nom,grp:a.grp||null,byDay:{},tot:{ampliSec:0,commSec:0,evoConnSec:0,presSec:0,presPaieSec:0,nIn:0,nOut:0,evoCu:0,paieH:0,joursActifs:0,joursPaie:0,joursEchec:0}};
+            const B=byAgent[a.id]; if(a.nom)B.nom=a.nom; if(a.grp)B.grp=a.grp;
+            const key=_normName(a.nom);
+            const _hit=_resolve(key);
+            const pr=_hit?_hit.rec:null; if(_hit)_paieConsommee.add(_hit.key);
+            if(evo[key])_evoConsomme.add(key);
+            const ev=evo[key]||null;
+            const evoConnSec=ev?ev.connSec:0, evoCu=ev?ev.cu:0;
+            const presSec=Math.max(a.ampliSec||0,evoConnSec);
+            const actif=(a.nIn||a.nOut||evoCu||a.ampliSec||evoConnSec)?1:0;
+            // Fiabilité de la ligne : "echec" (INO partiel), "haute" (2 sources concordantes ou
+            // paie ≈ présence), "verif" (anomalie: paie sans présence, gros écart, ampli aberrante),
+            // "normale" sinon. Le front l'affiche telle quelle — calculée UNE fois ici.
+            let fiab="normale";
+            const paieH=pr?(pr.totalProd||0):null;
+            if(dayEchec)fiab="echec";
+            else if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
+            else if(presSec>13*3600)fiab="verif";
+            else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
+            else if((a.ampliSec>0&&evoConnSec>0&&Math.abs(a.ampliSec-evoConnSec)<3600)||(paieH!=null&&Math.abs(paieH-presSec/3600)<=1))fiab="haute";
             const day={
               firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec:a.ampliSec||0,commSec:a.commSec||0,
-              nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec:a.evoConnSec||0,evoCu:a.evoCu||0,
-              paieH:pr?(pr.totalProd||0):null,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
+              nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec,evoCu,echec:dayEchec,fiab,
+              paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
             };
             B.byDay[d]=day;
-            B.tot.ampliSec+=day.ampliSec;B.tot.commSec+=day.commSec;B.tot.evoConnSec+=day.evoConnSec;
-            B.tot.nIn+=day.nIn;B.tot.nOut+=day.nOut;B.tot.evoCu+=day.evoCu;
-            if(day.paieH!=null){B.tot.paieH+=day.paieH;B.tot.joursPaie++;}
+            B.tot.ampliSec+=day.ampliSec;B.tot.commSec+=day.commSec;B.tot.evoConnSec+=evoConnSec;
+            // Présence totale = Σ des max JOURNALIERS (jamais max des sommes — faux dès qu'un
+            // agent alterne jours INO et jours Evo).
+            B.tot.presSec+=presSec;
+            B.tot.nIn+=day.nIn;B.tot.nOut+=day.nOut;B.tot.evoCu+=evoCu;
+            if(day.paieH!=null){
+              B.tot.paieH+=day.paieH;B.tot.joursPaie++;
+              // Présence sommée UNIQUEMENT sur les jours saisis → écart total à périmètre égal.
+              B.tot.presPaieSec+=presSec;
+            }
             if(actif)B.tot.joursActifs++;
+            if(dayEchec)B.tot.joursEchec++;
           });
+          // ── Agents EVO-SEULS (équipe sortante/leadgen, absents de l'annuaire INO) ──
+          // Objectif « 100 % des agents » : sans cette boucle, leurs heures Evo existaient mais
+          // n'apparaissaient jamais, et leurs lignes paie devenaient de fausses orphelines.
+          Object.entries(evo).forEach(([key,ev])=>{
+            if(_evoConsomme.has(key))return;
+            if(!(ev.connSec||ev.cu))return;
+            const pid="evo:"+key;
+            if(!byAgent[pid])byAgent[pid]={id:pid,nom:ev.nom,grp:"Evo (sortant)",byDay:{},tot:{ampliSec:0,commSec:0,evoConnSec:0,presSec:0,presPaieSec:0,nIn:0,nOut:0,evoCu:0,paieH:0,joursActifs:0,joursPaie:0,joursEchec:0}};
+            const B=byAgent[pid];
+            const _hit=_resolve(key);
+            const pr=_hit?_hit.rec:null; if(_hit)_paieConsommee.add(_hit.key);
+            const paieH=pr?(pr.totalProd||0):null;
+            const presSec=ev.connSec||0;
+            let fiab="haute"; // session Evo = mesure réelle
+            if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
+            else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
+            const day={firstMs:0,lastMs:0,ampliSec:0,commSec:0,nIn:0,nOut:0,evoConnSec:presSec,evoCu:ev.cu||0,echec:false,fiab,
+              paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null};
+            B.byDay[d]=day;
+            B.tot.evoConnSec+=presSec;B.tot.presSec+=presSec;B.tot.evoCu+=(ev.cu||0);
+            if(paieH!=null){B.tot.paieH+=paieH;B.tot.joursPaie++;B.tot.presPaieSec+=presSec;}
+            if(presSec||ev.cu)B.tot.joursActifs++;
+          });
+          // Lignes paie de ce jour qui n'ont matché AUCUN agent (INO ou Evo) → visibles, pas avalées.
+          Object.keys(pDay).forEach(k=>{ if(!_paieConsommee.has(k)){ (paieOrphelines[d]=paieOrphelines[d]||[]).push(pDay[k].nom||k); } });
         }
         const agents=Object.values(byAgent).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+        const nbOrph=Object.values(paieOrphelines).reduce((s,l)=>s+l.length,0);
         res.writeHead(200,{"Content-Type":"application/json"});
-        res.end(JSON.stringify({ok:true,d1,d2,jours,agents,joursEchec:echJours,capped,hasPayroll:Object.keys(payroll).length>0,updatedAt:new Date().toISOString()}));
+        res.end(JSON.stringify({ok:true,d1,d2,jours,agents,joursEchec:echJours,capped,paieOrphelines,nbPaieOrphelines:nbOrph,hasPayroll:Object.keys(payroll).length>0,updatedAt:new Date().toISOString()}));
       }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
     })();
     return;
@@ -1701,13 +1838,24 @@ const server=http.createServer(async(req,res)=>{
           }
         }
         if(!rows){res.writeHead(200,{"Content-Type":"application/json"});return res.end(JSON.stringify({ok:false,error:"Aucune donnée exploitable dans le fichier."}));}
-        // Fusion dans le store paie : payroll[date][normNom] = {nom,totalProd,plage,absence,motif}
+        // Agréger d'abord AU SEIN de l'import : deux lignes même agent/même date (plages matin +
+        // après-midi, fréquent en paie) se CUMULENT — l'ancien code écrasait, seule la dernière survivait.
+        const agg={}; let n=0,dates={};
+        rows.forEach(r=>{
+          if(!r.date||!r.nom)return; n++; dates[r.date]=1;
+          const k=r.date+"|"+_normName(r.nom);
+          if(!agg[k])agg[k]={date:r.date,norm:_normName(r.nom),nom:r.nom,totalProd:0,plage:null,absence:null,motif:null};
+          agg[k].totalProd+=(r.totalProd||0);
+          if(r.plage!=null)agg[k].plage=(Number(agg[k].plage)||0)+(Number(r.plage)||0)||r.plage;
+          if(r.absence)agg[k].absence=true;
+          if(r.motif)agg[k].motif=agg[k].motif?(agg[k].motif+", "+r.motif):r.motif;
+        });
+        // Fusion dans le store : payroll[date][normNom] — un ré-import de la même date remplace (anti-doublon).
         const pr=sharedStore.payroll||(sharedStore.payroll={});
-        let n=0,dates={};
-        rows.forEach(r=>{ if(!r.date||!r.nom)return; if(!pr[r.date])pr[r.date]={}; pr[r.date][_normName(r.nom)]={nom:r.nom,totalProd:r.totalProd||0,plage:r.plage||null,absence:r.absence||null,motif:r.motif||null}; n++; dates[r.date]=1; });
+        Object.values(agg).forEach(r=>{ if(!pr[r.date])pr[r.date]={}; pr[r.date][r.norm]={nom:r.nom,totalProd:Math.round(r.totalProd*100)/100,plage:r.plage,absence:r.absence,motif:r.motif}; });
         persistStore();
         res.writeHead(200,{"Content-Type":"application/json"});
-        res.end(JSON.stringify({ok:true,lignes:n,dates:Object.keys(dates).sort()}));
+        res.end(JSON.stringify({ok:true,lignes:n,agents:Object.keys(agg).length,dates:Object.keys(dates).sort()}));
       }catch(e){res.writeHead(200,{"Content-Type":"application/json"});res.end(JSON.stringify({ok:false,error:e.message}));}
     });
     return;

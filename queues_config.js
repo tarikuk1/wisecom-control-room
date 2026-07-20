@@ -46,10 +46,12 @@ const QUEUES_MAP = {
     "ELECTROSUR_MOBILE_Sinistre_Réitération","ELECTROSUR_MOBILE_Autres_Réitération",
     "ELECTROSUR_Magasin_Autres","ELECTROSUR_Magasin_Information"
   ],
+  // "Sortant Verspieren" retiré : la file figurait AUSSI dans Verspieren — une file ne doit
+  // appartenir qu'à une campagne (detectCampaignSrv prend la 1ère de CAMPS, Vivest gagnait à tort).
   Vivest: [
     "Vivest_Client","Vivest_Client_Réitération","Vivest_Standard",
     "Vivest_Standard_Réitération","Vivest_Astreinte","Vivest_Astreinte_Réitération",
-    "Vivest_Interne","Sortant Vivest","Sortant Verspieren"
+    "Vivest_Interne","Sortant Vivest"
   ],
   // Evoriel = marques Lamy / Oralia / Richardière côté INO. Les files "Evoriel_Copropriétaire"
   // & co. n'existent PLUS dans les historiques : sans les Lamy_*/Oralia_*/Richardière_*, tout le

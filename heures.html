@@ -5,14 +5,16 @@
 /* Thème CLAIR par défaut (demande Tarik) ; bascule sombre via body.dark, persistée. */
 :root{
   --bg:#eef0f3;--s1:#ffffff;--s2:#f4f6f8;--s3:#e9ecef;--bd:#d5d9df;--bd2:#e6e9ee;
-  --tx:#161a1f;--mut:#5c6570;--dis:#98a0aa;--zeb:#f7f8fa;--hov:#eef4ff;
-  --pink:#E8006E;--green:#188a3a;--orange:#b9700a;--red:#d32d22;--blue:#1f6fb8;
+  /* --dis relevé de #98a0aa → #6b7480 : 2,6:1 sur blanc = illisible (WCAG AA exige 4,5:1) */
+  --tx:#161a1f;--mut:#5c6570;--dis:#6b7480;--zeb:#f7f8fa;--hov:#eef4ff;
+  /* Couleurs TEXTE des pastilles assombries pour tenir 4,5:1 sur leurs fonds pâles */
+  --pink:#E8006E;--green:#0f6e2d;--orange:#8a5300;--red:#b3261e;--blue:#1f6fb8;
   --topbg:linear-gradient(180deg,#ffffff,#f3f5f8);--thbg:#f0f2f5;--agentbg:#ffffff;--agentbgz:#f7f8fa;
   --shadow:0 1px 3px rgba(20,25,35,.06);
 }
 body.dark{
   --bg:#0d0d0d;--s1:#151515;--s2:#1c1c1c;--s3:#2a2a2a;--bd:#333;--bd2:#242424;
-  --tx:#e8e8e8;--mut:#9a9a9a;--dis:#666;--zeb:#131313;--hov:#161d29;
+  --tx:#e8e8e8;--mut:#9a9a9a;--dis:#8f8f8f;--zeb:#131313;--hov:#161d29;
   --pink:#E8006E;--green:#30d158;--orange:#ff9f0a;--red:#ff5b52;--blue:#4ac3ff;
   --topbg:linear-gradient(180deg,#141414,#101010);--thbg:#191919;--agentbg:#121212;--agentbgz:#161616;
   --shadow:none;
@@ -20,34 +22,49 @@ body.dark{
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:Inter,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:13px;padding:0 0 60px}
 a{color:inherit}
-.top{position:sticky;top:0;z-index:20;background:var(--topbg);border-bottom:1px solid var(--bd);padding:11px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:var(--shadow)}
+/* En-tête sur 2 RANGÉES (audit : "fourre-tout" — 3 fonctions mélangées sur 1 ligne).
+   Rangée 1 = identité + navigation de VUE. Rangée 2 = période + données, en sections labellisées. */
+.top{position:sticky;top:0;z-index:20;background:var(--topbg);border-bottom:1px solid var(--bd);box-shadow:var(--shadow)}
+.top-r1{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 20px 8px}
+.top-r2{display:flex;flex-wrap:wrap;gap:0;align-items:center;padding:7px 20px 9px;border-top:1px solid var(--bd2);background:var(--s2)}
 .top h1{font-size:15px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;white-space:nowrap}
 .top h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink)66}
 .sp{flex:1}
-.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sec{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sec-lbl{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-right:2px}
+.vsep{width:1px;height:22px;background:var(--bd);margin:0 14px}
 label.f{font-size:11px;color:var(--mut)}
 input[type=date],select{background:var(--s1);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:6px 9px;font-size:12px}
 button{background:var(--s1);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:.12s}
 button:hover{background:var(--s3);border-color:var(--mut)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
 button.pk{background:var(--pink);border-color:var(--pink);color:#fff}
 button.pk:hover{filter:brightness(1.08)}
+button:disabled{opacity:.5;cursor:wait}
 .preset{padding:6px 10px;font-size:11px}
+/* Preset ACTIF = teinté rose (distinct du segmented plein qui, lui, change de VUE) */
+.preset.on{background:rgba(232,0,110,.09);border-color:rgba(232,0,110,.45);color:var(--pink);font-weight:700}
 .seg{display:inline-flex;background:var(--s2);border:1px solid var(--bd);border-radius:9px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:transparent}
 .seg button.on{background:var(--pink);color:#fff}
 .icon-btn{padding:7px 10px}
+.btn-nav{font-size:11.5px;padding:6px 11px;text-decoration:none;border:1px solid var(--bd);border-radius:7px;background:var(--s1);font-weight:600}
+.btn-nav:hover{background:var(--s3)}
 .wrap{padding:16px 20px;max-width:1600px}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;font-size:12px;color:var(--mut)}
 .note{background:#fff6e6;border:1px solid #f0d49a;color:#7a5600;border-radius:8px;padding:9px 13px;font-size:11.5px;line-height:1.55}
 body.dark .note{background:#2a1a00;border-color:#5a3d00;color:#ffcc66}
-/* Tableaux */
-.tblwrap{overflow-x:auto;border:1px solid var(--bd);border-radius:10px;background:var(--s1);box-shadow:var(--shadow)}
+/* Tableaux façon TABLEUR : scroll interne → thead réellement figé + coin Agent gelé */
+.tblwrap{overflow:auto;max-height:calc(100vh - 250px);border:1px solid var(--bd);border-radius:10px;background:var(--s1);box-shadow:var(--shadow)}
 .tblwrap.fit{display:inline-block;max-width:100%}
 table{border-collapse:separate;border-spacing:0;font-size:12.5px;white-space:nowrap}
 table.full{width:100%}
 th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--bd2)}
 tbody tr:last-child td{border-bottom:0}
-th{background:var(--thbg);position:sticky;top:0;z-index:2;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;cursor:pointer;user-select:none;border-bottom:2px solid var(--bd)}
+th{background:var(--thbg);position:sticky;top:0;z-index:2;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut);font-weight:700;user-select:none;border-bottom:2px solid var(--bd)}
+/* Tri : la main n'apparaît QUE sur les colonnes réellement triables (vue Synthèse) */
+th.sortable{cursor:pointer}
+thead th.l:first-child{position:sticky;left:0;z-index:3;background:var(--thbg)}
 th.l,td.l{text-align:left}
 td.num{font-variant-numeric:tabular-nums}
 tr:hover td{background:var(--hov)}
@@ -55,9 +72,13 @@ td.agent{font-weight:600;position:sticky;left:0;background:var(--agentbg);z-inde
 .zebra:nth-child(even) td{background:var(--zeb)}
 .zebra:nth-child(even) td.agent{background:var(--agentbgz)}
 tr:hover td.agent{background:var(--hov)}
+/* Rupture visuelle au changement d'agent dans le registre */
+tr.agent-first td{border-top:2px solid var(--bd)}
+td.agent-repeat{color:var(--dis);font-weight:400;font-size:10.5px}
 .day-h{color:var(--tx);font-weight:700}
-.sub{font-size:11px;color:var(--dis);margin-top:7px}
-.wknd td{color:var(--dis)}
+.sub{font-size:11px;color:var(--mut);margin-top:7px}
+/* Week-end : ne griser QUE la cellule Jour — un week-end travaillé doit rester lisible */
+.wknd td.day-h{color:var(--dis);font-weight:600}
 .chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700}
 /* Écart = pastille colorée lisible dans les deux thèmes */
 .ec{display:inline-block;min-width:52px;text-align:center;padding:2px 8px;border-radius:6px;font-weight:800;font-variant-numeric:tabular-nums;font-size:11.5px}
@@ -65,9 +86,21 @@ tr:hover td.agent{background:var(--hov)}
 .ec.mid{background:#fdf0dc;color:var(--orange);border:1px solid #f2d29a}
 .ec.bad{background:#fbe2e0;color:var(--red);border:1px solid #f2b8b3}
 .ec.na{background:transparent;color:var(--dis);border:0}
+/* Jour INO en échec : écart NEUTRE (données manquantes ≠ anomalie) */
+.ec.unk{background:var(--s3);color:var(--mut);border:1px dashed var(--bd)}
 body.dark .ec.ok{background:#0e2a16;border-color:#1c5230}
 body.dark .ec.mid{background:#2e2200;border-color:#5a4600}
 body.dark .ec.bad{background:#2e1210;border-color:#5a2420}
+/* Fiabilité de la ligne (calculée serveur) */
+.fb{display:inline-block;min-width:20px;text-align:center;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:800}
+.fb.haute{background:#e3f5e9;color:var(--green)}
+.fb.normale{background:var(--s3);color:var(--mut)}
+.fb.verif{background:#fbe2e0;color:var(--red)}
+.fb.echec{background:var(--s3);color:var(--mut);border:1px dashed var(--bd)}
+body.dark .fb.haute{background:#0e2a16}
+body.dark .fb.verif{background:#2e1210}
+.warnbar{background:#fbe9e7;border:1px solid #f2b8b3;color:#8a2019;border-radius:8px;padding:8px 12px;font-size:11.5px;margin-bottom:10px}
+body.dark .warnbar{background:#2e1210;border-color:#5a2420;color:#ff9d95}
 /* Grille calendrier — colonnes jours étroites, largeur au contenu (pas d'étalement) */
 .cal th,.cal td{padding:5px 7px;text-align:center}
 .cal td.agent{text-align:left}
@@ -97,50 +130,50 @@ input[type=file]{display:none}
 .legend span b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.12)}
 </style></head><body class="light">
 <div class="top">
-  <h1><span class="dot"></span>Check des heures</h1>
-  <div class="seg" id="view-seg">
-    <button data-v="registre" class="on">Registre quotidien</button>
-    <button data-v="synthese">Synthèse</button>
-    <button data-v="grille">Grille calendrier</button>
+  <div class="top-r1">
+    <h1><span class="dot"></span>Check des heures</h1>
+    <div class="seg" id="view-seg" role="tablist" aria-label="Vue">
+      <button data-v="registre" class="on">Registre quotidien</button>
+      <button data-v="synthese">Synthèse</button>
+      <button data-v="grille">Grille calendrier</button>
+    </div>
+    <div class="sp"></div>
+    <a href="/" class="btn-nav">← Dashboard</a>
+    <button id="theme" class="icon-btn" title="Basculer clair / sombre" aria-label="Basculer le thème clair ou sombre">🌙</button>
   </div>
-  <div class="sp"></div>
-  <div class="ctl">
-    <button class="preset" data-p="today">Aujourd'hui</button>
-    <button class="preset" data-p="7">7 j</button>
-    <button class="preset" data-p="14">14 j</button>
-    <button class="preset" data-p="30">30 j</button>
-    <button class="preset" data-p="prevm">Mois -1</button>
-  </div>
-  <div class="ctl">
-    <label class="f">Du</label><input type="date" id="d1">
-    <label class="f">au</label><input type="date" id="d2">
-    <button class="pk" id="load">Charger</button>
-  </div>
-  <div class="ctl">
-    <button id="upload-btn" title="Importer un export paie (.xlsx ou .csv) pour calculer les écarts">↥ Import paie</button>
-    <input type="file" id="file" accept=".xlsx,.xls,.csv">
-    <button id="export">↓ Excel</button>
-    <button id="theme" class="icon-btn" title="Basculer clair / sombre">🌙</button>
+  <div class="top-r2">
+    <div class="sec">
+      <span class="sec-lbl">Période</span>
+      <button class="preset" data-p="today">Aujourd'hui</button>
+      <button class="preset" data-p="7">7 j</button>
+      <button class="preset" data-p="14">14 j</button>
+      <button class="preset" data-p="30">30 j</button>
+      <button class="preset" data-p="prevm">Mois -1</button>
+      <label class="f">Du</label><input type="date" id="d1" aria-label="Date de début">
+      <label class="f">au</label><input type="date" id="d2" aria-label="Date de fin">
+      <button class="pk" id="load">Charger</button>
+    </div>
+    <div class="vsep"></div>
+    <div class="sec">
+      <span class="sec-lbl">Données</span>
+      <button id="upload-btn" title="Importer un export paie (.xlsx ou .csv) pour calculer les écarts" aria-label="Importer un export paie">Import paie</button>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv">
+      <button id="export" title="Télécharger la vue courante (CSV, s'ouvre dans Excel)" aria-label="Exporter en CSV">Export CSV</button>
+    </div>
   </div>
 </div>
 <div class="wrap">
   <div class="bar">
-    <span id="status">Prêt.</span>
-    <span class="sp"></span>
-    <a href="/" style="font-size:11px;color:var(--mut)">← Dashboard</a>
+    <span id="status" aria-live="polite">Prêt.</span>
   </div>
   <div class="note" id="src-note">
-    <b>Sources :</b> INO (appels — 1ère/dernière activité, temps de communication, nb d'appels) · Evo (sessions réelles) · Paie (Total H prod importé).
-    ⚠️ INO n'expose <b>aucun historique de session</b> : le « temps présent » INO est <b>approché par l'amplitude 1ᵉʳ→dernier appel</b> (inclut pauses/déjeuner, exclut le login avant le 1ᵉʳ appel). Evo = sessions exactes. L'écart est un <b>détecteur d'incohérence</b>, pas une mesure paie à la minute.
+    <b>Sources :</b> INO (appels — 1ᵉʳ/dernier appel, temps de communication, nb d'appels) · Evo (sessions réelles) · Paie (Total H prod importé).
+    ⚠️ INO n'expose <b>aucun historique de session</b> : le « temps présent » INO est <b>approché par l'amplitude 1ᵉʳ→dernier appel</b> (inclut pauses/déjeuner, exclut le login avant le 1ᵉʳ appel — l'écart attendu est donc <b>négatif d'environ 1h</b> sur une journée normale). Evo = sessions exactes. L'écart est un <b>détecteur d'incohérence</b>, pas une mesure paie à la minute.
   </div>
+  <div id="alerts"></div>
   <div class="kpis" id="kpis"></div>
   <div id="content"></div>
-  <div class="legend">
-    <span><b style="background:var(--green)"></b>écart &lt; 1h (OK)</span>
-    <span><b style="background:var(--orange)"></b>écart 1–2h</span>
-    <span><b style="background:var(--red)"></b>écart &gt; 2h ou saisie sans activité</span>
-    <span><b style="background:#333"></b>pas de saisie paie importée</span>
-  </div>
+  <div class="legend" id="legend"></div>
 </div>
 <script>
 const $=s=>document.querySelector(s);
@@ -148,30 +181,45 @@ let DATA=null, VIEW="registre", SORT={k:null,dir:1};
 const pad=n=>String(n).padStart(2,"0");
 const isoT=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const JOURS=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
-function hms(sec){ if(!sec||sec<=0)return "–"; const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60); return h+"h"+pad(m); }
+// hms sans « 7h60 » : tout en minutes arrondies PUIS report d'heure
+function hms(sec){ if(!sec||sec<=0)return "–"; const t=Math.round(sec/60); return Math.floor(t/60)+"h"+pad(t%60); }
 function hDec(h){ if(h==null)return "–"; return (Math.round(h*100)/100).toString().replace(".",",")+"h"; }
 function parisHM(ms){ if(!ms)return "–"; return new Date(ms).toLocaleTimeString("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",minute:"2-digit"}); }
 function jourLabel(iso){ const d=new Date(iso+"T12:00:00"); return JOURS[d.getDay()]+" "+pad(d.getDate())+"/"+pad(d.getMonth()+1); }
 function isWknd(iso){ const g=new Date(iso+"T12:00:00").getDay(); return g===0||g===6; }
-// présence réelle = max(amplitude INO, session Evo) en sec
+// présence réelle du JOUR = max(amplitude INO, session Evo) en sec
 function presentSec(day){ return Math.max(day.ampliSec||0, day.evoConnSec||0); }
-function ecartClass(paieH, presSec){
-  if(paieH==null)return {cls:"ec na",txt:"–"};
+// Écart avec seuils ASYMÉTRIQUES : l'amplitude inclut pauses/déjeuner que la paie exclut →
+// un écart NÉGATIF ~−1h est normal. Le vrai signal d'alerte = payé PLUS que présent (positif).
+// opts.echec = jour INO incomplet → « ? » neutre (données manquantes ≠ anomalie).
+function ecartClass(paieH, presSec, opts){
+  opts=opts||{};
+  if(opts.echec)return {cls:"ec unk",txt:"?",raw:null};
+  if(paieH==null)return {cls:"ec na",txt:"–",raw:null};
   const ecH=paieH-(presSec/3600);
-  const a=Math.abs(ecH);
-  let cls="ok"; if(paieH>0 && presSec===0)cls="bad"; else if(a>2)cls="bad"; else if(a>1)cls="mid";
+  let cls="ok";
+  if(paieH>0 && presSec===0)cls="bad";
+  else if(ecH>1 || ecH<-3.5)cls="bad";
+  else if(ecH>0.5 || ecH<-2)cls="mid";
   const sign=ecH>=0?"+":"−";
-  return {cls:"ec "+cls, txt:sign+hDec(a).replace("h","")+"h", raw:ecH};
+  return {cls:"ec "+cls, txt:sign+hDec(Math.abs(ecH)).replace("h","")+"h", raw:ecH};
 }
-// ── presets ──
+function fbPill(f){ const lbl={haute:"✓ fiable",normale:"ok",verif:"⚠ vérifier",echec:"? INO"}[f]||"–";
+  const tt={haute:"Deux sources concordent ou paie ≈ présence",normale:"Une seule source, rien d'anormal",verif:"Anomalie : saisie sans présence, gros écart ou amplitude aberrante",echec:"Données INO incomplètes ce jour"}[f]||"";
+  return '<span class="fb '+(f||"normale")+'" title="'+tt+'">'+lbl+'</span>'; }
+// ── presets (l'actif reste marqué ; une saisie manuelle de date le dé-marque) ──
 function setRange(d1,d2){ $("#d1").value=d1; $("#d2").value=d2; }
+function clearPresetOn(){ document.querySelectorAll(".preset").forEach(x=>x.classList.remove("on")); }
 document.querySelectorAll(".preset").forEach(b=>b.onclick=()=>{
   const p=b.dataset.p, now=new Date();
   if(p==="today"){ const t=isoT(now); setRange(t,t); }
   else if(p==="prevm"){ const f=new Date(now.getFullYear(),now.getMonth()-1,1), l=new Date(now.getFullYear(),now.getMonth(),0); setRange(isoT(f),isoT(l)); }
   else { const n=parseInt(p,10); const f=new Date(now); f.setDate(f.getDate()-(n-1)); setRange(isoT(f),isoT(now)); }
+  clearPresetOn(); b.classList.add("on");
   load();
 });
+$("#d1").addEventListener("change",clearPresetOn);
+$("#d2").addEventListener("change",clearPresetOn);
 document.querySelectorAll("#view-seg button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#view-seg button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on"); VIEW=b.dataset.v; render();
@@ -185,8 +233,11 @@ function applyTheme(t){ const dark=t==="dark"; document.body.classList.toggle("d
 (function(){ let t="light"; try{t=localStorage.getItem("heures_theme")||"light";}catch(e){} applyTheme(t); })();
 $("#theme").onclick=()=>{ const dark=!document.body.classList.contains("dark"); applyTheme(dark?"dark":"light"); try{localStorage.setItem("heures_theme",dark?"dark":"light");}catch(e){} };
 
+let _loading=false;
 async function load(){
+  if(_loading)return; // anti-double-clic : chaque chargement peut coûter du quota INO
   const d1=$("#d1").value, d2=$("#d2").value; if(!d1||!d2)return;
+  _loading=true; $("#load").disabled=true; document.querySelectorAll(".preset").forEach(b=>b.disabled=true);
   $("#status").innerHTML='<span class="spin"></span> Chargement '+d1+' → '+d2+' (les jours non cachés sont recalculés depuis INO, cela peut prendre un moment)…';
   try{
     const r=await fetch("/api/hours?date="+d1+"&dateFin="+d2,{credentials:"same-origin"});
@@ -196,26 +247,70 @@ async function load(){
     DATA=j;
     let s=j.agents.length+" agents · "+j.jours.length+" jour(s) · MAJ "+new Date(j.updatedAt).toLocaleTimeString("fr-FR");
     if(!j.hasPayroll)s+=" · aucune saisie paie importée";
-    if(j.joursEchec&&j.joursEchec.length)s+=' · <span style="color:var(--orange)">⚠ '+j.joursEchec.length+' jour(s) INO en échec</span>';
+    if(j.joursEchec&&j.joursEchec.length)s+=' · <span style="color:var(--orange)">⚠ INO incomplet : '+j.joursEchec.map(d=>d.slice(8,10)+"/"+d.slice(5,7)).join(", ")+'</span>';
     $("#status").textContent="";$("#status").insertAdjacentHTML("beforeend",s);
+    // Alertes au-dessus des KPIs : plage tronquée (quota) + lignes paie non rapprochées
+    let al="";
+    if(j.capped)al+='<div class="note" style="margin-bottom:10px">Période ramenée aux <b>31 derniers jours</b> ('+j.d1+' → '+j.d2+') — protection du quota INO.</div>';
+    if(j.nbPaieOrphelines>0){
+      const noms=[...new Set(Object.values(j.paieOrphelines||{}).flat())];
+      const shown=noms.slice(0,12).join(", ")+(noms.length>12?" … +"+(noms.length-12)+" autres":"");
+      al+='<div class="warnbar" title="'+esc(noms.join(", "))+'"><b>'+j.nbPaieOrphelines+' ligne(s) paie sans agent rapproché</b> (personnel hors INO/Evo ou nom non reconnu — non comptées dans les écarts) : '+esc(shown)+'</div>';
+    }
+    $("#alerts").innerHTML=al;
     render();
   }catch(e){ $("#status").innerHTML='<span style="color:var(--red)">Erreur réseau : '+e.message+'</span>'; }
+  finally{ _loading=false; $("#load").disabled=false; document.querySelectorAll(".preset").forEach(b=>b.disabled=false); }
 }
 
 function kpiRow(){
   if(!DATA)return "";
-  let presTot=0,commTot=0,paieTot=0,appels=0,nAgents=DATA.agents.length,actifs=0;
-  DATA.agents.forEach(a=>{ presTot+=Math.max(a.tot.ampliSec,a.tot.evoConnSec); commTot+=a.tot.commSec; paieTot+=a.tot.paieH; appels+=a.tot.nIn+a.tot.nOut+a.tot.evoCu; if(a.tot.joursActifs)actifs++; });
-  const k=(v,label)=>'<div class="kpi"><div class="v">'+v+'</div><div class="k">'+label+'</div></div>';
-  return k(nAgents,"Agents")+k(actifs,"Actifs sur période")+k(hDec(presTot/3600),"Présence (INO/Evo)")+k(hDec(commTot/3600),"Communication")+(DATA.hasPayroll?k(hDec(paieTot),"Total H prod paie"):"")+k(appels.toLocaleString("fr-FR"),"Appels (INO+Evo)");
+  let presTot=0,commTot=0,paieTot=0,appels=0,cuTot=0,nAgents=DATA.agents.length,actifs=0;
+  let fbTot=0,fbOk=0;
+  DATA.agents.forEach(a=>{
+    presTot+=(a.tot.presSec||0); commTot+=a.tot.commSec; paieTot+=a.tot.paieH;
+    appels+=a.tot.nIn+a.tot.nOut; cuTot+=a.tot.evoCu;
+    if(a.tot.joursActifs)actifs++;
+    Object.values(a.byDay||{}).forEach(day=>{
+      if(!(day.ampliSec||day.evoConnSec||day.nIn||day.nOut||day.evoCu||day.paieH!=null))return;
+      fbTot++; if(day.fiab==="haute"||day.fiab==="normale")fbOk++;
+    });
+  });
+  const fiabPct=fbTot?Math.round(fbOk/fbTot*100):null;
+  const fiabCol=fiabPct==null?"var(--mut)":fiabPct>=90?"var(--green)":fiabPct>=75?"var(--orange)":"var(--red)";
+  const k=(v,label,col)=>'<div class="kpi"><div class="v"'+(col?' style="color:'+col+'"':'')+'>'+v+'</div><div class="k">'+label+'</div></div>';
+  return k(nAgents,"Agents")+k(actifs,"Actifs sur période")
+    +k(hDec(presTot/3600),"Présence (INO/Evo)")+k(hDec(commTot/3600),"Communication")
+    +(DATA.hasPayroll?k(hDec(paieTot),"Total H prod paie"):"")
+    +k(appels.toLocaleString("fr-FR"),"Appels INO")+(cuTot?k(cuTot.toLocaleString("fr-FR"),"CU Evo"):"")
+    +(fiabPct!=null?k(fiabPct+"%","Fiabilité données",fiabCol):"");
 }
 
 function render(){
-  if(!DATA){ $("#content").innerHTML='<div class="muted" style="padding:30px;text-align:center">Choisissez une période et cliquez « Charger ».</div>'; return; }
+  if(!DATA){ $("#content").innerHTML='<div class="muted" style="padding:30px;text-align:center">Choisissez une période et cliquez « Charger ».</div>'; renderLegend(); return; }
   $("#kpis").innerHTML=kpiRow();
   if(VIEW==="registre")renderRegistre();
   else if(VIEW==="synthese")renderSynthese();
   else renderGrille();
+  renderLegend();
+}
+// Légende avec les VRAIES pastilles (l'ancienne montrait des carrés pleins introuvables dans le tableau)
+function renderLegend(){
+  const L=[];
+  if(VIEW==="grille"){
+    L.push('<span><span class="c g-ok" style="border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700">7,0</span> écart normal</span>');
+    L.push('<span><span class="c g-mid" style="border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700">7,0</span> écart à surveiller</span>');
+    L.push('<span><span class="c g-bad" style="border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700">7,0</span> anomalie (payé &gt; présent, ou saisie sans activité)</span>');
+    L.push('<span><span class="c g-pres" style="border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700">7,0</span> présence sans saisie paie</span>');
+  }else{
+    L.push('<span><span class="ec ok">−0,8h</span> écart normal (déjeuner/pauses inclus dans la présence)</span>');
+    L.push('<span><span class="ec mid">+0,8h</span> à surveiller</span>');
+    L.push('<span><span class="ec bad">+2,1h</span> anomalie : payé au-delà du présent, ou saisie sans activité</span>');
+    L.push('<span><span class="ec unk">?</span> données INO incomplètes ce jour</span>');
+    L.push('<span><span class="ec na">–</span> pas de saisie paie</span>');
+  }
+  if(VIEW==="registre")L.push('<span>'+fbPill("haute")+' / '+fbPill("verif")+' fiabilité de la ligne</span>');
+  $("#legend").innerHTML=L.join("");
 }
 
 function renderRegistre(){
@@ -224,26 +319,34 @@ function renderRegistre(){
     DATA.jours.forEach(d=>{
       const day=a.byDay[d]; if(!day)return;
       const pres=presentSec(day);
-      // ne pas afficher les lignes totalement vides ET sans saisie (bruit) — sauf week-end saisi
+      // ne pas afficher les lignes totalement vides ET sans saisie (bruit)
       if(!pres && !day.nIn && !day.nOut && !day.evoCu && day.paieH==null)return;
       rows.push({a,d,day,pres});
     });
   });
   let h='<div class="tblwrap"><table class="full"><thead><tr>'
-    +'<th class="l">Agent</th><th class="l">Jour</th><th>1ʳᵉ cnx</th><th>Dern. act.</th><th>Présence</th><th>Comm.</th><th>Appels INO</th><th>Evo (CU)</th><th>Total</th>'
-    +(DATA.hasPayroll?'<th>H prod paie</th><th>Écart</th>':'')+'</tr></thead><tbody>';
+    +'<th class="l">Agent</th><th class="l">Jour</th>'
+    +'<th title="Premier appel INO du jour — pas un login (INO ne fournit pas les connexions)">1ᵉʳ appel</th>'
+    +'<th title="Fin du dernier appel INO du jour">Dern. appel</th>'
+    +'<th title="max(amplitude 1ᵉʳ→dernier appel INO, session Evo réelle)">Présence</th><th>Comm.</th>'
+    +'<th title="Appels entrants / sortants INO">Appels INO</th><th title="Contacts argumentés Evo (mesurable)">CU Evo</th><th>Actes</th>'
+    +(DATA.hasPayroll?'<th>H prod paie</th><th>Écart</th>':'')+'<th>Fiab.</th></tr></thead><tbody>';
+  let prevAgent=null;
   rows.forEach(r=>{
-    const day=r.day, ec=ecartClass(day.paieH, r.pres);
+    const day=r.day, ec=ecartClass(day.paieH, r.pres, {echec:day.echec&&day.paieH!=null});
     const tot=(day.nIn||0)+(day.nOut||0)+(day.evoCu||0);
-    h+='<tr class="zebra'+(isWknd(r.d)?' wknd':'')+'">'
-      +'<td class="agent l">'+esc(r.a.nom)+'</td>'
-      +'<td class="l day-h">'+jourLabel(r.d)+'</td>'
+    const first=(r.a.id!==prevAgent); prevAgent=r.a.id;
+    h+='<tr class="zebra'+(isWknd(r.d)?' wknd':'')+(first?' agent-first':'')+'">'
+      +'<td class="agent l'+(first?'':' agent-repeat')+'">'+(first?esc(r.a.nom):esc(r.a.nom))+'</td>'
+      +'<td class="l day-h">'+jourLabel(r.d)+(day.echec?' <span title="Données INO incomplètes ce jour" style="color:var(--orange)">⚠</span>':'')+'</td>'
       +'<td class="num">'+parisHM(day.firstMs)+'</td><td class="num">'+parisHM(day.lastMs)+'</td>'
-      +'<td class="num">'+hms(r.pres)+'</td><td class="num">'+hms(day.commSec)+'</td>'
+      +'<td class="num" title="Amplitude INO '+hms(day.ampliSec)+' · Session Evo '+hms(day.evoConnSec)+'">'+hms(r.pres)+(day.evoConnSec>((day.ampliSec)||0)?' <sup style="color:var(--blue);font-weight:700">E</sup>':'')+'</td>'
+      +'<td class="num">'+hms(day.commSec)+'</td>'
       +'<td class="num">'+(day.nIn||day.nOut?((day.nIn||0)+" / "+(day.nOut||0)):'<span class=miss>–</span>')+'</td>'
       +'<td class="num">'+(day.evoCu?day.evoCu:'<span class=miss>–</span>')+'</td>'
       +'<td class="num">'+(tot||'<span class=miss>–</span>')+'</td>'
-      +(DATA.hasPayroll?('<td class="num">'+(day.paieH!=null?hDec(day.paieH):'<span class=miss>–</span>')+(day.paieAbs?' <span class="chip" style="background:var(--s3);color:var(--red);border:1px solid var(--bd)">'+(day.paieMotif||"ABS")+'</span>':'')+'</td><td class="num"><span class="'+ec.cls+'">'+ec.txt+'</span></td>'):'')
+      +(DATA.hasPayroll?('<td class="num">'+(day.paieH!=null?hDec(day.paieH):'<span class=miss>–</span>')+(day.paieAbs?' <span class="chip" style="background:var(--s3);color:var(--red);border:1px solid var(--bd)">'+(esc(day.paieMotif||"ABS"))+'</span>':'')+'</td><td class="num"><span class="'+ec.cls+'">'+ec.txt+'</span></td>'):'')
+      +'<td>'+fbPill(day.fiab)+'</td>'
       +'</tr>';
   });
   h+='</tbody></table></div>';
@@ -251,32 +354,41 @@ function renderRegistre(){
   $("#content").innerHTML=h;
 }
 
+// Écart TOTAL d'un agent, à PÉRIMÈTRE ÉGAL : paie totale − présence des seuls jours SAISIS
+// (presPaieSec). Sinon un import partiel (1 semaine sur 30 j affichés) fausse tout.
+function _agEcart(a){ if(!(DATA.hasPayroll&&a.tot.joursPaie>0))return null; return a.tot.paieH-((a.tot.presPaieSec||0)/3600); }
 function renderSynthese(){
   const ags=DATA.agents.slice();
   if(SORT.k){ ags.sort((x,y)=>{ const va=synVal(x,SORT.k),vb=synVal(y,SORT.k); return (va<vb?-1:va>vb?1:0)*SORT.dir; }); }
   let h='<div class="tblwrap"><table class="full"><thead><tr>'
-    +thS("Agent","nom","l")+thS("Jours actifs","jours")+thS("Présence","pres")+thS("Communication","comm")+thS("Evo (CU)","evocu")+thS("Appels","appels")
-    +(DATA.hasPayroll?thS("H prod paie","paie")+thS("Écart total","ecart"):'')+'</tr></thead><tbody>';
+    +thS("Agent","nom","l")+thS("Jours actifs","jours")+thS("Présence","pres")+thS("Communication","comm")+thS("CU Evo","evocu")+thS("Appels INO","appels")
+    +(DATA.hasPayroll?thS("H prod paie","paie")+thS("Écart total","ecart")+thS("Écart / jour","ecartj"):'')+thS("À vérifier","verif")+'</tr></thead><tbody>';
   ags.forEach(a=>{
-    const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec);
-    // Écart uniquement si l'agent a AU MOINS une saisie paie sur la période (sinon "–" :
-    // un agent sans saisie ne doit pas afficher un faux écart = −présence).
+    const pres=a.tot.presSec||0;
     const hasPaie=DATA.hasPayroll && a.tot.joursPaie>0;
-    const ec=ecartClass(hasPaie?a.tot.paieH:null, pres);
-    const appels=a.tot.nIn+a.tot.nOut+a.tot.evoCu;
-    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'
-      +'<td class="num">'+(a.tot.joursActifs||'<span class=miss>0</span>')+'</td>'
+    const ecTot=_agEcart(a);
+    // Coloration sur l'écart MOYEN PAR JOUR saisi (un biais normal de −1h/jour ne doit pas
+    // devenir rouge en cumulant 20 jours) ; le texte affiche le total.
+    const ecJ=(ecTot!=null&&a.tot.joursPaie>0)?ecTot/a.tot.joursPaie:null;
+    const ecCls=hasPaie?ecartClass(a.tot.paieH/a.tot.joursPaie,(a.tot.presPaieSec||0)/a.tot.joursPaie).cls:"ec na";
+    const nbVerif=Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;
+    const appels=a.tot.nIn+a.tot.nOut;
+    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+(a.grp?'<br><span style="font-size:9px;color:var(--dis)">'+esc(a.grp)+'</span>':'')+'</td>'
+      +'<td class="num">'+(a.tot.joursActifs||'<span class=miss>0</span>')+(a.tot.joursEchec?' <span title="'+a.tot.joursEchec+' jour(s) INO incomplet(s)" style="color:var(--orange)">⚠</span>':'')+'</td>'
       +'<td class="num">'+hms(pres)+'</td><td class="num">'+hms(a.tot.commSec)+'</td>'
       +'<td class="num">'+(a.tot.evoCu||'<span class=miss>–</span>')+'</td>'
       +'<td class="num">'+(appels?appels.toLocaleString("fr-FR"):'<span class=miss>–</span>')+'</td>'
-      +(DATA.hasPayroll?('<td class="num">'+(hasPaie?hDec(a.tot.paieH):'<span class=miss>–</span>')+'</td><td class="num"><span class="'+ec.cls+'">'+ec.txt+'</span></td>'):'')
+      +(DATA.hasPayroll?('<td class="num">'+(hasPaie?hDec(a.tot.paieH):'<span class=miss>–</span>')+'</td>'
+        +'<td class="num"><span class="'+ecCls+'">'+(ecTot!=null?((ecTot>=0?"+":"−")+hDec(Math.abs(ecTot)).replace("h","")+"h"):"–")+'</span>'+(hasPaie&&a.tot.joursPaie<a.tot.joursActifs?'<span style="font-size:9px;color:var(--dis)"> /'+a.tot.joursPaie+' j saisis</span>':'')+'</td>'
+        +'<td class="num">'+(ecJ!=null?((ecJ>=0?"+":"−")+hDec(Math.abs(ecJ)).replace("h","")+"h"):"–")+'</td>'):'')
+      +'<td class="num">'+(nbVerif?'<span class="fb verif">'+nbVerif+'</span>':'<span class=miss>0</span>')+'</td>'
       +'</tr>';
   });
   h+='</tbody></table></div>';
   $("#content").innerHTML=h;
 }
-function synVal(a,k){ const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec); switch(k){case "nom":return a.nom.toLowerCase();case "jours":return a.tot.joursActifs;case "pres":return pres;case "comm":return a.tot.commSec;case "evocu":return a.tot.evoCu;case "appels":return a.tot.nIn+a.tot.nOut+a.tot.evoCu;case "paie":return a.tot.paieH;case "ecart":return a.tot.paieH-(pres/3600);default:return 0;} }
-function thS(lbl,k,cls){ const ar=SORT.k===k?(SORT.dir>0?" ▲":" ▼"):""; return '<th class="'+(cls||"")+'" onclick="sortSyn(\''+k+'\')">'+lbl+ar+'</th>'; }
+function synVal(a,k){ const pres=a.tot.presSec||0; switch(k){case "nom":return a.nom.toLowerCase();case "jours":return a.tot.joursActifs;case "pres":return pres;case "comm":return a.tot.commSec;case "evocu":return a.tot.evoCu;case "appels":return a.tot.nIn+a.tot.nOut;case "paie":return a.tot.paieH;case "ecart":{const e=_agEcart(a);return e==null?-1e9:e;}case "ecartj":{const e=_agEcart(a);return (e==null||!a.tot.joursPaie)?-1e9:e/a.tot.joursPaie;}case "verif":return Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;default:return 0;} }
+function thS(lbl,k,cls){ const ar=SORT.k===k?(SORT.dir>0?" ▲":" ▼"):' <span style="color:var(--dis);font-weight:400">↕</span>'; return '<th class="sortable '+(cls||"")+'" tabindex="0" role="button" onclick="sortSyn(\''+k+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();sortSyn(\''+k+'\')}">'+lbl+ar+'</th>'; }
 function sortSyn(k){ if(SORT.k===k)SORT.dir*=-1; else {SORT.k=k;SORT.dir=1;} render(); }
 
 function renderGrille(){
@@ -299,18 +411,20 @@ function _grilleTable(){
       if(!day){ cells+='<td><span class="c g-none">·</span></td>'; return; }
       const pres=presentSec(day); totPres+=pres;
       if(!pres && day.paieH==null){ cells+='<td><span class="c g-none">·</span></td>'; return; }
+      // Mêmes seuils asymétriques que la pastille écart (ecartClass) — une seule sémantique.
       let cls="g-pres";
       if(DATA.hasPayroll && day.paieH!=null){
-        const ec=Math.abs(day.paieH-(pres/3600));
-        if(day.paieH>0&&pres===0)cls="g-bad";
-        else if(ec>2)cls="g-bad"; else if(ec>1)cls="g-mid"; else cls="g-ok";
+        const e=ecartClass(day.paieH,pres,{echec:day.echec});
+        cls=e.cls.includes("bad")?"g-bad":e.cls.includes("mid")?"g-mid":e.cls.includes("unk")?"g-none":"g-ok";
       }
-      const val=pres?(Math.round(pres/360)/10).toString().replace(".",","):"–";
-      cells+='<td><span class="c '+cls+'" title="'+jourLabel(d)+' — présence '+hms(pres)+(day.paieH!=null?' · paie '+hDec(day.paieH):'')+'">'+val+'</span></td>';
+      // Cellule et Total à la MÊME précision (1 décimale) pour que la somme visuelle retombe juste.
+      const v10=Math.round(pres/360)/10;
+      const val=pres?(pres<360?"<0,1":v10.toString().replace(".",",")):"–";
+      cells+='<td><span class="c '+cls+'" title="'+jourLabel(d)+' — présence '+hms(pres)+(day.paieH!=null?' · paie '+hDec(day.paieH):'')+(day.echec?' · ⚠ INO incomplet':'')+'">'+val+'</span></td>';
     });
-    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'+cells+'<td class="num tot-col">'+hDec(totPres/3600)+'</td></tr>';
+    h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+'</td>'+cells+'<td class="num tot-col">'+(Math.round(totPres/360)/10).toString().replace(".",",")+'h</td></tr>';
   });
-  h+='</tbody></table></div><div class="sub">Chaque case = heures de présence (INO/Evo). Couleur = écart vs saisie paie : <b style="color:var(--green)">vert &lt;1h</b>, <b style="color:var(--orange)">orange 1–2h</b>, <b style="color:var(--red)">rouge &gt;2h ou saisie sans activité</b>, <b style="color:var(--blue)">bleu = présence sans saisie importée</b>.</div>';
+  h+='</tbody></table></div>';
   return h;
 }
 
@@ -333,12 +447,15 @@ function exportCsv(){
   if(!DATA)return;
   let rows=[];
   if(VIEW==="synthese"){
-    rows.push(["Agent","Jours actifs","Présence (h)","Communication (h)","Evo CU","Appels","H prod paie","Écart (h)"]);
-    DATA.agents.forEach(a=>{ const pres=Math.max(a.tot.ampliSec,a.tot.evoConnSec); const hasPaie=DATA.hasPayroll&&a.tot.joursPaie>0; rows.push([a.nom,a.tot.joursActifs,r2(pres/3600),r2(a.tot.commSec/3600),a.tot.evoCu,a.tot.nIn+a.tot.nOut+a.tot.evoCu, hasPaie?r2(a.tot.paieH):"", hasPaie?r2(a.tot.paieH-pres/3600):""]); });
+    rows.push(["Agent","Pôle","Jours actifs","Présence (h)","Communication (h)","CU Evo","Appels INO","H prod paie","Jours saisis","Écart total (h)","Écart moyen/jour (h)","Jours à vérifier","Jours INO incomplets"]);
+    DATA.agents.forEach(a=>{ const pres=a.tot.presSec||0; const hasPaie=DATA.hasPayroll&&a.tot.joursPaie>0; const ec=_agEcart(a);
+      const nbV=Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;
+      rows.push([a.nom,a.grp||"",a.tot.joursActifs,r2(pres/3600),r2(a.tot.commSec/3600),a.tot.evoCu,a.tot.nIn+a.tot.nOut, hasPaie?r2(a.tot.paieH):"", a.tot.joursPaie||0, ec!=null?r2(ec):"", (ec!=null&&a.tot.joursPaie)?r2(ec/a.tot.joursPaie):"", nbV, a.tot.joursEchec||0]); });
   } else {
-    rows.push(["Agent","Jour","Date","1ère cnx","Dernière act.","Présence (h)","Communication (h)","Appels INO in","Appels INO out","Evo CU","Total appels","H prod paie","Écart (h)","Absence"]);
+    rows.push(["Agent","Pôle","Jour","Date","1er appel","Dernier appel","Amplitude INO (h)","Session Evo (h)","Présence retenue (h)","Source présence","Communication (h)","Appels INO in","Appels INO out","CU Evo","H prod paie","Écart (h)","Fiabilité","INO incomplet","Absence"]);
     DATA.agents.forEach(a=>DATA.jours.forEach(d=>{ const day=a.byDay[d]; if(!day)return; const pres=presentSec(day); if(!pres&&!day.nIn&&!day.nOut&&!day.evoCu&&day.paieH==null)return;
-      rows.push([a.nom,JOURS[new Date(d+"T12:00:00").getDay()],d,parisHM(day.firstMs),parisHM(day.lastMs),r2(pres/3600),r2(day.commSec/3600),day.nIn||0,day.nOut||0,day.evoCu||0,(day.nIn||0)+(day.nOut||0)+(day.evoCu||0), day.paieH!=null?r2(day.paieH):"", day.paieH!=null?r2(day.paieH-pres/3600):"", day.paieMotif||""]); }));
+      const src=(day.evoConnSec||0)>(day.ampliSec||0)?"Evo (session)":"INO (amplitude)";
+      rows.push([a.nom,a.grp||"",JOURS[new Date(d+"T12:00:00").getDay()],d,parisHM(day.firstMs),parisHM(day.lastMs),r2((day.ampliSec||0)/3600),r2((day.evoConnSec||0)/3600),r2(pres/3600),src,r2(day.commSec/3600),day.nIn||0,day.nOut||0,day.evoCu||0, day.paieH!=null?r2(day.paieH):"", (day.paieH!=null&&!day.echec)?r2(day.paieH-pres/3600):"", day.fiab||"", day.echec?"oui":"", day.paieMotif||""]); }));
   }
   const csv=rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(";")).join("\r\n");
   const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
