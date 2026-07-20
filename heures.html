@@ -95,10 +95,11 @@ body.dark .ec.bad{background:#2e1210;border-color:#5a2420}
 .fb{display:inline-block;min-width:20px;text-align:center;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:800}
 .fb.haute{background:#e3f5e9;color:var(--green)}
 .fb.normale{background:var(--s3);color:var(--mut)}
-.fb.verif{background:#fbe2e0;color:var(--red)}
+.fb.verif{background:#fdf0dc;color:var(--orange)}
+.fb.erreur{background:var(--red);color:#fff}
 .fb.echec{background:var(--s3);color:var(--mut);border:1px dashed var(--bd)}
 body.dark .fb.haute{background:#0e2a16}
-body.dark .fb.verif{background:#2e1210}
+body.dark .fb.verif{background:#2e2200}
 .warnbar{background:#fbe9e7;border:1px solid #f2b8b3;color:#8a2019;border-radius:8px;padding:8px 12px;font-size:11.5px;margin-bottom:10px}
 body.dark .warnbar{background:#2e1210;border-color:#5a2420;color:#ff9d95}
 /* Grille calendrier — colonnes jours étroites, largeur au contenu (pas d'étalement) */
@@ -215,7 +216,7 @@ sup{font-size:8px;font-weight:800}
         <tr><td>Comm.</td><td>Temps de communication cumulé (talk).</td></tr>
         <tr><td>Appels INO · CU Evo</td><td>Entrants/sortants INO · Contacts argumentés Evo (mesurable).</td></tr>
         <tr><td>Écart</td><td>H prod paie − présence. <b>−1h ≈ normal</b> (déjeuner). Rouge = payé &gt; présent ou saisie sans activité.</td></tr>
-        <tr><td>Fiab.</td><td><b>✓ fiable</b> (2 sources concordent) · <b>ok</b> · <b>⚠ vérifier</b> (anomalie) · <b>? INO</b> (données incomplètes).</td></tr>
+        <tr><td>Fiab.</td><td><b>✓ fiable</b> (2 sources concordent) · <b>ok</b> · <b>⚠ vérifier</b> (gros écart) · <b>✖ erreur</b> = <b>double contrôle</b> : payé mais 0 acte (0 appel géré, 0 CU, 0 accord) · <b>? INO</b> (données incomplètes).</td></tr>
       </tbody></table>
     </div>
   </details>
@@ -257,8 +258,8 @@ function ecartClass(paieH, presSec, opts){
   const sign=ecH>=0?"+":"−";
   return {cls:"ec "+cls, txt:sign+hDec(Math.abs(ecH)).replace("h","")+"h", raw:ecH};
 }
-function fbPill(f){ const lbl={haute:"✓ fiable",normale:"ok",verif:"⚠ vérifier",echec:"? INO"}[f]||"–";
-  const tt={haute:"Deux sources concordent ou paie ≈ présence",normale:"Une seule source, rien d'anormal",verif:"Anomalie : saisie sans présence, gros écart ou amplitude aberrante",echec:"Données INO incomplètes ce jour"}[f]||"";
+function fbPill(f){ const lbl={haute:"✓ fiable",normale:"ok",verif:"⚠ vérifier",erreur:"✖ erreur",echec:"? INO"}[f]||"–";
+  const tt={haute:"Deux sources concordent ou paie ≈ présence",normale:"Une seule source, rien d'anormal",verif:"À vérifier : gros écart ou amplitude aberrante",erreur:"ERREUR — heures payées mais AUCUN acte (0 appel géré, 0 CU, 0 accord)",echec:"Données INO incomplètes ce jour"}[f]||"";
   return '<span class="fb '+(f||"normale")+'" title="'+tt+'">'+lbl+'</span>'; }
 // ── presets (l'actif reste marqué ; une saisie manuelle de date le dé-marque) ──
 function setRange(d1,d2){ $("#d1").value=d1; $("#d2").value=d2; }
@@ -331,6 +332,12 @@ async function load(){
       const shown=noms.slice(0,12).join(", ")+(noms.length>12?" … +"+(noms.length-12)+" autres":"");
       al+='<div class="warnbar" title="'+esc(noms.join(", "))+'"><b>'+j.nbPaieOrphelines+' ligne(s) paie sans agent rapproché</b> (personnel hors INO/Evo ou nom non reconnu — non comptées dans les écarts) : '+esc(shown)+'</div>';
     }
+    // Double contrôle : agents payés SANS aucun acte (0 appel géré, 0 CU, 0 accord) = erreur à contrôler
+    const errAg=[];
+    (j.agents||[]).forEach(a=>{ const js=Object.entries(a.byDay||{}).filter(([d,x])=>x.fiab==="erreur").map(([d])=>d.slice(8,10)+"/"+d.slice(5,7)); if(js.length)errAg.push(a.nom+" ("+js.join(", ")+")"); });
+    if(errAg.length){
+      al+='<div class="warnbar" style="background:#fbe2e0;border-color:#f2b8b3"><b>✖ '+errAg.length+' agent(s) payés sans aucun acte</b> (0 appel géré, 0 CU, 0 accord) — <b>double contrôle requis</b> : '+esc(errAg.slice(0,15).join(" · "))+(errAg.length>15?" …":"")+'</div>';
+    }
     $("#alerts").innerHTML=al;
     render();
   }catch(e){ $("#status").innerHTML='<span style="color:var(--red)">Erreur réseau : '+e.message+'</span>'; }
@@ -341,6 +348,7 @@ function kpiRow(){
   if(!DATA)return "";
   let presTot=0,commTot=0,paieTot=0,appels=0,cuTot=0,nAgents=DATA.agents.length,actifs=0;
   let fbTot=0,fbOk=0;
+  let nbErr=0;
   DATA.agents.forEach(a=>{
     presTot+=(a.tot.presSec||0); commTot+=a.tot.commSec; paieTot+=a.tot.paieH;
     appels+=a.tot.nIn+a.tot.nOut; cuTot+=a.tot.evoCu;
@@ -348,6 +356,7 @@ function kpiRow(){
     Object.values(a.byDay||{}).forEach(day=>{
       if(!(day.ampliSec||day.evoConnSec||day.nIn||day.nOut||day.evoCu||day.paieH!=null))return;
       fbTot++; if(day.fiab==="haute"||day.fiab==="normale")fbOk++;
+      if(day.fiab==="erreur")nbErr++;
     });
   });
   const fiabPct=fbTot?Math.round(fbOk/fbTot*100):null;
@@ -357,6 +366,7 @@ function kpiRow(){
     +k(hDec(presTot/3600),"Présence (INO/Evo)")+k(hDec(commTot/3600),"Communication")
     +(DATA.hasPayroll?k(hDec(paieTot),"Total H prod paie"):"")
     +k(appels.toLocaleString("fr-FR"),"Appels INO")+(cuTot?k(cuTot.toLocaleString("fr-FR"),"CU Evo"):"")
+    +(DATA.hasPayroll?k(nbErr,"Payés sans acte",nbErr>0?"var(--red)":"var(--green)"):"")
     +(fiabPct!=null?k(fiabPct+"%","Fiabilité données",fiabCol):"");
 }
 
@@ -383,7 +393,7 @@ function renderLegend(){
     L.push('<span><span class="ec unk">?</span> données INO incomplètes ce jour</span>');
     L.push('<span><span class="ec na">–</span> pas de saisie paie</span>');
   }
-  if(VIEW==="registre")L.push('<span>'+fbPill("haute")+' / '+fbPill("verif")+' fiabilité de la ligne</span>');
+  if(VIEW==="registre"||VIEW==="synthese")L.push('<span>'+fbPill("haute")+' '+fbPill("verif")+' '+fbPill("erreur")+' = payé mais 0 acte (0 appel/CU/accord)</span>');
   $("#legend").innerHTML=L.join("");
 }
 
@@ -449,7 +459,7 @@ function renderSynthese(){
   if(SORT.k){ ags.sort((x,y)=>{ const va=synVal(x,SORT.k),vb=synVal(y,SORT.k); return (va<vb?-1:va>vb?1:0)*SORT.dir; }); }
   let h='<div class="tblwrap"><table class="full"><thead><tr>'
     +thS("Agent","nom","l")+thS("Jours actifs","jours")+thS("Présence","pres")+thS("Communication","comm")+thS("CU Evo","evocu")+thS("Appels INO","appels")
-    +(DATA.hasPayroll?thS("H prod paie","paie")+thS("Écart total","ecart")+thS("Écart / jour","ecartj"):'')+thS("À vérifier","verif")+'</tr></thead><tbody>';
+    +(DATA.hasPayroll?thS("H prod paie","paie")+thS("Écart total","ecart")+thS("Écart / jour","ecartj")+thS("Payés s/ acte","erreur"):'')+thS("À vérifier","verif")+'</tr></thead><tbody>';
   ags.forEach(a=>{
     const pres=a.tot.presSec||0;
     const hasPaie=DATA.hasPayroll && a.tot.joursPaie>0;
@@ -458,6 +468,7 @@ function renderSynthese(){
     // devenir rouge en cumulant 20 jours) ; le texte affiche le total.
     const ecJ=(ecTot!=null&&a.tot.joursPaie>0)?ecTot/a.tot.joursPaie:null;
     const ecCls=hasPaie?ecartClass(a.tot.paieH/a.tot.joursPaie,(a.tot.presPaieSec||0)/a.tot.joursPaie).cls:"ec na";
+    const nbErr=Object.values(a.byDay||{}).filter(d=>d.fiab==="erreur").length;
     const nbVerif=Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;
     const appels=a.tot.nIn+a.tot.nOut;
     h+='<tr class="zebra"><td class="agent l">'+esc(a.nom)+(a.grp?'<br><span style="font-size:9px;color:var(--dis)">'+esc(a.grp)+'</span>':'')+'</td>'
@@ -467,14 +478,15 @@ function renderSynthese(){
       +'<td class="num">'+(appels?appels.toLocaleString("fr-FR"):'<span class=miss>–</span>')+'</td>'
       +(DATA.hasPayroll?('<td class="num">'+(hasPaie?hDec(a.tot.paieH):'<span class=miss>–</span>')+'</td>'
         +'<td class="num"><span class="'+ecCls+'">'+(ecTot!=null?((ecTot>=0?"+":"−")+hDec(Math.abs(ecTot)).replace("h","")+"h"):"–")+'</span>'+(hasPaie&&a.tot.joursPaie<a.tot.joursActifs?'<span style="font-size:9px;color:var(--dis)"> /'+a.tot.joursPaie+' j saisis</span>':'')+'</td>'
-        +'<td class="num">'+(ecJ!=null?((ecJ>=0?"+":"−")+hDec(Math.abs(ecJ)).replace("h","")+"h"):"–")+'</td>'):'')
+        +'<td class="num">'+(ecJ!=null?((ecJ>=0?"+":"−")+hDec(Math.abs(ecJ)).replace("h","")+"h"):"–")+'</td>'
+        +'<td class="num">'+(nbErr?'<span class="fb erreur">'+nbErr+'</span>':'<span class=miss>0</span>')+'</td>'):'')
       +'<td class="num">'+(nbVerif?'<span class="fb verif">'+nbVerif+'</span>':'<span class=miss>0</span>')+'</td>'
       +'</tr>';
   });
   h+='</tbody></table></div>';
   $("#content").innerHTML=h;
 }
-function synVal(a,k){ const pres=a.tot.presSec||0; switch(k){case "nom":return a.nom.toLowerCase();case "jours":return a.tot.joursActifs;case "pres":return pres;case "comm":return a.tot.commSec;case "evocu":return a.tot.evoCu;case "appels":return a.tot.nIn+a.tot.nOut;case "paie":return a.tot.paieH;case "ecart":{const e=_agEcart(a);return e==null?-1e9:e;}case "ecartj":{const e=_agEcart(a);return (e==null||!a.tot.joursPaie)?-1e9:e/a.tot.joursPaie;}case "verif":return Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;default:return 0;} }
+function synVal(a,k){ const pres=a.tot.presSec||0; switch(k){case "nom":return a.nom.toLowerCase();case "jours":return a.tot.joursActifs;case "pres":return pres;case "comm":return a.tot.commSec;case "evocu":return a.tot.evoCu;case "appels":return a.tot.nIn+a.tot.nOut;case "paie":return a.tot.paieH;case "ecart":{const e=_agEcart(a);return e==null?-1e9:e;}case "ecartj":{const e=_agEcart(a);return (e==null||!a.tot.joursPaie)?-1e9:e/a.tot.joursPaie;}case "erreur":return Object.values(a.byDay||{}).filter(d=>d.fiab==="erreur").length;case "verif":return Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;default:return 0;} }
 function thS(lbl,k,cls){ const ar=SORT.k===k?(SORT.dir>0?" ▲":" ▼"):' <span style="color:var(--dis);font-weight:400">↕</span>'; return '<th class="sortable '+(cls||"")+'" tabindex="0" role="button" onclick="sortSyn(\''+k+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();sortSyn(\''+k+'\')}">'+lbl+ar+'</th>'; }
 function sortSyn(k){ if(SORT.k===k)SORT.dir*=-1; else {SORT.k=k;SORT.dir=1;} render(); }
 

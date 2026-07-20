@@ -1837,7 +1837,12 @@ const server=http.createServer(async(req,res)=>{
             // "normale" sinon. Le front l'affiche telle quelle — calculée UNE fois ici.
             let fiab="normale";
             const paieH=pr?(pr.totalProd||0):null;
+            // DOUBLE CONTRÔLE (demande Tarik) : actes = appels gérés (in+out) + CU/accords Evo.
+            // Payé mais 0 acte (hors absence saisie) = ERREUR forte, pas un simple "à vérifier".
+            const actes=(a.nIn||0)+(a.nOut||0)+(evoCu||0);
+            const _abs=!!(pr&&pr.absence);
             if(dayEchec)fiab="echec";
+            else if(paieH!=null&&paieH>0&&!_abs&&actes===0)fiab="erreur";
             else if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
             else if(presSec>13*3600)fiab="verif";
             else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
@@ -1854,7 +1859,7 @@ const server=http.createServer(async(req,res)=>{
             } else if(_inoCnx){ cnxMs=_inoCnx; decoMs=a.lastMs||0; cnxSrc=_inoCnxSrc; }
             const day={
               firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec:a.ampliSec||0,commSec:a.commSec||0,
-              cnxMs,decoMs,cnxSrc,online,
+              cnxMs,decoMs,cnxSrc,online,actes,
               nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec,evoCu,echec:dayEchec,fiab,
               paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
             };
@@ -1885,10 +1890,13 @@ const server=http.createServer(async(req,res)=>{
             const pr=_hit?_hit.rec:null; if(_hit)_paieConsommee.add(_hit.key);
             const paieH=pr?(pr.totalProd||0):null;
             const presSec=ev.connSec||0;
+            const actes=ev.cu||0; // agent Evo-seul : actes = CU/accords
+            const _abs=!!(pr&&pr.absence);
             let fiab="haute"; // session Evo = mesure réelle
-            if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
+            if(paieH!=null&&paieH>0&&!_abs&&actes===0)fiab="erreur"; // payé, session mais 0 CU/accord
+            else if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
             else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
-            const day={firstMs:0,lastMs:0,ampliSec:0,commSec:0,cnxMs:ev.cnxMs||0,decoMs:ev.online?0:(ev.decoMs||0),cnxSrc:"E",online:!!ev.online,nIn:0,nOut:0,evoConnSec:presSec,evoCu:ev.cu||0,echec:false,fiab,
+            const day={firstMs:0,lastMs:0,ampliSec:0,commSec:0,cnxMs:ev.cnxMs||0,decoMs:ev.online?0:(ev.decoMs||0),cnxSrc:"E",online:!!ev.online,actes,nIn:0,nOut:0,evoConnSec:presSec,evoCu:ev.cu||0,echec:false,fiab,
               paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null};
             B.byDay[d]=day;
             B.tot.evoConnSec+=presSec;B.tot.presSec+=presSec;B.tot.evoCu+=(ev.cu||0);
