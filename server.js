@@ -314,8 +314,65 @@ function ccSkillsSave(){try{fs.writeFileSync(CC_SKILLS_FILE,JSON.stringify({at:_
 
 const INO_TIMEOUT_MS = 15000; // 15s max par appel INO
 
+// ── QUOTA API INO — suivi local + ARRÊT à 70 % (demande Tarik) ───────────────
+// Limites INO : 1000 requêtes/heure, 10000/jour (écran Quotas du gestionnaire de données).
+// Au-delà de 70 % on SUSPEND tout appel sortant INO jusqu'à la remise à zéro (top d'heure /
+// minuit Paris) — mieux vaut un dashboard en cache qu'un compte API bloqué par INO.
+// Les entêtes X-EKO-Left-Hour/Day, quand INO les renvoie, sont autoritaires (elles comptent
+// AUSSI les autres consommateurs du même compte API).
+const INO_QUOTA_HOUR=1000, INO_QUOTA_DAY=10000, INO_QUOTA_STOP=0.70;
+const _inoQuota={hourKey:"",hourCount:0,dayKey:"",dayCount:0,hdrLeftHour:null,hdrLeftDay:null,hdrAt:0,refused:0};
+const _parisHourFmtSrv=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+function _quotaTick(){
+  const now=new Date();
+  const hk=parisDateStr(now)+"T"+String(now.getUTCHours()); // clé de fenêtre : l'heure PLEINE (identique quel que soit le fuseau)
+  const dk=parisDateStr(now);
+  if(_inoQuota.hourKey!==hk){_inoQuota.hourKey=hk;_inoQuota.hourCount=0;}
+  if(_inoQuota.dayKey!==dk){_inoQuota.dayKey=dk;_inoQuota.dayCount=0;}
+}
+function inoQuotaUsedHour(){
+  _quotaTick();
+  let u=_inoQuota.hourCount;
+  if(_inoQuota.hdrLeftHour!=null&&(Date.now()-_inoQuota.hdrAt)<5*60*1000)u=Math.max(u,INO_QUOTA_HOUR-_inoQuota.hdrLeftHour);
+  return u;
+}
+function inoQuotaBlocked(){
+  _quotaTick();
+  return inoQuotaUsedHour()>=INO_QUOTA_HOUR*INO_QUOTA_STOP||_inoQuota.dayCount>=INO_QUOTA_DAY*INO_QUOTA_STOP;
+}
+function inoQuotaCount(headers){
+  _quotaTick();_inoQuota.hourCount++;_inoQuota.dayCount++;
+  try{
+    const lh=headers&&headers["x-eko-left-hour"], ld=headers&&headers["x-eko-left-day"];
+    if(lh!=null&&lh!==""){_inoQuota.hdrLeftHour=parseInt(lh,10);_inoQuota.hdrAt=Date.now();}
+    if(ld!=null&&ld!=="")_inoQuota.hdrLeftDay=parseInt(ld,10);
+  }catch(e){}
+}
+function inoQuotaState(){
+  _quotaTick();
+  const now=new Date();
+  const resetHour=new Date(now); resetHour.setMinutes(60,0,0); // prochain top d'heure (indépendant du fuseau)
+  const p=_parisHourFmtSrv.format(now).split(":").map(Number);
+  const resetDay=new Date(now.getTime()+(86400000-(p[0]*3600+p[1]*60+p[2])*1000)); // prochain minuit Paris
+  const usedHour=inoQuotaUsedHour();
+  const dayBlocked=_inoQuota.dayCount>=INO_QUOTA_DAY*INO_QUOTA_STOP;
+  const blocked=inoQuotaBlocked();
+  return {limitHour:INO_QUOTA_HOUR,usedHour,pctHour:Math.min(100,Math.round(usedHour/INO_QUOTA_HOUR*100)),
+    limitDay:INO_QUOTA_DAY,usedDay:_inoQuota.dayCount,pctDay:Math.min(100,Math.round(_inoQuota.dayCount/INO_QUOTA_DAY*100)),
+    stopPct:Math.round(INO_QUOTA_STOP*100),blocked,blockedBy:blocked?(dayBlocked?"jour":"heure"):null,
+    resetAt:(blocked&&dayBlocked)?resetDay.toISOString():resetHour.toISOString(),
+    refused:_inoQuota.refused,hdrLeftHour:_inoQuota.hdrLeftHour};
+}
+function _quotaRefuseError(){
+  _inoQuota.refused++;
+  const st=inoQuotaState();
+  const hh=new Date(st.resetAt).toLocaleTimeString("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",minute:"2-digit"});
+  return new Error("Quota INO "+st.pctHour+"% (seuil "+st.stopPct+"%) — appels suspendus, reprise à "+hh);
+}
+
 function apiReq(method,p,body,token,timeoutMs){
   return new Promise((resolve,reject)=>{
+    if(inoQuotaBlocked())return reject(_quotaRefuseError());
     const auth=token?("Bearer "+token):"Basic "+Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const data=body?JSON.stringify(body):null;
     const opts={hostname:"wisecom.unicity.io",path:"/api"+p,method,headers:{"Content-Type":"application/json","Authorization":auth,"X-EKO-Api-Key":INO_APIKEY,...(data?{"Content-Length":Buffer.byteLength(data)}:{})}};
@@ -327,7 +384,7 @@ function apiReq(method,p,body,token,timeoutMs){
       console.warn("[INO TIMEOUT] "+method+" "+p+" > "+ms+"ms — données partielles retournées");
       done(resolve,{_timeout:true,histories:[]});
     },ms);
-    const req=https.request(opts,r=>{let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,JSON.parse(buf));}catch{done(resolve,buf);}});});
+    const req=https.request(opts,r=>{inoQuotaCount(r.headers);let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,JSON.parse(buf));}catch{done(resolve,buf);}});});
     req.on("error",e=>{done(reject,e);});
     if(data)req.write(data);req.end();
   });
@@ -339,6 +396,7 @@ function apiReq(method,p,body,token,timeoutMs){
 // rafraîchissement des compétences gelé jusqu'au timeout de l'infrastructure en amont).
 function apiReqFull(method,p,body,token,timeoutMs){
   return new Promise((resolve,reject)=>{
+    if(inoQuotaBlocked())return reject(_quotaRefuseError());
     const auth=token?("Bearer "+token):"Basic "+Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const data=body?JSON.stringify(body):null;
     const opts={hostname:"wisecom.unicity.io",path:"/api"+p,method,headers:{"Content-Type":"application/json","Authorization":auth,"X-EKO-Api-Key":INO_APIKEY,...(data?{"Content-Length":Buffer.byteLength(data)}:{})}};
@@ -349,7 +407,7 @@ function apiReqFull(method,p,body,token,timeoutMs){
       console.warn("[INO TIMEOUT] "+method+" "+p+" > "+ms+"ms");
       done(resolve,{status:0,body:{_timeout:true}});
     },ms);
-    const req=https.request(opts,r=>{let buf="";const status=r.statusCode;r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,{status,body:JSON.parse(buf)});}catch{done(resolve,{status,body:buf});}});});
+    const req=https.request(opts,r=>{inoQuotaCount(r.headers);let buf="";const status=r.statusCode;r.on("data",c=>buf+=c);r.on("end",()=>{try{done(resolve,{status,body:JSON.parse(buf)});}catch{done(resolve,{status,body:buf});}});});
     req.on("error",e=>{done(reject,e);});
     if(data)req.write(data);req.end();
   });
@@ -646,10 +704,11 @@ function evoBuildPayload(rawCamp,rawAg,rawEstado,rawSqlStats,rawSqlFiles,campPro
 
 async function getToken(force){
   if(!force&&bToken&&Date.now()<bExp)return bToken;
+  if(inoQuotaBlocked()){console.warn("[quota] getToken refusé (seuil 70%)");return null;} // /auth compte aussi dans le quota
   try{
     const creds=Buffer.from(INO_LOGIN+":"+INO_PWD).toString("base64");
     const res=await new Promise((resolve,reject)=>{
-      const req=https.request({hostname:"wisecom.unicity.io",path:"/api/auth",method:"GET",headers:{"Authorization":"Basic "+creds}},r=>{let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve(JSON.parse(buf));}catch{resolve({});}});});
+      const req=https.request({hostname:"wisecom.unicity.io",path:"/api/auth",method:"GET",headers:{"Authorization":"Basic "+creds}},r=>{inoQuotaCount(r.headers);let buf="";r.on("data",c=>buf+=c);r.on("end",()=>{try{resolve(JSON.parse(buf));}catch{resolve({});}});});
       req.on("error",reject);req.end();
     });
     if(res.access_token){bToken=res.access_token;bExp=Date.now()+270000;console.log("["+new Date().toLocaleTimeString("fr-FR")+"] Token OK (force="+!!force+")");}
@@ -1219,9 +1278,15 @@ function evoHoursByName(d){
     const b=Number(s.firstBegin)||0;
     let e=Number(s.lastEnd)||0;
     // Session encore ouverte (jour courant) : borner à maintenant, jamais dans le futur.
-    if(s.online&&(!e||e<b))e=Date.now();
-    if(!out[key])out[key]={nom,connSec:0,cu:0};
-    if(b&&e>b)out[key].connSec+=Math.round((e-b)/1000);
+    const open=!!s.online&&(!e||e<b);
+    if(open)e=Date.now();
+    if(!out[key])out[key]={nom,connSec:0,cu:0,cnxMs:0,decoMs:0,online:false};
+    if(b&&e>b){
+      out[key].connSec+=Math.round((e-b)/1000);
+      // Cnx/déco RÉELLES de la journée : 1ère connexion / dernière déconnexion des sessions Evo.
+      out[key].cnxMs=out[key].cnxMs?Math.min(out[key].cnxMs,b):b;
+      if(open)out[key].online=true; else out[key].decoMs=Math.max(out[key].decoMs,e);
+    }
   });
   Object.entries(cuById).forEach(([id,cu])=>{
     const key=_normName(nameById[id]||""); if(!key||!cu)return;
@@ -1282,9 +1347,18 @@ async function computeHoursDay(d,force){
     if(!ags[id])ags[id]={id,nom:dd.nom,firstMs:0,lastMs:0,commSec:0,nIn:0,nOut:0,noActivite:true};
     else if(dd.nom)ags[id].nom=dd.nom;
     ags[id].grp=dd.group||null;
+    // lastLogin INO = heure de CONNEXION réelle, mais uniquement exploitable pour LE JOUR de ce
+    // login (elle est écrasée à chaque reconnexion). On ne la retient que si elle tombe le jour `d`.
+    const _ll=dd.lastLogin?Date.parse(dd.lastLogin):0;
+    if(_ll&&parisDateStr(new Date(_ll))===d)ags[id].loginMs=_ll;
   });
   Object.values(ags).forEach(A=>{
     A.ampliSec=(A.firstMs&&A.lastMs&&A.lastMs>A.firstMs)?Math.round((A.lastMs-A.firstMs)/1000):0;
+    // Connexion INO : login réel s'il existe pour ce jour, sinon 1er appel (approché).
+    // Déconnexion INO : dernier appel (approché — INO n'a pas de logout). cnxSrc : L=login, I=appel.
+    A.cnxIno=A.loginMs?Math.min(A.loginMs,A.firstMs||A.loginMs):(A.firstMs||0);
+    A.cnxInoSrc=A.loginMs?"L":(A.firstMs?"I":null);
+    A.decoIno=A.lastMs||0;
   });
   // NB : la partie Evo (connSec/CU) n'est PAS figée ici — elle est ré-attachée à chaque
   // agrégation /api/hours depuis l'historique Evo local (0 quota INO, re-backfillable).
@@ -1700,6 +1774,12 @@ const server=http.createServer(async(req,res)=>{
   // (N = agents visibles, ~5-15), JAMAIS les 55 → ne concurrence pas /agents-day sur la limite INO.
   // Statut du cache compétences /cc/* (public, léger) — fraîcheur + couverture. Sert au monitoring
   // et à forcer un rafraîchissement (?refresh=1) sans passer par le bouton par-agent.
+  // Jauge de quota API INO (public, 0 appel INO) : conso heure/jour, seuil d'arrêt, heure de RAZ.
+  if(url==="/api/ino/quota"){
+    res.writeHead(200,{"Content-Type":"application/json"});
+    res.end(JSON.stringify(Object.assign({ok:true},inoQuotaState())));
+    return;
+  }
   if(url.startsWith("/api/ino/skills-status")){
     const uu=new URL(req.url,"http://localhost");
     if(uu.searchParams.get("refresh")==="1"){ fetchAllCcSkills(true).catch(()=>{}); }
@@ -1762,8 +1842,19 @@ const server=http.createServer(async(req,res)=>{
             else if(presSec>13*3600)fiab="verif";
             else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
             else if((a.ampliSec>0&&evoConnSec>0&&Math.abs(a.ampliSec-evoConnSec)<3600)||(paieH!=null&&Math.abs(paieH-presSec/3600)<=1))fiab="haute";
+            // Connexion / déconnexion RETENUES : session Evo réelle prioritaire (src E), sinon login
+            // INO du jour (src L, jour courant seulement), sinon 1er/dernier appel INO (src I, approché).
+            // Dérivé de a.firstMs/a.lastMs (TOUJOURS dans le cache) → marche aussi pour les jours déjà
+            // figés avant l'ajout de cette fonctionnalité.
+            const _inoCnx=a.loginMs?Math.min(a.loginMs,a.firstMs||a.loginMs):(a.firstMs||0);
+            const _inoCnxSrc=a.loginMs?"L":(a.firstMs?"I":null);
+            let cnxMs=0,decoMs=0,cnxSrc=null,online=false;
+            if(ev&&ev.cnxMs){ cnxMs=ev.cnxMs; decoMs=ev.online?0:(ev.decoMs||0); cnxSrc="E"; online=!!ev.online;
+              if(_inoCnx){ if(_inoCnx<cnxMs)cnxMs=_inoCnx; if((a.lastMs||0)>decoMs&&!online)decoMs=a.lastMs; }
+            } else if(_inoCnx){ cnxMs=_inoCnx; decoMs=a.lastMs||0; cnxSrc=_inoCnxSrc; }
             const day={
               firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec:a.ampliSec||0,commSec:a.commSec||0,
+              cnxMs,decoMs,cnxSrc,online,
               nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec,evoCu,echec:dayEchec,fiab,
               paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
             };
@@ -1797,7 +1888,7 @@ const server=http.createServer(async(req,res)=>{
             let fiab="haute"; // session Evo = mesure réelle
             if(paieH!=null&&paieH>0&&presSec===0)fiab="verif";
             else if(paieH!=null&&Math.abs(paieH-presSec/3600)>2.5)fiab="verif";
-            const day={firstMs:0,lastMs:0,ampliSec:0,commSec:0,nIn:0,nOut:0,evoConnSec:presSec,evoCu:ev.cu||0,echec:false,fiab,
+            const day={firstMs:0,lastMs:0,ampliSec:0,commSec:0,cnxMs:ev.cnxMs||0,decoMs:ev.online?0:(ev.decoMs||0),cnxSrc:"E",online:!!ev.online,nIn:0,nOut:0,evoConnSec:presSec,evoCu:ev.cu||0,echec:false,fiab,
               paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null};
             B.byDay[d]=day;
             B.tot.evoConnSec+=presSec;B.tot.presSec+=presSec;B.tot.evoCu+=(ev.cu||0);

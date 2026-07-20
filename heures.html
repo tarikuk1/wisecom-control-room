@@ -128,6 +128,28 @@ body.dark .cal .c.g-pres{background:#132339}
 input[type=file]{display:none}
 .legend{display:flex;gap:16px;font-size:11px;color:var(--mut);flex-wrap:wrap;margin-top:10px;align-items:center}
 .legend span b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.12)}
+/* Jauge quota API INO */
+.quota{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--mut)}
+.quota .lbl{font-weight:700;white-space:nowrap}
+.quota .track{width:120px;height:9px;border-radius:6px;background:var(--s3);overflow:hidden;border:1px solid var(--bd)}
+.quota .fill{height:100%;background:var(--green);transition:width .4s,background .4s;border-radius:6px}
+.quota .fill.mid{background:var(--orange)} .quota .fill.hot{background:var(--red)}
+.quota .val{font-variant-numeric:tabular-nums;white-space:nowrap}
+.quota.blocked{color:var(--red);font-weight:700}
+sup{font-size:8px;font-weight:800}
+.src-E{color:var(--blue)} .src-L{color:var(--green)} .src-I{color:var(--dis)}
+/* Notice / aide */
+.help{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0;margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
+.help>summary{cursor:pointer;padding:11px 15px;font-weight:700;font-size:12.5px;list-style:none;display:flex;align-items:center;gap:8px}
+.help>summary::-webkit-details-marker{display:none}
+.help>summary::before{content:"▸";color:var(--pink);transition:transform .15s}
+.help[open]>summary::before{transform:rotate(90deg)}
+.help-body{padding:4px 16px 15px;font-size:12px;line-height:1.6;color:var(--tx)}
+.help-body h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--pink);margin:12px 0 5px}
+.help-body table{width:auto;font-size:12px;white-space:normal}
+.help-body td{border:0;padding:2px 12px 2px 0;vertical-align:top;text-align:left}
+.help-body td:first-child{font-weight:700;white-space:nowrap;color:var(--tx)}
+.help-body b{color:var(--tx)}
 </style></head><body class="light">
 <div class="top">
   <div class="top-r1">
@@ -138,6 +160,11 @@ input[type=file]{display:none}
       <button data-v="grille">Grille calendrier</button>
     </div>
     <div class="sp"></div>
+    <div class="quota" id="quota" title="Consommation de l'API INO — arrêt automatique à 70 %">
+      <span class="lbl">Quota INO</span>
+      <div class="track"><div class="fill" id="quota-fill" style="width:0%"></div></div>
+      <span class="val" id="quota-val">…</span>
+    </div>
     <a href="/" class="btn-nav">← Dashboard</a>
     <button id="theme" class="icon-btn" title="Basculer clair / sombre" aria-label="Basculer le thème clair ou sombre">🌙</button>
   </div>
@@ -166,9 +193,35 @@ input[type=file]{display:none}
   <div class="bar">
     <span id="status" aria-live="polite">Prêt.</span>
   </div>
+  <details class="help" id="help">
+    <summary>❓ Comment lire ce module — définition des boutons et des colonnes</summary>
+    <div class="help-body">
+      <h4>À quoi ça sert</h4>
+      Contrôler les <b>heures réelles</b> (téléphonie INO entrante + Evo sortant) de <b>100 % des agents</b>, jour par jour, et les comparer à la <b>saisie paie</b> importée (Total H prod). L'objectif est de <b>repérer les incohérences</b> (agent payé sans activité, écart anormal), pas de mesurer la paie à la minute.
+      <h4>Boutons d'en-tête</h4>
+      <table><tbody>
+        <tr><td>Registre / Synthèse / Grille</td><td>3 vues des mêmes données : détail <b>agent×jour</b> · <b>totaux</b> par agent · <b>calendrier</b> couleur.</td></tr>
+        <tr><td>Aujourd'hui · 7j · 14j · 30j · Mois-1</td><td>Raccourcis de période (max <b>31 jours</b> — protection du quota INO).</td></tr>
+        <tr><td>Du … au … · Charger</td><td>Période libre puis chargement. Les jours passés sont <b>déjà sauvegardés</b> : ils ne re-téléchargent pas INO. Seul <b>aujourd'hui</b> est live (rafraîchi au max toutes les 10 min).</td></tr>
+        <tr><td>Import paie</td><td>Charger l'export du logiciel de paye (.xlsx ou .csv). Colonnes reconnues : Nom Prénom, Date, Total Prod, Durée plage, Absence, Motif.</td></tr>
+        <tr><td>Export CSV</td><td>Télécharge la vue courante (s'ouvre dans Excel), avec les colonnes sources séparées.</td></tr>
+        <tr><td>Quota INO</td><td>Consommation live de l'API (limite 1000/h). <b>Au-delà de 70 % les appels sont suspendus</b> ; l'heure de remise à zéro est affichée. Le cache continue de servir.</td></tr>
+      </tbody></table>
+      <h4>Colonnes du registre</h4>
+      <table><tbody>
+        <tr><td>Connexion</td><td>Heure de <b>mise en production</b> : session Evo réelle <sup class="src-E">E</sup>, sinon login INO du jour <sup class="src-L">L</sup>, sinon 1ᵉʳ appel <sup class="src-I">I</sup> (approché).</td></tr>
+        <tr><td>Déconnexion</td><td>Fin de session Evo <sup class="src-E">E</sup> ou dernier appel INO <sup class="src-I">I</sup>. « — » = encore connecté.</td></tr>
+        <tr><td>Présence</td><td>max(amplitude 1ᵉʳ→dernier appel INO, session Evo). Exposant <sup class="src-E">E</sup> = mesure Evo (fiable).</td></tr>
+        <tr><td>Comm.</td><td>Temps de communication cumulé (talk).</td></tr>
+        <tr><td>Appels INO · CU Evo</td><td>Entrants/sortants INO · Contacts argumentés Evo (mesurable).</td></tr>
+        <tr><td>Écart</td><td>H prod paie − présence. <b>−1h ≈ normal</b> (déjeuner). Rouge = payé &gt; présent ou saisie sans activité.</td></tr>
+        <tr><td>Fiab.</td><td><b>✓ fiable</b> (2 sources concordent) · <b>ok</b> · <b>⚠ vérifier</b> (anomalie) · <b>? INO</b> (données incomplètes).</td></tr>
+      </tbody></table>
+    </div>
+  </details>
   <div class="note" id="src-note">
-    <b>Sources :</b> INO (appels — 1ᵉʳ/dernier appel, temps de communication, nb d'appels) · Evo (sessions réelles) · Paie (Total H prod importé).
-    ⚠️ INO n'expose <b>aucun historique de session</b> : le « temps présent » INO est <b>approché par l'amplitude 1ᵉʳ→dernier appel</b> (inclut pauses/déjeuner, exclut le login avant le 1ᵉʳ appel — l'écart attendu est donc <b>négatif d'environ 1h</b> sur une journée normale). Evo = sessions exactes. L'écart est un <b>détecteur d'incohérence</b>, pas une mesure paie à la minute.
+    <b>Sources :</b> INO (appels — connexion/1ᵉʳ appel, dernier appel, communication, nb d'appels) · Evo (sessions réelles = connexion/déconnexion exactes) · Paie (Total H prod importé).
+    ⚠️ Pour les agents INO, faute d'historique de session côté INO, la <b>présence est approchée par l'amplitude</b> 1ᵉʳ→dernier appel (inclut pauses/déjeuner) — l'écart attendu est donc <b>négatif d'environ 1h</b> sur une journée normale. La connexion INO utilise le <b>login réel</b> quand il est disponible <sup class="src-L">L</sup>. Evo = sessions exactes. L'écart est un <b>détecteur d'incohérence</b>.
   </div>
   <div id="alerts"></div>
   <div class="kpis" id="kpis"></div>
@@ -228,6 +281,27 @@ $("#load").onclick=load;
 $("#upload-btn").onclick=()=>$("#file").click();
 $("#file").onchange=uploadPayroll;
 $("#export").onclick=exportCsv;
+// ── Jauge quota INO (live, arrêt à 70 %) ──
+async function refreshQuota(){
+  try{
+    const r=await fetch("/api/ino/quota",{credentials:"same-origin"});
+    const q=await r.json(); if(!q.ok)return;
+    const fill=$("#quota-fill"), val=$("#quota-val"), box=$("#quota");
+    const pct=q.pctHour||0;
+    fill.style.width=Math.min(100,pct)+"%";
+    fill.className="fill"+(pct>=70?" hot":pct>=50?" mid":"");
+    const reset=q.resetAt?new Date(q.resetAt).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):"";
+    box.classList.toggle("blocked",!!q.blocked);
+    if(q.blocked){
+      val.innerHTML='⛔ '+pct+'% — <b>suspendu</b>, reprise '+reset;
+      box.title="Seuil "+q.stopPct+"% atteint ("+q.blockedBy+") — appels INO suspendus jusqu'à "+reset+". Le cache continue de servir.";
+    }else{
+      val.innerHTML=q.usedHour+' / '+q.limitHour+' <span style="color:var(--dis)">('+pct+'% · seuil '+q.stopPct+'% · RAZ '+reset+')</span>';
+      box.title="API INO : "+q.usedHour+"/"+q.limitHour+" cette heure. Arrêt auto à "+q.stopPct+"%. Remise à zéro à "+reset+".";
+    }
+  }catch(e){}
+}
+refreshQuota(); setInterval(refreshQuota,30000);
 // ── Thème : clair par défaut, persistant ──
 function applyTheme(t){ const dark=t==="dark"; document.body.classList.toggle("dark",dark); document.body.classList.toggle("light",!dark); const b=$("#theme"); if(b)b.textContent=dark?"☀️":"🌙"; }
 (function(){ let t="light"; try{t=localStorage.getItem("heures_theme")||"light";}catch(e){} applyTheme(t); })();
@@ -326,8 +400,8 @@ function renderRegistre(){
   });
   let h='<div class="tblwrap"><table class="full"><thead><tr>'
     +'<th class="l">Agent</th><th class="l">Jour</th>'
-    +'<th title="Premier appel INO du jour — pas un login (INO ne fournit pas les connexions)">1ᵉʳ appel</th>'
-    +'<th title="Fin du dernier appel INO du jour">Dern. appel</th>'
+    +'<th title="Heure de mise en production : session Evo (E), login INO du jour (L) ou 1ᵉʳ appel (I, approché)">Connexion</th>'
+    +'<th title="Fin de session Evo (E) ou dernier appel INO (I). — = encore connecté">Déconnexion</th>'
     +'<th title="max(amplitude 1ᵉʳ→dernier appel INO, session Evo réelle)">Présence</th><th>Comm.</th>'
     +'<th title="Appels entrants / sortants INO">Appels INO</th><th title="Contacts argumentés Evo (mesurable)">CU Evo</th><th>Actes</th>'
     +(DATA.hasPayroll?'<th>H prod paie</th><th>Écart</th>':'')+'<th>Fiab.</th></tr></thead><tbody>';
@@ -336,10 +410,12 @@ function renderRegistre(){
     const day=r.day, ec=ecartClass(day.paieH, r.pres, {echec:day.echec&&day.paieH!=null});
     const tot=(day.nIn||0)+(day.nOut||0)+(day.evoCu||0);
     const first=(r.a.id!==prevAgent); prevAgent=r.a.id;
+    const cnxSup=day.cnxSrc?' <sup class="src-'+day.cnxSrc+'" title="'+({E:"Session Evo réelle",L:"Login INO du jour",I:"1ᵉʳ appel (approché)"}[day.cnxSrc]||"")+'">'+day.cnxSrc+'</sup>':'';
+    const deco=day.online?'<span style="color:var(--green)" title="Encore connecté">● en ligne</span>':(day.decoMs?parisHM(day.decoMs):'<span class=miss>–</span>');
     h+='<tr class="zebra'+(isWknd(r.d)?' wknd':'')+(first?' agent-first':'')+'">'
       +'<td class="agent l'+(first?'':' agent-repeat')+'">'+(first?esc(r.a.nom):esc(r.a.nom))+'</td>'
       +'<td class="l day-h">'+jourLabel(r.d)+(day.echec?' <span title="Données INO incomplètes ce jour" style="color:var(--orange)">⚠</span>':'')+'</td>'
-      +'<td class="num">'+parisHM(day.firstMs)+'</td><td class="num">'+parisHM(day.lastMs)+'</td>'
+      +'<td class="num">'+(day.cnxMs?parisHM(day.cnxMs):'<span class=miss>–</span>')+cnxSup+'</td><td class="num">'+deco+'</td>'
       +'<td class="num" title="Amplitude INO '+hms(day.ampliSec)+' · Session Evo '+hms(day.evoConnSec)+'">'+hms(r.pres)+(day.evoConnSec>((day.ampliSec)||0)?' <sup style="color:var(--blue);font-weight:700">E</sup>':'')+'</td>'
       +'<td class="num">'+hms(day.commSec)+'</td>'
       +'<td class="num">'+(day.nIn||day.nOut?((day.nIn||0)+" / "+(day.nOut||0)):'<span class=miss>–</span>')+'</td>'
@@ -438,7 +514,7 @@ async function uploadPayroll(e){
     const r=await fetch("/api/hours/payroll",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:f.name,dataB64:b64})});
     const j=await r.json();
     if(!j.ok){ $("#status").innerHTML='<span style="color:var(--red)">Import échoué : '+esc(j.error||"?")+'</span>'; }
-    else { $("#status").innerHTML='<span style="color:var(--green)">✓ '+j.lignes+' ligne(s) paie importée(s) sur '+(j.dates?j.dates.length:0)+' date(s) : '+(j.dates||[]).join(", ")+'</span>'; load(); }
+    else { $("#status").innerHTML='<span style="color:var(--green)">✓ '+j.lignes+' ligne(s) paie ('+(j.agents||j.lignes)+' agent×jour) sur '+(j.dates?j.dates.length:0)+' date(s) : '+(j.dates||[]).join(", ")+'</span>'; load(); }
   }catch(err){ $("#status").innerHTML='<span style="color:var(--red)">Erreur : '+esc(err.message)+'</span>'; }
   e.target.value="";
 }
@@ -452,10 +528,11 @@ function exportCsv(){
       const nbV=Object.values(a.byDay||{}).filter(d=>d.fiab==="verif").length;
       rows.push([a.nom,a.grp||"",a.tot.joursActifs,r2(pres/3600),r2(a.tot.commSec/3600),a.tot.evoCu,a.tot.nIn+a.tot.nOut, hasPaie?r2(a.tot.paieH):"", a.tot.joursPaie||0, ec!=null?r2(ec):"", (ec!=null&&a.tot.joursPaie)?r2(ec/a.tot.joursPaie):"", nbV, a.tot.joursEchec||0]); });
   } else {
-    rows.push(["Agent","Pôle","Jour","Date","1er appel","Dernier appel","Amplitude INO (h)","Session Evo (h)","Présence retenue (h)","Source présence","Communication (h)","Appels INO in","Appels INO out","CU Evo","H prod paie","Écart (h)","Fiabilité","INO incomplet","Absence"]);
+    rows.push(["Agent","Pôle","Jour","Date","Connexion","Source cnx","Déconnexion","1er appel","Dernier appel","Amplitude INO (h)","Session Evo (h)","Présence retenue (h)","Source présence","Communication (h)","Appels INO in","Appels INO out","CU Evo","H prod paie","Écart (h)","Fiabilité","INO incomplet","Absence"]);
     DATA.agents.forEach(a=>DATA.jours.forEach(d=>{ const day=a.byDay[d]; if(!day)return; const pres=presentSec(day); if(!pres&&!day.nIn&&!day.nOut&&!day.evoCu&&day.paieH==null)return;
       const src=(day.evoConnSec||0)>(day.ampliSec||0)?"Evo (session)":"INO (amplitude)";
-      rows.push([a.nom,a.grp||"",JOURS[new Date(d+"T12:00:00").getDay()],d,parisHM(day.firstMs),parisHM(day.lastMs),r2((day.ampliSec||0)/3600),r2((day.evoConnSec||0)/3600),r2(pres/3600),src,r2(day.commSec/3600),day.nIn||0,day.nOut||0,day.evoCu||0, day.paieH!=null?r2(day.paieH):"", (day.paieH!=null&&!day.echec)?r2(day.paieH-pres/3600):"", day.fiab||"", day.echec?"oui":"", day.paieMotif||""]); }));
+      const srcCnx={E:"Evo session",L:"Login INO",I:"1er appel"}[day.cnxSrc]||"";
+      rows.push([a.nom,a.grp||"",JOURS[new Date(d+"T12:00:00").getDay()],d,day.cnxMs?parisHM(day.cnxMs):"",srcCnx,day.online?"en ligne":(day.decoMs?parisHM(day.decoMs):""),parisHM(day.firstMs),parisHM(day.lastMs),r2((day.ampliSec||0)/3600),r2((day.evoConnSec||0)/3600),r2(pres/3600),src,r2(day.commSec/3600),day.nIn||0,day.nOut||0,day.evoCu||0, day.paieH!=null?r2(day.paieH):"", (day.paieH!=null&&!day.echec)?r2(day.paieH-pres/3600):"", day.fiab||"", day.echec?"oui":"", day.paieMotif||""]); }));
   }
   const csv=rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(";")).join("\r\n");
   const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
