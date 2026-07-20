@@ -411,11 +411,22 @@ function renderRegistre(){
     const tot=(day.nIn||0)+(day.nOut||0)+(day.evoCu||0);
     const first=(r.a.id!==prevAgent); prevAgent=r.a.id;
     const cnxSup=day.cnxSrc?' <sup class="src-'+day.cnxSrc+'" title="'+({E:"Session Evo réelle",L:"Login INO du jour",I:"1ᵉʳ appel (approché)"}[day.cnxSrc]||"")+'">'+day.cnxSrc+'</sup>':'';
-    const deco=day.online?'<span style="color:var(--green)" title="Encore connecté">● en ligne</span>':(day.decoMs?parisHM(day.decoMs):'<span class=miss>–</span>');
+    // Connexion : heure réelle si dispo ; sinon distinguer ABSENT (motif paie) d'une ANOMALIE
+    // (payé mais aucune trace INO/Evo), au lieu d'un « – » ambigu.
+    let cnxCell;
+    if(day.cnxMs) cnxCell=parisHM(day.cnxMs)+cnxSup;
+    else if(day.paieAbs) cnxCell='<span class="miss" title="Absence saisie en paie — pas de connexion attendue">Absent</span>';
+    else if(day.paieH!=null && day.paieH>0) cnxCell='<span style="color:var(--red)" title="Heures payées mais AUCUNE connexion INO/Evo ce jour — à vérifier. (INO ne conserve pas le login d\'un agent resté sans appel sur un jour passé.)">⚠ aucune</span>';
+    else cnxCell='<span class="miss">–</span>';
+    let decoCell;
+    if(day.online) decoCell='<span style="color:var(--green)" title="Encore connecté">● en ligne</span>';
+    else if(day.decoMs) decoCell=parisHM(day.decoMs);
+    else if(day.cnxMs) decoCell='<span class=miss title="Connexion connue, déconnexion non enregistrée">n.d.</span>';
+    else decoCell='<span class=miss>–</span>';
     h+='<tr class="zebra'+(isWknd(r.d)?' wknd':'')+(first?' agent-first':'')+'">'
       +'<td class="agent l'+(first?'':' agent-repeat')+'">'+(first?esc(r.a.nom):esc(r.a.nom))+'</td>'
       +'<td class="l day-h">'+jourLabel(r.d)+(day.echec?' <span title="Données INO incomplètes ce jour" style="color:var(--orange)">⚠</span>':'')+'</td>'
-      +'<td class="num">'+(day.cnxMs?parisHM(day.cnxMs):'<span class=miss>–</span>')+cnxSup+'</td><td class="num">'+deco+'</td>'
+      +'<td class="num">'+cnxCell+'</td><td class="num">'+decoCell+'</td>'
       +'<td class="num" title="Amplitude INO '+hms(day.ampliSec)+' · Session Evo '+hms(day.evoConnSec)+'">'+hms(r.pres)+(day.evoConnSec>((day.ampliSec)||0)?' <sup style="color:var(--blue);font-weight:700">E</sup>':'')+'</td>'
       +'<td class="num">'+hms(day.commSec)+'</td>'
       +'<td class="num">'+(day.nIn||day.nOut?((day.nIn||0)+" / "+(day.nOut||0)):'<span class=miss>–</span>')+'</td>'
