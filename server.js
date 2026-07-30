@@ -1234,6 +1234,9 @@ try{
 }catch(e){}
 function hoursSaveDay(d,rec){try{if(/^\d{4}-\d{2}-\d{2}$/.test(d))fs.writeFileSync(path.join(HOURS_DIR,d+".json"),JSON.stringify(rec));}catch(e){}}
 function hoursLoadDay(d){try{const p=path.join(HOURS_DIR,d+".json");if(fs.existsSync(p))return JSON.parse(fs.readFileSync(p,"utf8"));}catch(e){}return null;}
+// Plafond dur des heures de présence/session par agent et par jour (règle Tarik : 9 h max).
+// Au-delà = artefact (session laissée ouverte, oubli de déconnexion) — jamais crédité en production.
+const HOURS_CAP_SEC=9*3600;
 // Nom normalisé pour rapprocher paie ↔ INO ↔ Evo (ordre & accents ignorés) : set de tokens triés.
 function _normName(s){return String(s||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>1).sort().join(" ");}
 // Tokens utiles d'un nom : retire le bruit des logins Evo (« Fazna Wisecom_Leadgen » → FAZNA).
@@ -1272,22 +1275,33 @@ function evoHoursByName(d){
     if(r.agentNom&&!nameById[id])nameById[id]=r.agentNom;
     cuById[id]=(cuById[id]||0)+(Number(r.cuPos)||0);
   });
-  (Array.isArray(src.sessions)?src.sessions:[]).forEach(s=>{
+  // Borne haute d'une session encore OUVERTE (online sans lastEnd). Bug corrigé : elle était
+  // bornée à Date.now() → sur un jour passé, +9 jours = « 219h ». Nouveau cap, du plus fiable
+  // au plus large : (1) jour courant → maintenant ; (2) jour passé → la dernière DÉCONNEXION
+  // réelle des autres sessions du jour (quand l'équipe s'est déloguée) ; (3) repli firstBegin+11h.
+  // Garde-fou dur : jamais > 24h.
+  const _isToday=(parisDateStr()===d);
+  const _sess=Array.isArray(src.sessions)?src.sessions:[];
+  let _maxClosedEnd=0;
+  _sess.forEach(s=>{ const e=Number(s.lastEnd)||0, b=Number(s.firstBegin)||0; if(e>b && !s.online)_maxClosedEnd=Math.max(_maxClosedEnd,e); });
+  _sess.forEach(s=>{
     const id=String(s.idAgente||""); const nom=nameById[id]||"";
     const key=_normName(nom); if(!key)return;
     const b=Number(s.firstBegin)||0;
     let e=Number(s.lastEnd)||0;
-    // Session encore ouverte (jour courant) : borner à maintenant, jamais dans le futur.
     const open=!!s.online&&(!e||e<b);
-    if(open)e=Date.now();
+    if(open)e=_isToday?Date.now():(_maxClosedEnd>b?_maxClosedEnd:b+11*3600*1000);
+    if(b&&e>b+24*3600*1000)e=b+24*3600*1000; // garde-fou : une session ne peut dépasser 24h
     if(!out[key])out[key]={nom,connSec:0,cu:0,cnxMs:0,decoMs:0,online:false};
     if(b&&e>b){
       out[key].connSec+=Math.round((e-b)/1000);
-      // Cnx/déco RÉELLES de la journée : 1ère connexion / dernière déconnexion des sessions Evo.
+      // Cnx/déco RÉELLES : 1ère connexion / dernière déconnexion des sessions Evo du jour.
       out[key].cnxMs=out[key].cnxMs?Math.min(out[key].cnxMs,b):b;
-      if(open)out[key].online=true; else out[key].decoMs=Math.max(out[key].decoMs,e);
+      if(open&&_isToday)out[key].online=true; else out[key].decoMs=Math.max(out[key].decoMs,e);
     }
   });
+  // Plafond 9h/jour (règle Tarik : durée de shift max) sur le cumul de session Evo par agent.
+  Object.values(out).forEach(o=>{ if(o.connSec>HOURS_CAP_SEC)o.connSec=HOURS_CAP_SEC; });
   Object.entries(cuById).forEach(([id,cu])=>{
     const key=_normName(nameById[id]||""); if(!key||!cu)return;
     if(!out[key])out[key]={nom:nameById[id],connSec:0,cu:0};
@@ -1830,7 +1844,9 @@ const server=http.createServer(async(req,res)=>{
             if(evo[key])_evoConsomme.add(key);
             const ev=evo[key]||null;
             const evoConnSec=ev?ev.connSec:0, evoCu=ev?ev.cu:0;
-            const presSec=Math.max(a.ampliSec||0,evoConnSec);
+            // Plafond 9h/jour (règle Tarik) sur l'amplitude INO ET la présence retenue.
+            const ampliSec=Math.min(HOURS_CAP_SEC,a.ampliSec||0);
+            const presSec=Math.min(HOURS_CAP_SEC,Math.max(ampliSec,evoConnSec));
             const actif=(a.nIn||a.nOut||evoCu||a.ampliSec||evoConnSec)?1:0;
             // Fiabilité de la ligne : "echec" (INO partiel), "haute" (2 sources concordantes ou
             // paie ≈ présence), "verif" (anomalie: paie sans présence, gros écart, ampli aberrante),
@@ -1858,7 +1874,7 @@ const server=http.createServer(async(req,res)=>{
               if(_inoCnx){ if(_inoCnx<cnxMs)cnxMs=_inoCnx; if((a.lastMs||0)>decoMs&&!online)decoMs=a.lastMs; }
             } else if(_inoCnx){ cnxMs=_inoCnx; decoMs=a.lastMs||0; cnxSrc=_inoCnxSrc; }
             const day={
-              firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec:a.ampliSec||0,commSec:a.commSec||0,
+              firstMs:a.firstMs||0,lastMs:a.lastMs||0,ampliSec,commSec:a.commSec||0,
               cnxMs,decoMs,cnxSrc,online,actes,
               nIn:a.nIn||0,nOut:a.nOut||0,evoConnSec,evoCu,echec:dayEchec,fiab,
               paieH,paiePlage:pr?(pr.plage||null):null,paieAbs:pr?(pr.absence||null):null,paieMotif:pr?(pr.motif||null):null
